@@ -1,4 +1,5 @@
 import type { BootstrapResponse, SessionResponse } from "@workspace/contracts";
+import type { MouseEventHandler } from "react";
 import { AccountManager } from "./manager.js";
 
 export type DashboardState =
@@ -10,7 +11,15 @@ export type DashboardState =
       readonly session: SessionResponse | null;
     };
 
-export function Dashboard({ state }: { readonly state: DashboardState }) {
+export function Dashboard({
+  state,
+  onSignIn,
+  signingIn = null,
+}: {
+  readonly state: DashboardState;
+  readonly onSignIn?: MouseEventHandler<HTMLButtonElement>;
+  readonly signingIn?: string | null;
+}) {
   return (
     <main className="shell">
       <header className="masthead">
@@ -62,9 +71,24 @@ export function Dashboard({ state }: { readonly state: DashboardState }) {
             public.
           </p>
           {state.bootstrap.providers.length ? (
-            <a className="primary" href="/api/auth/signin?callbackUrl=/">
-              Continue with Google <span aria-hidden="true">↗</span>
-            </a>
+            <div className="actions" role="group" aria-label="Sign-in options">
+              {state.bootstrap.providers.map((provider) => (
+                <button
+                  key={provider.id}
+                  type="button"
+                  className="primary"
+                  value={provider.id}
+                  onClick={onSignIn}
+                  disabled={signingIn !== null}
+                  aria-busy={signingIn === provider.id}
+                >
+                  {signingIn === provider.id
+                    ? `Connecting to ${provider.label}...`
+                    : `Continue with ${provider.label}`}
+                  <span aria-hidden="true">↗</span>
+                </button>
+              ))}
+            </div>
           ) : (
             <p className="muted">
               Google sign-in is not configured. Set Google credentials in{" "}

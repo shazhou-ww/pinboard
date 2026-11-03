@@ -14,10 +14,31 @@ describe("Pinboard interface", () => {
     );
     expect(html).toContain("Share by CID.");
     expect(html).toContain("Continue with Google");
-    expect(html).toContain('href="/api/auth/signin?callbackUrl=/"');
-    expect(html).not.toContain('href="/api/auth/signin/google');
+    expect(html).toContain('value="google"');
+    expect(html).not.toContain('href="/api/auth/signin');
     expect(html).not.toContain("GitHub");
     expect(html).toContain("Reading by CID is always public");
+  });
+  it("lists configured providers on the homepage and disables them during sign-in", () => {
+    const configured = {
+      ...bootstrap,
+      providers: [
+        ...bootstrap.providers,
+        { id: "github" as const, label: "GitHub" },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <Dashboard
+        state={{ kind: "ready", bootstrap: configured, session: null }}
+        signingIn="google"
+      />,
+    );
+    expect(html).toContain("Connecting to Google...");
+    expect(html).toContain("Continue with GitHub");
+    expect(html).toContain('value="github"');
+    expect(html).not.toContain("Microsoft");
+    expect(html.match(/disabled=""/g)).toHaveLength(2);
+    expect(html).toContain('aria-busy="true"');
   });
   it.each([
     { name: "Alice", email: "alice@example.test" },

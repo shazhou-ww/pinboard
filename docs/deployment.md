@@ -234,12 +234,16 @@ initial schema was independently verified before `release-261103-1`, whose
 deployment workflow completed successfully. Production acceptance is separate
 from a successful upload.
 
-The browser login entry uses `GET /api/auth/signin?callbackUrl=/`. Auth.js
-renders the Google form and submits a CSRF-protected
-`POST /api/auth/signin/google`. A direct provider `GET /api/auth/signin/google`
-is unsupported by the installed Auth.js version and must not be used as a login
-link. Regression tests cover the page, CSRF cookie and OAuth authorization
-redirect; a real Google round trip still requires the user's browser.
+The homepage lists only configured login providers. Its buttons use the existing
+`@hono/auth-js/react` sign-in client to obtain CSRF protection, POST to the
+provider's sign-in endpoint, and redirect directly to that provider without an
+intermediate Auth.js sign-in page. Only Google is enabled in the first version.
+
+`GET /api/auth/signin?callbackUrl=/` remains a native Auth.js fallback. A direct
+provider `GET /api/auth/signin/google` is unsupported and must not be used as a
+login link. Regression tests cover configured homepage options, the native form,
+CSRF cookie and OAuth authorization redirect; a real Google round trip still
+requires the user's browser.
 
 Before calling a release successful, verify:
 

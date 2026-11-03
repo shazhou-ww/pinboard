@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@hono/auth-js": "catalog:",
     "@fontsource-variable/instrument-sans": "catalog:",
     "@fontsource-variable/newsreader": "catalog:",
     "@workspace/contracts": "workspace:*",

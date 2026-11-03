@@ -1,5 +1,6 @@
 import type { BootstrapResponse, SessionResponse } from "@workspace/contracts";
-import { useEffect, useState } from "react";
+import { signIn } from "@hono/auth-js/react";
+import { useEffect, useState, type MouseEvent } from "react";
 
 import { Dashboard, SharePage, type DashboardState } from "./ui.js";
 
@@ -10,6 +11,20 @@ export function App() {
 
 function Home() {
   const [state, setState] = useState<DashboardState>({ kind: "loading" });
+  const [signingIn, setSigningIn] = useState<string | null>(null);
+
+  function handleSignIn(event: MouseEvent<HTMLButtonElement>) {
+    const provider = event.currentTarget.value;
+    setSigningIn(provider);
+    void signIn(provider, { callbackUrl: "/" })
+      .catch((error: unknown) => {
+        setState({
+          kind: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      })
+      .finally(() => setSigningIn(null));
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -38,7 +53,9 @@ function Home() {
     };
   }, []);
 
-  return <Dashboard state={state} />;
+  return (
+    <Dashboard state={state} onSignIn={handleSignIn} signingIn={signingIn} />
+  );
 }
 
 async function loadDashboard(signal: AbortSignal): Promise<{
