@@ -2,9 +2,8 @@ name: Deploy to Cloudflare
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - release-*
 
 permissions:
   contents: read
@@ -16,9 +15,6 @@ concurrency:
 jobs:
   deploy:
     name: Deploy production Worker
-    if: >-
-      github.event_name == 'workflow_dispatch' || vars.CLOUDFLARE_DEPLOY_ENABLED
-      == 'true'
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 15
@@ -27,7 +23,18 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Validate release tag and main ancestry
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node scripts/validate-release.mjs "$RELEASE_TAG"
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::Release tags must point to a commit already on main."
+            exit 1
+          fi
 
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -46,8 +53,41 @@ jobs:
       - name: Validate workspace
         run: pnpm check
 
-      - name: Deploy Worker and assets
-        run: pnpm --filter @workspace/worker deploy
+      - name: Migrate D1 and deploy Worker, assets and secrets
+        working-directory: apps/worker
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          secret_file="$(mktemp)"
+          trap 'rm -f "$secret_file"' EXIT
+          export PINBOARD_DEPLOY_SECRETS="$secret_file"
+          node --input-type=module <<'JS'
+          import { writeFileSync } from "node:fs";
+          import { unstable_readConfig } from "wrangler";
+
+          const names = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AUTH_SECRET", "AUTH_GOOGLE_ID", "AUTH_GOOGLE_SECRET"];
+          for (const name of names) {
+            if (!process.env[name]?.trim()) throw new Error(`Missing production secret: ${name}`);
+          }
+          if (!/^[a-f0-9]{32}$/i.test(process.env.CLOUDFLARE_ACCOUNT_ID)) {
+            throw new Error("CLOUDFLARE_ACCOUNT_ID must be the target account's 32-character ID");
+          }
+          if (process.env.AUTH_SECRET.length < 32) throw new Error("AUTH_SECRET must contain at least 32 characters");
+
+          const config = unstable_readConfig({ config: "wrangler.jsonc" });
+          const database = config.d1_databases.find((binding) => binding.binding === "DB");
+          if (!database || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(database.database_id ?? "") ||
+              database.database_id === "00000000-0000-0000-0000-000000000000") {
+            throw new Error("Configure the real production D1 database_id in wrangler.jsonc before releasing");
+          }
+          const secrets = Object.fromEntries(["AUTH_SECRET", "AUTH_GOOGLE_ID", "AUTH_GOOGLE_SECRET"].map((name) => [name, process.env[name]]));
+          secrets.AUTH_URL = `${config.vars.PUBLIC_ORIGIN}/api/auth`;
+          writeFileSync(process.env.PINBOARD_DEPLOY_SECRETS, JSON.stringify(secrets), { mode: 0o600 });
+          JS
+          pnpm exec wrangler d1 migrations apply pinboard --remote
+          pnpm exec wrangler deploy --config wrangler.jsonc --secrets-file "$secret_file" --tag "$RELEASE_TAG"

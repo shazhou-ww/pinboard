@@ -1,48 +1,111 @@
-# Deployment checklist
+# Tag-driven production deployment
 
-No push, remote resource creation, secret update, DNS change or deployment was
-performed during implementation. The commands below are instructions, not a
-record of completed operations. Run them only after explicit approval.
+Production deployment is driven by **`release-YYMMDD-INDEX` tags**, not npm
+semantic versions, GitHub Releases, or a release branch.
 
-## Missing configuration
+- A push to `main` runs CI only.
+- A tag such as `release-261103-1` runs the production deployment workflow.
+- `YYMMDD` is a valid calendar date in 2000-2099, chosen by the releaser; it
+  does not have to equal the runner's UTC date.
+- `INDEX` is a positive integer without leading zeros: `1`, `2`, `3`, etc.
+- The tagged commit must already be on `origin/main`.
+- A bare `release-*` match is not enough: invalid dates and tag formats fail
+  before any remote mutation.
+- There is no `workflow_dispatch` deployment or `CLOUDFLARE_DEPLOY_ENABLED`
+  switch. Normal branch pushes cannot deploy, regardless of old variable values.
 
-- Cloudflare account and a narrowly scoped API token for the exact target
-  Worker, R2 bucket and D1 database.
-- R2 bucket `pinboard-blocks`, D1 database `pinboard`, and its real database
-  UUID.
-- Google OAuth Web client ID/secret and callback configuration.
-- Random `AUTH_SECRET` and correct `AUTH_URL`.
-- Domain `pinboard.shazhou.work` attached as the Worker's custom domain, valid
-  TLS/HTTP2, and matching provider multiaddr.
+No release tag or production deployment is created by configuring this workflow.
 
-## 1. Provision and configure
+## 1. Provision production resources once
 
-From the Worker workspace, after confirming the intended Cloudflare account:
+The workflow expects these resources to exist in the intended Cloudflare
+account:
+
+- Worker `pinboard`.
+- Private R2 bucket `pinboard-blocks`.
+- D1 database `pinboard`.
+- Custom domain `pinboard.shazhou.work`, with valid TLS and HTTP/2.
+
+If needed, provision the bucket/database with an explicitly authorized bootstrap
+credential, not the long-lived least-privilege deployment token:
 
 ```powershell
 pnpm --filter @workspace/worker exec wrangler r2 bucket create pinboard-blocks
 pnpm --filter @workspace/worker exec wrangler d1 create pinboard
 ```
 
-Replace the placeholder `database_id` in
-[`wrangler.jsonc`](../apps/worker/wrangler.jsonc) with the returned UUID. Do not
-treat the all-zero placeholder as a working remote binding. R2 should remain
-private: public reads are mediated by the raw gateway, not an R2 website.
+Replace the all-zero `database_id` in
+[`wrangler.jsonc`](../apps/worker/wrangler.jsonc) with the real production
+database UUID **before** creating a release tag. The workflow rejects the
+placeholder before migration or deployment. Resource creation and custom-domain
+setup are not performed automatically.
 
-The Worker uses the template's pinned runtime and compatibility date
-`2026-10-14`. A local attempt with `2026-11-03` failed because the installed
-workerd supports dates only through `2026-10-19`; the template baseline was
-retained rather than silently upgrading it. Advance the date only alongside
-runtime support and regression tests.
+An existing Worker can be deployed with per-Worker Editor permissions; creating
+a new Worker instead requires product-level Workers Admin. Either bootstrap the
+Worker separately or deliberately authorize the broader first deployment, then
+reduce the CI token's permissions. Do not silently broaden the permanent token.
 
-Generate and check binding types after configuration changes:
+Keep the R2 bucket private; reads go through the trustless gateway, not an R2
+website. Attach the custom domain through Cloudflare's approved
+domain-management path. `PUBLIC_ORIGIN`, the domain and `PROVIDER_MULTIADDR`
+must agree.
+
+The pinned workerd does not support today's compatibility date. Keep the
+template's `2026-10-14` baseline until a separately validated runtime upgrade.
+After binding configuration changes:
 
 ```powershell
 pnpm --filter @workspace/worker types
 pnpm check
 ```
 
-## 2. Google and secrets
+## 2. Create a dedicated Cloudflare deployment token
+
+Use an account-owned API token if available, limited to the intended account. Do
+not use the global API key or send the token through chat.
+
+For ongoing deployments:
+
+| Permission                                                       | Why                                                                                            |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Workers **Editor**, scoped to `pinboard`                         | Deploy code/assets and update Worker secrets. The legacy equivalent is Workers Scripts / Edit. |
+| D1 query/migration write access, scoped as narrowly as supported | The workflow applies remote D1 migrations. In the legacy token UI this is D1 / Edit.           |
+
+Separate R2 data permissions are **not** required just to deploy a Worker with
+an existing R2 binding. Bucket creation or direct R2 administration is a
+bootstrap operation and requires its own permissions.
+
+Only add zone-level Workers Routes Write if automation will change Routes or
+Custom Domains. The current workflow does not manage those connections.
+Cloudflare currently documents additional limitations for per-Worker roles and
+Custom Domains; verify the token against your actual setup before releasing.
+
+References:
+[Workers permissions](https://developers.cloudflare.com/workers/authorization/workers/)
+and
+[API token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/).
+
+## 3. Configure GitHub's `production` Environment
+
+In the repository's **Settings → Environments**, create `production`. Store
+these **Environment secrets** there:
+
+| Name                    | Value                                                                  |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID` | Target Cloudflare account's 32-character ID                            |
+| `CLOUDFLARE_API_TOKEN`  | Dedicated deployment token                                             |
+| `AUTH_SECRET`           | New cryptographically random production secret, at least 32 characters |
+| `AUTH_GOOGLE_ID`        | Google OAuth Web client ID                                             |
+| `AUTH_GOOGLE_SECRET`    | Google OAuth client secret                                             |
+
+Enter values directly in GitHub or through a protected CLI/stdin workflow; never
+put them in committed files or command arguments. The ignored local `.dev.vars`
+file is **not** uploaded by CI. Use a separate production `AUTH_SECRET`;
+rotating it invalidates existing browser sessions.
+
+The deployment derives `AUTH_URL` from `PUBLIC_ORIGIN`, producing
+`https://pinboard.shazhou.work/api/auth`. Do not copy the localhost auth URL
+into production.
 
 Google Web client settings:
 
@@ -54,61 +117,82 @@ Authorized redirect URI:
 https://pinboard.shazhou.work/api/auth/callback/google
 ```
 
-Set these Worker secrets using interactive input or a protected stdin/file
-workflow; do not paste secret values into command history:
+For deployment branch/tag protection, allow **tags matching `release-*`**. A
+"protected branches only" rule can reject tag deployments even when their
+commits are on main. Required reviewers may be added if desired; the workflow
+then waits for approval instead of deploying immediately.
+
+Use repository tag rulesets to restrict creation of `release-*` tags to trusted
+release operators and prevent tag rewrites. The workflow's `GITHUB_TOKEN` has
+only `contents: read`; the release operator's separate Git credential needs
+permission to push the code, workflow files and tags.
+
+## 4. Publish a release
+
+After production configuration is complete and `main` has passed CI:
 
 ```powershell
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_SECRET
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_URL
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_GOOGLE_ID
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_GOOGLE_SECRET
-```
-
-`AUTH_URL` is `https://pinboard.shazhou.work/api/auth`. Note that
-`wrangler secret put` changes the deployed Worker; it is not merely local
-configuration. Use the versioned secret workflow if staging is required.
-
-The initial version intentionally ignores other template identity providers. D1
-maps Google's stable subject to an internal random accountId. Email, display
-name and Agent label never determine ownership.
-
-## 3. Migrate and deploy
-
-```powershell
-pnpm --filter @workspace/worker exec wrangler d1 migrations apply pinboard --remote
+git switch main
+git pull --ff-only origin main
 pnpm check
-pnpm deploy
+
+git tag -a release-261103-1 -m "Release 261103-1"
+git push origin release-261103-1
 ```
 
-Attach the custom domain through Cloudflare's approved domain-management path.
-`PUBLIC_ORIGIN`, `AUTH_URL`, the actual domain and `PROVIDER_MULTIADDR` must
-agree. The stable HTTP provider ID identifies only this HTTP endpoint; no libp2p
-private key or network listener is required.
+Use your intended date and the next unused daily index. Push `main` before its
+release tag. Do not create a release branch or change package versions.
 
-Static assets run the Worker first for `/api/*`, `/ipfs/*`, `/routing/*` and
-`/mcp`. Do not change those routes to SPA fallback. The `wrangler.poc.jsonc`
-fixture is **never** a deployment configuration.
+The workflow checks out the **tagged commit**, validates its name and main
+ancestry, installs the lockfile, and runs all repository checks. It then:
 
-The inherited GitHub workflow keeps push deployment disabled unless
-`CLOUDFLARE_DEPLOY_ENABLED=true` is explicitly set. Do not enable it as part of
-local initialization. Review workflow permissions/secrets before any manual run.
+1. Checks that all five production secrets and the real D1 UUID are configured.
+2. Writes only the Worker auth secrets to a mode-0600 temporary JSON file.
+3. Applies pending D1 migrations to the production database.
+4. Deploys the Worker, built static assets and auth secrets together using
+   Wrangler's supported `--secrets-file`, with the release tag as version
+   metadata.
+5. Removes the temporary file on success or failure.
 
-## 4. Production acceptance
+The
+[atomic secrets upload](https://developers.cloudflare.com/workers/configuration/secrets/#upload-secrets-alongside-code)
+avoids a second `wrangler secret bulk` deployment after the code deployment. The
+Cloudflare API token is never included in the Worker's secret file.
 
-- Google sign-in/out, stable accountId across repeat logins.
-- Upload/download a multi-block DAG with a real account and real R2/D1.
-- Anonymous lists and writes rejected; cross-account pin deletion rejected.
+D1 migration and Worker deployment are **not one transaction**. Migrations must
+be additive/backward-compatible because the previous Worker may continue running
+if deployment fails. Retrying a failed workflow resumes pending migrations using
+Wrangler's migration history.
+
+Deployments share one production concurrency group and do not cancel an active
+deployment. GitHub may replace pending runs; this is not a guaranteed FIFO
+release queue. Publish one release at a time and verify it before publishing
+another. Re-running an older successful release can roll back code, **not D1
+schema or stored content**.
+
+The deploy command explicitly uses the production `wrangler.jsonc`, never the
+unauthenticated local PoC fixture.
+
+## 5. Production acceptance and remaining setup
+
+The repository currently contains a placeholder D1 UUID. Cloudflare credentials,
+GitHub environment secrets, real resources and domain configuration have not
+been verified merely by updating the workflow.
+
+Before calling a release successful, verify:
+
+- Google sign-in/out and stable internal accountId across repeat logins.
+- Upload/download a multi-block DAG using real R2/D1.
+- Anonymous lists/writes and cross-account pin deletion are rejected.
 - Shared blocks remain readable after either account unpins.
-- Agent scope restrictions, expiry, revocation, actual agent MCP client.
+- Agent scopes, expiry, revocation and an actual MCP client work.
 - Uploaded HTML/JS is returned only as a raw/CAR attachment with `nosniff` and a
-  restrictive sandbox CSP; it is never inserted as HTML or framed in the
-  authenticated interface.
-- Fresh independent Kubo repos successfully `cat`/`get` after source shutdown,
-  following [the Kubo acceptance checks](kubo.md).
-- Cloudflare logs and traces enabled; verify latency, CPU, subrequest limits and
-  error rates under your expected traffic.
+  restrictive sandbox CSP, never rendered in the logged-in interface.
+- Fresh independent Kubo repos can `cat`/`get` after source shutdown; follow
+  [the Kubo acceptance checks](kubo.md).
+- Logs/traces, CPU, subrequest limits and expected traffic are acceptable.
 
-Local tests and `wrangler deploy --dry-run` do not verify these production
-properties. Physical block GC, takedown workflows, upload quotas/rate limiting
-and abuse operations are not implemented. Review them before broad public
-registration; Google login is authentication, not an abuse policy.
+Local checks and `wrangler deploy --dry-run` are not a production deployment.
+Physical GC, takedown workflows, quotas/rate limiting and abuse operations
+remain outside the first version. Google login is authentication, not an abuse
+policy.

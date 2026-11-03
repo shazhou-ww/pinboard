@@ -31,7 +31,7 @@
   "packageManager": "pnpm@11.22.0",
   "scripts": {
     "build": "turbo run build",
-    "check": "pnpm format:check && turbo run lint typecheck test build",
+    "check": "pnpm format:check && pnpm test:release && turbo run lint typecheck test build",
     "clean": "turbo run clean && node -e \"require('node:fs').rmSync('.turbo', { recursive: true, force: true })\"",
     "deploy": "pnpm build && pnpm --filter @workspace/worker deploy",
     "dev": "pnpm --filter @workspace/web build && turbo run dev",
@@ -40,6 +40,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:kubo": "node scripts/kubo-poc.mjs",
+    "test:release": "node --test scripts/validate-release.test.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

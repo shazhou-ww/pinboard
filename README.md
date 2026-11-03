@@ -126,6 +126,16 @@ Synthetic sessions test application behavior, **not Google's OAuth exchange**.
 Real Google credentials and the production Cloudflare/domain acceptance checks
 remain outstanding.
 
+## Tag-driven deployment
+
+Pushes to `main` run CI only. Production deploys from a tag such as
+`release-261103-1` (`release-YYMMDD-INDEX`), pointing to a commit already on
+main. No release branch or npm version change is needed.
+
+Configure the real D1 UUID and GitHub `production` Environment secrets before
+creating a release tag. See [the deployment guide](docs/deployment.md) for token
+permissions, required secrets and release commands.
+
 ## Lineage
 
 Derived with `git-lineage` from
