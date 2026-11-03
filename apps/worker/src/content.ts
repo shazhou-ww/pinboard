@@ -5,10 +5,11 @@ import { importer } from "ipfs-unixfs-importer";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
 import { HTTPException } from "hono/http-exception";
+import { uploadLimits } from "@workspace/contracts";
 
-export const MAX_UPLOAD = 32 * 1024 * 1024;
-export const MAX_BLOCK = 2 * 1024 * 1024;
-export const MAX_BLOCKS = 256;
+export const MAX_UPLOAD = uploadLimits.maxBytes;
+export const MAX_BLOCK = uploadLimits.maxBlockBytes;
+export const MAX_BLOCKS = uploadLimits.maxBlocks;
 export const PROBE_CID = "bafkqaaa";
 
 export function parseCid(value: string): CID {

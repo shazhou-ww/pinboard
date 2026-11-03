@@ -4,6 +4,12 @@ export const authProviderIds = [
   "microsoft-entra-id",
 ] as const;
 
+export const uploadLimits = {
+  maxBytes: 32 * 1024 * 1024,
+  maxBlockBytes: 2 * 1024 * 1024,
+  maxBlocks: 256,
+} as const;
+
 export type AuthProviderId = (typeof authProviderIds)[number];
 
 export interface AuthProviderDescriptor {

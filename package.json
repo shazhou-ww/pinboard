@@ -39,7 +39,7 @@
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "test:kubo": "node scripts/kubo-poc.mjs",
+    "test:kubo": "pnpm --filter @workspace/contracts build && node scripts/kubo-poc.mjs",
     "test:release": "node --test scripts/validate-release.test.mjs",
     "typecheck": "turbo run typecheck"
   },

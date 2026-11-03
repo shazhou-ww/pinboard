@@ -1,5 +1,17 @@
 import type { AgentToken, Pin } from "@workspace/contracts";
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+} from "react";
+import {
+  selectionForDirectory,
+  selectionForFile,
+  selectionFromDrop,
+  type UploadSelection,
+} from "./uploads.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export async function requestJson<T>(
@@ -32,9 +44,12 @@ export function AccountManager() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [kind, setKind] = useState("file");
-  const [blockCid, setBlockCid] = useState("");
+  const [uploadSelection, setUploadSelection] =
+    useState<UploadSelection | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [progress, setProgress] = useState("");
+  const filePicker = useRef<HTMLInputElement>(null);
+  const folderPicker = useRef<HTMLInputElement>(null);
   const [consent, setConsent] = useState(false);
   const [tokenName, setTokenName] = useState("");
   const [tokenScopes, setTokenScopes] = useState(["pins:read"]);
@@ -55,12 +70,14 @@ export function AccountManager() {
     setBusy(true);
     setError("");
     setNotice("");
+    setProgress("");
     try {
       await operation();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {
       setBusy(false);
+      setProgress("");
     }
   };
   useEffect(() => {
@@ -93,24 +110,62 @@ export function AccountManager() {
       await navigator.clipboard.writeText(text);
       setNotice("Copied to clipboard.");
     });
+  const choose = (
+    prepare: () => UploadSelection | Promise<UploadSelection>,
+  ) => {
+    if (busy) {
+      setError(
+        "Wait for the current operation to finish before choosing content.",
+      );
+      return;
+    }
+    setUploadSelection(null);
+    void perform(async () => {
+      setProgress("Reading selection...");
+      setUploadSelection(await prepare());
+    });
+  };
+  const drop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    const items = Array.from(event.dataTransfer.items);
+    choose(() => selectionFromDrop(items));
+  };
   const upload = (event: FormEvent) => {
     event.preventDefault();
-    if (!file || !consent) return;
+    if (!uploadSelection || !consent) {
+      setError(
+        "Choose a file or folder and acknowledge that its content will be public.",
+      );
+      return;
+    }
     void perform(async () => {
-      if (file.size > 32 * 1024 * 1024)
-        throw new Error("Uploads are limited to 32 MiB.");
+      let body: Blob;
+      let kind: "file" | "car";
+      if (uploadSelection.kind === "folder") {
+        setProgress("Preparing folder...");
+        const { buildDirectoryCar } = await import("./directory.js");
+        body = await buildDirectoryCar(uploadSelection);
+        kind = "car";
+      } else {
+        body = uploadSelection.file;
+        kind = "file";
+      }
       const query = new URLSearchParams({
         kind,
-        name: file.name,
-        ...(kind === "block" ? { cid: blockCid } : {}),
+        name: uploadSelection.name,
       });
+      setProgress("Uploading...");
       const pin = await requestJson<Pin>(`/api/pins/upload?${query}`, {
         method: "POST",
         headers: {
-          "content-type": "application/octet-stream",
+          "content-type":
+            kind === "car"
+              ? "application/vnd.ipld.car"
+              : "application/octet-stream",
           "x-pinboard-public": "true",
         },
-        body: file,
+        body,
       });
       setSelected(pin);
       await refresh();
@@ -137,6 +192,12 @@ export function AccountManager() {
       await refresh();
     });
   };
+  const uploadFileCount =
+    uploadSelection?.kind === "folder"
+      ? uploadSelection.files.length
+      : uploadSelection
+        ? 1
+        : 0;
   return (
     <div className="manager" aria-busy={busy}>
       {error ? (
@@ -158,41 +219,103 @@ export function AccountManager() {
           {notice}
         </p>
       ) : null}
+      {progress ? (
+        <p role="status" className="notice">
+          {progress}
+        </p>
+      ) : null}
       <section className="panel">
         <div className="section-title">
           <h2>Make a pin</h2>
           <span>01 / Upload</span>
         </div>
         <form onSubmit={upload}>
-          <label>
-            Content type
-            <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="file">File → UnixFS DAG</option>
-              <option value="car">Complete CAR archive</option>
-              <option value="block">Raw IPFS block</option>
-            </select>
-          </label>
-          <label className="dropzone">
-            Choose a file <span>Up to 32 MiB · no remote fetching</span>
+          <div
+            className={`dropzone${dragging ? " drag-active" : ""}`}
+            role="group"
+            aria-label="File or folder upload"
+            aria-disabled={busy}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = busy ? "none" : "copy";
+              setDragging(!busy);
+            }}
+            onDragLeave={(event) => {
+              if (!(
+                event.relatedTarget instanceof Node &&
+                event.currentTarget.contains(event.relatedTarget)
+              ))
+                setDragging(false);
+            }}
+            onDrop={drop}
+          >
+            <strong>
+              {uploadSelection
+                ? uploadSelection.name
+                : "Drop one file or folder here"}
+            </strong>
+            <p className="muted">
+              {uploadSelection
+                ? `${uploadFileCount} ${uploadFileCount === 1 ? "file" : "files"} · ${formatSize(uploadSelection.size)}`
+                : "Or choose content from your device."}
+            </p>
+            <div className="actions">
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => {
+                  if (filePicker.current) {
+                    filePicker.current.value = "";
+                    filePicker.current.click();
+                  }
+                }}
+              >
+                Choose file
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => {
+                  if (folderPicker.current) {
+                    folderPicker.current.value = "";
+                    folderPicker.current.click();
+                  }
+                }}
+              >
+                Choose folder
+              </button>
+            </div>
+            <p className="muted">
+              Up to 32 MiB including directory metadata. Empty folders are not
+              included.
+            </p>
             <input
-              aria-label="Upload content"
+              ref={filePicker}
+              aria-label="Choose file"
               type="file"
-              required
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              hidden
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file) choose(() => selectionForFile(file));
+              }}
             />
-          </label>
-          {kind === "block" ? (
-            <label>
-              Block CID
-              <input
-                value={blockCid}
-                onChange={(e) => setBlockCid(e.target.value)}
-                required
-                maxLength={256}
-                placeholder="bafy… / bafk…"
-              />
-            </label>
-          ) : null}
+            <input
+              ref={folderPicker}
+              aria-label="Choose folder"
+              type="file"
+              hidden
+              multiple
+              {...{ webkitdirectory: "" }}
+              onChange={(event) => {
+                const entries = Array.from(event.currentTarget.files ?? []).map(
+                  (file) => ({ path: file.webkitRelativePath, file }),
+                );
+                choose(() => selectionForDirectory(entries));
+              }}
+            />
+          </div>
           <label className="check">
             <input
               type="checkbox"
@@ -203,7 +326,10 @@ export function AccountManager() {
             I understand all uploaded bytes are publicly readable by CID, even
             after unpinning.
           </label>
-          <button className="primary" disabled={busy || !file || !consent}>
+          <button
+            className="primary"
+            disabled={busy || !uploadSelection || !consent}
+          >
             Upload &amp; pin <span aria-hidden="true">↑</span>
           </button>
         </form>

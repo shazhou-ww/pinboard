@@ -53,6 +53,11 @@ describe("Pinboard interface", () => {
     expect(html).toContain("Your pins");
     expect(html).toContain("I understand all uploaded bytes");
     expect(html).toContain("Create Agent token");
+    expect(html).toContain("Choose file");
+    expect(html).toContain("Choose folder");
+    expect(html).toContain("Drop one file or folder here");
+    expect(html).not.toContain("Content type");
+    expect(html).not.toContain("Raw IPFS block");
   });
   it("shows a pending immediate logout without a confirmation-page link", () => {
     const html = renderToStaticMarkup(

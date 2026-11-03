@@ -12,7 +12,10 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 
 ## What it does
 
-- Upload a file (UnixFS), a single block, or a complete single-root CAR.
+- Web: choose or drop one file or folder. A folder keeps its relative paths and
+  becomes one pin with one directory root CID.
+- API/MCP: upload a file (UnixFS), a single block, or a complete single-root
+  CAR.
 - Validate CID hashes and complete DAG closure before accepting a pin.
 - Share by CID without authentication, through raw block responses or CAR
   export.
@@ -52,6 +55,30 @@ http://localhost:5173/api/auth/callback/google
 Without Google credentials the public gateway and local tests work, but real
 interactive sign-in and account writes are unavailable. There is no development
 login bypass in the production Worker.
+
+## Web uploads
+
+Make a pin offers **Choose file** and **Choose folder**, plus a shared drop
+zone. There is no protocol-format selector. Files, including `.car` files, are
+saved as ordinary files in the Web UI; use the API/MCP CAR mode for protocol
+imports.
+
+Folders are packaged into a complete UnixFS directory CAR in the browser and
+sent through the existing authenticated upload API. The encoder is loaded only
+when uploading a folder. The selected folder's name labels the pin; its contents
+are directly beneath the root CID, without an extra enclosing directory.
+
+The same validation applies to picker and drop inputs: one top-level item,
+preserved relative paths, no traversal/duplicate/conflicting paths, and no more
+than 32 MiB of selected file bytes. Encoded archives and DAGs must also fit the
+existing 32 MiB / 256-block limits, so metadata can make a near-limit folder too
+large. Limits are checked before uploading and enforced again by the Worker.
+
+Empty files are preserved. Empty directories are not included, and an entirely
+empty folder cannot be uploaded. Directory selection/drop requires browser
+support for directory entries; file selection remains available when folder
+access is unsupported. Hidden files are not silently filtered: review the
+selection and public-content acknowledgement before uploading.
 
 ## Interfaces
 
@@ -105,23 +132,32 @@ pnpm test:kubo
 The Kubo PoC uses a **separate local-only Worker entry** and temporary storage;
 its unauthenticated uploader is never mounted by the production Worker. It
 starts and stops an offline source daemon, then validates two independent cold
-repos, HTTP/2 probe, delegated routing, `cat`, `get`, and byte equality. No
-credentials or public deployment are required.
+repos, HTTP/2 probe, delegated routing, `cat`, `get`, and byte equality. A third
+fresh repo retrieves a directory produced by the browser encoder, including a
+nested file and an empty file. No credentials or public deployment are required.
 
 See [Kubo configuration and evidence](docs/kubo.md),
 [Agent/MCP usage](docs/mcp.md), and [deployment checklist](docs/deployment.md).
 
 ### Local validation completed
 
-- `pnpm check`: all 12 workspace tasks passed (36 tests); the unchanged Worker
-  coverage thresholds passed, including 92.89% branch coverage.
-- `pnpm test:kubo`: Kubo v0.43.1, stopped source daemon, 16-block DAG, separate
-  cold `cat`/`get` repos, 38 HTTP/2 requests and two probes; byte/hash equality.
+- `pnpm check`: all 12 workspace tasks passed (95 tests including release
+  guards); the unchanged Worker coverage thresholds passed, including 92.89%
+  branch coverage.
+- `pnpm test:kubo`: Kubo v0.43.1, stopped source daemon, original 16-block DAG
+  plus an 18-block browser-encoded nested folder, three independent cold repos,
+  HTTP/2 probes, `cat`/`get`, and byte/hash equality including an empty file.
 - Real local Worker + browser, using a synthetic signed test session: upload,
   list/details, copy link, public share, scoped MCP read, rejected write (403),
   token revocation (401), and unpin with continued public block availability
   (200). Management/share layouts fit a 390px viewport. Uploaded HTML did not
   execute.
+- Isolated browser upload fixtures exercised file/folder selection and drops:
+  the same picked/dropped tree produced one identical root CID, nested paths and
+  an empty file survived CAR export and independent Kubo reconstruction, `.car`
+  names stayed ordinary files, multi-item drops were rejected, and long names
+  fit a 390px viewport. FileList/directory-entry fixtures do not replace manual
+  testing of the operating system's native picker on each supported browser.
 
 Synthetic sessions test application behavior, **not Google's OAuth exchange**.
 Production acceptance must separately verify a real Google login and a full

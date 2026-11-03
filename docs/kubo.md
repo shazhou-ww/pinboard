@@ -37,7 +37,7 @@ $env:OPENSSL_BIN = 'C:\Program Files\Git\usr\bin\openssl.exe'
 pnpm test:kubo
 ```
 
-Requires unused loopback ports 8787, 9443, 15000-15002. The script:
+Requires unused loopback ports 8787, 9443, 15000-15003. The script:
 
 1. Creates a fresh source repo and a directory containing random 3 MiB +
    137-byte content and a text file.
@@ -51,8 +51,12 @@ Requires unused loopback ports 8787, 9443, 15000-15002. The script:
    only delegated router is the local service.
 7. Asserts routing returns the advertised HTTP provider, runs `ipfs cat` and
    `ipfs get` in the separate repos, and compares both files byte-for-byte.
-8. Asserts an HTTP/2 probe and multiple raw block requests were observed.
-9. Stops its own processes and removes its exact temporary directory.
+8. Runs the exact browser directory encoder on the same bytes, arranged as a
+   nested folder with an empty file, then uploads its CAR through the Worker's
+   existing validator. A third fresh repo retrieves this root using `ipfs get`
+   and verifies the nested paths, empty file and byte equality.
+9. Asserts an HTTP/2 probe and multiple raw block requests were observed.
+10. Stops its own processes and removes its exact temporary directory.
 
 The local test requires `HTTPRetrieval.TLSInsecureSkipVerify=true` solely for
 the generated self-signed certificate. **Never copy that setting to

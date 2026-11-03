@@ -188,6 +188,14 @@ select {
   font-size: 16px;
   background: #f7f9f3;
 }
+.dropzone.drag-active {
+  border-color: #337758;
+  background: #edf2e8;
+}
+.dropzone strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
 .dropzone span {
   color: #6d796c;
   font-size: 12px;

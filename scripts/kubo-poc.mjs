@@ -138,6 +138,51 @@ try {
   console.log("CAR stored:", receipt);
 
   execFileSync(
+    process.execPath,
+    [
+      "--experimental-strip-types",
+      "--input-type=module",
+      "-e",
+      `
+    import { readFile, writeFile } from "node:fs/promises";
+    import path from "node:path";
+    import { pathToFileURL } from "node:url";
+    const source = process.env.PINBOARD_WEB_SOURCE;
+    const { selectionForDirectory } = await import(pathToFileURL(path.join(source, "uploads.ts")).href);
+    const { buildDirectoryCar } = await import(pathToFileURL(path.join(source, "directory.ts")).href);
+    const input = process.env.PINBOARD_TEST_INPUT;
+    const selection = selectionForDirectory([
+      { path: "browser-folder/payload.bin", file: new File([await readFile(path.join(input, "payload.bin"))], "payload.bin") },
+      { path: "browser-folder/nested/note.txt", file: new File([await readFile(path.join(input, "note.txt"))], "note.txt") },
+      { path: "browser-folder/empty.txt", file: new File([], "empty.txt") },
+    ]);
+    const car = await buildDirectoryCar(selection);
+    await writeFile(process.env.PINBOARD_BROWSER_CAR, new Uint8Array(await car.arrayBuffer()));
+  `,
+    ],
+    {
+      env: {
+        ...process.env,
+        PINBOARD_WEB_SOURCE: path.join(root, "apps", "web", "src"),
+        PINBOARD_TEST_INPUT: path.join(temp, "input"),
+        PINBOARD_BROWSER_CAR: path.join(temp, "browser.car"),
+      },
+      timeout: 90000,
+    },
+  );
+  const browserUpload = await fetch("http://127.0.0.1:8787/poc/car", {
+    method: "POST",
+    body: await readFile(path.join(temp, "browser.car")),
+  });
+  const browserReceipt = await browserUpload.json();
+  assert.equal(browserUpload.status, 200, JSON.stringify(browserReceipt));
+  assert.ok(browserReceipt.blocks > 3);
+  console.log(
+    "Browser-encoded directory CAR accepted by Worker:",
+    browserReceipt,
+  );
+
+  execFileSync(
     openssl,
     [
       "req",
@@ -194,10 +239,38 @@ try {
   assert.equal(probe.headers.get("content-length"), "0");
   assert.equal(probe.headers.get("content-type"), "application/vnd.ipld.raw");
 
-  for (const [repo, mode, port] of [
-    ["consumer-cat", "cat", 15001],
-    ["consumer-get", "get", 15002],
-  ]) {
+  const clients = [
+    {
+      repo: "consumer-cat",
+      mode: "cat",
+      port: 15001,
+      cid,
+      notePath: "note.txt",
+    },
+    {
+      repo: "consumer-get",
+      mode: "get",
+      port: 15002,
+      cid,
+      notePath: "note.txt",
+    },
+    {
+      repo: "consumer-browser-get",
+      mode: "get",
+      port: 15003,
+      cid: browserReceipt.cid,
+      notePath: "nested/note.txt",
+      emptyFile: true,
+    },
+  ];
+  for (const {
+    repo,
+    mode,
+    port,
+    cid: targetCid,
+    notePath,
+    emptyFile,
+  } of clients) {
     run(repo, ["init", "--profile=test"]);
     const configPath = path.join(temp, repo, "config");
     const config = JSON.parse(await readFile(configPath, "utf8"));
@@ -216,12 +289,17 @@ try {
     config.Provide = { Enabled: false };
     await writeFile(configPath, JSON.stringify(config));
     assert.throws(() =>
-      run(repo, ["block", "stat", "--offline", cid], { stdio: "pipe" }),
+      run(repo, ["block", "stat", "--offline", targetCid], { stdio: "pipe" }),
     );
     const daemon = start(ipfs, ["daemon"], { env: env(repo) });
     await ready(`http://127.0.0.1:${port}/api/v0/version`, daemon, "POST");
     const providers = (
-      await command(repo, ["routing", "findprovs", "--num-providers=1", cid])
+      await command(repo, [
+        "routing",
+        "findprovs",
+        "--num-providers=1",
+        targetCid,
+      ])
     )
       .toString()
       .trim();
@@ -231,23 +309,29 @@ try {
     );
     if (mode === "cat") {
       assert.deepEqual(
-        await command(repo, ["cat", `/ipfs/${cid}/payload.bin`]),
+        await command(repo, ["cat", `/ipfs/${targetCid}/payload.bin`]),
         payload,
       );
       assert.deepEqual(
-        await command(repo, ["cat", `/ipfs/${cid}/note.txt`]),
+        await command(repo, ["cat", `/ipfs/${targetCid}/${notePath}`]),
         note,
       );
     } else {
-      await command(repo, ["get", "-o", path.join(temp, "retrieved"), cid]);
+      const retrieved = path.join(temp, `retrieved-${repo}`);
+      await command(repo, ["get", "-o", retrieved, targetCid]);
       assert.deepEqual(
-        await readFile(path.join(temp, "retrieved", "payload.bin")),
+        await readFile(path.join(retrieved, "payload.bin")),
         payload,
       );
       assert.deepEqual(
-        await readFile(path.join(temp, "retrieved", "note.txt")),
+        await readFile(path.join(retrieved, ...notePath.split("/"))),
         note,
       );
+      if (emptyFile)
+        assert.equal(
+          (await readFile(path.join(retrieved, "empty.txt"))).length,
+          0,
+        );
     }
     await command(repo, ["shutdown"]);
     console.log(
@@ -269,6 +353,7 @@ try {
     JSON.stringify(
       {
         receipt,
+        browserReceipt,
         http2Requests: requests.filter((r) => r.http === "2.0").length,
         probes: requests.filter((r) => r.path.includes("bafkqaaa")).length,
       },

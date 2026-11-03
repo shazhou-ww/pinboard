@@ -185,9 +185,18 @@ importers:
       '@hono/auth-js':
         specifier: 'catalog:'
         version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.0)
+      '@ipld/car':
+        specifier: 'catalog:'
+        version: 5.4.7
       '@workspace/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      ipfs-unixfs-importer:
+        specifier: 'catalog:'
+        version: 16.1.5(supports-color@10.2.2)
+      multiformats:
+        specifier: 'catalog:'
+        version: 14.0.5
       react:
         specifier: 'catalog:'
         version: 19.3.0
@@ -195,6 +204,9 @@ importers:
         specifier: 'catalog:'
         version: 19.3.0(react@19.3.0)
     devDependencies:
+      '@ipld/dag-pb':
+        specifier: 'catalog:'
+        version: 4.2.0
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
