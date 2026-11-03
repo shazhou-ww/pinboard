@@ -62,7 +62,7 @@ export function Dashboard({ state }: { readonly state: DashboardState }) {
             public.
           </p>
           {state.bootstrap.providers.length ? (
-            <a className="primary" href="/api/auth/signin/google?callbackUrl=/">
+            <a className="primary" href="/api/auth/signin?callbackUrl=/">
               Continue with Google <span aria-hidden="true">↗</span>
             </a>
           ) : (

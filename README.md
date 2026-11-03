@@ -7,7 +7,8 @@ verified blocks, D1 for Google account identities, pin references and Agent
 token hashes. React and Hono reuse the fullstack template's same-origin/Auth.js
 setup.
 
-Target origin: `https://pinboard.shazhou.work`. **Not deployed.**
+Production origin: `https://pinboard.shazhou.work`. Releases are tag-driven; see
+the [deployment guide](docs/deployment.md) for acceptance requirements.
 
 ## What it does
 
@@ -123,8 +124,8 @@ See [Kubo configuration and evidence](docs/kubo.md),
   execute.
 
 Synthetic sessions test application behavior, **not Google's OAuth exchange**.
-Real Google credentials and the production Cloudflare/domain acceptance checks
-remain outstanding.
+Production acceptance must separately verify a real Google login and a full
+uploaded DAG download through independent Kubo clients.
 
 ## Tag-driven deployment
 

@@ -23,17 +23,17 @@ On 2026-11-03 the authorized bootstrap created:
 | Resource              | Value                                               |
 | --------------------- | --------------------------------------------------- |
 | Cloudflare account ID | `92c3c4fdcc84a1590555bccf4f111de2`                  |
-| Worker                | `pinboard`, serving only a 503 placeholder          |
+| Worker                | `pinboard`, initially a 503 placeholder             |
 | D1 database           | `pinboard` / `625b568d-106b-4fe1-af33-3eac4fe0a354` |
 | Private R2 bucket     | `pinboard-blocks`, managed public access disabled   |
 | Custom domain         | `pinboard.shazhou.work`, attached to `pinboard`     |
 
-The full application and OAuth secrets were **not** deployed. The production
-schema has not been initialized. Prepare it through a separately authorized
-database operation before the first full application release; deployment does
-not initialize or migrate D1. Do not re-create these resources or re-bind the
-domain during routine CI. The bootstrap credential stays in `cfg`; it must not
-be copied into GitHub.
+At bootstrap time, the full application and OAuth secrets were **not** deployed.
+The initial schema was subsequently prepared on 2026-11-03 through a separately
+authorized operation before the first application release. Deployment does not
+initialize or migrate D1. Do not re-create these resources or re-bind the domain
+during routine CI. The bootstrap credential stays in `cfg`; it must not be
+copied into GitHub.
 
 ## 1. Provision production resources once
 
@@ -223,16 +223,23 @@ or cut over traffic. Migration credentials stay outside the deployment
 Environment and are granted only to the independently authorized process.
 
 No active data migration or migration controller is introduced by this
-configuration change. Before the first full application release, separately
-initialize and verify the empty production database; otherwise authenticated
-application operations cannot work.
+configuration change. For a new environment, separately initialize and verify
+its empty database before the first full application release; otherwise
+authenticated application operations cannot work.
 
 ## 6. Production acceptance and remaining setup
 
 The real D1 UUID and one-time resource/domain allocation are recorded above. The
-live Worker is still only a 503 placeholder. The least-privilege GitHub
-credential, production Environment secrets and full application deployment
-remain separate setup steps; they are not verified by the bootstrap.
+initial schema was independently verified before `release-261103-1`, whose
+deployment workflow completed successfully. Production acceptance is separate
+from a successful upload.
+
+The browser login entry uses `GET /api/auth/signin?callbackUrl=/`. Auth.js
+renders the Google form and submits a CSRF-protected
+`POST /api/auth/signin/google`. A direct provider `GET /api/auth/signin/google`
+is unsupported by the installed Auth.js version and must not be used as a login
+link. Regression tests cover the page, CSRF cookie and OAuth authorization
+redirect; a real Google round trip still requires the user's browser.
 
 Before calling a release successful, verify:
 

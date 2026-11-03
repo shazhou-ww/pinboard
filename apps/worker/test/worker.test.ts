@@ -134,6 +134,103 @@ describe("identity and HTTP boundaries", () => {
     );
     expect(bob.accountId).not.toBe(alice.accountId);
   });
+  it("serves Google's native CSRF-protected form through the supported sign-in page", async () => {
+    const response = await app.request(
+      origin + "/api/auth/signin?callbackUrl=/",
+      {},
+      {
+        ...env,
+        AUTH_GOOGLE_ID: "google-id",
+        AUTH_GOOGLE_SECRET: "google-secret",
+      },
+    );
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain(`action="${origin}/api/auth/signin/google"`);
+    expect(html).toMatch(/method="post"/i);
+    expect(html).toContain('name="csrfToken"');
+    expect(
+      response.headers
+        .getSetCookie()
+        .some((value) => value.startsWith("authjs.csrf-token=")),
+    ).toBe(true);
+  });
+
+  it("starts Google OAuth using a CSRF-protected POST rather than a provider GET", async () => {
+    const bindings = {
+      ...env,
+      AUTH_GOOGLE_ID: "google-id",
+      AUTH_GOOGLE_SECRET: "google-secret",
+    };
+    const csrf = await app.request(origin + "/api/auth/csrf", {}, bindings);
+    const { csrfToken } = await csrf.json<{ csrfToken: string }>();
+    const cookies = csrf.headers
+      .getSetCookie()
+      .map((value) => value.split(";")[0])
+      .join("; ");
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input) => {
+        const url = new URL(
+          input instanceof Request ? input.url : input.toString(),
+        );
+        if (
+          url.href !==
+          "https://accounts.google.com/.well-known/openid-configuration"
+        ) {
+          throw new Error("Unexpected OAuth metadata request");
+        }
+        return Promise.resolve(
+          Response.json({
+            issuer: "https://accounts.google.com",
+            authorization_endpoint:
+              "https://accounts.google.com/o/oauth2/v2/auth",
+            token_endpoint: "https://oauth2.googleapis.com/token",
+            userinfo_endpoint:
+              "https://openidconnect.googleapis.com/v1/userinfo",
+            jwks_uri: "https://www.googleapis.com/oauth2/v3/certs",
+            response_types_supported: ["code"],
+            subject_types_supported: ["public"],
+            id_token_signing_alg_values_supported: ["RS256"],
+            token_endpoint_auth_methods_supported: [
+              "client_secret_post",
+              "client_secret_basic",
+            ],
+            code_challenge_methods_supported: ["S256"],
+          }),
+        );
+      });
+    try {
+      const response = await app.request(
+        origin + "/api/auth/signin/google",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            cookie: cookies,
+          },
+          body: new URLSearchParams({
+            csrfToken,
+            callbackUrl: origin + "/",
+          }).toString(),
+        },
+        bindings,
+      );
+      expect(response.status).toBe(302);
+      const redirect = new URL(response.headers.get("location")!);
+      expect(redirect.origin).toBe("https://accounts.google.com");
+      expect(redirect.searchParams.get("client_id")).toBe("google-id");
+      expect(redirect.searchParams.get("redirect_uri")).toBe(
+        origin + "/api/auth/callback/google",
+      );
+      expect(redirect.searchParams.get("code_challenge_method")).toBe("S256");
+      expect(redirect.searchParams.get("code_challenge")).toBeTruthy();
+      expect(redirect.searchParams.has("client_secret")).toBe(false);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   it("uses a signed session carrying an internal accountId", async () => {
     const response = await request("/api/me", { headers: { cookie } });
     expect(response.status).toBe(200);

@@ -14,6 +14,8 @@ describe("Pinboard interface", () => {
     );
     expect(html).toContain("Share by CID.");
     expect(html).toContain("Continue with Google");
+    expect(html).toContain('href="/api/auth/signin?callbackUrl=/"');
+    expect(html).not.toContain('href="/api/auth/signin/google');
     expect(html).not.toContain("GitHub");
     expect(html).toContain("Reading by CID is always public");
   });
