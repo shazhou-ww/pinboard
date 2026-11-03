@@ -1,5 +1,5 @@
 import type { BootstrapResponse, SessionResponse } from "@workspace/contracts";
-import { signIn } from "@hono/auth-js/react";
+import { signIn, signOut } from "@hono/auth-js/react";
 import { useEffect, useState, type MouseEvent } from "react";
 
 import { Dashboard, SharePage, type DashboardState } from "./ui.js";
@@ -12,18 +12,28 @@ export function App() {
 function Home() {
   const [state, setState] = useState<DashboardState>({ kind: "loading" });
   const [signingIn, setSigningIn] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  function showAuthError(error: unknown) {
+    setState({
+      kind: "error",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   function handleSignIn(event: MouseEvent<HTMLButtonElement>) {
     const provider = event.currentTarget.value;
     setSigningIn(provider);
     void signIn(provider, { callbackUrl: "/" })
-      .catch((error: unknown) => {
-        setState({
-          kind: "error",
-          message: error instanceof Error ? error.message : String(error),
-        });
-      })
+      .catch(showAuthError)
       .finally(() => setSigningIn(null));
+  }
+
+  function handleSignOut() {
+    setSigningOut(true);
+    void signOut({ callbackUrl: "/" })
+      .catch(showAuthError)
+      .finally(() => setSigningOut(false));
   }
 
   useEffect(() => {
@@ -54,7 +64,13 @@ function Home() {
   }, []);
 
   return (
-    <Dashboard state={state} onSignIn={handleSignIn} signingIn={signingIn} />
+    <Dashboard
+      state={state}
+      onSignIn={handleSignIn}
+      signingIn={signingIn}
+      onSignOut={handleSignOut}
+      signingOut={signingOut}
+    />
   );
 }
 

@@ -20,6 +20,7 @@ export function createAuthConfig(env: Bindings): AuthConfig {
           Google({
             clientId: env.AUTH_GOOGLE_ID!,
             clientSecret: env.AUTH_GOOGLE_SECRET!,
+            authorization: { params: { prompt: "select_account" } },
           }),
         ]
       : [],

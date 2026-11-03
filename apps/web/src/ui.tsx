@@ -15,10 +15,14 @@ export function Dashboard({
   state,
   onSignIn,
   signingIn = null,
+  onSignOut,
+  signingOut = false,
 }: {
   readonly state: DashboardState;
   readonly onSignIn?: MouseEventHandler<HTMLButtonElement>;
   readonly signingIn?: string | null;
+  readonly onSignOut?: MouseEventHandler<HTMLButtonElement>;
+  readonly signingOut?: boolean;
 }) {
   return (
     <main className="shell">
@@ -28,7 +32,14 @@ export function Dashboard({
           Pinboard
         </a>
         {state.kind === "ready" && state.session?.user ? (
-          <a href="/api/auth/signout">Sign out</a>
+          <button
+            type="button"
+            onClick={onSignOut}
+            disabled={signingOut}
+            aria-busy={signingOut}
+          >
+            {signingOut ? "Signing out..." : "Sign out"}
+          </button>
         ) : (
           <span>Small by design.</span>
         )}

@@ -48,10 +48,27 @@ describe("Pinboard interface", () => {
     const html = renderToStaticMarkup(
       <Dashboard state={{ kind: "ready", bootstrap, session: { user } }} />,
     );
-    expect(html).toContain("/api/auth/signout");
+    expect(html).toContain("Sign out");
+    expect(html).not.toContain('href="/api/auth/signout"');
     expect(html).toContain("Your pins");
     expect(html).toContain("I understand all uploaded bytes");
     expect(html).toContain("Create Agent token");
+  });
+  it("shows a pending immediate logout without a confirmation-page link", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard
+        state={{
+          kind: "ready",
+          bootstrap,
+          session: { user: { name: "Alice" } },
+        }}
+        signingOut
+      />,
+    );
+    expect(html).toContain("Signing out...");
+    expect(html).toContain('disabled=""');
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain('href="/api/auth/signout"');
   });
   it("renders loading, failure and unconfigured-provider states", () => {
     expect(

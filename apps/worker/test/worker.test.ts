@@ -225,9 +225,78 @@ describe("identity and HTTP boundaries", () => {
       );
       expect(redirect.searchParams.get("code_challenge_method")).toBe("S256");
       expect(redirect.searchParams.get("code_challenge")).toBeTruthy();
+      expect(redirect.searchParams.get("prompt")).toBe("select_account");
       expect(redirect.searchParams.has("client_secret")).toBe(false);
     } finally {
       fetchMock.mockRestore();
+    }
+  });
+
+  it("clears the browser session with a CSRF-protected logout POST without a confirmation page", async () => {
+    const csrf = await request("/api/auth/csrf", { headers: { cookie } });
+    const { csrfToken } = await csrf.json<{ csrfToken: string }>();
+    const cookies = [
+      cookie,
+      ...csrf.headers.getSetCookie().map((value) => value.split(";")[0]),
+    ].join("; ");
+    const response = await request("/api/auth/signout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-auth-return-redirect": "1",
+        cookie: cookies,
+      },
+      body: new URLSearchParams({
+        csrfToken,
+        callbackUrl: origin + "/",
+      }).toString(),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ url: origin + "/" });
+    const cleared = response.headers
+      .getSetCookie()
+      .find((value) => value.startsWith("authjs.session-token="));
+    expect(cleared).toMatch(/max-age=0/i);
+    const signedOutCookies = response.headers
+      .getSetCookie()
+      .map((value) => value.split(";")[0])
+      .join("; ");
+    expect(
+      await (
+        await request("/api/auth/session", {
+          headers: { cookie: signedOutCookies },
+        })
+      ).json(),
+    ).toBeNull();
+    expect(
+      (await request("/api/pins", { headers: { cookie: signedOutCookies } }))
+        .status,
+    ).toBe(401);
+  });
+
+  it("does not allow logout without CSRF protection", async () => {
+    const logger = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const response = await request("/api/auth/signout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "x-auth-return-redirect": "1",
+          cookie,
+        },
+        body: new URLSearchParams({ callbackUrl: origin + "/" }).toString(),
+      });
+      expect(response.status).toBe(200);
+      const result = await response.json<{ url: string }>();
+      expect(new URL(result.url).searchParams.get("error")).toBe("MissingCSRF");
+      expect(
+        response.headers
+          .getSetCookie()
+          .some((value) => value.startsWith("authjs.session-token=;")),
+      ).toBe(false);
+      expect(logger).toHaveBeenCalled();
+    } finally {
+      logger.mockRestore();
     }
   });
 

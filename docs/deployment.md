@@ -238,6 +238,13 @@ The homepage lists only configured login providers. Its buttons use the existing
 `@hono/auth-js/react` sign-in client to obtain CSRF protection, POST to the
 provider's sign-in endpoint, and redirect directly to that provider without an
 intermediate Auth.js sign-in page. Only Google is enabled in the first version.
+Google authorization requests explicitly use `prompt=select_account`, preserving
+Google's account chooser even when a Google browser session already exists.
+
+The homepage's sign-out button uses the same client's CSRF-protected
+`POST /api/auth/signout` and returns directly to `/`, without a confirmation
+page. Signing out clears this site's browser session; it does not sign out the
+Google account globally or revoke Agent tokens.
 
 `GET /api/auth/signin?callbackUrl=/` remains a native Auth.js fallback. A direct
 provider `GET /api/auth/signin/google` is unsupported and must not be used as a
