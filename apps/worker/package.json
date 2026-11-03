@@ -10,9 +10,17 @@
     "dev": "wrangler dev --config wrangler.jsonc",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run --config vitest.config.ts --coverage",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "types": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@ipld/car": "catalog:",
+    "@ipld/dag-cbor": "catalog:",
+    "@ipld/dag-pb": "catalog:",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "ipfs-unixfs-importer": "catalog:",
+    "multiformats": "catalog:",
+    "zod": "catalog:",
     "@auth/core": "catalog:",
     "@hono/auth-js": "catalog:",
     "@workspace/contracts": "workspace:*",
@@ -20,6 +28,7 @@
     "hono": "catalog:"
   },
   "devDependencies": {
+    "miniflare": "catalog:",
     "@cloudflare/workers-types": "catalog:",
     "wrangler": "catalog:"
   }

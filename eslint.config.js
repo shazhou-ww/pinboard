@@ -4,7 +4,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/coverage/**", "**/dist/**", "**/.wrangler/**", ".turbo/**"],
+    ignores: [
+      "**/coverage/**",
+      "**/dist/**",
+      "**/.wrangler/**",
+      "**/worker-configuration.d.ts",
+      ".turbo/**",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
@@ -28,7 +34,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/*.js"],
+    files: ["**/*.{js,mjs}"],
     languageOptions: {
       globals: globals.node,
     },

@@ -1,0 +1,11 @@
+{
+  "name": "pinboard-local-poc",
+  "main": "test/poc-entry.ts",
+  "compatibility_date": "2026-10-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [{ "binding": "BLOCKS", "bucket_name": "pinboard-poc-blocks" }],
+  "vars": {
+    "PROVIDER_MULTIADDR": "/ip4/127.0.0.1/tcp/9443/tls/http",
+    "PROVIDER_ID": "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH",
+  },
+}

@@ -9,6 +9,9 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8787",
       },
+      "/mcp": { target: "http://localhost:8787" },
+      "/ipfs": { target: "http://localhost:8787" },
+      "/routing": { target: "http://localhost:8787" },
     },
   },
 });

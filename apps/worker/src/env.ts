@@ -1,6 +1,11 @@
-export interface Bindings {
+export interface Bindings extends Omit<
+  CloudflareBindings,
+  "APP_NAME" | "PUBLIC_ORIGIN" | "PROVIDER_MULTIADDR" | "PROVIDER_ID"
+> {
   readonly APP_NAME: string;
-  readonly ASSETS: Fetcher;
+  readonly PUBLIC_ORIGIN: string;
+  readonly PROVIDER_MULTIADDR: string;
+  readonly PROVIDER_ID: string;
   readonly AUTH_GITHUB_ID?: string;
   readonly AUTH_GITHUB_SECRET?: string;
   readonly AUTH_GOOGLE_ID?: string;

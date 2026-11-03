@@ -1,9 +1,14 @@
 import type { BootstrapResponse, SessionResponse } from "@workspace/contracts";
 import { useEffect, useState } from "react";
 
-import { Dashboard, type DashboardState } from "./ui.js";
+import { Dashboard, SharePage, type DashboardState } from "./ui.js";
 
 export function App() {
+  const shared = /^\/share\/([^/]+)$/.exec(location.pathname);
+  return shared?.[1] ? <SharePage cid={shared[1]} /> : <Home />;
+}
+
+function Home() {
   const [state, setState] = useState<DashboardState>({ kind: "loading" });
 
   useEffect(() => {

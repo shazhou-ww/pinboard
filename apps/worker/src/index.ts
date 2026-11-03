@@ -7,13 +7,48 @@ import type {
 } from "@workspace/contracts";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
+import { HTTPException } from "hono/http-exception";
 
 import { createAuthConfig, getConfiguredProviders } from "./auth.js";
 import type { Bindings } from "./env.js";
+import { api } from "./api.js";
+import { gateway } from "./gateway.js";
+import { completeDag, key, parseCid } from "./content.js";
+import { encodeCar } from "./car.js";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.use("*", secureHeaders());
+app.onError((error, context) => {
+  if (error instanceof HTTPException)
+    return context.json({ error: error.message }, error.status);
+  console.error(
+    JSON.stringify({
+      event: "request_failed",
+      path: context.req.path,
+      message: error.message,
+    }),
+  );
+  return context.json({ error: "Internal server error" }, 500);
+});
+app.route("/", gateway);
+app.get("/api/public/:cid/car", async (c) => {
+  const root = parseCid(c.req.param("cid"));
+  if (!(await c.env.BLOCKS.head(key(root))))
+    return c.json({ error: "DAG not found" }, 404);
+  const dag = await completeDag(root, async (cid) => {
+    const block = await c.env.BLOCKS.get(key(cid));
+    return block ? new Uint8Array(await block.arrayBuffer()) : undefined;
+  });
+  return new Response(await encodeCar(dag), {
+    headers: {
+      "Content-Type": "application/vnd.ipld.car; version=1",
+      "Content-Disposition": `attachment; filename="${key(root)}.car"`,
+      "Content-Security-Policy": "default-src 'none'; sandbox",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+});
 app.use(
   "*",
   initAuthConfig((context) => createAuthConfig(context.env as Bindings)),
@@ -40,6 +75,7 @@ app.get("/api/me", (context) => {
   const session = context.get("authUser").session;
   return context.json(toSessionResponse(session));
 });
+app.route("/", api);
 
 app.notFound((context) =>
   context.json(

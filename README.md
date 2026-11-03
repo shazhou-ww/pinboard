@@ -1,172 +1,144 @@
-# Cloudflare fullstack preset
+# Pinboard
 
-A production-shaped Cloudflare starter with a React interface, a Hono Worker,
-same-origin static assets, and Auth.js sign-in through GitHub, Google, and
-Microsoft Entra ID.
+**Pin blocks. Share by CID.**
 
-The included **Signal Desk** interface is intentionally concrete enough to
-exercise authentication and deployment. Replace its name and visual language
-when deriving a product.
+A deliberately small public IPFS content store: Cloudflare Workers + R2 for
+verified blocks, D1 for Google account identities, pin references and Agent
+token hashes. React and Hono reuse the fullstack template's same-origin/Auth.js
+setup.
 
-## Derive a repository
+Target origin: `https://pinboard.shazhou.work`. **Not deployed.**
 
-```sh
-git-lineage derive \
-  https://github.com/shazhou-ww/preset-cloudflare-fullstack.git \
-  my-service \
-  --branch main
-cd my-service
-pnpm install
-```
+## What it does
 
-This preset derives from
-[`preset-pnpm-monorepo`](https://github.com/shazhou-ww/preset-pnpm-monorepo).
-Its `.git-lineage.yaml` tracks that immediate parent. Run `git-lineage update`
-to merge later monorepo baseline changes. This preset documents its own
-capabilities and does not enumerate descendants.
+- Upload a file (UnixFS), a single block, or a complete single-root CAR.
+- Validate CID hashes and complete DAG closure before accepting a pin.
+- Share by CID without authentication, through raw block responses or CAR
+  export.
+- Sign in with Google to list, inspect and unpin your own content.
+- Give an agent a scoped, expiring, revocable token for HTTP and remote MCP.
+- Use explicitly configured Kubo clients as readers, without a server-side Kubo.
 
-## Architecture
+All uploaded bytes are **public**, including bytes in failed partial writes.
+Account lists, labels, and tokens are private. Unpinning deletes **only your
+account reference**. Shared blocks, CDN copies and downloaded copies are not
+erased. Physical garbage collection is not implemented.
 
-```text
-apps/
-  web/          React + Vite interface
-  worker/       Hono API, Auth.js, static asset deployment
-packages/
-  contracts/    request and response contracts shared by both apps
-```
-
-Cloudflare serves `apps/web/dist` as static assets. Requests under `/api/*` run
-the Worker first. Every other unknown route falls back to `index.html`, so
-client-side routes remain deployable without a second service.
-
-The Worker package declares the web package as a workspace dependency. This is
-deployment topology rather than a runtime import: Turborepo builds web assets
-before validating or deploying the Worker.
+There is no arbitrary remote CID fetching, DHT announcement, IPNS publishing,
+always-on Kubo/Cluster, billing or organization system. A public HTTP endpoint
+does **not** make its content automatically discoverable on the public IPFS
+network.
 
 ## Local development
 
-Create the local secret file:
+Requires Node.js >=22.13 and pnpm 11.22 (the pinned package manager).
 
-```sh
-cp apps/worker/.dev.vars.example apps/worker/.dev.vars
-```
-
-Generate `AUTH_SECRET` with a cryptographically secure random value:
-
-```sh
-openssl rand -base64 32
-```
-
-Then run:
-
-```sh
+```powershell
+pnpm install
+Copy-Item apps\worker\.dev.vars.example apps\worker\.dev.vars
+# Set a random AUTH_SECRET and your Google OAuth client ID/secret in .dev.vars.
+pnpm --filter @workspace/worker exec wrangler d1 migrations apply pinboard --local
 pnpm dev
 ```
 
-- React development server: `http://localhost:5173`
-- Worker development server: `http://localhost:8787`
-- Vite proxies `/api/*` to the Worker.
-
-`AUTH_URL` in `.dev.vars.example` points to the proxied browser origin. This
-keeps OAuth callbacks and session cookies on `localhost:5173`.
-
-## Identity providers
-
-At least one provider needs credentials. Providers without both an ID and secret
-are omitted from the interface rather than exposed as broken actions.
-
-### GitHub
-
-Create an OAuth App and use:
+Web: `http://localhost:5173`; local Worker: `http://localhost:8787`. Only the
+Google provider is enabled. Its local callback is:
 
 ```text
-Homepage URL: http://localhost:5173
-Authorization callback URL:
-http://localhost:5173/api/auth/callback/github
-```
-
-Set `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`.
-
-### Google
-
-Create an OAuth 2.0 Web application with:
-
-```text
-Authorized JavaScript origin: http://localhost:5173
-Authorized redirect URI:
 http://localhost:5173/api/auth/callback/google
 ```
 
-Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`.
+Without Google credentials the public gateway and local tests work, but real
+interactive sign-in and account writes are unavailable. There is no development
+login bypass in the production Worker.
 
-### Microsoft Entra ID
+## Interfaces
 
-Create a Web platform redirect URI:
+| Route                                             | Access                 | Purpose                                       |
+| ------------------------------------------------- | ---------------------- | --------------------------------------------- |
+| `/ipfs/:cid?format=raw`                           | Public GET/HEAD        | Raw verified block, never an HTML document    |
+| `/routing/v1/providers/:cid`                      | Public GET             | Delegated Routing JSON or NDJSON              |
+| `/api/public/:cid/car`                            | Public GET             | Complete DAG as an attachment                 |
+| `/share/:cid`                                     | Public                 | Safe share page; no content preview/execution |
+| `/api/pins`                                       | Session or Agent token | List or pin an already stored DAG             |
+| `/api/pins/upload?kind=file\|car\|block&name=...` | Session or Agent token | Upload; block mode also requires `cid`        |
+| `/api/pins/:cid`                                  | Session or Agent token | Detail or DELETE own reference                |
+| `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list or revoke account tokens          |
+| `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)          |
 
-```text
-http://localhost:5173/api/auth/callback/microsoft-entra-id
+Uploads require `X-Pinboard-Public: true`. JSON pin requests require
+`{"cid":"...","name":"...","public":true}`. Cookie-authenticated mutations also
+require an Origin matching `AUTH_URL` (or `PUBLIC_ORIGIN`). Agent names are
+labels, not credentials. Web and MCP use the same `PinService`, accountId and
+scopes.
+
+### Deliberate first-version limits
+
+- Upload body and unique DAG bytes: 32 MiB; block: 2 MiB; DAG: 256 unique
+  blocks.
+- SHA2-256 hashes; raw, DAG-PB/UnixFS, and DAG-CBOR codecs.
+- CARv1 or CARv2, exactly one root, complete and without unreachable blocks.
+- Pin lists use 50-item CID-sorted pages (`nextCursor`).
+- MCP inline upload: 2 MiB decoded. Larger content uses the same token on the
+  HTTP upload route, not a base64-encoded 32 MiB JSON message.
+- Tokens expire in 1-365 days (default 30); scopes are `pins:read`,
+  `pins:write`, `pins:delete`. Secrets are shown once and only SHA-256 hashes
+  are stored.
+
+Inputs outside these limits fail explicitly. Additional Worker CPU, memory,
+subrequest and account-plan limits still apply; large-load testing is not a
+production capacity claim.
+
+## Verification
+
+```powershell
+pnpm check
+pnpm --filter @workspace/worker types
+
+# Install a stable Kubo executable and OpenSSL outside the repository:
+$env:IPFS_BIN = 'C:\tools\kubo\ipfs.exe'
+$env:OPENSSL_BIN = 'C:\Program Files\Git\usr\bin\openssl.exe'
+pnpm test:kubo
 ```
 
-Set `AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET`, and
-optionally `AUTH_MICROSOFT_ENTRA_ID_ISSUER`. The example issuer accepts accounts
-from any Entra tenant. Replace `common` with a tenant ID for a single-tenant
-app.
+The Kubo PoC uses a **separate local-only Worker entry** and temporary storage;
+its unauthenticated uploader is never mounted by the production Worker. It
+starts and stops an offline source daemon, then validates two independent cold
+repos, HTTP/2 probe, delegated routing, `cat`, `get`, and byte equality. No
+credentials or public deployment are required.
 
-Use the production origin in every provider console before deployment.
+See [Kubo configuration and evidence](docs/kubo.md),
+[Agent/MCP usage](docs/mcp.md), and [deployment checklist](docs/deployment.md).
 
-## Worker secrets
+### Local validation completed
 
-Set production values from the Worker workspace:
+- `pnpm check`: all 12 workspace tasks passed (36 tests); the unchanged Worker
+  coverage thresholds passed, including 92.89% branch coverage.
+- `pnpm test:kubo`: Kubo v0.43.1, stopped source daemon, 16-block DAG, separate
+  cold `cat`/`get` repos, 38 HTTP/2 requests and two probes; byte/hash equality.
+- Real local Worker + browser, using a synthetic signed test session: upload,
+  list/details, copy link, public share, scoped MCP read, rejected write (403),
+  token revocation (401), and unpin with continued public block availability
+  (200). Management/share layouts fit a 390px viewport. Uploaded HTML did not
+  execute.
 
-```sh
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_SECRET
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_URL
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_GITHUB_ID
-pnpm --filter @workspace/worker exec wrangler secret put AUTH_GITHUB_SECRET
-```
+Synthetic sessions test application behavior, **not Google's OAuth exchange**.
+Real Google credentials and the production Cloudflare/domain acceptance checks
+remain outstanding.
 
-Repeat the last two commands for Google or Microsoft variables. `AUTH_URL` must
-be the full production auth base, for example:
+## Lineage
 
-```text
-https://example.com/api/auth
-```
+Derived with `git-lineage` from
+[`preset-cloudflare-fullstack`](https://github.com/shazhou-ww/preset-cloudflare-fullstack),
+branch `main`, preserving full template history:
 
-Never commit `.dev.vars`; only `.dev.vars.example` belongs in Git.
+- Source: `48a07c6882f347f736a16f1d69b9e9922ae08111`
+- Birth: `336af85d12f0a56a49f48dd054a9157dbfcfebe8`
 
-## Commands
-
-| Command       | Purpose                                                      |
-| ------------- | ------------------------------------------------------------ |
-| `pnpm dev`    | Build initial assets, then run Vite and Wrangler             |
-| `pnpm check`  | Format, lint, type-check, test, and dry-run the Worker build |
-| `pnpm build`  | Build the contracts, web assets, and Worker bundle           |
-| `pnpm deploy` | Validate everything and deploy the Worker plus assets        |
-| `pnpm clean`  | Remove all generated outputs                                 |
-
-## Continuous deployment
-
-The deploy workflow is safe to inherit because push deployment is disabled by
-default. Configure the `production` GitHub environment with:
-
-- `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_API_TOKEN`
-
-Set the repository variable `CLOUDFLARE_DEPLOY_ENABLED=true` to deploy every
-push to `main`. A manual workflow dispatch always attempts a deployment.
-
-Use a narrowly scoped Cloudflare token that can edit Workers scripts for the
-target account.
-
-## Before shipping a derived app
-
-1. Change the package and repository metadata.
-2. Change the Worker name and compatibility date in
-   `apps/worker/wrangler.jsonc`.
-3. Replace Signal Desk content, metadata, and branding.
-4. Configure production callback URLs and secrets.
-5. Review the protected API routes and add application authorization.
-6. Enable the deployment workflow only after its environment is configured.
+The birth commit's first parent is the source. `.git-lineage.yaml` records the
+immediate parent; `parent` is separate from this repository's `origin`. Run
+`git-lineage update` from a clean worktree for future template merges. Nothing
+is pushed or deployed by initialization.
 
 ## License
 

@@ -1,93 +1,44 @@
-import type { BootstrapResponse } from "@workspace/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { Dashboard, SharePage } from "../src/ui.js";
+import { formatSize } from "../src/manager.js";
 
-import { Dashboard } from "../src/ui.js";
-
-const bootstrap: BootstrapResponse = {
-  appName: "Signal Desk",
-  providers: [
-    { id: "github", label: "GitHub" },
-    { id: "google", label: "Google" },
-    { id: "microsoft-entra-id", label: "Microsoft" },
-  ],
+const bootstrap = {
+  appName: "Pinboard",
+  providers: [{ id: "google" as const, label: "Google" }],
 };
-
-describe("Dashboard", () => {
-  it("renders provider actions for an anonymous visitor", () => {
+describe("Pinboard interface", () => {
+  it("shows a restrained Google-only login and public-content notice", () => {
     const html = renderToStaticMarkup(
-      <Dashboard
-        state={{
-          kind: "ready",
-          bootstrap,
-          session: null,
-        }}
-      />,
+      <Dashboard state={{ kind: "ready", bootstrap, session: null }} />,
     );
-
-    expect(html).toContain("Continue with GitHub");
-    expect(html).toContain("/api/auth/signin/microsoft-entra-id");
+    expect(html).toContain("Share by CID.");
+    expect(html).toContain("Continue with Google");
+    expect(html).not.toContain("GitHub");
+    expect(html).toContain("Reading by CID is always public");
   });
-
-  it("renders the current identity", () => {
+  it.each([
+    { name: "Alice", email: "alice@example.test" },
+    { email: "alice@example.test" },
+    {},
+  ])("renders account management for signed-in profiles", (user) => {
     const html = renderToStaticMarkup(
-      <Dashboard
-        state={{
-          kind: "ready",
-          bootstrap,
-          session: {
-            user: {
-              email: "operator@example.com",
-              name: "Operator",
-            },
-          },
-        }}
-      />,
+      <Dashboard state={{ kind: "ready", bootstrap, session: { user } }} />,
     );
-
-    expect(html).toContain("Operator");
-    expect(html).toContain("operator@example.com");
     expect(html).toContain("/api/auth/signout");
+    expect(html).toContain("Your pins");
+    expect(html).toContain("I understand all uploaded bytes");
+    expect(html).toContain("Create Agent token");
   });
-
-  it("renders an image or safe fallback for incomplete profiles", () => {
-    const withImage = renderToStaticMarkup(
-      <Dashboard
-        state={{
-          kind: "ready",
-          bootstrap,
-          session: {
-            user: {
-              image: "https://example.test/avatar.png",
-            },
-          },
-        }}
-      />,
-    );
-    const withoutProfileFields = renderToStaticMarkup(
-      <Dashboard
-        state={{
-          kind: "ready",
-          bootstrap,
-          session: {
-            user: {},
-          },
-        }}
-      />,
-    );
-
-    expect(withImage).toContain("https://example.test/avatar.png");
-    expect(withImage).toContain("Signed in");
-    expect(withoutProfileFields).toContain(
-      '<span class="avatar fallback" aria-hidden="true">S</span>',
-    );
-  });
-
-  it("renders loading, empty-provider, and error guidance", () => {
+  it("renders loading, failure and unconfigured-provider states", () => {
     expect(
       renderToStaticMarkup(<Dashboard state={{ kind: "loading" }} />),
     ).toContain("Checking your session");
-
+    expect(
+      renderToStaticMarkup(
+        <Dashboard state={{ kind: "error", message: "HTTP 503" }} />,
+      ),
+    ).toContain("HTTP 503");
     expect(
       renderToStaticMarkup(
         <Dashboard
@@ -99,11 +50,19 @@ describe("Dashboard", () => {
         />,
       ),
     ).toContain(".dev.vars");
-
-    expect(
-      renderToStaticMarkup(
-        <Dashboard state={{ kind: "error", message: "HTTP 503" }} />,
-      ),
-    ).toContain("HTTP 503");
+  });
+  it("shares only safe downloads, never renders uploaded active content", () => {
+    const html = renderToStaticMarkup(
+      <SharePage cid="bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u" />,
+    );
+    expect(html).toContain("Download CAR");
+    expect(html).toContain("delegated router");
+    expect(html).not.toContain("<iframe");
+    expect(renderToStaticMarkup(<SharePage cid="<script>" />)).toContain(
+      "Invalid CID",
+    );
+    expect(formatSize(10)).toBe("10 B");
+    expect(formatSize(1024)).toBe("1.0 KiB");
+    expect(formatSize(1048576)).toBe("1.0 MiB");
   });
 });

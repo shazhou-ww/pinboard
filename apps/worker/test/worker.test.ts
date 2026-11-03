@@ -1,119 +1,630 @@
-import type { BootstrapResponse, HealthResponse } from "@workspace/contracts";
-import { describe, expect, it } from "vitest";
-
-import { createAuthConfig } from "../src/auth.js";
+import { encode } from "@auth/core/jwt";
+import { Miniflare, convertV4MiniflareOptions } from "miniflare";
+import { readFile } from "node:fs/promises";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Bindings } from "../src/env.js";
 import app, { toSessionResponse } from "../src/index.js";
+import { createAuthConfig } from "../src/auth.js";
+import {
+  accountForGoogle,
+  hashToken,
+  type Principal,
+} from "../src/identity.js";
+import { PinService } from "../src/service.js";
+import { createToken, revokeToken } from "../src/tokens.js";
+import { importFile } from "../src/content.js";
+import { encodeCar } from "../src/car.js";
+import { handleMcp } from "../src/mcp.js";
+import { MAX_UPLOAD } from "../src/content.js";
 
-const baseBindings = {
-  APP_NAME: "Signal Desk",
-  AUTH_SECRET: "test-secret-that-is-long-enough-for-auth",
-} as Bindings;
+const mf = new Miniflare(
+  convertV4MiniflareOptions({
+    modules: true,
+    script: "export default { fetch() { return new Response('ok'); } };",
+    compatibilityDate: "2026-10-14",
+    d1Databases: ["DB"],
+    r2Buckets: ["BLOCKS"],
+    serviceBindings: { ASSETS: () => new Response("test assets") },
+  }),
+);
+let env: Bindings;
+let alice: Principal;
+let bob: Principal;
+let cookie: string;
+let token: string;
+let tokenId: string;
+let cid: string;
+const bytes = new TextEncoder().encode(
+  "<script>globalThis.pwned=true</script>",
+);
+const origin = "http://example.test";
+const request = (path: string, init?: RequestInit) =>
+  app.request(origin + path, init, env);
+const sessionHeaders = () => ({
+  cookie,
+  origin,
+  "content-type": "application/json",
+});
+const bearer = () => ({ authorization: `Bearer ${token}` });
+type McpResult = { result: { content: { text: string }[]; isError?: boolean } };
+const rpcText = async (response: Response) =>
+  (await response.json<McpResult>()).result.content[0]!.text;
+const rpc = (name: string, args: Record<string, unknown> = {}) =>
+  request("/mcp", {
+    method: "POST",
+    headers: {
+      ...bearer(),
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name, arguments: args },
+    }),
+  });
 
-describe("Worker", () => {
-  it("reports health", async () => {
-    const response = await app.request(
-      "http://example.test/api/health",
-      {},
-      baseBindings,
-    );
+beforeAll(async () => {
+  const db = await mf.getD1Database("DB");
+  const sql = await readFile(
+    new URL("../migrations/0001_pinboard.sql", import.meta.url),
+    "utf8",
+  );
+  await db.batch(
+    sql
+      .split(";")
+      .map((statement) => statement.trim())
+      .filter(Boolean)
+      .map((statement) => db.prepare(statement)),
+  );
+  env = {
+    ...(await mf.getBindings<Pick<Bindings, "DB" | "BLOCKS" | "ASSETS">>()),
+    APP_NAME: "Pinboard",
+    AUTH_SECRET: "test-secret-that-is-long-enough-for-auth",
+    AUTH_URL: origin + "/api/auth",
+    PUBLIC_ORIGIN: origin,
+    PROVIDER_ID: "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH",
+    PROVIDER_MULTIADDR: "/dns4/pinboard.shazhou.work/tcp/443/tls/http",
+  };
+  alice = {
+    accountId: await accountForGoogle(env.DB, "alice-google-subject"),
+    scopes: ["pins:read", "pins:write", "pins:delete"],
+    kind: "session",
+  };
+  bob = {
+    ...alice,
+    accountId: await accountForGoogle(env.DB, "bob-google-subject"),
+  };
+  cookie = `authjs.session-token=${await encode({ token: { accountId: alice.accountId, name: "Alice" }, secret: env.AUTH_SECRET, salt: "authjs.session-token" })}`;
+}, 30000);
+afterAll(async () => {
+  await mf.dispose();
+});
 
-    expect(response.status).toBe(200);
-    await expect(response.json<HealthResponse>()).resolves.toEqual({
-      service: "Signal Desk",
+describe("identity and HTTP boundaries", () => {
+  it("reports health and only enables Google", async () => {
+    expect(await (await request("/api/health")).json()).toEqual({
+      service: "Pinboard",
       status: "ok",
     });
-  });
-
-  it("only exposes configured identity providers", async () => {
-    const response = await app.request(
-      "http://example.test/api/bootstrap",
-      {},
-      {
-        ...baseBindings,
-        AUTH_GITHUB_ID: "github-id",
-        AUTH_GITHUB_SECRET: "github-secret",
-        AUTH_GOOGLE_ID: "google-id",
-        AUTH_GOOGLE_SECRET: "google-secret",
-        AUTH_MICROSOFT_ENTRA_ID_ID: "microsoft-id",
-        AUTH_MICROSOFT_ENTRA_ID_ISSUER:
-          "https://login.microsoftonline.com/common/v2.0",
-        AUTH_MICROSOFT_ENTRA_ID_SECRET: "microsoft-secret",
-      },
-    );
-
-    const body = await response.json<BootstrapResponse>();
-    expect(body.providers).toEqual([
-      { id: "github", label: "GitHub" },
-      { id: "google", label: "Google" },
-      { id: "microsoft-entra-id", label: "Microsoft" },
-    ]);
-  });
-
-  it("ignores incomplete credentials and supports the default Microsoft issuer", async () => {
-    const bindings: Bindings = {
-      ...baseBindings,
-      AUTH_GITHUB_ID: "github-without-a-secret",
-      AUTH_GOOGLE_ID: " ",
-      AUTH_GOOGLE_SECRET: "google-secret",
-      AUTH_MICROSOFT_ENTRA_ID_ID: "microsoft-id",
-      AUTH_MICROSOFT_ENTRA_ID_SECRET: "microsoft-secret",
-    };
-    const response = await app.request(
-      "http://example.test/api/bootstrap",
-      {},
-      bindings,
-    );
-
-    await expect(response.json<BootstrapResponse>()).resolves.toMatchObject({
-      providers: [{ id: "microsoft-entra-id", label: "Microsoft" }],
+    expect(await (await request("/api/bootstrap")).json()).toMatchObject({
+      providers: [],
     });
-    expect(createAuthConfig(bindings).providers).toHaveLength(1);
-  });
-
-  it("protects the current-user endpoint", async () => {
-    const response = await app.request(
-      "http://example.test/api/me",
-      {},
-      baseBindings,
-    );
-
-    expect(response.status).toBe(401);
-  });
-
-  it("returns a JSON 404 for unknown API routes", async () => {
-    const response = await app.request(
-      "http://example.test/api/unknown",
-      {},
-      baseBindings,
-    );
-
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({ error: "Not found" });
-  });
-
-  it("maps Auth.js sessions to the public contract", () => {
+    const config = createAuthConfig({
+      ...env,
+      AUTH_GOOGLE_ID: "id",
+      AUTH_GOOGLE_SECRET: "secret",
+    });
+    expect(config.providers).toHaveLength(1);
     expect(
-      toSessionResponse({
-        expires: "2099-01-01T00:00:00.000Z",
-        user: {
-          email: "operator@example.test",
-          name: "Operator",
+      createAuthConfig({ ...env, AUTH_GOOGLE_ID: " " }).providers,
+    ).toHaveLength(0);
+    expect(
+      await (
+        await app.request(
+          origin + "/api/bootstrap",
+          {},
+          { ...env, AUTH_GOOGLE_ID: "id", AUTH_GOOGLE_SECRET: "secret" },
+        )
+      ).json(),
+    ).toMatchObject({ providers: [{ id: "google", label: "Google" }] });
+    expect(await accountForGoogle(env.DB, "alice-google-subject")).toBe(
+      alice.accountId,
+    );
+    expect(bob.accountId).not.toBe(alice.accountId);
+  });
+  it("uses a signed session carrying an internal accountId", async () => {
+    const response = await request("/api/me", { headers: { cookie } });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      user: { id: alice.accountId },
+    });
+    expect(toSessionResponse({ expires: "2099" })).toEqual({ expires: "2099" });
+  });
+  it("binds Google provider subjects, not email or labels, in the JWT callback", async () => {
+    const jwt = createAuthConfig(env).callbacks!.jwt!;
+    const result = await jwt({
+      token: {},
+      user: { id: "ignored" },
+      account: {
+        provider: "google",
+        providerAccountId: "alice-google-subject",
+        type: "oidc",
+      },
+    });
+    expect(result?.accountId).toBe(alice.accountId);
+    await expect(
+      jwt({
+        token: {},
+        user: { id: "ignored" },
+        account: {
+          provider: "github",
+          providerAccountId: "alice-google-subject",
+          type: "oauth",
         },
       }),
-    ).toEqual({
-      expires: "2099-01-01T00:00:00.000Z",
-      user: {
-        email: "operator@example.test",
-        name: "Operator",
-      },
+    ).rejects.toThrow("Unsupported");
+  });
+  it.each(["/api/me", "/api/pins", "/api/tokens", "/mcp"])(
+    "requires authentication at %s",
+    async (path) => {
+      expect((await request(path)).status).toBe(401);
+    },
+  );
+  it("rejects foreign origins, missing browser mutation origins and malformed JSON", async () => {
+    expect(
+      (
+        await request("/api/pins", {
+          method: "POST",
+          headers: { cookie, origin: "https://evil.test" },
+          body: "{}",
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request("/api/pins", {
+          method: "POST",
+          headers: { cookie },
+          body: "{}",
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request("/api/pins", {
+          method: "POST",
+          headers: sessionHeaders(),
+          body: "{",
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request("/api/pins", {
+          method: "POST",
+          headers: sessionHeaders(),
+          body: JSON.stringify({ cid: "x", public: false }),
+        })
+      ).status,
+    ).toBe(400);
+    expect((await request("/api/unknown")).status).toBe(404);
+  });
+  it("does not grant access to signed sessions without account identity", async () => {
+    const invalid = await encode({
+      token: { sub: "google-subject" },
+      secret: env.AUTH_SECRET,
+      salt: "authjs.session-token",
     });
     expect(
-      toSessionResponse({
-        expires: "2099-01-01T00:00:00.000Z",
-      }),
-    ).toEqual({
-      expires: "2099-01-01T00:00:00.000Z",
+      (
+        await request("/api/pins", {
+          headers: { cookie: `authjs.session-token=${invalid}` },
+        })
+      ).status,
+    ).toBe(401);
+  });
+});
+
+describe("pins and immutable public reads", () => {
+  it("requires explicit public consent, then imports a file", async () => {
+    expect(
+      (
+        await request("/api/pins/upload?kind=file", {
+          method: "POST",
+          headers: sessionHeaders(),
+          body: bytes,
+        })
+      ).status,
+    ).toBe(400);
+    const response = await request(
+      "/api/pins/upload?kind=file&name=page.html",
+      {
+        method: "POST",
+        headers: { ...sessionHeaders(), "x-pinboard-public": "true" },
+        body: bytes,
+      },
+    );
+    expect(response.status).toBe(201);
+    const pin = await response.json<{ cid: string; blocks: number }>();
+    cid = pin.cid;
+    expect(pin.blocks).toBe(1);
+  });
+  it("provides raw HEAD/GET, probe and routing in both standard formats", async () => {
+    const raw = await request(`/ipfs/${cid}?format=raw`);
+    expect(raw.status).toBe(200);
+    expect(raw.headers.get("content-disposition")).toContain("attachment");
+    expect(raw.headers.get("content-security-policy")).toContain("sandbox");
+    expect(raw.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(new Uint8Array(await raw.arrayBuffer())).toEqual(bytes);
+    const head = await request(`/ipfs/${cid}`, {
+      method: "HEAD",
+      headers: { accept: "application/vnd.ipld.raw" },
     });
+    expect(head.headers.get("content-length")).toBe(String(bytes.length));
+    expect(await head.text()).toBe("");
+    expect((await request(`/ipfs/${cid}`)).status).toBe(406);
+    expect((await request(`/ipfs/${cid}?format=html`)).status).toBe(406);
+    const probe = await request("/ipfs/bafkqaaa?format=raw", {
+      method: "HEAD",
+    });
+    expect(probe.status).toBe(200);
+    expect(probe.headers.get("content-length")).toBe("0");
+    const route = await (await request(`/routing/v1/providers/${cid}`)).json();
+    expect(route).toMatchObject({
+      Providers: [{ Schema: "peer", Addrs: [env.PROVIDER_MULTIADDR] }],
+    });
+    const ndjson = await request(`/routing/v1/providers/${cid}`, {
+      headers: { accept: "application/x-ndjson" },
+    });
+    expect(ndjson.headers.get("content-type")).toContain(
+      "application/x-ndjson",
+    );
+    expect(JSON.parse((await ndjson.text()).trim())).toMatchObject({
+      Schema: "peer",
+    });
+    const missing = (await importFile(new Uint8Array([99]))).root.toString();
+    expect((await request(`/ipfs/${missing}?format=raw`)).status).toBe(404);
+    expect(
+      (await request(`/ipfs/${missing}?format=raw`, { method: "HEAD" })).status,
+    ).toBe(404);
+    expect(
+      await (await request(`/routing/v1/providers/${missing}`)).json(),
+    ).toEqual({ Providers: [] });
+    expect((await request(`/api/public/${missing}/car`)).status).toBe(404);
+    expect((await request("/ipfs/not-a-cid?format=raw")).status).toBe(400);
+  });
+  it("lists and returns details only for the current account", async () => {
+    expect(
+      await (await request("/api/pins", { headers: { cookie } })).json(),
+    ).toMatchObject({ pins: [{ cid, name: "page.html" }], nextCursor: null });
+    expect(
+      (await request(`/api/pins/${cid}`, { headers: { cookie } })).status,
+    ).toBe(200);
+    expect(await new PinService(env, bob).list()).toEqual({
+      pins: [],
+      nextCursor: null,
+    });
+    await expect(new PinService(env, bob).detail(cid)).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(new PinService(env, bob).unpin(cid)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+  it("validates complete CAR import/export and account-safe shared references", async () => {
+    const car = await request(`/api/public/${cid}/car`);
+    expect(car.headers.get("content-type")).toContain(
+      "application/vnd.ipld.car",
+    );
+    const receipt = await new PinService(env, bob).upload(
+      new Uint8Array(await car.arrayBuffer()),
+      "car",
+      "Bob's pin",
+    );
+    expect(receipt.cid).toBe(cid);
+    await new PinService(env, alice).pin(cid, "renamed");
+    await new PinService(env, alice).unpin(cid);
+    expect((await new PinService(env, bob).detail(cid)).name).toBe("Bob's pin");
+    expect((await request(`/ipfs/${cid}?format=raw`)).status).toBe(200);
+    const response = await request("/api/pins", {
+      method: "POST",
+      headers: sessionHeaders(),
+      body: JSON.stringify({ cid, name: "Restored", public: true }),
+    });
+    expect(response.status).toBe(201);
+  });
+  it("never fetches a missing CID from the public network", async () => {
+    const missing = (await importFile(new Uint8Array([100]))).root.toString();
+    await expect(
+      new PinService(env, alice).pin(missing, "Missing"),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+  it("supports raw block uploads and denies missing or mismatched CIDs", async () => {
+    const service = new PinService(env, alice);
+    expect((await service.upload(bytes, "block", "block", cid)).cid).toBe(cid);
+    await expect(service.upload(bytes, "block", "block")).rejects.toMatchObject(
+      { status: 400 },
+    );
+    await expect(
+      service.upload(new Uint8Array([1]), "block", "block", cid),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      service.upload(new Uint8Array(MAX_UPLOAD + 1), "file", "too large"),
+    ).rejects.toMatchObject({ status: 413 });
+  });
+  it("paginates without hiding pins and deletes only a reference", async () => {
+    const rows = Array.from({ length: 51 }, (_, n) =>
+      env.DB.prepare(
+        "INSERT INTO pins (account_id,cid,name,size,blocks) VALUES (?, ?, 'test', 1, 1)",
+      ).bind(bob.accountId, `z-test-${String(n).padStart(3, "0")}`),
+    );
+    await env.DB.batch(rows);
+    const service = new PinService(env, bob);
+    const page = await service.list();
+    expect(page.pins).toHaveLength(50);
+    expect(page.nextCursor).not.toBeNull();
+    expect((await service.list(page.nextCursor!)).pins).toHaveLength(2);
+    const deleted = await request(`/api/pins/${cid}`, {
+      method: "DELETE",
+      headers: sessionHeaders(),
+    });
+    expect(deleted.status).toBe(204);
+    expect(
+      (await request(`/api/pins/${cid}`, { headers: { cookie } })).status,
+    ).toBe(404);
+    expect((await request(`/ipfs/${cid}?format=raw`)).status).toBe(200);
+  });
+});
+
+describe("Agent credentials and MCP share account authorization", () => {
+  it("issues only scoped expiring tokens, stores a hash and lists no secret", async () => {
+    const response = await request("/api/tokens", {
+      method: "POST",
+      headers: sessionHeaders(),
+      body: JSON.stringify({ name: "test agent", scopes: alice.scopes }),
+    });
+    expect(response.status).toBe(201);
+    const issued = await response.json<{ token: string; id: string }>();
+    token = issued.token;
+    tokenId = issued.id;
+    expect(token).toMatch(/^pb_[\w-]{43}$/);
+    const row = await env.DB.prepare(
+      "SELECT token_hash FROM agent_tokens WHERE id = ?",
+    )
+      .bind(tokenId)
+      .first<{ token_hash: string }>();
+    expect(row?.token_hash).toBe(await hashToken(token));
+    const list = await request("/api/tokens", { headers: { cookie } });
+    expect(await list.text()).not.toContain(token);
+    expect((await request("/api/pins", { headers: bearer() })).status).toBe(
+      200,
+    );
+    expect((await request("/api/tokens", { headers: bearer() })).status).toBe(
+      403,
+    );
+    expect(
+      (
+        await request("/api/pins", {
+          headers: { authorization: "Bearer Agent-name" },
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request("/api/pins", {
+          headers: { authorization: "Bearer pb_" + "a".repeat(43) },
+        })
+      ).status,
+    ).toBe(401);
+  });
+  it("supports MCP initialize, discovery and upload/pin/detail/list/unpin", async () => {
+    const init = await request("/mcp", {
+      method: "POST",
+      headers: {
+        ...bearer(),
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "1" },
+        },
+      }),
+    });
+    expect(await init.json()).toMatchObject({
+      result: { serverInfo: { name: "pinboard" } },
+    });
+    const listing = await request("/mcp", {
+      method: "POST",
+      headers: {
+        ...bearer(),
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }),
+    });
+    expect(
+      (
+        await listing.json<{ result: { tools: { name: string }[] } }>()
+      ).result.tools.map((tool) => tool.name),
+    ).toContain("upload");
+    const uploaded = await rpc("upload", {
+      name: "from MCP",
+      kind: "file",
+      contentBase64: btoa("MCP data"),
+      public: true,
+    });
+    const result = await uploaded.json<{
+      result: { content: { text: string }[] };
+    }>();
+    const pin = JSON.parse(result.result.content[0]!.text) as { cid: string };
+    expect(await rpcText(await rpc("detail", { cid: pin.cid }))).toContain(
+      "from MCP",
+    );
+    expect(await rpcText(await rpc("list"))).toContain(pin.cid);
+    expect(await (await rpc("unpin", { cid: pin.cid })).json()).toMatchObject({
+      result: { content: [{ text: '{"unpinned":true}' }] },
+    });
+    expect(
+      await rpcText(
+        await rpc("pin", { cid: pin.cid, name: "repinned", public: true }),
+      ),
+    ).toContain(pin.cid);
+    expect((await new PinService(env, alice).detail(pin.cid)).name).toBe(
+      "repinned",
+    );
+    expect(
+      await (
+        await rpc("upload", {
+          name: "bad",
+          kind: "file",
+          contentBase64: "!!!",
+          public: true,
+        })
+      ).json(),
+    ).toMatchObject({ result: { isError: true } });
+    expect(
+      await (
+        await rpc("upload", {
+          name: "big",
+          kind: "file",
+          contentBase64: Buffer.alloc(2 * 1024 * 1024 + 1).toString("base64"),
+          public: true,
+        })
+      ).json(),
+    ).toMatchObject({ result: { isError: true } });
+    expect(
+      await (
+        await rpc("pin", { cid: "bad", name: "bad", public: true })
+      ).json(),
+    ).toMatchObject({ result: { isError: true } });
+    expect((await request("/mcp", { headers: bearer() })).status).toBe(405);
+    expect(
+      (
+        await request("/mcp", {
+          headers: { ...bearer(), accept: "text/event-stream" },
+        })
+      ).status,
+    ).toBe(405);
+  });
+  it("enforces read-only scopes on HTTP and MCP", async () => {
+    const readOnly = await createToken(env, alice, {
+      name: "read-only",
+      scopes: ["pins:read"],
+    });
+    const original = token;
+    token = readOnly.token;
+    const response = await request("/api/pins", {
+      method: "POST",
+      headers: { ...bearer(), "content-type": "application/json" },
+      body: JSON.stringify({ cid, public: true }),
+    });
+    expect(response.status).toBe(403);
+    const denied = await (await rpc("unpin", { cid })).json<McpResult>();
+    expect(denied.result.isError).toBe(true);
+    expect(denied.result.content[0]!.text).toContain("403");
+    await expect(
+      createToken(
+        env,
+        { ...alice, kind: "agent" },
+        { name: "no", scopes: ["pins:read"] },
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    token = original;
+  });
+  it("enforces token ownership, expiry and immediate revocation", async () => {
+    await expect(revokeToken(env, bob, tokenId)).rejects.toMatchObject({
+      status: 404,
+    });
+    const expired = await createToken(env, alice, {
+      name: "expires",
+      scopes: ["pins:read"],
+    });
+    await env.DB.prepare(
+      "UPDATE agent_tokens SET expires_at = '2000' WHERE id = ?",
+    )
+      .bind(expired.id)
+      .run();
+    expect(
+      (
+        await request("/api/pins", {
+          headers: { authorization: `Bearer ${expired.token}` },
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request(`/api/tokens/${tokenId}`, {
+          method: "DELETE",
+          headers: sessionHeaders(),
+        })
+      ).status,
+    ).toBe(204);
+    expect((await request("/api/pins", { headers: bearer() })).status).toBe(
+      401,
+    );
+    expect(
+      (await request("/mcp", { method: "POST", headers: bearer(), body: "{}" }))
+        .status,
+    ).toBe(401);
+  });
+});
+
+describe("explicit unexpected errors", () => {
+  it("does not expose internal exceptions as success or reveal stack traces", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const original = env.DB;
+    env = {
+      ...env,
+      DB: new Proxy(original, {
+        get(target, property) {
+          if (property === "prepare")
+            return () => {
+              throw new Error("database unavailable");
+            };
+          const value: unknown = Reflect.get(target, property);
+          return value;
+        },
+      }),
+    };
+    const response = await request("/api/pins", { headers: { cookie } });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "Internal server error" });
+    expect(spy).toHaveBeenCalled();
+    const mcpResponse = await handleMcp(
+      new Request(origin + "/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "list", arguments: {} },
+        }),
+      }),
+      env,
+      alice,
+    );
+    expect(await mcpResponse.json()).toMatchObject({
+      result: { isError: true, content: [{ text: "Internal server error" }] },
+    });
+    env = { ...env, DB: original };
+    spy.mockRestore();
+  });
+  it("round trips a non-trivial complete DAG", async () => {
+    const dag = await importFile(new Uint8Array(600000).fill(5));
+    expect(dag.blocks.size).toBeGreaterThan(1);
+    const car = await encodeCar(dag);
+    expect(car.length).toBeGreaterThan(dag.size);
   });
 });

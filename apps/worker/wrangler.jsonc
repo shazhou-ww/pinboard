@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "signal-desk",
+  "name": "pinboard",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-14",
   "compatibility_flags": ["nodejs_compat"],
@@ -8,12 +8,25 @@
     "binding": "ASSETS",
     "directory": "../web/dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"],
+    "run_worker_first": ["/api/*", "/ipfs/*", "/routing/*", "/mcp"],
   },
   "vars": {
-    "APP_NAME": "Signal Desk",
+    "APP_NAME": "Pinboard",
+    "PUBLIC_ORIGIN": "https://pinboard.shazhou.work",
+    "PROVIDER_MULTIADDR": "/dns4/pinboard.shazhou.work/tcp/443/tls/http",
+    "PROVIDER_ID": "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH",
   },
+  "r2_buckets": [{ "binding": "BLOCKS", "bucket_name": "pinboard-blocks" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pinboard",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
   "observability": {
     "enabled": true,
+    "traces": { "enabled": true },
   },
 }

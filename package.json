@@ -1,7 +1,7 @@
 {
-  "name": "preset-cloudflare-fullstack",
+  "name": "pinboard",
   "version": "0.0.0",
-  "description": "A Cloudflare fullstack preset with React, Hono, and multi-provider OAuth.",
+  "description": "Pin blocks. Share by CID. Lightweight public IPFS storage on Cloudflare.",
   "keywords": [
     "typescript",
     "cloudflare",
@@ -9,16 +9,18 @@
     "react",
     "hono",
     "oauth",
-    "preset",
-    "template"
+    "ipfs",
+    "cid",
+    "r2",
+    "mcp"
   ],
-  "homepage": "https://github.com/shazhou-ww/preset-cloudflare-fullstack#readme",
+  "homepage": "https://pinboard.shazhou.work",
   "bugs": {
-    "url": "https://github.com/shazhou-ww/preset-cloudflare-fullstack/issues"
+    "url": "https://github.com/shazhou-ww/pinboard/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shazhou-ww/preset-cloudflare-fullstack.git"
+    "url": "git+https://github.com/shazhou-ww/pinboard.git"
   },
   "license": "MIT",
   "private": true,
@@ -37,6 +39,7 @@
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:kubo": "node scripts/kubo-poc.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
