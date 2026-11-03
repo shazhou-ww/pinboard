@@ -53,7 +53,7 @@ jobs:
       - name: Validate workspace
         run: pnpm check
 
-      - name: Migrate D1 and deploy Worker, assets and secrets
+      - name: Deploy Worker, assets and secrets
         working-directory: apps/worker
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -89,5 +89,4 @@ jobs:
           secrets.AUTH_URL = `${config.vars.PUBLIC_ORIGIN}/api/auth`;
           writeFileSync(process.env.PINBOARD_DEPLOY_SECRETS, JSON.stringify(secrets), { mode: 0o600 });
           JS
-          pnpm exec wrangler d1 migrations apply pinboard --remote
           pnpm exec wrangler deploy --config wrangler.jsonc --secrets-file "$secret_file" --tag "$RELEASE_TAG"

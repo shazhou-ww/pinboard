@@ -16,6 +16,25 @@ semantic versions, GitHub Releases, or a release branch.
 
 No release tag or production deployment is created by configuring this workflow.
 
+## One-time bootstrap status
+
+On 2026-11-03 the authorized bootstrap created:
+
+| Resource              | Value                                               |
+| --------------------- | --------------------------------------------------- |
+| Cloudflare account ID | `92c3c4fdcc84a1590555bccf4f111de2`                  |
+| Worker                | `pinboard`, serving only a 503 placeholder          |
+| D1 database           | `pinboard` / `625b568d-106b-4fe1-af33-3eac4fe0a354` |
+| Private R2 bucket     | `pinboard-blocks`, managed public access disabled   |
+| Custom domain         | `pinboard.shazhou.work`, attached to `pinboard`     |
+
+The full application and OAuth secrets were **not** deployed. The production
+schema has not been initialized. Prepare it through a separately authorized
+database operation before the first full application release; deployment does
+not initialize or migrate D1. Do not re-create these resources or re-bind the
+domain during routine CI. The bootstrap credential stays in `cfg`; it must not
+be copied into GitHub.
+
 ## 1. Provision production resources once
 
 The workflow expects these resources to exist in the intended Cloudflare
@@ -34,11 +53,11 @@ pnpm --filter @workspace/worker exec wrangler r2 bucket create pinboard-blocks
 pnpm --filter @workspace/worker exec wrangler d1 create pinboard
 ```
 
-Replace the all-zero `database_id` in
-[`wrangler.jsonc`](../apps/worker/wrangler.jsonc) with the real production
-database UUID **before** creating a release tag. The workflow rejects the
-placeholder before migration or deployment. Resource creation and custom-domain
-setup are not performed automatically.
+The verified production database UUID is recorded in
+[`wrangler.jsonc`](../apps/worker/wrangler.jsonc). If provisioning a different
+environment, record its real database UUID **before** creating a release tag.
+The workflow rejects an all-zero placeholder before deployment. Resource
+creation and custom-domain setup are not performed automatically.
 
 An existing Worker can be deployed with per-Worker Editor permissions; creating
 a new Worker instead requires product-level Workers Admin. Either bootstrap the
@@ -61,22 +80,29 @@ pnpm check
 
 ## 2. Create a dedicated Cloudflare deployment token
 
-Use an account-owned API token if available, limited to the intended account. Do
-not use the global API key or send the token through chat.
+Use an account-owned API token with **Individual/Specified Workers → pinboard →
+Editor** as its only permission policy. In the dashboard, select the account,
+then **Manage account → Account API tokens → Create Token**.
 
-For ongoing deployments:
+Editor can deploy code/assets and update the existing Worker's secrets. Do not
+add account-wide `Workers Scripts / Edit`: that legacy permission is broader
+than the individual-Worker policy. Remove unrelated selected permissions and
+empty policies rather than granting permissions to the entire account to clear a
+form error.
 
-| Permission                                                       | Why                                                                                            |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Workers **Editor**, scoped to `pinboard`                         | Deploy code/assets and update Worker secrets. The legacy equivalent is Workers Scripts / Edit. |
-| D1 query/migration write access, scoped as narrowly as supported | The workflow applies remote D1 migrations. In the legacy token UI this is D1 / Edit.           |
+The deployment token does **not** need D1 administrative/query permissions.
+Production schema changes, backfills and cutovers use separately authorized
+credentials and never run in the release workflow. The deployed application's
+normal access through its configured D1/R2 bindings is unaffected; control-plane
+token scoping does not remove those runtime capabilities.
 
 Separate R2 data permissions are **not** required just to deploy a Worker with
 an existing R2 binding. Bucket creation or direct R2 administration is a
 bootstrap operation and requires its own permissions.
 
-Only add zone-level Workers Routes Write if automation will change Routes or
-Custom Domains. The current workflow does not manage those connections.
+Do not grant Workers Routes Write, Zone or DNS permissions to the deployment
+token. The domain has already been attached; changing Routes or Custom Domains
+is a separate, explicitly authorized operation, not part of this workflow.
 Cloudflare currently documents additional limitations for per-Worker roles and
 Custom Domains; verify the token against your actual setup before releasing.
 
@@ -148,21 +174,20 @@ ancestry, installs the lockfile, and runs all repository checks. It then:
 
 1. Checks that all five production secrets and the real D1 UUID are configured.
 2. Writes only the Worker auth secrets to a mode-0600 temporary JSON file.
-3. Applies pending D1 migrations to the production database.
-4. Deploys the Worker, built static assets and auth secrets together using
+3. Deploys the Worker, built static assets and auth secrets together using
    Wrangler's supported `--secrets-file`, with the release tag as version
    metadata.
-5. Removes the temporary file on success or failure.
+4. Removes the temporary file on success or failure.
 
 The
 [atomic secrets upload](https://developers.cloudflare.com/workers/configuration/secrets/#upload-secrets-alongside-code)
 avoids a second `wrangler secret bulk` deployment after the code deployment. The
 Cloudflare API token is never included in the Worker's secret file.
 
-D1 migration and Worker deployment are **not one transaction**. Migrations must
-be additive/backward-compatible because the previous Worker may continue running
-if deployment fails. Retrying a failed workflow resumes pending migrations using
-Wrangler's migration history.
+There is no production D1 command in the deployment workflow. The D1 UUID check
+reads only local configuration and does not query or change the remote database.
+Retrying a release does not initialize tables, apply SQL or start a data
+migration.
 
 Deployments share one production concurrency group and do not cancel an active
 deployment. GitHub may replace pending runs; this is not a guaranteed FIFO
@@ -173,11 +198,41 @@ schema or stored content**.
 The deploy command explicitly uses the production `wrangler.jsonc`, never the
 unauthenticated local PoC fixture.
 
-## 5. Production acceptance and remaining setup
+## 5. Independent hot migrations
 
-The repository currently contains a placeholder D1 UUID. Cloudflare credentials,
-GitHub environment secrets, real resources and domain configuration have not
-been verified merely by updating the workflow.
+Hot migration means **dual-write → backfill/catch-up → cutover**, not running
+SQL as a deployment step:
+
+1. Prepare the compatible target schema/storage through a separately authorized
+   operation. The initial schema remains in
+   [`0001_pinboard.sql`](../apps/worker/migrations/0001_pinboard.sql); it is not
+   executed automatically in production.
+2. Introduce dual-write compatibility code and enable it under migration
+   control, with idempotent writes, retry/reconciliation and observable
+   failures.
+3. Backfill historical data and catch up incremental changes, tracking progress
+   and verifying consistency before switching reads.
+4. Cut over reads only after validation; retain dual-write and a rollback
+   window.
+5. Stop old writes and clean up obsolete data/schema only as a separate,
+   explicitly approved follow-up.
+
+Application releases may contain compatibility code needed for a phase, but
+publishing a tag must not automatically start backfills, change migration state
+or cut over traffic. Migration credentials stay outside the deployment
+Environment and are granted only to the independently authorized process.
+
+No active data migration or migration controller is introduced by this
+configuration change. Before the first full application release, separately
+initialize and verify the empty production database; otherwise authenticated
+application operations cannot work.
+
+## 6. Production acceptance and remaining setup
+
+The real D1 UUID and one-time resource/domain allocation are recorded above. The
+live Worker is still only a 503 placeholder. The least-privilege GitHub
+credential, production Environment secrets and full application deployment
+remain separate setup steps; they are not verified by the bootstrap.
 
 Before calling a release successful, verify:
 

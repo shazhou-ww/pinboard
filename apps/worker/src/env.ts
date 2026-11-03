@@ -1,6 +1,12 @@
 export interface Bindings extends Omit<
   CloudflareBindings,
-  "APP_NAME" | "PUBLIC_ORIGIN" | "PROVIDER_MULTIADDR" | "PROVIDER_ID"
+  | "APP_NAME"
+  | "PUBLIC_ORIGIN"
+  | "PROVIDER_MULTIADDR"
+  | "PROVIDER_ID"
+  | "AUTH_URL"
+  | "AUTH_GOOGLE_ID"
+  | "AUTH_GOOGLE_SECRET"
 > {
   readonly APP_NAME: string;
   readonly PUBLIC_ORIGIN: string;

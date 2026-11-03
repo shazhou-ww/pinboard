@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { validateReleaseTag } from "./validate-release.mjs";
@@ -47,9 +48,19 @@ test("CLI fails closed for invalid and missing tags", () => {
     const result = spawnSync(process.execPath, [script, ...args], {
       encoding: "utf8",
     });
+
     assert.equal(result.status, args[0] === "release-261103-1" ? 0 : 1);
     if (result.status !== 0) {
       assert.match(result.stderr, /Expected release-YYMMDD-INDEX/);
     }
   }
+});
+
+test("production deployment publishes the Worker without running D1 operations", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-cloudflare.yaml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /\bwrangler\s+deploy\b/);
+  assert.doesNotMatch(workflow, /\bwrangler\s+d1\b/);
 });

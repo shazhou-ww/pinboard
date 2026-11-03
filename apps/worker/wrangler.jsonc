@@ -21,7 +21,7 @@
     {
       "binding": "DB",
       "database_name": "pinboard",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "625b568d-106b-4fe1-af33-3eac4fe0a354",
       "migrations_dir": "migrations",
     },
   ],
