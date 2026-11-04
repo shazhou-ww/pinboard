@@ -120,7 +120,26 @@ fixture 的 Windows 主机结果。CI 配置不是 CI 执行成功的证据；�
 
 本文件不提供生产账号授权、生产端点读写或干净机器安装验收；这些属于父任务管理的现实阶段。未改动 D-* 复选框，未暂存、提交、推送或追加生命周期事件。
 
-## 复现入口
+## 父级复核与外部阻塞
+
+父级复核后在实施候选 `aedb16776a4fefbbe4c4668e66e821aae8bc2074` 上再次运行
+`pnpm check`，20/20 工作区任务通过。已补充目录/CAR 已知根与上传响应 CID 的语义一致性校验，覆盖不同根拒绝以及 CIDv0/v1 等价表示；新增测试最初暴露的 multihash 类型错误也已修复并通过完整检查。
+
+另外从该本地提交创建了独立干净 checkout，执行
+`pnpm install --frozen-lockfile`、CLI/Worker 及依赖构建、CLI 帮助、真实本地 Worker 集成和 CLI 测试：6 项 Worker 集成通过，CLI
+49 项通过、2 项平台/权限能力跳过。安装时因 CLI 尚未构建产生一次 bin
+shim 缺失警告；按文档构建后通过直接 Node 入口运行成功，不把该入口描述成已发布的独立安装包。这些是干净源码安装和本地合成账户的补充证据，不替代真实生产账户验收。
+
+同步 primary 时 GitHub 连续返回 `fatal error in commit_refs_rules` 或
+`Internal Server Error`；普通 main 推送和普通 topic 分支推送均失败，未强推、未改写历史、未绕过仓库策略。刷新后的远端 primary 仍为
+`66727471d8bbe3b2c73e8291e505c3d4c150e804`，实现已保存在本地 `docs/pinboard-cli`
+的提交中，但尚未到达 primary。因此无法触发本候选的 Ubuntu/Windows
+CI；I-AC02 继续未完成，不追加 `submitInner` 或
+`acceptInner`，不宣称跨平台验收通过。
+
+本会话未发现可供 CLI 使用的生产 token，集成浏览器在生产域名显示未登录。真实账户现实验证仍需授权凭据，不能通过造会话、读取未知秘密或降低验收要求替代。恢复条件是 GitHub 接受普通推送、取得真实 CI 结果，并在现实阶段具备可用授权账户；无需重新征求已委托的门禁审批。
+
+### 本地复现命令
 
 ```powershell
 pnpm install --frozen-lockfile
