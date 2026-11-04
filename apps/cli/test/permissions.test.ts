@@ -116,7 +116,7 @@ describe(`real ${process.platform} credential protection`, () => {
           "-NoProfile",
           "-NonInteractive",
           "-Command",
-          "$a=Get-Acl -LiteralPath $env:PINBOARD_TEST_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; if(-not $a.AreAccessRulesProtected -or $a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){exit 9}; $r=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])); if($r.Count -ne 1 -or $r[0].IdentityReference.Value -ne $s.Value -or $r[0].IsInherited){exit 10}; Write-Output 'verified'",
+          "$a=[System.IO.File]::GetAccessControl($env:PINBOARD_TEST_PATH); $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; if(-not $a.AreAccessRulesProtected -or $a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){exit 9}; $r=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])); if($r.Count -ne 1 -or $r[0].IdentityReference.Value -ne $s.Value -or $r[0].IsInherited){exit 10}; [Console]::WriteLine('verified')",
         ],
         {
           env: {
@@ -209,7 +209,7 @@ describe(`real ${process.platform} credential protection`, () => {
           "-NoProfile",
           "-NonInteractive",
           "-Command",
-          "$p=$env:PINBOARD_TEST_PATH; $a=[System.IO.File]::GetAccessControl($p); $s=New-Object System.Security.Principal.SecurityIdentifier('S-1-1-0'); $r=New-Object System.Security.AccessControl.FileSystemAccessRule($s,'Read','Allow'); $a.AddAccessRule($r); [System.IO.File]::SetAccessControl($p,$a)",
+          "$p=$env:PINBOARD_TEST_PATH; $a=[System.IO.File]::GetAccessControl($p); $s=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $r=[System.Security.AccessControl.FileSystemAccessRule]::new($s,'Read','Allow'); $a.AddAccessRule($r); [System.IO.File]::SetAccessControl($p,$a)",
         ],
         { env: { ...process.env, PINBOARD_TEST_PATH: path } },
       );
@@ -233,7 +233,7 @@ describe(`real ${process.platform} credential protection`, () => {
           "-NoProfile",
           "-NonInteractive",
           "-Command",
-          "$p=$env:PINBOARD_TEST_PATH; $a=[System.IO.Directory]::GetAccessControl($p); $s=New-Object System.Security.Principal.SecurityIdentifier('S-1-1-0'); $r=New-Object System.Security.AccessControl.FileSystemAccessRule($s,'ChangePermissions','Allow'); $a.AddAccessRule($r); [System.IO.Directory]::SetAccessControl($p,$a)",
+          "$p=$env:PINBOARD_TEST_PATH; $a=[System.IO.Directory]::GetAccessControl($p); $s=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $r=[System.Security.AccessControl.FileSystemAccessRule]::new($s,'ChangePermissions','Allow'); $a.AddAccessRule($r); [System.IO.Directory]::SetAccessControl($p,$a)",
         ],
         { env: { ...process.env, PINBOARD_TEST_PATH: ancestor } },
       );
@@ -277,7 +277,7 @@ describe(`real ${process.platform} credential protection`, () => {
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "$p=$env:PINBOARD_TEST_PATH; $a=[System.IO.File]::GetAccessControl($p); $s=New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544'); $a.SetOwner($s); [System.IO.File]::SetAccessControl($p,$a)",
+            "$p=$env:PINBOARD_TEST_PATH; $a=[System.IO.File]::GetAccessControl($p); $s=[System.Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'); $a.SetOwner($s); [System.IO.File]::SetAccessControl($p,$a)",
           ],
           {
             env: {

@@ -18,9 +18,8 @@ $trusted = @($sid.Value, 'S-1-5-18', 'S-1-5-32-544', 'S-1-5-80-956008885-3418522
 $replaceRights = [System.Security.AccessControl.FileSystemRights]'DeleteSubdirectoriesAndFiles, Delete, ChangePermissions, TakeOwnership'
 $parent = [System.IO.Path]::GetDirectoryName($p)
 while ($parent) {
-  $parentItem = Get-Item -LiteralPath $parent -Force
-  if (($parentItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Reparse ancestor' }
-  $parentAcl = Get-Acl -LiteralPath $parent
+  if (([System.IO.File]::GetAttributes($parent) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Reparse ancestor' }
+  $parentAcl = [System.IO.Directory]::GetAccessControl($parent)
   if ($trusted -notcontains $parentAcl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value) { throw 'Untrusted parent owner' }
   foreach ($access in $parentAcl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])) {
     if ($access.AccessControlType -eq 'Allow' -and ($access.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -eq 0 -and $trusted -notcontains $access.IdentityReference.Value -and ($access.FileSystemRights -band $replaceRights) -ne 0) { throw 'Replaceable ancestor' }
@@ -28,24 +27,24 @@ while ($parent) {
   $parent = [System.IO.Path]::GetDirectoryName($parent)
 }
 if ($action -eq 'directory') {
-  $security = New-Object System.Security.AccessControl.DirectorySecurity
+  $security = [System.Security.AccessControl.DirectorySecurity]::new()
   $security.SetOwner($sid)
   $security.SetAccessRuleProtection($true, $false)
-  $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+  $rule = [System.Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
   $security.AddAccessRule($rule)
-  [System.IO.Directory]::CreateDirectory($p, $security) | Out-Null
+  [void][System.IO.Directory]::CreateDirectory($p, $security)
 }
 if ($action -eq 'file') {
-  $security = New-Object System.Security.AccessControl.FileSecurity
+  $security = [System.Security.AccessControl.FileSecurity]::new()
   $security.SetOwner($sid)
   $security.SetAccessRuleProtection($true, $false)
-  $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'Allow')
+  $rule = [System.Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'Allow')
   $security.AddAccessRule($rule)
   [System.IO.File]::SetAccessControl($p, $security)
 }
-$item = Get-Item -LiteralPath $p -Force
-if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Reparse point' }
-$acl = Get-Acl -LiteralPath $p
+$attributes = [System.IO.File]::GetAttributes($p)
+if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Reparse point' }
+$acl = if (($attributes -band [System.IO.FileAttributes]::Directory) -ne 0) { [System.IO.Directory]::GetAccessControl($p) } else { [System.IO.File]::GetAccessControl($p) }
 if (-not $acl.AreAccessRulesProtected -or $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $sid.Value) { throw 'Unsafe owner or inheritance' }
 $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
 if ($rules.Count -ne 1) { throw 'Unexpected ACL entries' }
