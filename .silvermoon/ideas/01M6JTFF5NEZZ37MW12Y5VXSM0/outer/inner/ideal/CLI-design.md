@@ -23,13 +23,16 @@ RPC 或远程 CID 拉取。标准 IPFS 客户端仍可在显式配置下读取�
 pinboard config set endpoint https://pinboard.shazhou.work
 
 # PINBOARD_AGENT_TOKEN 由用户在本机通过秘密管理机制提供。
-pinboard upload .\file.txt --public
-pinboard upload .\folder --name example --public
-pinboard import .\archive.car --public
+pinboard upload .\file.txt
+pinboard upload .\folder --name example
+pinboard import .\archive.car
 
 pinboard pins list --json
 pinboard pins inspect <CID>
 pinboard pins remove <CID>
+
+# 单次覆盖服务地址，不修改已保存的配置。
+pinboard upload .\file.txt --endpoint http://localhost:8787
 ```
 
 - `upload` 接受一个普通文件或目录；`.car` 文件在这里仍是普通文件，只有 `import`
@@ -42,7 +45,8 @@ pinboard pins remove <CID>
   只保存服务地址等非敏感设置；默认使用现有生产 origin，本地地址必须显式配置。移除原方案的 Kubo 路径与版本设置。
 - Token 来自 `PINBOARD_AGENT_TOKEN`，可提供 `--token-stdin`
   作为互斥替代；同时指定时明确报用法错误。不提供命令行明文 token 参数或明文配置存储。第一版不实现 OAuth 登录、token 签发或 OS 密钥链，token 从 Web 获取。
-- 服务地址按命令行选项、对应环境变量、用户配置、默认值依次解析。配置放在用户配置目录，不写进项目；不因当前工作目录中的文件而暗中改写目标 origin。
+- 每条联网命令均支持 `--endpoint` 单次覆盖，不修改用户配置；优先级为
+  `--endpoint`、`PINBOARD_ENDPOINT`、用户配置、默认值。切换 endpoint 时由用户提供对应服务的 token，不自动探测或转发其他服务的凭据。配置放在用户配置目录，不写进项目；不因当前工作目录中的文件而暗中改写目标 origin。
 
 ## 三条上传路径
 
@@ -85,10 +89,13 @@ leaves、目录包装选项及其他有效默认值，不趁机改变 chunker �
 - 二进制内容不经过 shell、文本重定向或 base64。优先复用现有有界内存编码方式；避免无界缓冲和不必要的完整副本，不为本次需求引入磁盘缓存系统。
 - 文件变化、权限不足、读取中断、超限或无效 CAR 均显式失败；不声称对正在变更的目录提供原子快照。
 
-## 认证、公开确认和 HTTP 行为
+## 认证、公开发布和 HTTP 行为
 
-所有上传要求显式 `--public`，再由 CLI 发送现有
-`X-Pinboard-Public: true`。TTY 下可提示补充该选项，但不能静默确认；自动化缺少确认时直接失败，不等待输入。普通配置不能永久隐式开启公开上传。
+`upload` 和 `import` 的固定语义就是公开发布，不提供
+`--public`、`--confirm-public`、私有模式或二次确认，TTY 和自动化行为一致。CLI 对每次上传自动发送现有
+`X-Pinboard-Public: true`，把明确的上传命令映射为 API 的公开声明；服务器仍拒绝未携带该头的直接 API 上传，不修改 Web/MCP 的确认机制。
+
+命令帮助和使用文档必须在上传说明中直接标明“内容公开，知道 CID 即可读取；移除 pin 不等于擦除内容”。不把说明变成阻塞提示，不增加确认配置或交互向导。
 
 Token 只用于 CLI 直接发出的 Authorization 请求头，不放 URL、子进程参数、JSON 结果或诊断日志。非 loopback 地址要求 HTTPS；禁止携带凭据跟随重定向，确保 token 不被转发到其他 origin。令牌仍由服务器逐请求校验账户、scope、有效期和撤销状态；不新增账户身份参数或降低服务端授权。
 
