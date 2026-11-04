@@ -4,6 +4,9 @@ node_modules/
 *.tgz
 .turbo/
 .wrangler/
+.cli-tests/
+.permission-tests/
+.worker-cli-tests/
 .dev.vars
 .dev.vars.*
 !.dev.vars.example

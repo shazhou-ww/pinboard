@@ -3,4 +3,7 @@ dist/
 node_modules/
 pnpm-lock.yaml
 .turbo/
+.cli-tests/
+.permission-tests/
+.worker-cli-tests/
 apps/web/public/

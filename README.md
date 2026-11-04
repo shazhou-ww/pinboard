@@ -16,6 +16,8 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
   becomes one pin with one directory root CID.
 - API/MCP: upload a file (UnixFS), a single block, or a complete single-root
   CAR.
+- [CLI](docs/cli.md): upload files/directories, import CARs, list, inspect and
+  remove account pins without installing Kubo or running a daemon.
 - Validate CID hashes and complete DAG closure before accepting a pin.
 - Share by CID without authentication, through raw block responses or CAR
   export.
@@ -60,8 +62,8 @@ login bypass in the production Worker.
 
 Make a pin offers **Choose file** and **Choose folder**, plus a shared drop
 zone. There is no protocol-format selector. Files, including `.car` files, are
-saved as ordinary files in the Web UI; use the API/MCP CAR mode for protocol
-imports.
+saved as ordinary files in the Web UI; use CLI `import` or the API/MCP CAR mode
+for protocol imports.
 
 Folders are packaged into a complete UnixFS directory CAR in the browser and
 sent through the existing authenticated upload API. The encoder is loaded only

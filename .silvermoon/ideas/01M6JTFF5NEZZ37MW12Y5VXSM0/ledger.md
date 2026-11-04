@@ -4,15 +4,15 @@
 
 ### Implementation steps
 
-- [ ] **I-S01:** 建立命令与认证边界
-- [ ] **I-S02:** 复用 API 与共享目录编码
-- [ ] **I-S03:** 补齐验证与使用文档
+- [x] **I-S01:** 建立命令与认证边界
+- [x] **I-S02:** 复用 API 与共享目录编码
+- [x] **I-S03:** 补齐验证与使用文档
 
 ### Implementation acceptance criteria
 
-- [ ] **I-AC01:** 上传内容与 Web 语义一致
+- [x] **I-AC01:** 上传内容与 Web 语义一致
 - [ ] **I-AC02:** 认证与自动化行为可靠
-- [ ] **I-AC03:** 无 Kubo 依赖且工作区检查通过
+- [x] **I-AC03:** 无 Kubo 依赖且工作区检查通过
 
 ## Deployment
 

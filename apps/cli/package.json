@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pinboard": "./dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run --config vitest.config.ts --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@ipld/car": "catalog:",
+    "@workspace/contracts": "workspace:*",
+    "@workspace/encoding": "workspace:*",
+    "multiformats": "catalog:"
+  }
+}

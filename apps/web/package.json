@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@workspace/encoding": "workspace:*",
     "@ipld/car": "catalog:",
     "ipfs-unixfs-importer": "catalog:",
     "multiformats": "catalog:",

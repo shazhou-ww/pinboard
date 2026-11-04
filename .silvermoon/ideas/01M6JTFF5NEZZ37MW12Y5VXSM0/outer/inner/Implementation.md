@@ -1,6 +1,8 @@
 # Implementation
 
-本契约是可调整的实施初版；设计范围见 [CLI 设计](ideal/CLI-design.md)，尚未实施。
+已实现独立 API CLI、共享目录编码与工作区测试；设计范围仍以接受的
+[CLI 设计](ideal/CLI-design.md) 为准。实现与检查记录见
+[实施证据](Evidence.md)。Linux 实机结果及当前 Windows 主机不能执行的异所有者场景仍有验证缺口，因此 I-AC02 不标为完成；本契约不声称生产账户验收或现实阶段完成。
 
 ## Steps
 
@@ -9,18 +11,31 @@
 在工作区内实现命令解析、配置优先级、安全 HTTP 客户端、JSON 输出与失败退出码；对接已有 pin
 API，不新增服务端协议。
 
+入口位于
+`apps/cli`：顶层上传、导入、列表、详情、移除，以及配置与本地 token 管理。JSON 成功与失败流分离，分页全部成功后才输出；写入不自动重试，响应丢失明确报告不确定结果。
+
 增加配置旁独立 token 文件及保存、移除入口，按 endpoint 隔离并支持环境变量覆盖；实现 POSIX 权限及 Windows
 ACL 的安全创建、验证和明确失败，不增加系统凭据库依赖。
+
+凭据文件采用受保护目录、预先设权的暂存文件、同目录原子替换与跨进程锁；Windows 使用真实 PowerShell/.NET
+DACL 验证，辅助进程不接收 token 参数或 token 环境变量。
 
 ### I-S02: 复用 API 与共享目录编码
 
 普通文件直接使用 `kind=file`，已有 CAR 使用
 `kind=car`。从 Web 提取环境无关的目录 CAR 编码逻辑，供浏览器和 CLI 文件流适配器共同使用；保持现有编码选项、路径与空目录语义，不引入 Kubo 运行依赖。
 
+共享核心位于
+`packages/encoding`，仅接受相对路径、大小与异步二进制内容流；Web 保留 File/Blob 适配，CLI 扫描与有界读取本地文件，拒绝链接和特殊输入。
+
 ### I-S03: 补齐验证与使用文档
 
 接入现有工作区检查，为 CLI、共享编码器、Web 回归和 Worker
 API 增加针对性验证，并记录无需 Kubo 的安装、公开内容语义和故障恢复。
+
+用户入口见
+`docs/cli.md`；真实编译 Worker/workerd、D1/R2 与 CLI 的本地 HTTP 集成位于
+`apps/worker/test/cli.test.ts`。CI 增加 Windows/Ubuntu 与现有 Node 版本矩阵，尚未运行的平台结果不由配置本身推断。
 
 ## Acceptance criteria
 

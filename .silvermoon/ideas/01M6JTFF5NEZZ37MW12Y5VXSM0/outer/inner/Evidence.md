@@ -1,0 +1,134 @@
+# CLI 实施证据
+
+## 范围与环境
+
+- 工作目录仅为本会话的 `files/cli-worktree`，分支 `docs/pinboard-cli`；基线为
+  `66727471d8bbe3b2c73e8291e505c3d4c150e804`。
+- 接受的理想世界修订为
+  `26ef249375a16d51f7e4baa8358cf5cf749a48c4`；未修改理想世界、生命周期事件、Deployment.md 或现实世界支持文件。
+- 执行平台为 Windows，Node.js `24.11.1`、pnpm
+  `11.22.0`。未安装或启动 Kubo 作为本实现的前提，未连接 daemon
+  RPC，未发布 npm 或部署生产。
+- 本地账户、token、D1 和 R2 都是受授权的合成测试 fixture；它们不是生产账户、生产凭据或现实验收证据。
+
+## 交付物
+
+| 位置                                      | 内容                                                        |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| `apps/cli/src/main.ts`、`cli.ts`          | 可执行入口、顶层命令、帮助、退出码、JSON 与人类输出         |
+| `apps/cli/src/client.ts`                  | 现有 HTTP API、公开声明头、禁止重定向、分页与不确定写入恢复 |
+| `apps/cli/src/input.ts`                   | 二进制文件读取、目录适配、CAR 原根保留、链接/变化/大小检查  |
+| `apps/cli/src/store.ts`、`permissions.ts` | endpoint 绑定明文凭据、真实 OS 权限、原子替换与跨进程互斥   |
+| `packages/encoding`                       | 从 Web 提取的纯共享目录编码与路径/字节/DAG/CAR 限制         |
+| `apps/web/src/directory.ts`               | 浏览器流适配与 Blob 包装，继续使用原有选择及拖放语义        |
+| `apps/worker/test/cli.test.ts`            | 编译 Worker 在 workerd 中运行的真实本地 HTTP 集成           |
+| `docs/cli.md`、`README.md`                | 本地安装、公开内容、命令、凭据边界与故障恢复                |
+
+没有新增第三方库或更改已锁定的第三方版本；新增工作区引用均为
+`workspace:*`，编码库继续使用 pnpm
+catalog。原有 Worker 生产源代码、授权、路由及公开声明校验保持不变。Turbo 将 Worker 编译作为其集成测试的前置条件，不把 Kubo 检查混入基础流程。
+
+## 已执行验证
+
+2026-11-04 的本地执行记录：
+
+| 命令                                                               | 结果与解释                                                                  |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `pnpm install`                                                     | 修改工作区 manifest 后安装成功；锁文件变化仅为工作区映射                    |
+| `pnpm --filter @workspace/encoding --filter @workspace/cli test`   | 共享编码器及 CLI 定向测试通过；后续扩展测试由完整检查覆盖                   |
+| `pnpm --filter @workspace/worker exec vitest run test\cli.test.ts` | 6 项真实本地集成测试通过，实际使用编译 Worker/workerd 和本地 HTTP           |
+| `pnpm --filter @workspace/cli test`                                | Windows 命令、凭据读取及真实权限测试通过；平台/权限限制导致的跳过明确保留   |
+| `pnpm check`                                                       | 格式、发布约束、lint、typecheck、test、build 全部通过；20/20 Turbo 任务成功 |
+
+完整检查覆盖：发布约束 23 项、contracts 2 项、共享编码 14 项、Web 37 项、Worker
+54 项，以及 CLI
+49 项通过、2 项跳过。现有共享/Web/Worker 的 90% 覆盖率门槛未降低；共享编码的语句/分支覆盖率为 97.53%/91.30%，Web 为 100%/98.73%，Worker 为 96.40%/94.01%。CLI 自身在 Windows 的语句/分支覆盖率为 86.96%/78.21%；这不是跨平台或全部分支已证明的声明。
+
+### 复审后的根 CID 回归
+
+- 已知目录或 CAR 根时，`Client.upload`
+  现在将响应 CID 与预期根均归一化为 CIDv1，按 CID 语义比较而非展示字符串；不匹配返回
+  `INVALID_RESPONSE`、 `uncertain: true` 和已知根的恢复建议，不重试写入。
+- 新增一项根不匹配回归，以及 CIDv0/CIDv1 两个方向的等价编码回归；原先结构有效但属于其他根的响应不能再报告成功。
+- 第一版测试直接把泛型 `MultihashDigest<number>` 传给
+  `CID.createV0`，虽然运行测试通过，但父任务完整检查发现其不满足
+  `MultihashDigest<18>` 类型约束。已改为在支持的 DAG-PB/sha2-256 CID 上调用
+  `toV0()`，没有使用类型强制转换掩盖问题。
+- 2026-11-04 19:11 的复审重跑：`pnpm --filter @workspace/cli typecheck`
+  通过；随后 `pnpm check` 20/20
+  Turbo 任务成功（12 项缓存），耗时 1 分 0.338 秒。CLI 为 49 项通过、2 项因既有平台/权限限制跳过，包含新增的三项根 CID 回归。
+
+### 内容、同根与二进制重建
+
+- 普通二进制文件与空文件走原有
+  `kind=file`，与 Worker 的 Web 文件编码路径根 CID 一致；上传 `.car`
+  作为普通文件与 `import` 协议导入的 CID 明确不同。
+- 同一目录 fixture 含隐藏文件、嵌套非 ASCII 路径、空文件与路径空格；Web
+  File 适配器和 CLI 文件系统适配器的根 CID 相同。
+- CAR 导入保持原根；真实公开 CAR 导出经成熟 CAR/DAG-PB 库读取，每个 block 与原 CAR 一致，再逐文件核对公开网关中的二进制原字节。
+- 空子目录不进入目录根，完全空目录明确拒绝；已有 CAR 缺失 DAG 明确失败，超限文件、DAG/CAR 元数据、重复/冲突/不安全路径及链接均有测试。
+- 目录编码的 CIDv1、raw
+  leaves、目录包装及 importer 默认策略保持不变；不手写 UnixFS/CID/CAR 编码，不增加文件数量等偏离唯一 block 限制的额外规则。
+
+### 认证、公开发布与自动化
+
+- 文件/目录/CAR 自动发送
+  `X-Pinboard-Public: true`，不需要确认参数或交互；直接调用 API 而不带声明头仍被拒绝。
+- 真实服务检查了最小读取/写入权限、过期、撤销、同账户同 CID 标签 upsert、不同 CID 可重名，以及移除后账户详情不可见而公开原字节仍可取。
+- `--endpoint`、环境、配置与默认值优先级、每条顶层网络命令、JSON/stdout/stderr、
+  `--cursor`/`--all`、分页中途失败和循环游标均有测试；失败不输出伪完整列表。
+- 真实原生 fetch 超时测试在 Worker 已提交后延迟返回：CLI 失败且
+  `uncertain: true`，随后 inspect 可见已提交 pin，请求计数证明未重放上传。单元测试另覆盖中断、重定向拒绝、服务错误及未知写入结果。
+- 服务错误原文、子进程诊断、反射的 token 都不会进入命令输出；token 只用于目标请求头，权限辅助进程仅获白名单系统环境与路径元数据。
+- 隐藏 TTY 读取使用终端适配测试验证不回显及恢复 raw
+  mode；这里不冒充人工真实终端验收。
+- 内置 CLI 的独立 Node 进程在 PATH 仅指向测试 fixture 目录时完成真实 HTTP 列表操作，不提供可解析的 Kubo 可执行文件。其余命令与编码路径也不含 IPFS 进程或 RPC 调用。
+
+### 真实平台权限
+
+- Windows 使用当前用户 SID、受保护 DACL、禁用继承及唯一授权项；独立于实现的 PowerShell 检查再次核验实际 owner、继承状态与规则。
+- 实际文件系统测试覆盖首次保存、覆盖更新、移除、同进程并发、独立 Node 进程并发、宽权限拒绝、硬链接、目录 junction、写秘密前空文件的真实权限，以及真实 ACL 辅助工具不可用时拒绝保存。
+- 显式环境/标准输入凭据不读取本地 token
+  map，空环境值不回退，不同 endpoint 不共用凭据；普通 config 不含秘密。
+- 可被其他主体修改权限或替换的父目录在实际文件系统测试中被拒绝，秘密文件没有产生；未只检查最终文件而忽略路径祖先的安全性。
+- POSIX
+  0700/0600、实际 owner、路径链接、硬链接及不安全权限测试已经实现，由新增 Ubuntu
+  CI 矩阵执行；本 Windows 会话没有可用 Linux 发行版，未运行它们。
+- Windows 尝试建立异 owner
+  fixture 时，当前主机不允许未提权进程更改到另一 SID；此项按能力跳过，没有用 mock 冒充成功，也没有提权或修改其他用户文件。另一项跳过是仅 POSIX 的实际 owner/目录权限场景。
+
+## 已修复的验证失败
+
+- 初始格式检查发现新增 CLI 测试需要再次格式化；已修复并通过完整检查。
+- 初始 unsafe-DACL fixture 用 `Set-Acl` 遇到 `SeSecurityPrivilege`
+  限制；改为当前用户可使用的 .NET 文件 DACL 操作后，真实宽权限拒绝测试通过。
+- 初始本地桥接 fixture 没有保留零长度 POST
+  body，且转发压缩响应时没有去除旧的 content-encoding/content-length；这些是测试传输适配问题，已修复。最终主要集成直接请求真实 workerd
+  HTTP listener，只有响应丢失测试使用受控延迟代理。
+- 初始 PATH 隔离环境的类型丢失了 Worker 生成声明中必需字段，以及一次测试清理代码的 await 位置错误；均已修复，lint/typecheck/完整检查通过。
+- 发现原生 fetch 会直接抛出 AbortSignal.reason；已修复错误分支，避免把已发出的写入超时误报为确定未写入，并加入真实提交后超时回归。
+
+- 新增祖先目录权限用例一度放入另一测试函数内部，被测试收集器明确拒绝；已移至 suite 层级并独立执行。
+
+Silvermoon 的 `silvermoon check --worktree --audience agent`
+也通过了候选快照与事件历史检查。
+
+## 保留的验证缺口
+
+I-AC02 仍未完成：需要 Ubuntu 上真实 POSIX 测试结果，以及允许建立异 owner
+fixture 的 Windows 主机结果。CI 配置不是 CI 执行成功的证据；本会话不启动共享 Docker/WSL 或请求提权。本地令牌文件是明文，只防其他普通 OS 用户，不防同用户进程、管理员/root、备份或账户被攻陷。
+
+本文件不提供生产账号授权、生产端点读写或干净机器安装验收；这些属于父任务管理的现实阶段。未改动 D-* 复选框，未暂存、提交、推送或追加生命周期事件。
+
+## 复现入口
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm exec turbo run build --filter=@workspace/cli --filter=@workspace/worker
+node .\apps\cli\dist\main.js --help
+pnpm --filter @workspace/worker exec vitest run test\cli.test.ts
+pnpm --filter @workspace/cli test
+pnpm check
+```
+
+完整用户步骤与权限修复边界见 [CLI 使用说明](../../../../../docs/cli.md)。
