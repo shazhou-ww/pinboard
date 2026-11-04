@@ -79,7 +79,7 @@ async function acl(
         systemKeys.has(key.toLowerCase()),
       ),
     );
-    await execute(
+    const pending = execute(
       "powershell.exe",
       ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", windowsAcl],
       {
@@ -93,6 +93,9 @@ async function acl(
         maxBuffer: 16384,
       },
     );
+    // Console-less Windows PowerShell must not wait on an unused input pipe.
+    pending.child.stdin?.end();
+    await pending;
   } catch (error) {
     const failure = new CliError(
       "UNSAFE_PERMISSIONS",
