@@ -12,6 +12,7 @@ import { handleMcp } from "./mcp.js";
 import { PinService } from "./service.js";
 import { jsonBody, pinSchema, renamePinSchema, validate } from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
+import { oauthOrigin } from "./oauth.js";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
@@ -101,9 +102,18 @@ api.delete("/api/tokens/:id", async (c) => {
   return c.body(null, 204);
 });
 api.all("/mcp", async (c) => {
-  if (!c.req.header("authorization"))
-    throw new HTTPException(401, { message: "Agent Bearer token required" });
-  const principal = await authenticate(c);
+  let principal;
+  try {
+    if (!c.req.header("authorization"))
+      throw new HTTPException(401, { message: "Bearer token required" });
+    principal = await authenticate(c);
+  } catch (error) {
+    if (!(error instanceof HTTPException) || error.status !== 401) throw error;
+    return c.json({ error: "Bearer token required, expired or revoked" }, 401, {
+      "WWW-Authenticate": `Bearer resource_metadata="${oauthOrigin(c.env)}/.well-known/oauth-protected-resource/mcp", scope="pins:read"`,
+      "Cache-Control": "no-store",
+    });
+  }
   if (c.req.method !== "POST")
     return c.json({ error: "Stateless MCP supports POST only" }, 405, {
       Allow: "POST",

@@ -6,8 +6,10 @@ import { signIn, signOut } from "@hono/auth-js/react";
 import { useEffect, useState, type MouseEvent } from "react";
 
 import { Dashboard, SharePage, type DashboardState } from "./ui.js";
+import { OAuthConsent } from "./oauth.js";
 
 export function App() {
+  if (location.pathname === "/connect/mcp") return <OAuthConsent />;
   const shared = /^\/share\/([^/]+)$/.exec(location.pathname);
   return shared?.[1] ? <SharePage cid={shared[1]} /> : <Home />;
 }

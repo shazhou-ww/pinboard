@@ -10,6 +10,8 @@ export default defineConfig({
         target: "http://localhost:8787",
       },
       "/mcp": { target: "http://localhost:8787" },
+      "/oauth": { target: "http://localhost:8787" },
+      "/.well-known": { target: "http://localhost:8787" },
       "/ipfs": { target: "http://localhost:8787" },
       "/routing": { target: "http://localhost:8787" },
     },

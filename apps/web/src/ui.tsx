@@ -4,6 +4,7 @@ import type {
 } from "@shazhou/pinboard-contracts";
 import type { MouseEventHandler } from "react";
 import { AccountManager } from "./manager.js";
+import { OAuthGrants } from "./oauth.js";
 
 export type DashboardState =
   | { readonly kind: "loading" }
@@ -76,6 +77,7 @@ export function Dashboard({
               "Google account"}
           </p>
           <AccountManager />
+          <OAuthGrants />
         </>
       ) : (
         <section className="panel signin">

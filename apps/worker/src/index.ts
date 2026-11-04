@@ -16,6 +16,7 @@ import { gateway } from "./gateway.js";
 import { key, parseCid } from "./content.js";
 import { getCar } from "./storage.js";
 import { runRetention } from "./retention.js";
+import { oauth } from "./oauth.js";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -53,6 +54,7 @@ app.use(
 );
 
 app.use("/api/auth/*", authHandler());
+app.route("/", oauth);
 
 app.get("/api/health", (context) =>
   context.json<HealthResponse>({

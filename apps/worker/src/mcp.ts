@@ -92,6 +92,7 @@ export async function handleMcp(
     "upload",
     {
       description:
+        "MCP OAuth credentials support inline uploads only; HTTP uploads require a separate API token. " +
         "Upload public file, raw block or complete single-root CAR (inline max 2 MiB). For larger uploads use POST /api/pins/upload with this Bearer token, X-Pinboard-Public: true; max 32 MiB.",
       inputSchema: {
         kind: z.enum(["file", "car", "block"]),

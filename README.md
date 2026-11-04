@@ -26,6 +26,9 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 - Rename an account's pin from Web, CLI or `PATCH /api/pins/:cid`, without
   changing its CID or re-uploading public content.
 - Give an agent a scoped, expiring, revocable token for HTTP and remote MCP.
+- Connect an interactive MCP client through browser Google sign-in and explicit
+  OAuth consent, without copying an API token (after the OAuth
+  migration/release).
 - Use explicitly configured Kubo clients as readers, without a server-side Kubo.
 
 All uploaded bytes are **public**, including bytes in failed partial writes.
@@ -127,6 +130,17 @@ selection and public-content acknowledgement before uploading.
 | `/api/pins/:cid`                                  | Session or Agent token | Detail or DELETE own reference                                            |
 | `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
 | `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
+
+The same `/mcp` also accepts short-lived MCP OAuth credentials, restricted to
+that resource rather than `/api/*`. OAuth discovery uses `/.well-known/*`;
+public client registration and authorization-code/S256 endpoints use `/oauth/*`.
+Browser-session-only `/api/oauth/grants` lists authorizations and
+`DELETE /api/oauth/grants/:id` revokes them. The homepage provides the same
+management UI. See
+[OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
+additions require migration `0004_mcp_oauth.sql` in an explicitly authorized
+environment; they are not a claim that the current production deployment
+supports OAuth.
 
 Uploads require `X-Pinboard-Public: true`. JSON pin requests require
 `{"cid":"...","name":"...","public":true}`. Cookie-authenticated mutations also

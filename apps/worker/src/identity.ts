@@ -8,7 +8,7 @@ import { z } from "zod";
 export interface Principal {
   accountId: string;
   scopes: readonly Scope[];
-  kind: "session" | "agent";
+  kind: "session" | "agent" | "oauth";
 }
 export type AppEnv = {
   Bindings: Bindings;
@@ -60,6 +60,10 @@ export async function authenticate(
       throw new HTTPException(403, {
         message: "Browser session required to manage Agent tokens",
       });
+    const oauthToken = /^bearer (po_[A-Za-z0-9_-]{43})$/i.exec(
+      authorization,
+    )?.[1];
+    if (oauthToken) return authenticateOAuth(c, oauthToken);
     const match = /^Bearer (pb_[A-Za-z0-9_-]{43})$/.exec(authorization);
     if (!match?.[1])
       throw new HTTPException(401, { message: "Invalid Agent token" });
@@ -90,6 +94,31 @@ export const requireIdentity: MiddlewareHandler<AppEnv> = async (c, next) => {
   c.set("principal", await authenticate(c));
   await next();
 };
+
+async function authenticateOAuth(
+  c: Context<AppEnv>,
+  token: string,
+): Promise<Principal> {
+  if (c.req.path !== "/mcp")
+    throw new HTTPException(403, {
+      message: "OAuth credential is restricted to /mcp",
+    });
+  const resource = `${new URL(c.env.AUTH_URL ?? c.env.PUBLIC_ORIGIN).origin}/mcp`;
+  const grant = await c.env.DB.prepare(
+    "SELECT account_id, scopes FROM oauth_grants WHERE token_hash = ? AND resource = ? AND revoked_at IS NULL AND expires_at > ?",
+  )
+    .bind(await hashToken(token), resource, Date.now())
+    .first<{ account_id: string; scopes: string }>();
+  if (!grant)
+    throw new HTTPException(401, {
+      message: "OAuth credential expired, revoked or unknown",
+    });
+  return {
+    accountId: grant.account_id,
+    scopes: z.array(scopeSchema).parse(grant.scopes.split(" ")),
+    kind: "oauth",
+  };
+}
 
 export function requireScope(principal: Principal, scope: Scope): void {
   if (!principal.scopes.includes(scope))
