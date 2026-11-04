@@ -207,7 +207,7 @@ Windows Node.js 22 的进一步本地实测确认：同一文件的路径 `lstat
 
 原生测试前置任务在各 runner 上无缓存实际执行；完整检查随后仅复用本任务产生的 3 个依赖/CLI 结果。Windows 唯一跳过为 POSIX 专属测试，实际另一 Windows 所有者的受保护文件拒绝测试已执行并通过；Ubuntu 跳过两个 Windows 专属用例，实际 POSIX
 0700/0600、所有者、链接和祖先权限拒绝已执行。所有平台的 6 项真实 Worker CLI
-HTTP 集成通过；合并 CAR 实现后 Worker 全套为 66 通过、1 项独立的可选 smoke 跳过，不是 CLI 权限或集成用例跳过。
+HTTP 集成通过；合并 CAR 实现后 Worker 全套为 66 通过、1 项独立的可选 Kubo 互操作用例跳过，不是 CLI 权限或集成用例跳过。
 
 因此 I-AC02 的跨平台证据缺口已关闭，并据实勾选其 ledger 条目；所有 I-* 工作与验收条目均完成。这里记录的是实施结果，不追加
 `submitInner` 或
