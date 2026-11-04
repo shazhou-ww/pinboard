@@ -1,0 +1,27 @@
+# Ledger
+
+## Implementation
+
+### Implementation steps
+
+- [ ] **I-S01:** 确认授权方案与兼容客户端
+- [ ] **I-S02:** 接入授权与管理流程
+- [ ] **I-S03:** 补齐回归测试与使用文档
+
+### Implementation acceptance criteria
+
+- [ ] **I-AC01:** 授权流程可验证
+- [ ] **I-AC02:** 授权边界不退化
+- [ ] **I-AC03:** 现有接口保持兼容
+
+## Deployment
+
+### Deployment steps
+
+- [ ] **D-S01:** 准备获授权的验证环境
+- [ ] **D-S02:** 完成真实客户端授权验证
+
+### Deployment acceptance criteria
+
+- [ ] **D-AC01:** 真实客户端无需手动 Token 即可连接
+- [ ] **D-AC02:** 实际权限与兼容性符合契约
