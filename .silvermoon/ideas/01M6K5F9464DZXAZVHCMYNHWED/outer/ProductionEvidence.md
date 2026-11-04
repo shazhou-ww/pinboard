@@ -2,8 +2,8 @@
 
 ## 当前结论
 
-已通过既有 tag 流程发布 `release-261104-2`，Worker version
-`60cda13e-6a6c-4711-b716-b9423f9387e9`，流量 100%。D1 增量迁移与 19 项公开 smoke 通过，旧 CAR 性能退化已触发兼容路径修复及重新实现审批。未认证上传新内容、未创建或撤销应用 token；没有更改永久凭证、鉴权配置或发布工作流。尚不满足完整 outer 验收，不追加
+已通过既有 tag 流程发布并前向修复至 `release-261104-3`，Worker version
+`33314a24-76ba-4093-b6f7-810d8d35bc05`，流量 100%。D1 增量迁移与最终 19 项公开 smoke 通过，旧 CAR 查询放大已修复并复测。未认证上传新内容、未创建或撤销应用 token；没有更改永久凭证、鉴权配置或发布工作流。尚不满足完整 outer 验收，不追加
 `submitOuter` 或 `acceptOuter`。
 
 **剩余验收阻塞：当前运行环境没有生产应用上传凭证，且共享浏览器没有已登录的 Google/Pinboard 会话。**
@@ -54,7 +54,7 @@ deployment。官方 D1 文档：
   Environment 中五个既有部署 secret 的名称存在；值不可读取，且它们不是 Pinboard 应用上传 token。未尝试提取 CI
   secret。
 
-## D1 只读 preflight
+## D1 只读 preflight（首次检查的历史记录）
 
 目标 D1 `625b568d-106b-4fe1-af33-3eac4fe0a354`；配置名/绑定为 `pinboard` /
 `DB`。使用 `wrangler d1 execute DB --remote` 查询：
@@ -68,11 +68,11 @@ deployment。官方 D1 文档：
 - `wrangler d1 migrations list DB --remote` 只列出待应用的
   `0002_car_storage.sql`。只读查询的 `changed_db=false`、`rows_written=0`。
 
-**迁移结果：未执行，等待应用认证前置条件。**
+**首次检查时迁移结果：未执行，错误地等待了仅 smoke 所需的应用认证前置条件。**
 安全恢复顺序是重新观察 schema/迁移历史，确认仍只有 0002 待应用，再用现有独立授权的控制面身份执行
 `pnpm --filter @workspace/worker exec wrangler d1 migrations apply DB --remote`，之后复核表/索引/外键/CHECK 及原有 pin 数量。不得重放 0001，不做破坏性清理。该命令仅是后续恢复步骤，不是已发生动作。
 
-## 真实生产探测
+## 真实生产探测（首次检查的历史记录）
 
 以下请求于 `2026-11-04T12:35:10.925Z` 至 `12:35:13.551Z`
 直接访问生产 HTTPS 域名；使用 Node
@@ -133,6 +133,37 @@ CAR 约为 2.05 倍。该测量不是新 CAR-only 路径性能证明。代码排
 均为 0 行，原有 pin 仍为 2；没有新上传或回填。新格式认证上传、多小文件及 8
 MiB 指定夹具的重建/对照、真实 R2 操作遥测与索引空间仍未完成，不能以旧内容兼容 smoke 代替。
 
+## 前向修复发布与最终公开验证
+
+旧 CAR 兼容路径修复经完整 `pnpm check` 20/20 任务及
+[四平台 CI 41833944802](https://github.com/shazhou-ww/pinboard/actions/runs/41833944802)
+通过；准确 innerRevision `1775f2780022ba0e56f5f0aaeb9f9bd90d0b9586`
+重新提交并在授权范围内审批。随后使用新 tag `release-261104-3` 指向 main 提交
+`9f4fc51e373b2c02458579c0a1a1b80a0bab90d4`，
+[部署工作流 41834637980](https://github.com/shazhou-ww/pinboard/actions/runs/41834637980)
+完整检查及部署成功。没有回退到旧 reader，也没有再次执行 schema 迁移。
+
+控制面确认 deployment `14432fd9-cfea-4891-a95c-e143522b2ab3`，version
+`33314a24-76ba-4093-b6f7-810d8d35bc05`，100% 流量，创建于
+`2026-11-04T13:04:48.916286Z`。
+
+最终复测窗口为 `2026-11-04T13:05:07Z` 至
+`13:05:42Z`，使用相同 legacy 根、每类首轮冷候选及 5 次暖重复、相同字节与校验规则：
+
+| 路径                              | 最终暖重复 TTFB 中位 ms（范围） | 最终总耗时中位 ms（范围）  | 相对最初生产基线总耗时中位 |
+| --------------------------------- | ------------------------------- | -------------------------- | -------------------------- |
+| legacy raw，165 字节              | 612.48（370.98–1434.34）        | 612.84（371.45–1434.86）   | 1.37 倍                    |
+| legacy CAR，3,147,545 字节、18 块 | 4862.01（2451.72–5442.51）      | 5331.90（4156.11–6861.11） | 0.96 倍                    |
+
+19 项公开 smoke 全部通过；CAR 和 raw
+SHA-256 与前两轮一致，18 块 CID 均验证通过。整包中位耗时从首发的 11,351.81
+ms 恢复到 5,331.90
+ms；原始新格式性能仍未测量，不把旧内容结果当作新 CAR-only 路径证明。raw 仍有常量级索引查询开销，本次样本较最初中位慢约 37%，网络抖动较大，不能宣称所有路径都提速或据此单独归因。真实操作遥测未取得，不能用时延推算 R2 请求次数。
+
+最终原始测量保留于同一 session 的
+`files/car-public-fixed.json`。D-S01 已完成；D-S02、D-AC01、D-AC02 仍未完成，因为认证上传、新格式单块及整包重建、多小文件/8
+MiB 指定样本对照和存储取舍证据还需有效应用认证。生产已经更新不代表可将 lifecycle 标记 completed。
+
 ## 前置检查时的发布身份（历史记录）
 
 - 本工作树 `pnpm check`
@@ -145,4 +176,4 @@ MiB 指定夹具的重建/对照、真实 R2 操作遥测与索引空间仍未�
 - 生产现有 release 的部署：
   [41801933814](https://github.com/shazhou-ww/pinboard/actions/runs/41801933814)，tag
   `release-261104-1`，源提交 `96583d9bf8d52ba839dd746abef06c6b0d0a9dc2`。
-- 本次 CAR 发布 tag/commit/WorkerVersion：均未创建；不得把现有生产版本记为 CAR 已发布。
+- 首次 preflight 时尚无 CAR 发布 tag/commit/WorkerVersion；之后两次实际 tag 发布见上文，不把初次阻塞误报为部署仍未发生。
