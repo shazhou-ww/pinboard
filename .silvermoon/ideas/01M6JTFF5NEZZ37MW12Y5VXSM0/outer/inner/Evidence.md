@@ -113,14 +113,14 @@ catalog。原有 Worker 生产源代码、授权、路由及公开声明校验�
 Silvermoon 的 `silvermoon check --worktree --audience agent`
 也通过了候选快照与事件历史检查。
 
-## 保留的验证缺口
+## 首轮本地验证的缺口
 
 I-AC02 仍未完成：需要 Ubuntu 上真实 POSIX 测试结果，以及允许建立异 owner
 fixture 的 Windows 主机结果。CI 配置不是 CI 执行成功的证据；本会话不启动共享 Docker/WSL 或请求提权。本地令牌文件是明文，只防其他普通 OS 用户，不防同用户进程、管理员/root、备份或账户被攻陷。
 
 本文件不提供生产账号授权、生产端点读写或干净机器安装验收；这些属于父任务管理的现实阶段。未改动 D-* 复选框，未暂存、提交、推送或追加生命周期事件。
 
-## 父级复核与外部阻塞
+## 父级复核与首次同步阻塞
 
 父级复核后在实施候选 `aedb16776a4fefbbe4c4668e66e821aae8bc2074` 上再次运行
 `pnpm check`，20/20 工作区任务通过。已补充目录/CAR 已知根与上传响应 CID 的语义一致性校验，覆盖不同根拒绝以及 CIDv0/v1 等价表示；新增测试最初暴露的 multihash 类型错误也已修复并通过完整检查。
@@ -138,6 +138,37 @@ CI；I-AC02 继续未完成，不追加 `submitInner` 或
 `acceptInner`，不宣称跨平台验收通过。
 
 本会话未发现可供 CLI 使用的生产 token，集成浏览器在生产域名显示未登录。真实账户现实验证仍需授权凭据，不能通过造会话、读取未知秘密或降低验收要求替代。恢复条件是 GitHub 接受普通推送、取得真实 CI 结果，并在现实阶段具备可用授权账户；无需重新征求已委托的门禁审批。
+
+## 恢复同步后的真实 CI
+
+2026-11-04 再次 fetch、无改写集成后，一次普通 `git push origin HEAD:main`
+成功，候选 `c9e92e3582d5a824571e483f46ba621004b00480`
+已可从刷新后的 primary 到达；先前 GitHub
+500 阻塞已解除。没有尝试强推、其他 Git 传输或策略绕行。
+
+[CI 41822176353](https://github.com/shazhou-ww/pinboard/actions/runs/41822176353)
+实际执行了 Ubuntu/Windows × Node.js 22.13.0/24.11.1：
+
+- Ubuntu Node.js 24.11.1 的 `pnpm check` 20/20 任务全部成功，CLI
+  49 项通过、2 项 Windows 专属测试跳过；真实 POSIX 权限和所有者检查已执行。
+- 另外三个矩阵项暴露了短超时测试在请求前耗尽时限、Windows Node.js
+  22 路径/句柄 stat 元数据不一致、以及 Windows runner
+  checkout 祖先目录不适合保存凭据的问题。保留这些失败，不将单一绿色任务冒充全矩阵通过。
+- 修复提交 `b6c6819895b20db8126477a38d3e7c288b4e933a`
+  将输入时间戳限定在同一 stat
+  API 内比较，同时保留跨 API 的设备、inode、大小以及读取前后路径检查；超时测试先证明请求已发出，真实 Worker 测试保持响应挂起直至命令超时，并要求写入已经提交。
+- Windows CI 的真实凭据 fixture 使用当前用户 profile 下的独立目录，通过
+  `PINBOARD_TEST_ROOT`
+  传给测试；不放宽生产 DACL 或祖先目录检查，不修改共享系统目录权限。
+- 修复代码在本地 `pnpm check`
+  20/20 成功后提交；同步时正常集成了其他会话的 CAR-indexed
+  storage 想法历史，没有修改其契约或事件。
+
+[CI 41823338788](https://github.com/shazhou-ww/pinboard/actions/runs/41823338788)
+在四个平台均于测试前被新集成的无关想法文档格式拦截：
+`01M6K5F9464DZXAZVHCMYNHWED/outer/inner/ideal/Idea.md` 和
+`outer/inner/Implementation.md`
+不符合 Prettier。已通知该想法的负责会话处理，CLI 会话未修改其接受的理想世界。此运行不能证明修复后的矩阵结果；I-AC02 仍未完成。
 
 ### 本地复现命令
 
