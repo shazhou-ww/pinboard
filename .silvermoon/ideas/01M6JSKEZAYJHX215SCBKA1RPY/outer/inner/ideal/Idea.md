@@ -1,37 +1,22 @@
-# Establish a defensible Trustless Gateway compliance baseline
+# 建立有据可验的 Trustless Gateway 合规基线
 
 ## Problem
 
-Pinboard serves verifiable raw blocks, but its HTTP contract has an unhandled
-mandatory conditional-request requirement and additional interoperability and
-verification gaps. Existing Kubo retrieval evidence does not establish full
-Trustless Gateway conformance.
+Pinboard 已能提供可验证的原始区块，但 HTTP 契约仍缺失必须实现的条件请求行为，并存在其他互操作性和验证缺口。现有 Kubo 取回证据不足以证明完整的 Trustless
+Gateway 合规性。
 
 ## Outcome
 
-Provide a standards-aligned, non-recursive raw-block gateway with explicit,
-testable claims about supported behavior. Keep the
-[compliance requirements and gap inventory](Compliance.md) as the authoritative
-scope classification, separating mandatory fixes, recommendations, optional
-capabilities, and externally unverified claims.
+提供符合规范的非递归原始区块网关，使支持范围和行为声明明确且可测试。以[合规需求与缺口清单](Compliance.md)作为范围分类依据，区分必须修复项、推荐行为、可选能力和尚未经外部验证的声明。
 
 ## Boundaries
 
-- Preserve public immutable reads, browser-safe responses, authenticated pin
-  management, delegated routing, and existing custom CAR downloads.
-- The mandatory baseline is raw-only: no server-side Kubo, DHT discovery,
-  arbitrary CID fetching, IPNS, or standard CAR extension is required.
-- Record recommended behavior and optional CAR requirements explicitly; do not
-  deploy, enable push deployment, or claim production compatibility without
-  authorization and separate external evidence.
+- 保留公开的不可变内容读取、浏览器安全响应、鉴权后的 pin 管理、委托路由和现有自定义 CAR 下载。
+- 必选合规基线仅覆盖 raw：不要求服务端 Kubo、DHT 发现、任意 CID 回源、IPNS 或标准 CAR 扩展。
+- 明确记录推荐行为和可选 CAR 的要求；未经授权和独立外部验证，不部署、不启用推送部署，也不宣称生产兼容。
 
 ## Acceptance criteria
 
-1. Every known gap in the linked inventory has a normative classification, an
-   explicit scope disposition, a source, and an observable proof obligation.
-2. The selected raw-only baseline satisfies mandatory HTTP behavior, addresses
-   the selected recommendation and negotiation gaps, and retains existing
-   behavior outside the intentional changes.
-3. Documentation and verification distinguish raw-only compliance, custom CAR
-   downloads, optional standard gateway capabilities, and real production
-   interoperability; no broader claim rests only on the current local PoC.
+1. 清单中的每项已知缺口都有规范等级、明确的范围处置、来源和可观察的验证要求。
+2. 选定的 raw-only 基线满足必须实现的 HTTP 行为，处理已选推荐行为和协商缺口，并保留有意变更之外的既有行为。
+3. 文档与验证明确区分 raw-only 合规、自定义 CAR 下载、可选标准网关能力和真实生产互操作性；不以当前本地 PoC 支撑更广泛的声明。

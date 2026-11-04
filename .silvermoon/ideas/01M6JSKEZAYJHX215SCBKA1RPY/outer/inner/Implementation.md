@@ -1,42 +1,33 @@
 # Implementation
 
-This preparation seed is provisional and is not accepted with the Idea.
+本文件是准备阶段的暂定实施草案，不随 Idea 一同接受。
 
 ## Steps
 
-### I-S01: Refine the selected protocol matrix
+### I-S01: 细化选定的协议矩阵
 
-Translate TG-01 through TG-05 and TG-08 from the
-[gap inventory](ideal/Compliance.md) into a request/response regression matrix.
-Keep TG-06 and TG-07 explicitly deferred and identify intentional status and
-validator changes before editing the gateway.
+将[缺口清单](ideal/Compliance.md)中的 TG-01 至 TG-05 和 TG-08 转化为请求/响应回归矩阵。明确保留 TG-06、TG-07 的暂缓状态，并在修改网关前识别有意变更的状态码和校验标识。
 
-### I-S02: Repair raw gateway behavior and add regression coverage
+### I-S02: 修正 raw 网关行为并增加回归覆盖
 
-Implement conditional requests, media negotiation, selected cache/rejection
-semantics and representation-specific validators using existing repository
-patterns. Preserve public reads, routing, authorization and custom CAR export.
+沿用仓库模式实现条件请求、媒体类型协商、选定的缓存/拒绝语义和区分表示形式的校验标识。保留公开读取、路由、鉴权和自定义 CAR 导出。
 
-### I-S03: Align documentation and validate the repository
+### I-S03: 对齐文档并验证仓库
 
-Document the exact supported surface, intentional changes, deferred capabilities
-and evidence boundaries. Run focused protocol tests and pnpm check.
+记录准确的支持范围、有意变更、暂缓能力和证据边界。运行针对性协议测试和 pnpm
+check。
 
 ## Acceptance criteria
 
-### I-AC01: Selected protocol requirements have executable proof
+### I-AC01: 选定协议要求均有可执行证据
 
-Tests demonstrate every selected outcome in TG-01 through TG-05, including
-GET/HEAD, probe and unavailable-root edge cases. A requirement-to-test matrix
-accounts for each case and explicitly deferred capability.
+测试证明 TG-01 至 TG-05 的每个选定结果，覆盖 GET/HEAD、探测端点和根区块不可用等边界。需求到测试的映射涵盖各项用例，并明确暂缓能力。
 
-### I-AC02: Existing behavior remains intact outside selected changes
+### I-AC02: 选定变更之外的既有行为保持不变
 
-Regression tests preserve block bytes, browser-safe headers, ordinary missing
-content, routing, authenticated pin management and custom complete CAR
-downloads. No remote CID retrieval is introduced.
+回归测试证明区块字节、浏览器安全响应头、普通内容缺失行为、路由、鉴权后的 pin 管理和自定义完整 CAR 下载保持正常。不引入远程 CID 取回。
 
-### I-AC03: Checks pass and claims match the implemented surface
+### I-AC03: 检查通过且声明与实现范围一致
 
-pnpm check passes. API and Kubo documentation accurately distinguish raw-only
-behavior, optional/deferred capabilities and unverified production claims.
+pnpm
+check 通过。API 和 Kubo 文档准确区分 raw-only 行为、可选/暂缓能力和尚未验证的生产声明。

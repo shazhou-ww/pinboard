@@ -1,40 +1,32 @@
 # Deployment
 
-This preparation seed is provisional and is not accepted with the Idea.
+本文件是准备阶段的暂定部署草案，不随 Idea 一同接受。
 
 ## Steps
 
-### D-S01: Prepare an authorization-bound external acceptance checklist
+### D-S01: 准备以授权为前提的外部验收清单
 
-Identify the release, origin, selected protocol surface, independent client
-fixture and evidence to collect. Do not deploy or enable push deployment.
+明确发布版本、源站、选定的协议范围、独立客户端测试数据和待收集的证据。不部署，也不启用推送部署。
 
-### D-S02: Verify the authorized release against the actual public edge
+### D-S02: 对照实际公共边缘服务验证已授权版本
 
-Only after explicit deployment authorization, test edge TLS/HTTP2, raw
-GET/HEAD/probe behavior, conditional requests, routing and independent cold
-retrieval with byte/hash comparisons and the source stopped.
+仅在明确获得部署授权后，验证边缘 TLS/HTTP2、raw
+GET/HEAD/探测行为、条件请求、路由，以及停止源节点后的独立冷客户端取回结果，比较字节和哈希。
 
-### D-S03: Record reproducible external evidence and bounded claims
+### D-S03: 记录可复现的外部证据与有限声明
 
-Record release identifiers, requests, results and client reconstruction
-evidence. Separate raw-only conformance from Kubo interoperability and any
-future optional capability; do not infer an untested result.
+记录发布标识、请求、结果和客户端重建证据。区分 raw-only 合规、Kubo 互操作性和未来可选能力；不推断未经测试的结果。
 
 ## Acceptance criteria
 
-### D-AC01: Deployment authorization and release identity are explicit
+### D-AC01: 部署授权与发布身份明确
 
-Evidence identifies the approved deployment and immutable release. Without
-authorization this phase remains blocked, not implicitly passed.
+证据明确对应已批准的部署和不可变发布版本。未获授权时，本阶段保持阻塞，不得隐含通过。
 
-### D-AC02: Actual public behavior satisfies the selected protocol matrix
+### D-AC02: 实际公共行为满足选定协议矩阵
 
-Recorded edge requests and independent cold-client byte/hash equality prove the
-selected public outcomes for the identified release.
+记录的边缘请求和独立冷客户端字节/哈希一致性，证明指定版本满足选定的公开行为要求。
 
-### D-AC03: Published compatibility claims have traceable external proof
+### D-AC03: 对外兼容性声明可追溯到外部证据
 
-Every production compatibility claim links to reproducible external evidence.
-Deferred or unverified capabilities are labeled and no local-only workaround is
-presented as production configuration.
+每项生产兼容性声明均链接到可复现的外部证据。标明暂缓或未验证的能力，不把仅供本地使用的变通配置当作生产配置。

@@ -4,26 +4,26 @@
 
 ### Implementation steps
 
-- [ ] **I-S01:** Refine the selected protocol matrix
-- [ ] **I-S02:** Repair raw gateway behavior and add regression coverage
-- [ ] **I-S03:** Align documentation and validate the repository
+- [ ] **I-S01:** 细化选定的协议矩阵
+- [ ] **I-S02:** 修正 raw 网关行为并增加回归覆盖
+- [ ] **I-S03:** 对齐文档并验证仓库
 
 ### Implementation acceptance criteria
 
-- [ ] **I-AC01:** Selected protocol requirements have executable proof
-- [ ] **I-AC02:** Existing behavior remains intact outside selected changes
-- [ ] **I-AC03:** Checks pass and claims match the implemented surface
+- [ ] **I-AC01:** 选定协议要求均有可执行证据
+- [ ] **I-AC02:** 选定变更之外的既有行为保持不变
+- [ ] **I-AC03:** 检查通过且声明与实现范围一致
 
 ## Deployment
 
 ### Deployment steps
 
-- [ ] **D-S01:** Prepare an authorization-bound external acceptance checklist
-- [ ] **D-S02:** Verify the authorized release against the actual public edge
-- [ ] **D-S03:** Record reproducible external evidence and bounded claims
+- [ ] **D-S01:** 准备以授权为前提的外部验收清单
+- [ ] **D-S02:** 对照实际公共边缘服务验证已授权版本
+- [ ] **D-S03:** 记录可复现的外部证据与有限声明
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** Deployment authorization and release identity are explicit
-- [ ] **D-AC02:** Actual public behavior satisfies the selected protocol matrix
-- [ ] **D-AC03:** Published compatibility claims have traceable external proof
+- [ ] **D-AC01:** 部署授权与发布身份明确
+- [ ] **D-AC02:** 实际公共行为满足选定协议矩阵
+- [ ] **D-AC03:** 对外兼容性声明可追溯到外部证据

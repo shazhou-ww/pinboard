@@ -1,174 +1,135 @@
-# Compliance requirements and gap inventory
+# 合规需求与缺口清单
 
-## Baseline and evidence
+## 基线与证据
 
-This inventory records the source review on 2026-11-04 against the
-[Trustless Gateway specification](https://specs.ipfs.tech/http-gateways/trustless-gateway/)
-and its inherited
-[Path Gateway specification](https://specs.ipfs.tech/http-gateways/path-gateway/).
-Normative keywords describe upstream requirements, not issue severity.
+本清单记录 2026-11-04 的代码审查结果，对照
+[Trustless Gateway 规范](https://specs.ipfs.tech/http-gateways/trustless-gateway/)及其继承的
+[Path Gateway 规范](https://specs.ipfs.tech/http-gateways/path-gateway/)。MUST、SHOULD 等关键词表示上游规范等级，不代表问题严重性。
 
-The selected scope is a public, non-recursive, raw-block gateway. Raw support is
-mandatory; CAR and IPNS record support are recommended capabilities, not
-prerequisites for this raw-only baseline. In-scope recommendations below are
-intentional behavior changes and require regression tests.
+选定范围是公开、非递归的原始区块网关。raw 支持是必选能力；CAR 和 IPNS 记录支持是推荐能力，不是此 raw-only 基线的前置条件。下列纳入范围的推荐行为属于有意变更，必须有回归测试。
 
-Current code evidence:
+当前代码证据：
 
-- [Raw gateway and provider routing](../../../../../../apps/worker/src/gateway.ts).
-- [Custom complete CAR download](../../../../../../apps/worker/src/index.ts).
-- [CID, block and DAG validation](../../../../../../apps/worker/src/content.ts).
-- [Existing public-read tests](../../../../../../apps/worker/test/worker.test.ts).
-- [Kubo evidence and external acceptance limits](../../../../../../docs/kubo.md).
+- [原始区块网关与提供者路由](../../../../../../apps/worker/src/gateway.ts)。
+- [自定义完整 CAR 下载](../../../../../../apps/worker/src/index.ts)。
+- [CID、区块与 DAG 校验](../../../../../../apps/worker/src/content.ts)。
+- [现有公开读取测试](../../../../../../apps/worker/test/worker.test.ts)。
+- [Kubo 证据及外部验收边界](../../../../../../docs/kubo.md)。
 
-## In-scope corrections
+## 纳入范围的修正
 
-### TG-01: Conditional requests do not honor If-None-Match
+### TG-01: 条件请求未遵循 If-None-Match
 
-**Classification:** MUST, inherited from Path Gateway request headers.
+**规范等级：** MUST，继承自 Path Gateway 的请求头要求。
 
-The raw handler emits an ETag but does not compare If-None-Match. Matching
-requests for existing blocks therefore continue to return 200.
+raw 处理器返回 ETag，却不比较 If-None-Match。因此，即使请求的校验标识与现有区块匹配，也仍然返回 200。
 
-**Required outcome:** Matching validators return 304 without a body for GET and
-HEAD. Implement HTTP validator semantics, including lists, weak comparison and
-wildcard, while preserving ordinary 200 and missing-root 404 behavior.
+**要求的结果：**
+GET 和 HEAD 的校验标识匹配时返回 304，且无响应体。实现 HTTP 校验标识的列表、弱比较和通配符语义，同时保留普通请求的 200 和根区块缺失时的 404。
 
-**Proof:** Exercise matching and nonmatching validators, wildcard, weak tags,
-GET, HEAD, ordinary blocks and the probe. Assert response status, headers, empty
-304 bodies and unchanged successful block bytes.
+**验证方式：**
+覆盖匹配与不匹配的校验标识、通配符、弱标识、GET、HEAD、普通区块和探测端点；断言状态码、响应头、空的 304 响应体，以及成功下载的区块字节不变。
 
-### TG-02: Accept negotiation uses substring matching
+### TG-02: Accept 协商使用子串匹配
 
-**Classification:** HTTP content-negotiation correctness; not a new
-format-support MUST invented by this project.
+**规范等级：** HTTP 内容协商正确性问题；不是本项目额外定义的格式支持 MUST 要求。
 
-The handler uses includes("application/vnd.ipld.raw"), accepting a raw media
-range with q=0 and lookalike names. It does not interpret weighted alternatives.
+处理器使用 includes("application/vnd.ipld.raw")，会接受 q=0 的 raw 媒体范围和名称相似的类型，也不解释带权重的候选类型。
 
-**Required outcome:** Match valid media ranges and acceptability rather than
-substrings. Preserve explicit format precedence and document wildcard,
-unsupported-type, empty-format and malformed-header behavior.
+**要求的结果：**
+解析有效的媒体范围及可接受性，而不是匹配子串。保留显式 format 的优先级，明确记录通配符、不支持的类型、空 format 和畸形请求头的行为。
 
-**Proof:** Cover q=0, supported/unsupported alternatives and weights, lookalike
-media types, wildcard policy, malformed input, and conflicting format/Accept
-requests. Do not let negotiation select an unsupported format.
+**验证方式：**
+覆盖 q=0、支持与不支持的候选类型及权重、名称相似的媒体类型、通配符策略、畸形输入，以及 format 与 Accept 冲突的请求；协商不得选择不支持的格式。
 
-### TG-03: only-if-cached does not distinguish an unavailable root
+### TG-03: only-if-cached 未区分根区块不可用
 
-**Classification:** SHOULD in Trustless Gateway request headers.
+**规范等级：** Trustless Gateway 请求头中的 SHOULD。
 
-Missing roots always receive 404, including requests carrying Cache-Control:
-only-if-cached.
+根区块缺失时始终返回 404，包括携带 Cache-Control: only-if-cached 的请求。
 
-**Selected outcome:** Return 412 when that directive is present and the root is
-unavailable locally. Keep ordinary missing-root requests at 404 and never
-introduce remote retrieval.
+**选定结果：**
+存在该指令且本地根区块不可用时返回 412。普通根区块缺失请求仍返回 404，不引入远程取回。
 
-**Proof:** GET and HEAD for existing/missing roots, combined cache directives,
-and the probe; confirm successful bytes and absence of network fetching.
+**验证方式：**
+覆盖 GET 和 HEAD、根区块存在与缺失、组合缓存指令以及探测端点；确认成功响应的字节不变，且不发生网络回源。
 
-### TG-04: Strict-mode missing-Accept rejection differs from guidance
+### TG-04: 严格模式缺失 Accept 时的拒绝行为不同于规范建议
 
-**Classification:** SHOULD, not a mandatory status-code violation.
+**规范等级：** SHOULD，不是必须状态码要求的违规。
 
-Requests without format or Accept currently receive 406. The trustless
-specification recommends 400 when Accept is missing in strict trustless mode.
+当前请求同时缺少 format 和 Accept 时返回 406。trustless 规范建议在严格模式缺少 Accept 时返回 400。
 
-**Selected outcome:** Use 400 for requests lacking both explicit format and
-Accept. Continue accepting format=raw without Accept. Keep unsupported-format
-and unsupported-Accept responses explicit, with their statuses documented.
+**选定结果：**
+对同时缺少显式 format 和 Accept 的请求返回 400。继续接受仅携带 format=raw、不携带 Accept 的请求；对不支持的 format 或 Accept 明确报错，并在文档中说明状态码。
 
-**Proof:** Test absent, empty and unsupported headers/query parameters,
-including the supported query-only form and GET/HEAD symmetry.
+**验证方式：**
+覆盖缺失、空值和不支持的请求头及查询参数，包括仅使用查询参数选择受支持格式的形式，以及 GET/HEAD 行为一致性。
 
-### TG-05: ETags do not distinguish the raw representation by name
+### TG-05: ETag 名称未区分 raw 表示形式
 
-**Classification:** Path Gateway recommendation; the existing CID-only ETag is
-not a second independent MUST violation.
+**规范等级：** Path
+Gateway 推荐行为；现有仅含 CID 的 ETag 不是第二个独立的 MUST 违规。
 
-The raw ETag contains only the canonical CID.
+当前 raw ETag 仅包含规范化 CID。
 
-**Selected outcome:** Use a representation-specific raw validator as
-recommended, consistently across successful and conditional responses. Preserve
-byte identity for equivalent CID forms.
+**选定结果：**
+按建议使用包含 raw 表示形式的校验标识，并在成功响应和条件响应中保持一致。等价 CID 形式仍对应相同字节。
 
-**Proof:** Assert stable GET/HEAD validators and correct conditional matching;
-if standard CAR is later added, raw and CAR validators must not collide.
+**验证方式：**
+断言 GET/HEAD 的校验标识稳定且条件匹配正确；未来若增加标准 CAR，raw 和 CAR 的校验标识不得冲突。
 
-## Optional capabilities and conditional requirements
+## 可选能力与条件性要求
 
-### TG-06: Standard CAR gateway negotiation is not supported
+### TG-06: 不支持标准 CAR 网关协商
 
-**Classification:** SHOULD capability; deferred from this raw-only correction.
+**规范等级：** SHOULD 能力；暂不纳入本次 raw-only 修正。
 
-The custom /api/public/:cid/car endpoint produces a complete downloadable CAR,
-but /ipfs/:cid?format=car and Accept: application/vnd.ipld.car are not
-supported. A generic trustless client cannot infer the custom download URL.
+自定义 /api/public/:cid/car 端点可以下载完整 CAR，但不支持 /ipfs/:cid?format=car 和 Accept:
+application/vnd.ipld.car。通用 trustless 客户端无法自行推断该自定义下载地址。
 
-**Disposition:** Retain and accurately document the custom endpoint. Do not
-advertise standard CAR gateway support. A future CAR extension needs an explicit
-scope decision rather than being smuggled into mandatory raw fixes.
+**处置：**
+保留自定义端点并准确说明，不宣称支持标准 CAR 网关。未来增加 CAR 扩展必须明确决定范围，不把它隐含加入 raw 的必选修复。
 
-**Conditional proof obligations if selected later:**
+**未来纳入时的条件性验证要求：**
 
-- Standard GET/HEAD URLs, format negotiation, the CAR probe, and unavailable
-  root behavior.
-- Mandatory attachment, CAR version Content-Type and ETag/conditional handling.
-  The current custom download has version=1 and attachment but no ETag.
-- Path proofs and dag-scope behavior for the supported CAR request surface;
-  entity-bytes and other optional features must be evaluated explicitly.
-- Supported version/order/duplicate signaling, unsupported-variant rejection,
-  Content-Location where recommended, and representation-specific validators.
-- Complete, client-verifiable content and a deliberate missing-descendant
-  policy. The current custom exporter buffers and validates before responding;
-  streaming missing-child rules do not describe its current implementation.
+- 标准 GET/HEAD 地址、格式协商、CAR 探测端点和根区块不可用行为。
+- 必须返回的附件声明、包含 CAR 版本的 Content-Type，以及 ETag/条件请求处理。当前自定义下载已有 version=1 和附件声明，但没有 ETag。
+- 所支持 CAR 请求范围内的路径证明与 dag-scope 行为；明确评估 entity-bytes 等可选功能。
+- 支持的版本、区块顺序和重复区块信号，不支持的变体拒绝行为，规范建议的 Content-Location，以及区分表示形式的校验标识。
+- 内容完整且可由客户端验证，并明确缺失后代区块的处理策略。当前自定义导出先缓冲并校验，再响应；流式响应遇到子区块缺失的规则不描述其现有实现。
 
-This list does not make every optional CAR parameter mandatory.
+以上清单不意味着每个可选 CAR 参数都必须实现。
 
-### TG-07: IPNS records and other recommended features are outside scope
+### TG-07: IPNS 记录及其他推荐功能不在范围内
 
-**Classification:** Recommended or optional extensions, not known raw-only MUST
-failures.
+**规范等级：** 推荐或可选扩展，不是已知的 raw-only MUST 缺口。
 
-IPNS record retrieval is not implemented. Range responses and configurable
-download filenames have no dedicated handling in the current raw route; they are
-not prerequisites for this selected correction.
+尚未实现 IPNS 记录取回。当前 raw 路由也没有针对 Range 响应和自定义下载文件名的专门处理；它们不是本次选定修正的前置条件。
 
-**Disposition:** Document the bounded raw-only surface. Do not claim IPNS,
-byte-range, standard CAR path traversal or parameter support without separate
-implementation and protocol tests. Raw path traversal itself is intentionally
-unsupported by the specification.
+**处置：**
+明确记录 raw-only 的支持边界。没有独立实现和协议测试，不宣称支持 IPNS、字节范围、标准 CAR 路径遍历或参数。raw 路径遍历本身就是规范有意不支持的行为。
 
-## Verification gap
+## 验证缺口
 
-### TG-08: Existing evidence is not a conformance suite
+### TG-08: 现有证据不是合规测试套件
 
-**Classification:** Proof obligation and claim boundary.
+**分类：** 验证要求与声明边界。
 
-The current public-read tests cover ordinary raw requests, HEAD, missing
-content, one HEAD probe, provider routing and custom CAR round trips. The review
-ran seven relevant tests successfully, but those tests do not establish TG-01
-through TG-05, full GET/HEAD probe parity or production compatibility.
+现有公开读取测试覆盖普通 raw 请求、HEAD、内容缺失、一次 HEAD 探测、提供者路由和自定义 CAR 往返。审查时运行的七项相关测试均通过，但不足以证明 TG-01 至 TG-05、完整的 GET/HEAD 探测一致性或生产兼容性。
 
-**Required outcome:** Maintain a requirement-to-test matrix for selected
-behavior, run pnpm check, and preserve the documented local/production
-distinction. Client-side CID verification remains essential; service-side hash
-checks do not replace it.
+**要求的结果：** 为选定行为维护需求到测试的映射，运行 pnpm
+check，并保留文档中本地与生产验证的区分。客户端 CID 校验仍是必要条件，服务端哈希检查不能替代它。
 
-**External proof after explicit deployment authorization:** Actual edge
-TLS/HTTP2, GET/HEAD probe and headers, conditional requests, routing formats,
-and byte/hash equality from an independent cold client with the source stopped.
-Standard CAR/IPNS claims require their own evidence if ever selected.
+**显式授权部署后的外部验证：**
+验证实际边缘服务的 TLS/HTTP2、GET/HEAD 探测和响应头、条件请求、路由格式；停止源节点后，使用独立冷客户端比较取回内容的字节与哈希。未来若宣称支持标准 CAR/IPNS，须提供相应的独立证据。
 
-## Existing behavior that is not a gap
+## 不属于缺口的既有行为
 
-- Anonymous GET/HEAD of stored raw blocks with original bytes, raw media type,
-  attachment, immutable caching and defensive browser headers.
-- Ordinary missing-root 404 and the empty identity-CID probe.
-- A non-recursive local-store model without public-network discovery.
-- CID/hash validation before accepted pins and complete-DAG validation.
-- Delegated routing and custom CAR export as separate capabilities.
+- 匿名 GET/HEAD 读取已存储原始区块，返回原始字节、raw 媒体类型、附件声明、不可变缓存和浏览器防护响应头。
+- 普通请求根区块缺失时返回 404，以及空 identity CID 探测。
+- 非递归本地存储模型，不提供公网内容发现。
+- 接受 pin 前校验 CID/哈希和完整 DAG。
+- 将委托路由与自定义 CAR 导出作为独立能力。
 
-Neither a custom CAR URL nor the absence of a server-side Kubo is itself a
-mandatory Trustless Gateway violation.
+自定义 CAR 地址和没有服务端 Kubo，本身均不是 Trustless Gateway 必选要求的违规。
