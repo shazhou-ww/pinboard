@@ -28,9 +28,9 @@ pinboard upload .\folder --name example
 pinboard import .\archive.car
 pinboard import .\archive.car --name example
 
-pinboard pins list --json
-pinboard pins inspect <CID>
-pinboard pins remove <CID>
+pinboard list --json
+pinboard inspect <CID>
+pinboard remove <CID>
 
 # 单次覆盖服务地址，不修改已保存的配置。
 pinboard upload .\file.txt --endpoint http://localhost:8787
@@ -45,8 +45,11 @@ pinboard upload .\file.txt --endpoint http://localhost:8787
   `--name`，未指定时默认使用输入文件或目录的 basename。名称仅为当前账户 pin 的标签，可重名，不改变内容、目录内部路径或 CID；同一账户重复保存相同 CID 时沿用现有 upsert 行为并更新标签，不创建第二条同 CID 的 pin。默认名称也必须满足服务端长度和有效性限制，不静默截断。
 - 不提供含混的 `pinboard pin <CID>`
   来暗示远程获取；第一版不单独暴露“引用已有 CID”。已有 HTTP/MCP 能力保持不变。
-- `pins remove`
-  仅删除账户引用；帮助必须说明公开 blocks、CDN 及他人副本不会随之擦除。
+- `upload`、`import`、`list`、`inspect` 和 `remove`
+  都以 pin 为操作对象，统一放在顶层，不增加 `pins`
+  命令组或冗余别名；配置仍单独归入 `config`。HTTP 的 `/api/pins`
+  路由与 JSON 中的 `pins` 字段不受命令层级影响。
+- `remove` 仅删除账户引用；帮助必须说明公开 blocks、CDN 及他人副本不会随之擦除。
 - `config set`
   只保存服务地址等非敏感设置；默认使用现有生产 origin，本地地址必须显式配置。移除原方案的 Kubo 路径与版本设置。
 - Token 来自 `PINBOARD_AGENT_TOKEN`，可提供 `--token-stdin`

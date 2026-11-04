@@ -27,6 +27,10 @@ API 增加针对性验证，并记录无需 Kubo 的安装、公开内容语义�
 
 ### I-AC02: 认证与自动化行为可靠
 
+验证 `upload`、`import`、`list`、`inspect`、`remove`
+均为顶层命令，帮助与示例不要求 `pins`
+层级；命令扁平化不改变 HTTP 路由、JSON 字段、权限或移除账户引用的语义。
+
 验证 `upload` 与 `import` 共享
 `--name`、endpoint 及输出规则，默认使用输入 basename；不同 CID 允许重名，同账户同 CID 再次保存更新标签，名称不影响 CID。
 
