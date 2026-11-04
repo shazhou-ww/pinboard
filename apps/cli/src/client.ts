@@ -1,4 +1,4 @@
-import type { Pin } from "@workspace/contracts";
+import type { Pin } from "@shazhou/pinboard-contracts";
 import { CID } from "multiformats/cid";
 import { CliError, usage } from "./errors.js";
 import { maxCarBytes } from "./retrieval.js";

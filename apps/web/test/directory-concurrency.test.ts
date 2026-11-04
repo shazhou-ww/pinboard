@@ -3,10 +3,10 @@ import * as dagPb from "@ipld/dag-pb";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
 import { describe, expect, it, vi } from "vitest";
-import type * as Contracts from "@workspace/contracts";
+import type * as Contracts from "@shazhou/pinboard-contracts";
 
 const scenario = vi.hoisted(() => ({ overflow: false }));
-vi.mock("@workspace/contracts", async (original) => {
+vi.mock("@shazhou/pinboard-contracts", async (original) => {
   const actual = await original<typeof Contracts>();
   return {
     ...actual,

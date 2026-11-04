@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/worker",
+  "name": "@shazhou/pinboard-worker",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -23,13 +23,13 @@
     "zod": "catalog:",
     "@auth/core": "catalog:",
     "@hono/auth-js": "catalog:",
-    "@workspace/contracts": "workspace:*",
-    "@workspace/web": "workspace:*",
+    "@shazhou/pinboard-contracts": "workspace:*",
+    "@shazhou/pinboard-web": "workspace:*",
     "hono": "catalog:"
   },
   "devDependencies": {
-    "@workspace/encoding": "workspace:*",
-    "@workspace/cli": "workspace:*",
+    "@shazhou/pinboard-encoding": "workspace:*",
+    "@shazhou/pinboard": "workspace:*",
     "miniflare": "catalog:",
     "@cloudflare/workers-types": "catalog:",
     "wrangler": "catalog:"

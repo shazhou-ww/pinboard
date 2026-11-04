@@ -13,7 +13,7 @@ import {
 } from "./content.js";
 import { readBlock, storeDag, writeGuard } from "./storage.js";
 import { nameSchema, validate } from "./schemas.js";
-import type { Pin } from "@workspace/contracts";
+import type { Pin } from "@shazhou/pinboard-contracts";
 
 export class PinService {
   constructor(

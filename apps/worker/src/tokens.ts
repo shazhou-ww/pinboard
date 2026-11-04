@@ -2,7 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Bindings } from "./env.js";
 import { hashToken, type Principal } from "./identity.js";
 import { tokenSchema, validate } from "./schemas.js";
-import type { AgentToken } from "@workspace/contracts";
+import type { AgentToken } from "@shazhou/pinboard-contracts";
 
 function browserOnly(principal: Principal): void {
   if (principal.kind !== "session")

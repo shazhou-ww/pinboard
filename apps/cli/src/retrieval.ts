@@ -1,7 +1,7 @@
 import { CarReader } from "@ipld/car";
 import * as dagCbor from "@ipld/dag-cbor";
 import * as dagPb from "@ipld/dag-pb";
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 import {
   exporter,
   type ReadableStorage,

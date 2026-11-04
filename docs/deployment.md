@@ -1,5 +1,9 @@
 # Tag-driven production deployment
 
+This guide covers the Cloudflare application. CLI npm publication uses separate
+`@shazhou/pinboard@x.y.z` tags and is documented in
+[npm releases](npm-release.md).
+
 Production deployment is driven by **`release-YYMMDD-INDEX` tags**, not npm
 semantic versions, GitHub Releases, or a release branch.
 
@@ -56,8 +60,8 @@ If needed, provision the bucket/database with an explicitly authorized bootstrap
 credential, not the long-lived least-privilege deployment token:
 
 ```powershell
-pnpm --filter @workspace/worker exec wrangler r2 bucket create pinboard-blocks
-pnpm --filter @workspace/worker exec wrangler d1 create pinboard
+pnpm --filter @shazhou/pinboard-worker exec wrangler r2 bucket create pinboard-blocks
+pnpm --filter @shazhou/pinboard-worker exec wrangler d1 create pinboard
 ```
 
 The verified production database UUID is recorded in
@@ -81,7 +85,7 @@ template's `2026-10-14` baseline until a separately validated runtime upgrade.
 After binding configuration changes:
 
 ```powershell
-pnpm --filter @workspace/worker types
+pnpm --filter @shazhou/pinboard-worker types
 pnpm check
 ```
 
@@ -220,14 +224,14 @@ without printing or copying it. Target account
 First inspect the actual schema and migration tracking:
 
 ```powershell
-pnpm --filter @workspace/worker exec wrangler d1 execute pinboard --remote --config wrangler.jsonc --command "SELECT name, sql FROM sqlite_master WHERE type='table' AND name IN ('accounts','pins','car_dags','car_blocks','d1_migrations')"
+pnpm --filter @shazhou/pinboard-worker exec wrangler d1 execute pinboard --remote --config wrangler.jsonc --command "SELECT name, sql FROM sqlite_master WHERE type='table' AND name IN ('accounts','pins','car_dags','car_blocks','d1_migrations')"
 ```
 
 For the existing manually initialized database, if the original tables exist and
 both CAR tables are absent, apply **only** the additive file:
 
 ```powershell
-pnpm --filter @workspace/worker exec wrangler d1 execute pinboard --remote --config wrangler.jsonc --file migrations\0002_car_storage.sql
+pnpm --filter @shazhou/pinboard-worker exec wrangler d1 execute pinboard --remote --config wrangler.jsonc --file migrations\0002_car_storage.sql
 ```
 
 Do not blindly run all migrations on an existing database whose `0001` was

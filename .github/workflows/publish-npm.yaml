@@ -1,0 +1,74 @@
+name: Publish Pinboard CLI to npm
+
+on:
+  push:
+    tags:
+      - "@shazhou/pinboard@*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pinboard-npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish standalone CLI
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.11.1
+          cache: pnpm
+
+      - name: Validate package tag and main ancestry
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node scripts/validate-cli-release.mjs "$RELEASE_TAG")"
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::npm release tags must point to a commit already on main."
+            exit 1
+          fi
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate workspace and isolated installation
+        run: pnpm check
+
+      - name: Build and verify exact release tarball
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          PINBOARD_CLI_EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          pnpm package:cli "$RELEASE_VERSION"
+          node --test scripts/cli-package.test.mjs
+
+      - name: Publish using npm Trusted Publishing
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          npm --version
+          npm publish "./apps/cli/dist/shazhou-pinboard-${RELEASE_VERSION}.tgz" --access public --tag latest --provenance

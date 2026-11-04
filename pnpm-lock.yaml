@@ -51,6 +51,9 @@ catalogs:
     '@vitest/coverage-v8':
       specifier: ^5.0.4
       version: 5.0.4
+    esbuild:
+      specifier: ^0.28.2
+      version: 0.28.2
     eslint:
       specifier: ^10.12.0
       version: 10.12.0
@@ -143,6 +146,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.4(vitest@5.0.4)
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.2
       eslint:
         specifier: 'catalog:'
         version: 10.12.0(supports-color@10.2.2)
@@ -191,10 +197,10 @@ importers:
       '@ipld/dag-pb':
         specifier: 'catalog:'
         version: 4.2.0
-      '@workspace/contracts':
+      '@shazhou/pinboard-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@workspace/encoding':
+      '@shazhou/pinboard-encoding':
         specifier: workspace:*
         version: link:../../packages/encoding
       ipfs-unixfs-exporter:
@@ -221,10 +227,10 @@ importers:
       '@ipld/car':
         specifier: 'catalog:'
         version: 5.4.7
-      '@workspace/contracts':
+      '@shazhou/pinboard-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@workspace/encoding':
+      '@shazhou/pinboard-encoding':
         specifier: workspace:*
         version: link:../../packages/encoding
       ipfs-unixfs-importer:
@@ -276,10 +282,10 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.32.2(supports-color@10.2.2)(zod@3.25.76)
-      '@workspace/contracts':
+      '@shazhou/pinboard-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@workspace/web':
+      '@shazhou/pinboard-web':
         specifier: workspace:*
         version: link:../web
       hono:
@@ -298,10 +304,10 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20261014.1
-      '@workspace/cli':
+      '@shazhou/pinboard':
         specifier: workspace:*
         version: link:../cli
-      '@workspace/encoding':
+      '@shazhou/pinboard-encoding':
         specifier: workspace:*
         version: link:../../packages/encoding
       miniflare:
@@ -318,7 +324,7 @@ importers:
       '@ipld/car':
         specifier: 'catalog:'
         version: 5.4.7
-      '@workspace/contracts':
+      '@shazhou/pinboard-contracts':
         specifier: workspace:*
         version: link:../contracts
       ipfs-unixfs-importer:

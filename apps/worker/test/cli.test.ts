@@ -1,7 +1,7 @@
 import { CarReader } from "@ipld/car";
 import * as dagPb from "@ipld/dag-pb";
-import { run } from "@workspace/cli";
-import type { Pin } from "@workspace/contracts";
+import { run } from "@shazhou/pinboard";
+import type { Pin } from "@shazhou/pinboard-contracts";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createServer } from "node:http";
 import { readFile, mkdir, writeFile, rm } from "node:fs/promises";

@@ -179,9 +179,9 @@ With Kubo installed, independently import and reconstruct the stored directory
 CAR in an empty offline repository:
 
 ```powershell
-pnpm exec turbo run build --filter=@workspace/encoding --filter=@workspace/cli
+pnpm exec turbo run build --filter=@shazhou/pinboard-encoding --filter=@shazhou/pinboard
 $env:PINBOARD_TEST_KUBO = "1"
-pnpm --filter @workspace/worker exec vitest run test\storage.test.ts
+pnpm --filter @shazhou/pinboard-worker exec vitest run test\storage.test.ts
 Remove-Item Env:\PINBOARD_TEST_KUBO
 ```
 

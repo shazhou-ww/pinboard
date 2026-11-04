@@ -21,7 +21,7 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
-    "@workspace/worker#test": {
+    "@shazhou/pinboard-worker#test": {
       "dependsOn": ["^build", "build"],
       "outputs": ["coverage/**"]
     },

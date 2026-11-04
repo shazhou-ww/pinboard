@@ -1,4 +1,4 @@
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 
 export interface DirectoryFile {
   readonly path: string;

@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/cli",
+  "name": "@shazhou/pinboard",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -24,8 +24,8 @@
     "@ipld/car": "catalog:",
     "@ipld/dag-cbor": "catalog:",
     "@ipld/dag-pb": "catalog:",
-    "@workspace/contracts": "workspace:*",
-    "@workspace/encoding": "workspace:*",
+    "@shazhou/pinboard-contracts": "workspace:*",
+    "@shazhou/pinboard-encoding": "workspace:*",
     "ipfs-unixfs-exporter": "catalog:",
     "multiformats": "catalog:",
     "string-width": "catalog:"

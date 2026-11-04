@@ -5,7 +5,7 @@ import { importer } from "ipfs-unixfs-importer";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
 import { HTTPException } from "hono/http-exception";
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 
 export const MAX_UPLOAD = uploadLimits.maxBytes;
 export const MAX_BLOCK = uploadLimits.maxBlockBytes;

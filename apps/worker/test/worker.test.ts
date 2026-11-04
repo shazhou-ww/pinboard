@@ -16,7 +16,7 @@ import { importFile } from "../src/content.js";
 import { encodeCar } from "../src/car.js";
 import { handleMcp } from "../src/mcp.js";
 import { MAX_UPLOAD } from "../src/content.js";
-import type { Pin } from "@workspace/contracts";
+import type { Pin } from "@shazhou/pinboard-contracts";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({

@@ -1,6 +1,6 @@
 import type { AuthConfig } from "@hono/auth-js";
 import Google from "@auth/core/providers/google";
-import type { AuthProviderDescriptor } from "@workspace/contracts";
+import type { AuthProviderDescriptor } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { accountForGoogle } from "./identity.js";
 

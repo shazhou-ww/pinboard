@@ -6,11 +6,22 @@ not fetch remote CIDs to create pins.
 
 ## Build and run
 
+Stable npm releases are standalone and do not require pnpm or this checkout:
+
+```powershell
+npm install --global @shazhou/pinboard
+pinboard --help
+```
+
+The `0.0.0-bootstrap.0` package is only a placeholder, not a working CLI.
+Release packaging and the `@shazhou/pinboard@x.y.z` tag workflow are described
+in [npm releases](npm-release.md).
+
 From a checkout, install and build the CLI and its workspace dependencies:
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm exec turbo run build --filter=@workspace/cli
+pnpm exec turbo run build --filter=@shazhou/pinboard
 node .\apps\cli\dist\main.js --help
 ```
 
@@ -23,9 +34,9 @@ function pinboard { node C:\Code\pinboard\apps\cli\dist\main.js @args }
 
 On POSIX shells the equivalent is
 `pinboard() { node "$HOME/code/pinboard/apps/cli/dist/main.js" "$@"; }`. Keep
-the built checkout and its installed dependencies together. This is a local
-workspace installation, not an npm-published standalone package. For automation,
-invoke `node` directly so package-manager banners cannot affect JSON stdout.
+the built checkout and its installed dependencies together when using this local
+workspace function rather than an installed npm release. For automation, invoke
+`node` directly so package-manager banners cannot affect JSON stdout.
 
 Running `pinboard` or `pinboard --help` shows a concise command and option
 reference. Detailed behavior, endpoint resolution and credential handling are

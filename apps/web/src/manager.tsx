@@ -1,4 +1,4 @@
-import type { AgentToken, Pin } from "@workspace/contracts";
+import type { AgentToken, Pin } from "@shazhou/pinboard-contracts";
 import {
   useEffect,
   useRef,

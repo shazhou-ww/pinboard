@@ -6,7 +6,7 @@ import {
 } from "@ipld/car/buffer-writer";
 import * as dagPb from "@ipld/dag-pb";
 import * as dagCbor from "@ipld/dag-cbor";
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
 import {
