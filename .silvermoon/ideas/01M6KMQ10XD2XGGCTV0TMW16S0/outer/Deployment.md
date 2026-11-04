@@ -24,8 +24,8 @@
 - 选用 Visual Studio Code + GitHub
   Copilot，记录两者准确版本和 DCR 能力。配置 HTTP
   `/mcp`，不手动填写 Authorization；完成真实 Google 登录，核对账户、未验证客户端、回调、资源及所选权限，再明确同意。
-- 用户另行指定 Chrome for
-  Testing 用于真实浏览器检查。登录由用户手动完成；自动化只操作 Pinboard 页面与正常 OAuth 回调，不操作 Google 凭据，也不通过伪造浏览器身份绕过 Google 限制。官方 MCP
+- 用户先指定 Chrome for Testing，随后明确改用已有登录的 Chrome
+  profile，不创建隔离配置。保留用户的日常浏览器会话，使用其原浏览器打开，避免以不同版本写入既有 profile。登录由用户手动完成；自动化只操作 Pinboard 页面与正常 OAuth 回调，不操作 Google 凭据，也不通过伪造浏览器身份绕过 Google 限制。官方 MCP
   SDK 的协议烟测须单独标注，不能冒充已通过 VS Code 客户端验证。
 - 分别验证只读权限、写权限、取消/关闭页面、切换账户、其他账户的内容、撤销未换取的授权码及已签发凭据；观察 60 秒授权码到期和 1 小时访问凭据到期后的失败与重新连接。
 - 验证原 API
@@ -61,11 +61,16 @@ Token 的 MCP 调用与 CLI 操作仍可成功。记录观察到的撤销生效�
 - Google 在 VS
   Code 内置 Electron 浏览器拒绝登录，页面提示不支持/未启用 JavaScript；该浏览器实际可执行 JavaScript，不能把提示当作应用禁用脚本的证据。
   [Google 支持说明](https://support.google.com/accounts/answer/7675428)
-  说明嵌入式或受自动化控制的浏览器可能被拒绝。按用户指示启动独立Chrome for
-  Testing `153.0.8010.36`
-  与隔离配置，已验证其正常显示 Pinboard，等待用户手动登录；没有复制内置浏览器 Cookie 或 Google
-  URL。
+  说明嵌入式或受自动化控制的浏览器可能被拒绝。Chrome for Testing `153.0.8010.36`
+  已验证能显示 Pinboard；用户随后要求使用已有登录的 Chrome
+  profile，已改用原 Chrome 打开，未复制 Cookie、Google URL 或浏览器凭据。
+- 官方 MCP SDK `1.32.2`
+  实际客户端已完成发现、动态注册和 S256 授权发起，在用户指定的 Chrome
+  profile 打开只读授权。暂停前仍为
+  `waiting_for_user_login_and_consent`，未收到回调，本地客户端未取得访问凭据；不能将这些前置结果记为真实工具调用或撤销测试通过。
 - 尚未取得完整真实 Google / VS
   Code 授权、实际到期与撤销、跨账户拒绝及原客户端兼容性的外部验证记录。D-S01 的滥用防护证据仍缺失，所有 D-* 条目保持未完成，不记录
   `submitOuter` 或 `acceptOuter`。
-- 下一步在用户完成 Chrome 登录后继续应用页面与协议检查，再补齐真实客户端及剩余外部门限。
+- 用户于 2026-11-05 要求今晚暂停、次日继续；临时本地回调进程已停止，不关闭用户日常浏览器，也不把暂停解释为放弃 IDEA。
+- 次日从当前生产版本继续，不重复迁移或发布。使用用户指定的已有登录 profile，启动全新的 loopback 回调与授权请求；旧请求/授权码会过期，不能复用。用户完成真实登录与明确只读同意后，验证 SDK 换码、MCP 初始化和工具调用、权限拒绝、资源边界、授权码重放及撤销，再补齐真实 VS
+  Code、到期、跨账户与原客户端兼容性等剩余门限。公开注册限流/滥用防护仍需独立配置或外部证据。
