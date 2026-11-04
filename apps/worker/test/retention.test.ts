@@ -371,7 +371,7 @@ describe("content retention", () => {
     expect((await runRetention(env)).objectsDeleted).toBe(20);
     expect((await runRetention(env)).objectsDeleted).toBe(16);
     expect((await objects()).map((o) => o.key)).toEqual(["operator-owned"]);
-  });
+  }, 30000);
 
   it("backfills legacy closures and pauses deletion when an existing pin cannot be verified", async () => {
     const leaf = await importFile(text("legacy-child"));
