@@ -26,6 +26,7 @@ pinboard config set endpoint https://pinboard.shazhou.work
 pinboard upload .\file.txt
 pinboard upload .\folder --name example
 pinboard import .\archive.car
+pinboard import .\archive.car --name example
 
 pinboard pins list --json
 pinboard pins inspect <CID>
@@ -37,6 +38,11 @@ pinboard upload .\file.txt --endpoint http://localhost:8787
 
 - `upload` 接受一个普通文件或目录；`.car` 文件在这里仍是普通文件，只有 `import`
   才按 CAR 协议处理，与 Web 现有语义一致。
+- `upload` 与 `import`
+  共用命名、认证、endpoint、公开发布及输出语义，区别仅在输入解释与相应处理路径；`import`
+  不是另一种账户 pin。
+- 两者均支持
+  `--name`，未指定时默认使用输入文件或目录的 basename。名称仅为当前账户 pin 的标签，可重名，不改变内容、目录内部路径或 CID；同一账户重复保存相同 CID 时沿用现有 upsert 行为并更新标签，不创建第二条同 CID 的 pin。默认名称也必须满足服务端长度和有效性限制，不静默截断。
 - 不提供含混的 `pinboard pin <CID>`
   来暗示远程获取；第一版不单独暴露“引用已有 CID”。已有 HTTP/MCP 能力保持不变。
 - `pins remove`
