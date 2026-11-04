@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile, open, symlink } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { CID } from "multiformats/cid";
+import stringWidth from "string-width";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { run } from "../src/cli.js";
 import { endpoint, resolveEndpoint } from "../src/endpoint.js";
@@ -35,10 +36,13 @@ async function invoke(
     fetcher?: typeof fetch;
     stdin?: string;
     signal?: AbortSignal;
+    tty?: boolean;
+    errTty?: boolean;
   } = {},
 ) {
   let out = "",
-    err = "";
+    err = "",
+    combined = "";
   const capture = (write: (text: string) => void) =>
     new Writable({
       write(chunk: Buffer, _encoding, done) {
@@ -54,16 +58,24 @@ async function invoke(
       ...options.env,
     },
     input: Readable.from([options.stdin ?? ""]),
-    out: capture((text) => {
-      out += text;
-    }),
-    err: capture((text) => {
-      err += text;
-    }),
+    out: Object.assign(
+      capture((text) => {
+        out += text;
+        combined += text;
+      }),
+      { isTTY: options.tty ?? false },
+    ),
+    err: Object.assign(
+      capture((text) => {
+        err += text;
+        combined += text;
+      }),
+      { isTTY: options.errTty ?? options.tty ?? false },
+    ),
     signal: options.signal ?? new AbortController().signal,
     ...(options.fetcher ? { fetcher: options.fetcher } : {}),
   });
-  return { code, out, err };
+  return { code, out, err, combined };
 }
 
 describe("origins", () => {
@@ -108,13 +120,29 @@ describe("origins", () => {
 });
 
 describe("top-level command and output contracts", () => {
-  it("documents inherently public uploads and unpin-not-erasure without a pins group", async () => {
-    const result = await invoke(["--help"]);
-    expect(result.code).toBe(0);
-    expect(result.out).toContain("PUBLIC");
-    expect(result.out).toContain("NOT erased");
-    expect(result.out).not.toContain("pinboard pins");
-  });
+  it.each([{ args: [] }, { args: ["--help"] }, { args: ["--help", "--json"] }])(
+    "shows concise command help for $args",
+    async ({ args }) => {
+      const result = await invoke(args);
+      expect(result.code).toBe(0);
+      expect(result.err).toBe("");
+      const text: string = args.includes("--json")
+        ? (JSON.parse(result.out) as { help: string }).help
+        : result.out;
+      expect(text).toContain("pinboard upload <file|directory>");
+      expect(text).toContain("pinboard config set-token");
+      expect(text).toContain("pinboard download <CID> [--output PATH]");
+      expect(text).toContain("pinboard export <CID> [--output PATH]");
+      expect(text).toContain("pinboard rename <CID> <NAME>");
+      expect(text).toContain("--endpoint ORIGIN");
+      expect(text).toContain("All commands: --json, --help.");
+      expect(text.trim().split("\n").length).toBeLessThanOrEqual(19);
+      expect(text).not.toContain("pinboard pins");
+      expect(text).not.toContain("PUBLIC");
+      expect(text).not.toContain("NOT erased");
+      expect(text).not.toContain("Persistent tokens");
+    },
+  );
   it.each([
     ["pins"],
     ["pin", cid],
@@ -125,6 +153,14 @@ describe("top-level command and output contracts", () => {
     ["inspect", cid, "--name", "a"],
     ["list", "--endpoint"],
     ["list", "--timeout", "0"],
+    ["download"],
+    ["export", cid, "--token-stdin"],
+    ["download", cid, "--name", "file"],
+    ["export", cid, "--output", ""],
+    ["inspect", cid, "--output", "file"],
+    ["rename", cid],
+    ["rename", cid, "name", "extra"],
+    ["rename", cid, "name", "--name", "other"],
   ])("rejects misuse %j", async (...args) => {
     const result = await invoke([...args, "--json"]);
     expect(result.code).toBe(2);
@@ -188,6 +224,300 @@ describe("top-level command and output contracts", () => {
       expect(result.out).not.toContain(token);
     },
   );
+  it("renames with a JSON PATCH and returns the existing pin receipt", async () => {
+    const result = await invoke(
+      [
+        "rename",
+        cid,
+        " new name ",
+        "--endpoint",
+        "http://localhost:8787",
+        "--json",
+      ],
+      {
+        fetcher: (input, init) => {
+          expect(input instanceof Request ? input.url : input.toString()).toBe(
+            `http://localhost:8787/api/pins/${cid}`,
+          );
+          expect(init!.method).toBe("PATCH");
+          expect(init!.redirect).toBe("manual");
+          expect(new Headers(init!.headers).get("content-type")).toBe(
+            "application/json",
+          );
+          expect(new Headers(init!.headers).get("authorization")).toBe(
+            `Bearer ${token}`,
+          );
+          expect(new Headers(init!.headers).has("x-pinboard-public")).toBe(
+            false,
+          );
+          expect(init!.body).toBe(JSON.stringify({ name: "new name" }));
+          return Promise.resolve(
+            Response.json({ ...record, name: "new name" }),
+          );
+        },
+      },
+    );
+    expect(result.code, result.err).toBe(0);
+    expect(JSON.parse(result.out)).toEqual({ ...record, name: "new name" });
+    expect(result.err).toBe("");
+  });
+  it.each(["", "  ", "x".repeat(201)])(
+    "refuses invalid rename label %j before a request",
+    async (name) => {
+      const fetcher = vi.fn<typeof fetch>();
+      const result = await invoke(["rename", cid, name, "--json"], { fetcher });
+      expect(result.code).toBe(2);
+      expect(fetcher).not.toHaveBeenCalled();
+    },
+  );
+  it("reports uncertain rename writes without retrying", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new Error("lost response"));
+    const result = await invoke(["rename", cid, "new name", "--json"], {
+      fetcher,
+    });
+    expect(result.code).toBe(1);
+    expect(result.out).toBe("");
+    expect(JSON.parse(result.err)).toMatchObject({
+      error: {
+        uncertain: true,
+      },
+    });
+    expect(result.err).toContain(`Inspect ${cid}`);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it("does not claim success when a rename response has the wrong label", async () => {
+    const result = await invoke(["rename", cid, "new name", "--json"], {
+      fetcher: () => Promise.resolve(Response.json(record)),
+    });
+    expect(result.code).toBe(1);
+    expect(result.out).toBe("");
+    expect(JSON.parse(result.err)).toMatchObject({
+      error: { code: "INVALID_RESPONSE", uncertain: true },
+    });
+  });
+  it("renders a name, size and CID table with a separate cursor", async () => {
+    const result = await invoke(["list"], {
+      fetcher: () =>
+        Promise.resolve(
+          Response.json({
+            pins: [
+              { ...record, name: "test", size: 56083 },
+              {
+                ...record,
+                name: "production-acceptance-261104-1",
+                size: 3146793,
+              },
+            ],
+            nextCursor: "next",
+          }),
+        ),
+    });
+    expect(result.code).toBe(0);
+    expect(result.err).toBe("");
+    expect(result.out).toBe(
+      `${"NAME".padEnd(30)}  ${"SIZE".padStart(8)}  CID\n` +
+        `${"test".padEnd(30)}  54.8 KiB  ${cid}\n` +
+        `production-acceptance-261104-1   3.0 MiB  ${cid}\n\nNext cursor: next\n`,
+    );
+    expect(result.out).not.toContain("/share/");
+  });
+  it.each([
+    ["a".repeat(32), "a".repeat(32)],
+    ["a".repeat(33), "a".repeat(29) + "..."],
+    ["\u4e2d".repeat(17), "\u4e2d".repeat(14) + "..."],
+    ["\u{1f600}".repeat(17), "\u{1f600}".repeat(14) + "..."],
+    ["e\u0301".repeat(33), "e\u0301".repeat(29) + "..."],
+  ])("truncates the table name by terminal width: %s", async (name, shown) => {
+    const fetcher: typeof fetch = () =>
+      Promise.resolve(
+        Response.json({ pins: [{ ...record, name }], nextCursor: null }),
+      );
+    const result = await invoke(["list"], { fetcher });
+    expect(result.code).toBe(0);
+    const [header, row] = result.out.trimEnd().split("\n");
+    expect(row!.startsWith(shown + "  ")).toBe(true);
+    expect(stringWidth(shown)).toBeLessThanOrEqual(32);
+    expect(row!.endsWith(cid)).toBe(true);
+    expect(stringWidth(header!.slice(0, header!.indexOf("CID")))).toBe(
+      stringWidth(row!.slice(0, row!.indexOf(cid))),
+    );
+    const json = await invoke(["list", "--json"], { fetcher });
+    expect(JSON.parse(json.out)).toMatchObject({ pins: [{ name, cid }] });
+    const inspected = await invoke(["inspect", cid], {
+      fetcher: () => Promise.resolve(Response.json({ ...record, name })),
+    });
+    expect(
+      inspected.out.startsWith("Name     " + JSON.stringify(name).slice(1, -1)),
+    ).toBe(true);
+  });
+  it("renders inspect as an aligned vertical table without changing JSON", async () => {
+    const fetcher: typeof fetch = () => Promise.resolve(Response.json(record));
+    const result = await invoke(["inspect", cid], { fetcher });
+    expect(result.code).toBe(0);
+    expect(result.err).toBe("");
+    expect(result.out).toBe(
+      `Name     test\nSize     3 B\nCID      ${cid}\nBlocks   1\nCreated  2026-01-01\nShare    https://pinboard.shazhou.work/share/${cid}\n`,
+    );
+    const json = await invoke(["inspect", cid, "--json"], { fetcher });
+    expect(json.code).toBe(0);
+    expect(JSON.parse(json.out)).toEqual(record);
+  });
+  it.each([
+    [0, "0 B"],
+    [1023, "1023 B"],
+    [1024, "1.0 KiB"],
+    [1048576, "1.0 MiB"],
+  ])("formats a %i byte pin as %s", async (size, label) => {
+    const result = await invoke(["inspect", cid], {
+      fetcher: () => Promise.resolve(Response.json({ ...record, size })),
+    });
+    expect(result.code).toBe(0);
+    expect(result.out).toContain(`Size     ${label}\n`);
+  });
+  it("escapes control characters in pin names without breaking the layout", async () => {
+    const result = await invoke(["list"], {
+      fetcher: () =>
+        Promise.resolve(
+          Response.json({
+            pins: [{ ...record, name: "line\n\t\u001b[31m" }],
+            nextCursor: null,
+          }),
+        ),
+    });
+    expect(result.code).toBe(0);
+    expect(result.out).toContain("line\\n\\t\\u001b[31m   3 B");
+    expect(result.out.split("\n")).toHaveLength(3);
+  });
+  it.each([
+    { tty: true, errTty: true },
+    { tty: false, errTty: false },
+    { tty: true, errTty: false },
+    { tty: false, errTty: true },
+  ])(
+    "separates upload progress and result for $tty/$errTty",
+    async (options) => {
+      const path = join(directory, "progress-upload");
+      await writeFile(path, "test");
+      const result = await invoke(["upload", path], {
+        ...options,
+        fetcher: () => Promise.resolve(Response.json(record)),
+      });
+      expect(result.code).toBe(0);
+      const logLines = result.err.trimEnd().split("\n");
+      expect(logLines).toHaveLength(2);
+      expect(logLines[0]).toMatch(
+        /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] Preparing upload\.\.\.$/u,
+      );
+      expect(logLines[1]).toMatch(
+        /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] Uploading\.\.\.$/u,
+      );
+      expect(result.out.startsWith("\n")).toBe(true);
+      expect(result.out.startsWith("\n\n")).toBe(false);
+      expect(result.combined).not.toContain("Progress\n");
+      expect(result.combined).not.toContain("Result\n");
+      expect(result.out).not.toContain("Preparing");
+      expect(result.combined).toBe(result.err + result.out);
+    },
+  );
+  it("suppresses progress and headings for JSON uploads even on a TTY", async () => {
+    const path = join(directory, "json-upload");
+    await writeFile(path, "test");
+    const result = await invoke(["upload", path, "--json"], {
+      tty: true,
+      fetcher: () => Promise.resolve(Response.json(record)),
+    });
+    expect(result.code).toBe(0);
+    expect(result.err).toBe("");
+    expect(result.out).toBe(JSON.stringify(record) + "\n");
+  });
+  it("does not display a result section when an upload fails", async () => {
+    const path = join(directory, "failed-upload");
+    await writeFile(path, "test");
+    const result = await invoke(["upload", path], {
+      tty: true,
+      fetcher: () => Promise.resolve(new Response(null, { status: 403 })),
+    });
+    expect(result.code).toBe(1);
+    expect(result.out).toBe("");
+    expect(result.err).toContain("] Preparing upload...\n");
+    expect(result.err).toContain("HTTP_ERROR");
+    expect(result.combined).not.toContain("Result");
+  });
+  it("draws Unicode borders around list output only on a TTY", async () => {
+    const fetcher: typeof fetch = () =>
+      Promise.resolve(Response.json({ pins: [record], nextCursor: null }));
+    const result = await invoke(["list"], { fetcher, tty: true });
+    const top = `┌──────┬──────┬${"─".repeat(cid.length + 2)}┐`;
+    const middle = `├──────┼──────┼${"─".repeat(cid.length + 2)}┤`;
+    const bottom = `└──────┴──────┴${"─".repeat(cid.length + 2)}┘`;
+    expect(result.code).toBe(0);
+    expect(result.out).toBe(
+      `${top}\n│ NAME │ SIZE │ ${"CID".padEnd(cid.length)} │\n${middle}\n│ test │  3 B │ ${cid} │\n${bottom}\n`,
+    );
+    const plain = await invoke(["list"], { fetcher });
+    expect(plain.out).not.toMatch(/[┌┬┐─│├┼┤└┴┘]/u);
+    const json = await invoke(["list", "--json"], { fetcher, tty: true });
+    expect(JSON.parse(json.out)).toEqual({ pins: [record], nextCursor: null });
+  });
+  it.each(["test", "\u4e2d".repeat(17), "\u{1f600}".repeat(17)])(
+    "aligns TTY list borders for %s",
+    async (name) => {
+      const result = await invoke(["list"], {
+        tty: true,
+        fetcher: () =>
+          Promise.resolve(
+            Response.json({ pins: [{ ...record, name }], nextCursor: null }),
+          ),
+      });
+      expect(result.code).toBe(0);
+      const widths = result.out
+        .trimEnd()
+        .split("\n")
+        .map((line) => stringWidth(line));
+      expect(new Set(widths).size).toBe(1);
+      expect(result.out).toContain(cid);
+    },
+  );
+  it("draws a vertical TTY table for inspect with full field values", async () => {
+    const name = "a".repeat(50);
+    const pin = { ...record, name };
+    const fetcher: typeof fetch = () => Promise.resolve(Response.json(pin));
+    const result = await invoke(["inspect", cid], { fetcher, tty: true });
+    const share = `https://pinboard.shazhou.work/share/${cid}`;
+    const top = `┌─────────┬${"─".repeat(share.length + 2)}┐`;
+    const bottom = `└─────────┴${"─".repeat(share.length + 2)}┘`;
+    expect(result.code).toBe(0);
+    expect(result.out).toBe(
+      [
+        top,
+        `│ Name    │ ${name.padEnd(share.length)} │`,
+        `│ Size    │ ${"3 B".padEnd(share.length)} │`,
+        `│ CID     │ ${cid.padEnd(share.length)} │`,
+        `│ Blocks  │ ${"1".padEnd(share.length)} │`,
+        `│ Created │ ${"2026-01-01".padEnd(share.length)} │`,
+        `│ Share   │ ${share} │`,
+        bottom,
+        "",
+      ].join("\n"),
+    );
+    const json = await invoke(["inspect", cid, "--json"], {
+      fetcher,
+      tty: true,
+    });
+    expect(JSON.parse(json.out)).toEqual(pin);
+  });
+  it("shows an explicit empty list without changing JSON output", async () => {
+    const page = { pins: [], nextCursor: null };
+    const fetcher: typeof fetch = () => Promise.resolve(Response.json(page));
+    const human = await invoke(["list"], { fetcher });
+    expect(human.code).toBe(0);
+    expect(human.out).toBe("No pins.\n");
+    const json = await invoke(["list", "--json"], { fetcher });
+    expect(json.code).toBe(0);
+    expect(JSON.parse(json.out)).toEqual(page);
+  });
   it("returns structured failures without echoing server diagnostics or credentials", async () => {
     const result = await invoke(["list", "--json"], {
       fetcher: () => Promise.resolve(new Response(token, { status: 401 })),

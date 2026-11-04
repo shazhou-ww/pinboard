@@ -1,6 +1,7 @@
 import type { Pin } from "@workspace/contracts";
 import { CID } from "multiformats/cid";
 import { CliError, usage } from "./errors.js";
+import { maxCarBytes } from "./retrieval.js";
 
 export function canonicalCid(value: string): string {
   try {
@@ -44,7 +45,7 @@ function pin(value: unknown): Pin {
 export class Client {
   constructor(
     readonly origin: string,
-    private readonly token: string,
+    private readonly token: string | undefined,
     private readonly signal: AbortSignal,
     private readonly fetcher: typeof fetch = fetch,
   ) {}
@@ -52,8 +53,9 @@ export class Client {
   private async request(
     path: string,
     method = "GET",
-    bytes?: Uint8Array<ArrayBuffer>,
+    body?: Uint8Array<ArrayBuffer> | string,
     recovery?: string,
+    binary = false,
   ): Promise<unknown> {
     const write = method !== "GET";
     let dispatched = false;
@@ -65,15 +67,23 @@ export class Client {
         signal: this.signal,
         redirect: "manual",
         headers: {
-          Authorization: `Bearer ${this.token}`,
-          ...(bytes
+          ...(!binary && this.token
+            ? { Authorization: `Bearer ${this.token}` }
+            : {}),
+          ...(binary ? { Accept: "application/vnd.ipld.car" } : {}),
+          ...(body !== undefined
             ? {
-                "Content-Type": "application/octet-stream",
-                "X-Pinboard-Public": "true",
+                "Content-Type":
+                  typeof body === "string"
+                    ? "application/json"
+                    : "application/octet-stream",
+                ...(typeof body === "string"
+                  ? {}
+                  : { "X-Pinboard-Public": "true" }),
               }
             : {}),
         },
-        ...(bytes ? { body: bytes } : {}),
+        ...(body !== undefined ? { body } : {}),
       });
       if (!response.ok) {
         await response.body?.cancel();
@@ -94,6 +104,19 @@ export class Client {
         return undefined;
       }
       if (!response.body) throw new Error("Missing body");
+      const limit = binary ? maxCarBytes : 4 * 1024 * 1024;
+      if (
+        Number(response.headers.get("content-length")) > limit ||
+        (binary &&
+          response.headers.get("content-type")?.split(";")[0]?.trim() !==
+            "application/vnd.ipld.car")
+      ) {
+        await response.body.cancel();
+        throw new CliError(
+          "INVALID_RESPONSE",
+          "Server returned an oversized response or unexpected content type.",
+        );
+      }
       const reader = (response.body as ReadableStream<Uint8Array>).getReader();
       const chunks: Uint8Array[] = [];
       let total = 0;
@@ -102,7 +125,11 @@ export class Client {
           const item = await reader.read();
           if (item.done) break;
           total += item.value.length;
-          if (total > 4 * 1024 * 1024) throw new Error("Response limit");
+          if (total > limit)
+            throw new CliError(
+              "RESPONSE_LIMIT",
+              "Server response exceeds the download limit.",
+            );
           chunks.push(item.value);
         }
       } finally {
@@ -115,8 +142,10 @@ export class Client {
         buffer.set(chunk, offset);
         offset += chunk.length;
       }
+      if (binary) return buffer;
       const value = JSON.parse(new TextDecoder().decode(buffer)) as unknown;
       if (
+        this.token &&
         JSON.stringify(value).includes(JSON.stringify(this.token).slice(1, -1))
       )
         throw new Error("Credential reflected in response");
@@ -219,7 +248,61 @@ export class Client {
   }
 
   async inspect(cid: string): Promise<Pin> {
-    return pin(await this.request(`/api/pins/${canonicalCid(cid)}`));
+    cid = canonicalCid(cid);
+    const result = pin(await this.request(`/api/pins/${cid}`));
+    if (result.cid !== cid)
+      throw new CliError(
+        "INVALID_RESPONSE",
+        "Server returned a different pin CID.",
+      );
+    return result;
+  }
+
+  async rename(cid: string, name: string): Promise<Pin> {
+    cid = canonicalCid(cid);
+    name = name.trim();
+    if (!name || name.length > 200)
+      return usage("Pin names must contain 1-200 characters.");
+    const recovery = `Inspect ${cid} before retrying; the rename may already have completed.`;
+    const value = await this.request(
+      `/api/pins/${cid}`,
+      "PATCH",
+      JSON.stringify({ name }),
+      recovery,
+    );
+    try {
+      const result = pin(value);
+      if (result.cid !== cid || result.name !== name)
+        throw new Error("Rename response mismatch");
+      return result;
+    } catch {
+      throw new CliError(
+        "INVALID_RESPONSE",
+        "Rename returned an invalid pin; outcome is uncertain.",
+        1,
+        true,
+        recovery,
+      );
+    }
+  }
+
+  async car(cid: string): Promise<Uint8Array<ArrayBuffer>> {
+    const value = await this.request(
+      `/api/public/${canonicalCid(cid)}/car`,
+      "GET",
+      undefined,
+      undefined,
+      true,
+    );
+    if (
+      !(value instanceof Uint8Array) ||
+      !(value.buffer instanceof ArrayBuffer)
+    )
+      throw new CliError(
+        "INVALID_RESPONSE",
+        "Server returned invalid CAR data.",
+      );
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   }
 
   async remove(cid: string): Promise<{ removed: true; cid: string }> {

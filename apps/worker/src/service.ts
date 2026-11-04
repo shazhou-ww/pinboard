@@ -117,6 +117,21 @@ export class PinService {
       });
   }
 
+  async rename(cid: string, name: string): Promise<Pin> {
+    requireScope(this.principal, "pins:write");
+    const label = validate(nameSchema, name);
+    const pin = await this.env.DB.prepare(
+      "UPDATE pins SET name = ? WHERE account_id = ? AND cid = ? RETURNING cid, name, size, blocks, created_at AS createdAt",
+    )
+      .bind(label, this.principal.accountId, key(parseCid(cid)))
+      .first<Pin>();
+    if (!pin)
+      throw new HTTPException(404, {
+        message: "Pin not found in your account",
+      });
+    return pin;
+  }
+
   private async readBlock(cid: string): Promise<Uint8Array | undefined> {
     return readBlock(this.env, cid);
   }

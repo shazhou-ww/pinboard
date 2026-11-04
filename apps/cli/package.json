@@ -22,8 +22,12 @@
   },
   "dependencies": {
     "@ipld/car": "catalog:",
+    "@ipld/dag-cbor": "catalog:",
+    "@ipld/dag-pb": "catalog:",
     "@workspace/contracts": "workspace:*",
     "@workspace/encoding": "workspace:*",
-    "multiformats": "catalog:"
+    "ipfs-unixfs-exporter": "catalog:",
+    "multiformats": "catalog:",
+    "string-width": "catalog:"
   }
 }

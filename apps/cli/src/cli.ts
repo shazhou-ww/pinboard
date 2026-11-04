@@ -1,17 +1,22 @@
 import type { ReadStream } from "node:tty";
+import stringWidth from "string-width";
 import { CliError, usage } from "./errors.js";
 import { resolveEndpoint } from "./endpoint.js";
 import { configDirectory, Store } from "./store.js";
 import { credentials, hiddenToken, stdinToken } from "./credentials.js";
-import { Client } from "./client.js";
+import { canonicalCid, Client } from "./client.js";
 import { prepareInput } from "./input.js";
+import { pinFilename, saveContent } from "./retrieval.js";
 
-export const help = `Pinboard — public IPFS uploads; no Kubo or daemon required.
+export const help = `Pinboard — public IPFS storage.
 
 pinboard upload <file|directory> [--name LABEL]
 pinboard import <archive.car> [--name LABEL]
+pinboard download <CID> [--output PATH]
+pinboard export <CID> [--output PATH]
 pinboard list [--cursor CURSOR] [--all]
 pinboard inspect <CID>
+pinboard rename <CID> <NAME>
 pinboard remove <CID>
 pinboard config get [endpoint]
 pinboard config set endpoint <ORIGIN>
@@ -20,18 +25,6 @@ pinboard config remove-token [--endpoint ORIGIN]
 
 Network options: --endpoint ORIGIN, --token-stdin, --timeout MS (default 60000).
 All commands: --json, --help.
-Endpoint: flag > PINBOARD_ENDPOINT > config > https://pinboard.shazhou.work.
-Token: PINBOARD_AGENT_TOKEN OR --token-stdin, otherwise endpoint-bound tokens.json.
-
-Upload/import publish PUBLIC content: anyone knowing the CID can read it.
-No confirmation or --public flag. Hidden files are included; empty directories
-are ignored and entirely empty directories rejected. upload treats .car as an
-ordinary file; import preserves the CAR root. Labels may duplicate.
-remove only unpins your account reference: public blocks, CDN and other copies
-are NOT erased. config remove-token is local only, not server revocation.
-Persistent tokens are plaintext protected by OS permissions, not encrypted.
-Never pass tokens in command arguments. Obtain/revoke agent tokens in Web.
-Writes are never automatically retried; a lost response may mean a completed write.
 `;
 
 interface Options {
@@ -43,7 +36,7 @@ function parse(args: string[]): Options {
   const words: string[] = [];
   const flags = new Map<string, string | true>();
   const booleans = new Set(["json", "help", "all", "token-stdin"]);
-  const values = new Set(["name", "endpoint", "cursor", "timeout"]);
+  const values = new Set(["name", "endpoint", "cursor", "timeout", "output"]);
   let literal = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
@@ -81,6 +74,23 @@ export interface Runtime {
 
 export async function run(args: string[], runtime: Runtime): Promise<number> {
   const json = args.includes("--json");
+  const tty = "isTTY" in runtime.out && runtime.out.isTTY === true;
+  const progress = async (message: string, warning = false) => {
+    if (json && !warning) return;
+    await new Promise<void>((resolve, reject) => {
+      runtime.err.write(
+        json
+          ? JSON.stringify({
+              warning: { code: "PIN_NAME_UNAVAILABLE", message },
+            }) + "\n"
+          : `[${new Date().toISOString()}] ${warning ? "Warning: " : ""}${message}\n`,
+        (error) => {
+          if (error) reject(error);
+          else resolve();
+        },
+      );
+    });
+  };
   let timer: ReturnType<typeof setTimeout> | undefined;
   let signal = runtime.signal;
   try {
@@ -95,9 +105,17 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
     }
     const command = words[0]!;
     const configAction = command === "config" ? words[1] : undefined;
-    const network = ["upload", "import", "list", "inspect", "remove"].includes(
-      command,
-    );
+    const publicRead = command === "download" || command === "export";
+    const network = [
+      "upload",
+      "import",
+      "list",
+      "inspect",
+      "remove",
+      "rename",
+      "download",
+      "export",
+    ].includes(command);
     const allowed = new Set(["json", "help"]);
     if (
       network ||
@@ -106,9 +124,10 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
     )
       allowed.add("endpoint");
     if (network || configAction === "set-token") {
-      allowed.add("token-stdin");
+      if (!publicRead) allowed.add("token-stdin");
       allowed.add("timeout");
     }
+    if (publicRead) allowed.add("output");
     if (command === "upload" || command === "import") allowed.add("name");
     if (command === "list") {
       allowed.add("cursor");
@@ -119,9 +138,13 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         return usage("Option is not valid for this command.");
     if (
       (!network && command !== "config") ||
-      (network && words.length !== (command === "list" ? 1 : 2))
+      (network &&
+        words.length !==
+          (command === "list" ? 1 : command === "rename" ? 3 : 2))
     )
       return usage("Invalid command or arguments. See --help.");
+    if (publicRead && value("output") === "")
+      return usage("--output requires a non-empty path.");
     const timeout = Number(value("timeout") ?? 60000);
     if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 3600000)
       return usage(
@@ -165,30 +188,88 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         result = { removed: true, endpoint: origin, revoked: false };
       } else return usage("Invalid config command. See --help.");
     } else {
-      const token = await credentials(
-        store,
-        origin,
-        runtime.env,
-        flags.has("token-stdin"),
-        runtime.input,
-        signal,
-      );
+      const token = publicRead
+        ? undefined
+        : await credentials(
+            store,
+            origin,
+            runtime.env,
+            flags.has("token-stdin"),
+            runtime.input,
+            signal,
+          );
       const client = new Client(origin, token, signal, runtime.fetcher);
       switch (command) {
+        case "download":
+        case "export": {
+          const cid = canonicalCid(words[1]!);
+          let output = value("output");
+          let filenameWarning: string | undefined;
+          if (output === undefined) {
+            const namingToken = await credentials(
+              store,
+              origin,
+              runtime.env,
+              false,
+              runtime.input,
+              signal,
+              true,
+            );
+            if (namingToken === undefined) {
+              filenameWarning =
+                "No token for pin metadata; using the CID as filename. Use --output to choose a name.";
+            } else {
+              try {
+                const pin = await new Client(
+                  origin,
+                  namingToken,
+                  signal,
+                  runtime.fetcher,
+                ).inspect(cid);
+                output = pinFilename(pin.name, command === "export");
+              } catch (error) {
+                if (
+                  error instanceof CliError &&
+                  (error.code === "UNSAFE_PIN_NAME" ||
+                    (error.code === "HTTP_ERROR" &&
+                      [401, 403, 404].includes(error.status ?? 0)))
+                ) {
+                  filenameWarning =
+                    error.code === "UNSAFE_PIN_NAME"
+                      ? "Pin name is unsafe as a local filename; using the CID instead. Use --output to choose a name."
+                      : `Pin name is unavailable (HTTP ${error.status}); using the CID as filename. Use --output to choose a name.`;
+                } else throw error;
+              }
+            }
+          }
+          await progress("Fetching CAR...");
+          const bytes = await client.car(cid);
+          await progress(
+            command === "export"
+              ? "Verifying and saving CAR..."
+              : "Verifying and restoring content...",
+          );
+          result = await saveContent(
+            bytes,
+            cid,
+            output,
+            command === "export",
+            signal,
+          );
+          if (filenameWarning !== undefined)
+            await progress(filenameWarning, true);
+          break;
+        }
         case "upload":
         case "import": {
-          if (!json)
-            runtime.err.write("Preparing public upload (not yet saved)...\n");
+          await progress("Preparing upload...");
           const input = await prepareInput(
             words[1]!,
             command === "import",
             value("name"),
             signal,
           );
-          if (!json)
-            runtime.err.write(
-              "Uploading public content (not yet confirmed)...\n",
-            );
+          await progress("Uploading...");
           result = await client.upload(
             input.bytes,
             input.kind,
@@ -203,6 +284,9 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         case "inspect":
           result = await client.inspect(words[1]!);
           break;
+        case "rename":
+          result = await client.rename(words[1]!, words[2]!);
+          break;
         case "remove":
           result = await client.remove(words[1]!);
           break;
@@ -210,7 +294,14 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
     }
     signal.throwIfAborted();
     if (json) runtime.out.write(JSON.stringify(result) + "\n");
-    else runtime.out.write(human(result, origin) + "\n");
+    else
+      runtime.out.write(
+        (command === "upload" || command === "import" || publicRead
+          ? "\n"
+          : "") +
+          human(result, origin, tty) +
+          "\n",
+      );
     return 0;
   } catch (error) {
     const filesystemCode =
@@ -271,18 +362,137 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
   }
 }
 
-function human(value: unknown, origin: string): string {
+function human(value: unknown, origin: string, tty: boolean): string {
   if (value && typeof value === "object") {
+    if (
+      "path" in value &&
+      "type" in value &&
+      "cid" in value &&
+      "size" in value &&
+      typeof value.size === "number"
+    ) {
+      return detailTable(
+        [
+          ["Path", JSON.stringify(String(value.path)).slice(1, -1)],
+          ["Type", String(value.type)],
+          ["Size", formatSize(value.size)],
+          ["CID", String(value.cid)],
+        ],
+        tty,
+      );
+    }
     if ("pins" in value && Array.isArray(value.pins)) {
       return (
-        value.pins.map((entry: unknown) => human(entry, origin)).join("\n") +
+        (value.pins.length ? pinTable(value.pins, tty) : "No pins.") +
         ("nextCursor" in value && typeof value.nextCursor === "string"
-          ? `\nNext cursor: ${value.nextCursor}`
+          ? `\n\nNext cursor: ${value.nextCursor}`
           : "")
       );
     }
-    if ("cid" in value && "name" in value && "size" in value)
-      return `${String(value.cid)}\t${JSON.stringify(String(value.name)).slice(1, -1)}\t${String(value.size)} bytes\n${origin}/share/${String(value.cid)}`;
+    if (
+      "cid" in value &&
+      "name" in value &&
+      "size" in value &&
+      typeof value.size === "number" &&
+      "blocks" in value &&
+      "createdAt" in value
+    ) {
+      const rows = [
+        ["Name", JSON.stringify(String(value.name)).slice(1, -1)],
+        ["Size", formatSize(value.size)],
+        ["CID", String(value.cid)],
+        ["Blocks", String(value.blocks)],
+        ["Created", JSON.stringify(String(value.createdAt)).slice(1, -1)],
+        ["Share", `${origin}/share/${String(value.cid)}`],
+      ];
+      return detailTable(rows, tty);
+    }
   }
   return JSON.stringify(value);
+}
+
+function detailTable(rows: string[][], tty: boolean): string {
+  if (tty) return borderedTable(rows);
+  return rows
+    .map(([label, detail]) => `${label!.padEnd(7)}  ${detail!}`)
+    .join("\n");
+}
+
+function formatSize(size: number): string {
+  return size < 1024
+    ? `${size} B`
+    : size < 1024 * 1024
+      ? `${(size / 1024).toFixed(1)} KiB`
+      : `${(size / 1024 / 1024).toFixed(1)} MiB`;
+}
+
+function tableName(name: string): string {
+  const escaped = JSON.stringify(name).slice(1, -1);
+  if (stringWidth(escaped) <= 32) return escaped;
+  let shortened = "";
+  for (const { segment } of new Intl.Segmenter().segment(escaped)) {
+    if (stringWidth(shortened + segment) > 29) break;
+    shortened += segment;
+  }
+  return shortened + "...";
+}
+
+function pinTable(pins: unknown[], tty: boolean): string {
+  const rows = [
+    ["NAME", "SIZE", "CID"],
+    ...pins.map((pin: unknown) => {
+      if (
+        !pin ||
+        typeof pin !== "object" ||
+        !("name" in pin) ||
+        typeof pin.name !== "string" ||
+        !("size" in pin) ||
+        typeof pin.size !== "number" ||
+        !("cid" in pin) ||
+        typeof pin.cid !== "string"
+      )
+        throw new CliError(
+          "INVALID_RESPONSE",
+          "Server returned an invalid pin.",
+        );
+      return [tableName(pin.name), formatSize(pin.size), pin.cid];
+    }),
+  ];
+  if (tty) return borderedTable(rows, true, 1);
+  const nameWidth = Math.max(...rows.map((row) => stringWidth(row[0]!)));
+  const sizeWidth = Math.max(...rows.map((row) => stringWidth(row[1]!)));
+  return rows
+    .map(
+      ([name, size, cid]) =>
+        `${name!}${" ".repeat(nameWidth - stringWidth(name!))}  ${size!.padStart(sizeWidth)}  ${cid!}`,
+    )
+    .join("\n");
+}
+
+function borderedTable(
+  rows: string[][],
+  header = false,
+  rightColumn = -1,
+): string {
+  const widths = rows[0]!.map((_, column) =>
+    Math.max(...rows.map((row) => stringWidth(row[column]!))),
+  );
+  const border = (left: string, middle: string, right: string) =>
+    left + widths.map((width) => "─".repeat(width + 2)).join(middle) + right;
+  const lines = [border("┌", "┬", "┐")];
+  for (const [index, row] of rows.entries()) {
+    lines.push(
+      "│ " +
+        row
+          .map((cell, column) => {
+            const padding = " ".repeat(widths[column]! - stringWidth(cell));
+            return column === rightColumn ? padding + cell : cell + padding;
+          })
+          .join(" │ ") +
+        " │",
+    );
+    if (header && index === 0) lines.push(border("├", "┼", "┤"));
+  }
+  lines.push(border("└", "┴", "┘"));
+  return lines.join("\n");
 }

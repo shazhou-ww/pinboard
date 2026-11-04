@@ -113,7 +113,7 @@ export async function noLinks(path: string): Promise<void> {
       if ((await lstat(current)).isSymbolicLink())
         throw new CliError(
           "UNSAFE_PATH",
-          "Symbolic links and reparse paths are not permitted for configuration or credentials.",
+          "Symbolic links and reparse paths are not permitted.",
         );
     } catch (error) {
       if (!missing(error)) throw error;
