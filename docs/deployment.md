@@ -18,7 +18,9 @@ No release tag or production deployment is created by configuring this workflow.
 
 ## One-time bootstrap status
 
-On 2026-11-03 the authorized bootstrap created:
+On 2026-11-03 the authorized bootstrap created the application resources. The
+table records their current identities, including the separately authorized
+2026-11-04 D1 replacement described below:
 
 | Resource              | Value                                               |
 | --------------------- | --------------------------------------------------- |
