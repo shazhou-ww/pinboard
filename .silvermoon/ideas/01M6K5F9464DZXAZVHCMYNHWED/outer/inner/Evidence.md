@@ -96,13 +96,36 @@ lint、typecheck、build 和专用存储套件通过。合入并行 CLI 修复
 同样失败，Windows Node 22 的 PowerShell ACL helper 出现 `killed: true`、
 `signal: SIGTERM`。已将精确失败交由 CLI 工作所有者处理。另尝试仅通过运行器环境串行化测试文件，仍产生
 `Replaceable ancestor` 拒绝；该尝试也不算检查通过。最终 `submitInner`
-前必须合入修复并重跑完整检查；I-S03、I-AC03 保持未完成，不能以局部成功或暂存/提交代码冒充门禁就绪。
+前必须合入修复并重跑完整检查；当时 I-S03、I-AC03 保持未完成，没有以局部成功或暂存/提交代码冒充门禁就绪。
 
-随后以普通 merge 合入 CLI 的 helper 时限修复
+随后以普通 merge 合入 CLI 的 helper 标准输入管道修复
 `59e8b2e552d2302ee9fc14cfdd8f494209bbede2`（合并提交
 `dc84b1e0c43e3fd0056e90a3a48a90f72590aeb0`），再次执行默认
-`pnpm check`，结果仍为 19/20 任务通过，唯一失败仍是同一凭据并发测试。因此当前源码和证据已经同步，但尚未记录
-`submitInner`，需要 CLI 所有者解决该外部检查前置条件后重跑；不擅自改变 ACL 或跳过测试。
+`pnpm check`，结果仍为 19/20 任务通过，唯一失败仍是同一凭据并发测试。因此该次同步没有记录
+`submitInner`，继续诊断外部检查前置条件，没有擅自改变 ACL 或跳过测试。
+
+进一步用不含凭据的独立 `secureDirectory` 诊断确认：本机默认 `D:\Code\pinboard`
+fixture 继承自 D 盘的 `NT AUTHORITY\Authenticated Users`
+可修改祖先权限，真实拒绝为
+`Replaceable ancestor`（`code: 1`、`killed: false`、`signal: null`），不是此处的 helper 超时。该拒绝符合安全边界；未修改任何已有 ACL，诊断用项目内目录已清理。仓库已有
+`PINBOARD_TEST_ROOT`
+支持，后续完整检查必须在受信任的项目工作树或其独立 fixture 根中执行，避免与并行 CLI 测试共用目录；无需放宽生产 DACL 检查。
+
+最终普通 fast-forward 合入 CLI 的原生 ACL helper 修复
+`82b72b6b7c2cebbf7b00a9b0a056621cd93a179c`，确认该提交包含完整 CAR 实现，并独立核查成功 CI
+[41827926346](https://github.com/shazhou-ww/pinboard/actions/runs/41827926346)：
+
+| 环境                   | Job ID       | 原生 CLI 权限测试 | 完整 `pnpm check` |
+| ---------------------- | ------------ | ----------------- | ----------------- |
+| Windows / Node 22.13.0 | 126567441475 | success           | success           |
+| Ubuntu / Node 22.13.0  | 126567442138 | success           | success           |
+| Windows / Node 24.11.1 | 126567442149 | success           | success           |
+| Ubuntu / Node 24.11.1  | 126567442216 | success           | success           |
+
+通过 `gh run watch --exit-status` 等待成功，并逐 job 核查
+`Verify native CLI permissions` 和 `Run all checks`
+的实际结论，不以单个构建或缓存日志冒充完整检查。Windows 工作流明确设置受信任的
+`PINBOARD_TEST_ROOT=$env:USERPROFILE\pinboard-ci-fixtures`，仍执行真实 DACL 与独立凭据写入进程测试；本机 D 盘拒绝作为环境限制保留。之后只更新此证据及 ledger，无运行时代码变化；I-S03、I-AC03 已具备完成证据。
 
 ## 现实世界前置条件与未宣称事项
 
