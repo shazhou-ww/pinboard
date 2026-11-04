@@ -7,7 +7,8 @@ agent继续做部署验收部分，把它部署到线上服务，走我们的rel
 `release-YYMMDD-INDEX` 标签触发 Actions 发布，不新增 release
 skill，不修改工作流、凭证、D1 schema 或资源绑定，不启用分支推送部署。
 
-已按既有 release 流程完成生产部署，授权和发布身份已核实。匿名边缘协议验证已通过，真实内容上传及冷客户端重建仍被合法认证缺失阻塞；结果见[生产验证证据](ProductionEvidence.md)。D-S02、D-AC02、D-AC03 尚未完成，不提交 submitOuter，也不记录 acceptOuter。
+已按既有 release 流程完成生产部署，授权和发布身份已核实。匿名边缘协议、真实生产上传、非空区块、独立冷客户端重建及自定义 CAR 往返均通过，结果见[生产验证证据](ProductionEvidence.md)。此前认证缺失的阻塞已由用户提供的临时 Agent
+token 解除；不在文件、日志或后续客户端环境中记录其值。完整候选同步到 primary 后，按准确修订提交并验收外部阶段。
 
 ## 发布身份与前提
 
