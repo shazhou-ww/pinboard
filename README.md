@@ -16,12 +16,15 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
   becomes one pin with one directory root CID.
 - API/MCP: upload a file (UnixFS), a single block, or a complete single-root
   CAR.
-- [CLI](docs/cli.md): upload files/directories, import CARs, list, inspect and
-  remove account pins without installing Kubo or running a daemon.
+- [CLI](docs/cli.md): upload/download files and directories, import/export CARs,
+  list, inspect, rename and remove account pins without installing Kubo or
+  running a daemon.
 - Validate CID hashes and complete DAG closure before accepting a pin.
 - Share by CID without authentication, through raw block responses or CAR
   export.
 - Sign in with Google to list, inspect and unpin your own content.
+- Rename an account's pin from Web, CLI or `PATCH /api/pins/:cid`, without
+  changing its CID or re-uploading public content.
 - Give an agent a scoped, expiring, revocable token for HTTP and remote MCP.
 - Use explicitly configured Kubo clients as readers, without a server-side Kubo.
 
@@ -48,13 +51,31 @@ network.
 
 ## Local development
 
+Workspace package names use the `@shazhou` scope:
+
+| Workspace            | Package name                  | Distribution                                          |
+| -------------------- | ----------------------------- | ----------------------------------------------------- |
+| `apps/cli`           | `@shazhou/pinboard`           | Intended public CLI package; command stays `pinboard` |
+| `apps/web`           | `@shazhou/pinboard-web`       | Private application                                   |
+| `apps/worker`        | `@shazhou/pinboard-worker`    | Private application                                   |
+| `packages/contracts` | `@shazhou/pinboard-contracts` | Private shared contracts                              |
+| `packages/encoding`  | `@shazhou/pinboard-encoding`  | Private shared encoding                               |
+
+The root `pinboard` package and all workspace manifests remain private.
+`pnpm package:cli` generates the standalone CLI distribution; only its release
+manifest is publishable. Internal dependencies stay on `workspace:*`. See
+[npm releases](docs/npm-release.md) for the independent
+`@shazhou/pinboard@x.y.z` tag workflow, Trusted Publishing and installation
+checks. Historical Silvermoon evidence retains the package names used when its
+checks were executed.
+
 Requires Node.js >=22.13 and pnpm 11.22 (the pinned package manager).
 
 ```powershell
 pnpm install
 Copy-Item apps\worker\.dev.vars.example apps\worker\.dev.vars
 # Set a random AUTH_SECRET and your Google OAuth client ID/secret in .dev.vars.
-pnpm --filter @workspace/worker exec wrangler d1 migrations apply pinboard --local
+pnpm --filter @shazhou/pinboard-worker exec wrangler d1 migrations apply pinboard --local
 pnpm dev
 ```
 
@@ -173,7 +194,7 @@ production capacity claim.
 
 ```powershell
 pnpm check
-pnpm --filter @workspace/worker types
+pnpm --filter @shazhou/pinboard-worker types
 
 # Install a stable Kubo executable and OpenSSL outside the repository:
 $env:IPFS_BIN = 'C:\tools\kubo\ipfs.exe'

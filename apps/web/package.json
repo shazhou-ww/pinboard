@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/web",
+  "name": "@shazhou/pinboard-web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,14 +12,14 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@workspace/encoding": "workspace:*",
+    "@shazhou/pinboard-encoding": "workspace:*",
     "@ipld/car": "catalog:",
     "ipfs-unixfs-importer": "catalog:",
     "multiformats": "catalog:",
     "@hono/auth-js": "catalog:",
     "@fontsource-variable/instrument-sans": "catalog:",
     "@fontsource-variable/newsreader": "catalog:",
-    "@workspace/contracts": "workspace:*",
+    "@shazhou/pinboard-contracts": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

@@ -1,4 +1,4 @@
-import { buildDirectoryCar as encode } from "@workspace/encoding";
+import { buildDirectoryCar as encode } from "@shazhou/pinboard-encoding";
 import type { DirectorySelection } from "./uploads.js";
 
 async function* content(file: File): AsyncGenerator<Uint8Array> {

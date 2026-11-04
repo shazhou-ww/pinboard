@@ -1,7 +1,7 @@
 import { CarReader } from "@ipld/car";
 import * as dagPb from "@ipld/dag-pb";
-import { run } from "@workspace/cli";
-import type { Pin } from "@workspace/contracts";
+import { run } from "@shazhou/pinboard";
+import type { Pin } from "@shazhou/pinboard-contracts";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createServer } from "node:http";
 import { readFile, mkdir, writeFile, rm } from "node:fs/promises";
@@ -391,6 +391,145 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     expect(failed.code).toBe(1);
     expect(failed.out).toBe("");
   });
+
+  it("round-trips CLI upload/download and export/import through the public CAR API without credentials", async () => {
+    const source = join(directory, "retrieval-source");
+    await mkdir(join(source, "nested"), { recursive: true });
+    const large = new Uint8Array(1024 * 1024 + 19);
+    for (let index = 0; index < large.length; index++)
+      large[index] = index % 251;
+    const entries = [
+      { path: ".hidden", data: new Uint8Array([0, 128, 255]) },
+      { path: "nested/\u6587\u4ef6.bin", data: large },
+      { path: "empty", data: new Uint8Array() },
+    ];
+    for (const entry of entries)
+      await writeFile(join(source, ...entry.path.split("/")), entry.data);
+    const pin = pinResult(await cli(["upload", source]));
+    const target = join(directory, "retrieval-target");
+    const downloaded = await cli(["download", pin.cid, "--output", target], "");
+    expect(downloaded.code, downloaded.err).toBe(0);
+    expect(JSON.parse(downloaded.out)).toEqual({
+      cid: pin.cid,
+      path: target,
+      type: "directory",
+      size: large.length + 3,
+    });
+    for (const entry of entries)
+      expect(
+        new Uint8Array(await readFile(join(target, ...entry.path.split("/")))),
+      ).toEqual(entry.data);
+    expect(pinResult(await cli(["upload", target])).cid).toBe(pin.cid);
+
+    const archive = join(directory, "retrieval-export.car");
+    const exported = await cli(["export", pin.cid, "--output", archive], "");
+    expect(exported.code, exported.err).toBe(0);
+    const car = await CarReader.fromBytes(
+      new Uint8Array(await readFile(archive)),
+    );
+    expect((await car.getRoots())[0]!.toString()).toBe(pin.cid);
+    expect(pinResult(await cli(["import", archive])).cid).toBe(pin.cid);
+
+    const file = pinResult(
+      await cli(["upload", join(source, "nested", "\u6587\u4ef6.bin")]),
+    );
+    const restoredFile = join(directory, "retrieval-file.bin");
+    const restored = await cli(
+      ["download", file.cid, "--output", restoredFile],
+      "",
+    );
+    expect(restored.code, restored.err).toBe(0);
+    expect(new Uint8Array(await readFile(restoredFile))).toEqual(large);
+
+    const duplicate = await cli(["download", pin.cid, "--output", target], "");
+    expect(duplicate.code).toBe(1);
+    expect(duplicate.out).toBe("");
+    expect(duplicate.err).toContain("OUTPUT_EXISTS");
+    expect(
+      new Uint8Array(
+        await readFile(join(target, "nested", "\u6587\u4ef6.bin")),
+      ),
+    ).toEqual(large);
+  }, 30000);
+
+  it("renames pins through PATCH without uploading content or changing their CID", async () => {
+    const source = join(directory, "rename-source");
+    const bytes = new Uint8Array([5, 6, 8, 13]);
+    await writeFile(source, bytes);
+    const before = pinResult(
+      await cli(["upload", source, "--name", "Before rename"]),
+    );
+    const renamed = pinResult(
+      await cli(["rename", before.cid, "After rename"]),
+    );
+    expect(renamed).toEqual({ ...before, name: "After rename" });
+    expect(pinResult(await cli(["inspect", before.cid])).name).toBe(
+      "After rename",
+    );
+    expect(await raw(before.cid)).toEqual(bytes);
+    const reader = await createToken(env, principal, {
+      name: "rename-reader",
+      scopes: ["pins:read"],
+      expiresInDays: 1,
+    });
+    const denied = await cli(["rename", before.cid, "Denied"], reader.token);
+    expect(denied.code).toBe(1);
+    expect(denied.err).toContain('"status":403');
+    expect(pinResult(await cli(["inspect", before.cid])).name).toBe(
+      "After rename",
+    );
+  });
+
+  it("uses private pin names as default download/export filenames in the built executable", async () => {
+    const source = join(directory, "named-source");
+    const data = new Uint8Array([0, 128, 255, 13]);
+    await writeFile(source, data);
+    const pin = pinResult(
+      await cli(["upload", source, "--name", "original.bin"]),
+    );
+    const executable = fileURLToPath(
+      new URL("../../cli/dist/main.js", import.meta.url),
+    );
+    const execute = async (command: string, cwd: string) => {
+      const result = await promisify(execFile)(
+        process.execPath,
+        [executable, command, pin.cid, "--endpoint", runtimeOrigin, "--json"],
+        {
+          cwd,
+          env: {
+            ...process.env,
+            PINBOARD_AGENT_TOKEN: token,
+            LOCALAPPDATA: directory,
+            XDG_CONFIG_HOME: directory,
+          },
+          timeout: 15000,
+        },
+      );
+      expect(result.stderr).toBe("");
+      return JSON.parse(result.stdout) as { path: string; type: string };
+    };
+    for (const command of ["download", "export"]) {
+      const cwd = join(directory, `named-${command}`);
+      await mkdir(cwd);
+      const result = await execute(command, cwd);
+      const path = join(
+        cwd,
+        `original.bin${command === "export" ? ".car" : ""}`,
+      );
+      expect(result.path).toBe(path);
+      if (command === "download")
+        expect(new Uint8Array(await readFile(path))).toEqual(data);
+      else {
+        const reader = await CarReader.fromBytes(
+          new Uint8Array(await readFile(path)),
+        );
+        expect((await reader.getRoots())[0]!.toString()).toBe(pin.cid);
+      }
+    }
+    pinResult(await cli(["upload", source, "--name", "archive.car"]));
+    const cwd = join(directory, "named-export");
+    expect((await execute("export", cwd)).path).toBe(join(cwd, "archive.car"));
+  }, 30000);
 
   it("keeps least privilege, expiry, revocation and direct API public acknowledgement authoritative", async () => {
     const readOnly = await createToken(env, principal, {

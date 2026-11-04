@@ -3,7 +3,7 @@ import {
   blockLength,
   headerLength,
 } from "@ipld/car/buffer-writer";
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 import { importer } from "ipfs-unixfs-importer";
 import { CID } from "multiformats/cid";
 

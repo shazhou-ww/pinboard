@@ -1,4 +1,4 @@
-import type { AgentToken, Pin } from "@workspace/contracts";
+import type { AgentToken, Pin } from "@shazhou/pinboard-contracts";
 import {
   useEffect,
   useRef,
@@ -41,6 +41,10 @@ export function AccountManager() {
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
   const [cursor, setCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<Pin | null>(null);
+  const [renaming, setRenaming] = useState<{
+    cid: string;
+    name: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -191,6 +195,28 @@ export function AccountManager() {
       setNewToken(issued.token);
       setTokenName("");
       await refresh();
+    });
+  };
+  const rename = (event: FormEvent) => {
+    event.preventDefault();
+    if (!renaming) return;
+    const { cid, name } = renaming;
+    if (!name.trim() || name.trim().length > 200) {
+      setError("Pin names must contain 1-200 characters.");
+      return;
+    }
+    void perform(async () => {
+      const pin = await requestJson<Pin>(`/api/pins/${cid}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      setPins((previous) =>
+        previous.map((entry) => (entry.cid === pin.cid ? pin : entry)),
+      );
+      setSelected((previous) => (previous?.cid === pin.cid ? pin : previous));
+      setRenaming(null);
+      setNotice("Pin renamed. CID and public content are unchanged.");
     });
   };
   const uploadFileCount =
@@ -370,6 +396,14 @@ export function AccountManager() {
                 <div className="actions">
                   <button
                     disabled={busy}
+                    onClick={() =>
+                      setRenaming({ cid: pin.cid, name: pin.name })
+                    }
+                  >
+                    Rename
+                  </button>
+                  <button
+                    disabled={busy}
                     onClick={() => {
                       void copy(pin.cid);
                     }}
@@ -413,6 +447,41 @@ export function AccountManager() {
                     Unpin
                   </button>
                 </div>
+                {renaming?.cid === pin.cid ? (
+                  <form onSubmit={rename} aria-label={`Rename ${pin.name}`}>
+                    <label>
+                      Pin name
+                      <input
+                        autoFocus
+                        required
+                        maxLength={200}
+                        value={renaming.name}
+                        disabled={busy}
+                        onChange={(event) =>
+                          setRenaming({
+                            cid: pin.cid,
+                            name: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <div className="actions">
+                      <button
+                        type="submit"
+                        disabled={busy || !renaming.name.trim()}
+                      >
+                        Save name
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setRenaming(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
               </li>
             ))}
           </ul>

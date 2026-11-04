@@ -1,4 +1,7 @@
-import type { BootstrapResponse, SessionResponse } from "@workspace/contracts";
+import type {
+  BootstrapResponse,
+  SessionResponse,
+} from "@shazhou/pinboard-contracts";
 import type { MouseEventHandler } from "react";
 import { AccountManager } from "./manager.js";
 

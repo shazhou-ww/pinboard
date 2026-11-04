@@ -123,7 +123,8 @@ export async function credentials(
   useStdin: boolean,
   input: NodeJS.ReadableStream,
   signal: AbortSignal,
-): Promise<string> {
+  optional = false,
+): Promise<string | undefined> {
   if (env.PINBOARD_AGENT_TOKEN !== undefined) {
     if (useStdin)
       return usage(
@@ -133,7 +134,7 @@ export async function credentials(
   }
   if (useStdin) return stdinToken(input, signal);
   const token = await store.token(origin);
-  if (token === undefined)
+  if (token === undefined && !optional)
     throw new CliError(
       "TOKEN_REQUIRED",
       "No token for this endpoint. Use config set-token, PINBOARD_AGENT_TOKEN or --token-stdin.",

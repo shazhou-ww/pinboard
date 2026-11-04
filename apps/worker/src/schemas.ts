@@ -11,6 +11,7 @@ export const pinSchema = z.object({
   name: nameSchema.default("Untitled"),
   public: z.literal(true),
 });
+export const renamePinSchema = z.object({ name: nameSchema }).strict();
 export const tokenSchema = z.object({
   name: nameSchema,
   scopes: z.array(scopeSchema).min(1).max(3),

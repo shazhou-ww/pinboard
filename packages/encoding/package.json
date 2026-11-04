@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/encoding",
+  "name": "@shazhou/pinboard-encoding",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@ipld/car": "catalog:",
-    "@workspace/contracts": "workspace:*",
+    "@shazhou/pinboard-contracts": "workspace:*",
     "ipfs-unixfs-importer": "catalog:",
     "multiformats": "catalog:"
   }

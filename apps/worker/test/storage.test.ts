@@ -1,6 +1,6 @@
 import { CarReader } from "@ipld/car";
 import * as dagPb from "@ipld/dag-pb";
-import { buildDirectoryCar } from "@workspace/encoding";
+import { buildDirectoryCar } from "@shazhou/pinboard-encoding";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";

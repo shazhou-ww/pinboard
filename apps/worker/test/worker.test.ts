@@ -16,6 +16,7 @@ import { importFile } from "../src/content.js";
 import { encodeCar } from "../src/car.js";
 import { handleMcp } from "../src/mcp.js";
 import { MAX_UPLOAD } from "../src/content.js";
+import type { Pin } from "@shazhou/pinboard-contracts";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -531,6 +532,176 @@ describe("pins and immutable public reads", () => {
       (await request(`/api/pins/${cid}`, { headers: { cookie } })).status,
     ).toBe(404);
     expect((await request(`/ipfs/${cid}?format=raw`)).status).toBe(200);
+  });
+});
+
+describe("independent account-scoped pin rename API", () => {
+  let original: Pin;
+  const content = new TextEncoder().encode("rename-without-changing-content");
+  beforeAll(async () => {
+    original = await new PinService(env, alice).upload(
+      content,
+      "file",
+      "Original",
+    );
+    await new PinService(env, bob).pin(original.cid, "Bob's independent name");
+  });
+  const rename = (
+    body: unknown,
+    headers: HeadersInit = sessionHeaders(),
+    target = original.cid,
+  ) =>
+    request(`/api/pins/${target}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+  it("renames only the account label and preserves immutable metadata and public bytes", async () => {
+    const response = await rename({ name: "  Renamed file  " });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      ...original,
+      name: "Renamed file",
+    });
+    expect((await new PinService(env, bob).detail(original.cid)).name).toBe(
+      "Bob's independent name",
+    );
+    expect(
+      new Uint8Array(
+        await (await request(`/ipfs/${original.cid}?format=raw`)).arrayBuffer(),
+      ),
+    ).toEqual(content);
+    const repeated = await rename({ name: "Renamed file" });
+    expect(repeated.status).toBe(200);
+    expect(await repeated.json()).toEqual({
+      ...original,
+      name: "Renamed file",
+    });
+  });
+  it.each([
+    { name: "" },
+    { name: "  " },
+    { name: "x".repeat(201) },
+    { name: 1 },
+    {},
+    { name: "valid", cid: "other" },
+  ])(
+    "rejects invalid rename input %j without changing the existing pin",
+    async (body) => {
+      const before = await new PinService(env, alice).detail(original.cid);
+      expect((await rename(body)).status).toBe(400);
+      expect(await new PinService(env, alice).detail(original.cid)).toEqual(
+        before,
+      );
+    },
+  );
+  it("requires authentication and same-origin protection for browser mutations", async () => {
+    expect(
+      (
+        await rename(
+          { name: "Denied" },
+          { origin, "content-type": "application/json" },
+        )
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await rename(
+          { name: "Denied" },
+          {
+            cookie,
+            origin: "https://evil.test",
+            "content-type": "application/json",
+          },
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await rename(
+          { name: "Denied" },
+          { cookie, "content-type": "application/json" },
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(`/api/pins/${original.cid}`, {
+          method: "PATCH",
+          headers: sessionHeaders(),
+          body: "{",
+        })
+      ).status,
+    ).toBe(400);
+  });
+  it("requires pins:write but not pins:read, and honors revocation", async () => {
+    const writer = await createToken(env, alice, {
+      name: "rename-writer",
+      scopes: ["pins:write"],
+      expiresInDays: 1,
+    });
+    const reader = await createToken(env, alice, {
+      name: "rename-reader",
+      scopes: ["pins:read"],
+      expiresInDays: 1,
+    });
+    const headers = {
+      authorization: `Bearer ${writer.token}`,
+      "content-type": "application/json",
+    };
+    expect((await rename({ name: "Write-only rename" }, headers)).status).toBe(
+      200,
+    );
+    expect(
+      (await request(`/api/pins/${original.cid}`, { headers })).status,
+    ).toBe(403);
+    expect(
+      (
+        await rename(
+          { name: "Denied" },
+          { ...headers, authorization: `Bearer ${reader.token}` },
+        )
+      ).status,
+    ).toBe(403);
+    await revokeToken(env, alice, writer.id);
+    expect((await rename({ name: "Revoked" }, headers)).status).toBe(401);
+  });
+  it("never creates pins or changes another account's pin", async () => {
+    const onlyAlice = await new PinService(env, alice).upload(
+      new Uint8Array([77, 12, 14]),
+      "file",
+      "Alice only",
+    );
+    const bobToken = await createToken(env, bob, {
+      name: "bob-rename",
+      scopes: ["pins:write"],
+      expiresInDays: 1,
+    });
+    expect(
+      (
+        await rename(
+          { name: "Denied" },
+          {
+            authorization: `Bearer ${bobToken.token}`,
+            "content-type": "application/json",
+          },
+          onlyAlice.cid,
+        )
+      ).status,
+    ).toBe(404);
+    expect((await new PinService(env, alice).detail(onlyAlice.cid)).name).toBe(
+      "Alice only",
+    );
+    const missing = (
+      await importFile(new Uint8Array([31, 41, 59]))
+    ).root.toString();
+    expect(
+      (await rename({ name: "Missing" }, sessionHeaders(), missing)).status,
+    ).toBe(404);
+    expect(
+      (await rename({ name: "Invalid" }, sessionHeaders(), "not-a-cid")).status,
+    ).toBe(400);
   });
 });
 

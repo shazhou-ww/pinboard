@@ -4,7 +4,7 @@ import type {
   BootstrapResponse,
   HealthResponse,
   SessionResponse,
-} from "@workspace/contracts";
+} from "@shazhou/pinboard-contracts";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import { HTTPException } from "hono/http-exception";

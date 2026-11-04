@@ -6,11 +6,22 @@ not fetch remote CIDs to create pins.
 
 ## Build and run
 
+Stable npm releases are standalone and do not require pnpm or this checkout:
+
+```powershell
+npm install --global @shazhou/pinboard
+pinboard --help
+```
+
+The `0.0.0-bootstrap.0` package is only a placeholder, not a working CLI.
+Release packaging and the `@shazhou/pinboard@x.y.z` tag workflow are described
+in [npm releases](npm-release.md).
+
 From a checkout, install and build the CLI and its workspace dependencies:
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm exec turbo run build --filter=@workspace/cli
+pnpm exec turbo run build --filter=@shazhou/pinboard
 node .\apps\cli\dist\main.js --help
 ```
 
@@ -23,9 +34,13 @@ function pinboard { node C:\Code\pinboard\apps\cli\dist\main.js @args }
 
 On POSIX shells the equivalent is
 `pinboard() { node "$HOME/code/pinboard/apps/cli/dist/main.js" "$@"; }`. Keep
-the built checkout and its installed dependencies together. This is a local
-workspace installation, not an npm-published standalone package. For automation,
-invoke `node` directly so package-manager banners cannot affect JSON stdout.
+the built checkout and its installed dependencies together when using this local
+workspace function rather than an installed npm release. For automation, invoke
+`node` directly so package-manager banners cannot affect JSON stdout.
+
+Running `pinboard` or `pinboard --help` shows a concise command and option
+reference. Detailed behavior, endpoint resolution and credential handling are
+documented below.
 
 ## Public uploads
 
@@ -44,6 +59,7 @@ pinboard list --json
 pinboard list --cursor CURSOR --json
 pinboard list --all --json
 pinboard inspect CID --json
+pinboard rename CID "New name"
 pinboard remove CID --json
 pinboard upload .\photo.bin --endpoint http://localhost:8787
 ```
@@ -70,6 +86,83 @@ label limit, and does not change content or CIDs. Duplicate labels are allowed.
 Saving the same account/CID again updates that pin's label rather than creating
 a second reference.
 
+## Rename an existing pin
+
+```powershell
+pinboard rename CID "New name"
+pinboard rename CID "New name" --json
+```
+
+Rename updates only the current account's label, without uploading or reading
+content blocks. It requires `pins:write`; names are trimmed and must contain
+1-200 characters. The CID, size, block count and creation time do not change,
+and other accounts' names for the same CID are independent. Renaming a missing
+pin returns 404 rather than creating a reference. Success returns the updated
+pin, with the same human/JSON layout as inspect. A lost response can mean the
+rename completed; inspect the CID before retrying.
+
+The HTTP API is `PATCH /api/pins/:cid` with a JSON body `{ "name": "New name" }`
+and returns the updated pin with status 200. It requires an authenticated
+same-origin browser session or an Agent token with `pins:write`. Only `name` is
+accepted in the body. The Web **Your pins → Rename** form uses this API, with
+Save name and Cancel actions; saving also updates any open details.
+
+## Download and CAR export
+
+`download` reverses `upload`: raw/UnixFS files become ordinary files and UnixFS
+directories become local directory trees. `export` pairs with `import`: it saves
+a complete single-root CAR without changing its bytes or root CID.
+
+```powershell
+pinboard download CID --output .\restored-file.bin
+pinboard download DIRECTORY_CID --output .\restored-folder
+pinboard export CID --output .\archive.car
+pinboard import .\archive.car
+```
+
+Both fetch content from the selected endpoint's public CAR API, without an
+Authorization header. Endpoint and timeout options still apply; redirects are
+refused. No pin is created by either command.
+
+`--output` always wins and skips credentials and private metadata entirely.
+Otherwise, an available `PINBOARD_AGENT_TOKEN` or endpoint-bound stored token is
+used only to inspect the pin's name (`pins:read` required). Download uses that
+name as-is; export appends `.car` unless the name already ends in `.car`
+(case-insensitive). Names are treated as a single portable filename, never a
+path. Missing credentials, HTTP 401/403/404 for metadata, or an unsafe/overlong
+name cause an explicit warning and fallback to `.\CID` or `.\CID.car`. Invalid
+local credentials/configuration, network errors, server failures and malformed
+metadata remain errors, not silent fallbacks. `--token-stdin` is not accepted by
+these public read commands.
+
+The destination must not exist, and its parent must already be a real directory.
+Existing files, directories and links are never overwritten or merged.
+
+Before creating output, the CLI verifies the requested root, every block's
+SHA-256 hash, supported codecs and complete DAG closure. The existing 32 MiB
+unique DAG, 256-block and 2 MiB block limits apply, with bounded CAR framing
+overhead. Restoration additionally limits expanded file bytes to 32 MiB, entries
+to 10,000 and depth to 256. File contents, hidden files, nested paths and empty
+files are retained; metadata/permissions and empty folders ignored by upload
+cannot be recovered.
+
+Download refuses symlinks, special entries, path traversal, Windows-reserved or
+non-portable names and case-insensitive/Unicode-normalized path collisions.
+Generic IPLD DAGs that are not raw/UnixFS files or directories can still be
+exported as CARs. Unsafe or unsupported content fails explicitly before output
+is created. A failed local write cleans up newly created output when its
+identity is still unchanged; a killed process can leave partial output that must
+be removed or moved before retrying.
+
+Success returns `{ "cid", "path", "type", "size" }` in `--json` mode, with an
+absolute local path and type `file`, `directory` or `car`. Size is restored file
+bytes for download and archive bytes for export; binary content is written only
+to the destination, never stdout. Human output uses a vertical summary table and
+the same timestamped progress/separator style as upload. In JSON mode, filename
+fallback emits one structured
+`{ "warning": { "code": "PIN_NAME_UNAVAILABLE", "message": "..." } }` line on
+stderr; stdout remains the single successful result document.
+
 ## Endpoints and credentials
 
 Every network command resolves its endpoint in this order: `--endpoint` >
@@ -81,14 +174,14 @@ hostile server or compromised local DNS remains outside the client's trust
 boundary.
 
 Get an agent token in Web, with only the required scopes (`pins:write` for
-upload/import, `pins:read` for list/inspect, `pins:delete` for remove). The
-server checks scope, expiry and revocation on every request.
+upload/import/rename, `pins:read` for list/inspect, `pins:delete` for remove).
+The server checks scope, expiry and revocation on every request.
 
 - `pinboard config set-token` reads hidden input from a TTY, without echo.
 - For scripts, `pinboard config set-token --token-stdin` reads one token from
   stdin through EOF, optionally followed by one newline. Use a secret manager or
   secure input source; do not put a literal token in shell history.
-- Network commands accept `PINBOARD_AGENT_TOKEN` **or** `--token-stdin` as a
+- Account commands accept `PINBOARD_AGENT_TOKEN` **or** `--token-stdin` as a
   non-persistent override. They are mutually exclusive. An empty environment
   variable is an error, not a fallback. Explicit overrides never read the local
   token map. No token positional argument or `--token VALUE` is supported.
@@ -140,6 +233,23 @@ empty/restricted staging file; verify that no writer is active before manually
 removing **only** that stale operation-owned path.
 
 ## Automation, cancellation and recovery
+
+Human-readable lists show a table of name, size (B, KiB or MiB) and full CID,
+without share links. Names are limited to 32 terminal columns, including `...`
+when truncated; Unicode display widths are respected. Use `inspect CID` to see
+the full name and share link. Inspect displays an aligned vertical table with
+Name, Size, CID, Blocks, Created and Share fields. Upload uses the same detail
+layout as inspect. An empty list shows `No pins.`. JSON names are never
+truncated.
+
+When stdout is a TTY, tables use Unicode box-drawing borders. Pipes and
+redirected output keep the plain aligned layout. JSON output never uses borders.
+
+Uploads, imports, downloads and exports show timestamped progress logs on
+stderr, without headings or indentation. Non-JSON output separates the logs and
+successful stdout table with one blank line, including pipes and redirection.
+Progress writes finish before the result is emitted; failures never display a
+success table.
 
 `--json` produces exactly one JSON document on success and no stdout on failure.
 Human progress goes to stderr; JSON mode suppresses progress and emits one

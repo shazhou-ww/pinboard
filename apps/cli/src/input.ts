@@ -3,8 +3,11 @@ import { lstat, open, readdir } from "node:fs/promises";
 import type { BigIntStats } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { CarReader } from "@ipld/car";
-import { uploadLimits } from "@workspace/contracts";
-import { buildDirectoryCar, type DirectoryEntry } from "@workspace/encoding";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
+import {
+  buildDirectoryCar,
+  type DirectoryEntry,
+} from "@shazhou/pinboard-encoding";
 import { CliError, usage } from "./errors.js";
 import { noLinks, sameFileIdentity } from "./permissions.js";
 

@@ -8,8 +8,8 @@ allowBuilds:
 
 catalog:
   "@ipld/car": ^5.4.2
-  "@ipld/dag-cbor": ^9.2.5
-  "@ipld/dag-pb": ^4.1.5
+  "@ipld/dag-cbor": ^9.2.7
+  "@ipld/dag-pb": ^4.2.0
   "@modelcontextprotocol/sdk": ^1.25.0
   ipfs-unixfs-importer: ^16.1.1
   multiformats: ^14.0.5
@@ -38,6 +38,9 @@ catalog:
   vite: ^8.3.4
   vitest: ^5.0.4
   wrangler: ^4.151.0
+  string-width: ^8.3.0
+  ipfs-unixfs-exporter: ^16.2.3
+  esbuild: ^0.28.2
 
 minimumReleaseAgeExclude:
   - "@turbo/darwin-64@2.11.8"

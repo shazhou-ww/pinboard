@@ -1,5 +1,5 @@
 import { CarReader } from "@ipld/car";
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 import { describe, expect, it } from "vitest";
 import { buildDirectoryCar, directoryPaths } from "../src/index.js";
 

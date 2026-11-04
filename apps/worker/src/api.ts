@@ -10,7 +10,7 @@ import {
 } from "./identity.js";
 import { handleMcp } from "./mcp.js";
 import { PinService } from "./service.js";
-import { jsonBody, pinSchema, validate } from "./schemas.js";
+import { jsonBody, pinSchema, renamePinSchema, validate } from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
 
 export const api = new Hono<AppEnv>();
@@ -62,6 +62,15 @@ api.get("/api/pins/:cid", async (c) =>
 api.delete("/api/pins/:cid", async (c) => {
   await new PinService(c.env, c.get("principal")).unpin(c.req.param("cid"));
   return c.body(null, 204);
+});
+api.patch("/api/pins/:cid", async (c) => {
+  const input = validate(renamePinSchema, await jsonBody(c.req.raw));
+  return c.json(
+    await new PinService(c.env, c.get("principal")).rename(
+      c.req.param("cid"),
+      input.name,
+    ),
+  );
 });
 const tokenIdentity: MiddlewareHandler<AppEnv> = async (c, next) => {
   c.set("principal", await authenticate(c, true));

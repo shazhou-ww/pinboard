@@ -1,4 +1,7 @@
-import type { BootstrapResponse, SessionResponse } from "@workspace/contracts";
+import type {
+  BootstrapResponse,
+  SessionResponse,
+} from "@shazhou/pinboard-contracts";
 import { signIn, signOut } from "@hono/auth-js/react";
 import { useEffect, useState, type MouseEvent } from "react";
 

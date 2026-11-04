@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { uploadLimits } from "@workspace/contracts";
+import { uploadLimits } from "@shazhou/pinboard-contracts";
 import {
   selectionForDirectory,
   selectionForFile,
