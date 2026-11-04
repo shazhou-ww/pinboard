@@ -59,9 +59,8 @@
   `@workspace/cli:test` 的既有 Windows 凭据检查中退出 1（2 failed / 1 passed
   suites；9 failed / 42 passed / 1 skipped
   tests），原因同上述祖先 DACL。Turbo 在该失败后中止其他未完成任务，不能称为全量成功。CLI 代码、权限检查、依赖清单及 lockfile 均未修改。
-- `I-AC03` 仍未完成，不追加
-  `submitInner`。可以在该候选同步后，用安全 checkout 上的现有 CI 完整
-  `pnpm check` 成功结果补齐证明；在此之前不得进入实现验收 gate。
+- 本地环境失败没有被排除测试或安全放宽所掩盖；`I-AC03`
+  由下面的安全 checkout 完整 CI 结果补齐，不使用上述隔离运行冒充完整通过。
 
 ## 已同步候选的 CI 复核
 
@@ -70,8 +69,23 @@
 / Node 22.13.0、24.11.1 的完整 `pnpm check`
 均成功；Windows 两个 job 的既有 CLI 权限测试亦成功，证明其受保护 fixture 不受本地祖先 ACL 限制。Windows 唯一失败是新增 57 对象分页/分批清理 fixture 超过 Vitest 默认 5s，未出现行为断言失败。
 
-已将该大 fixture 的单用例预算对齐既有多对象 storage 测试的 30s；不修改全局预算、不跳过断言、不改变算法或权限。最终候选须再次获得完整矩阵结果后才能完成
-`I-AC03`。
+已将该大 fixture 的单用例预算对齐既有多对象 storage 测试的 30s；不修改全局预算、不跳过断言、不改变算法或权限。
+
+修正后的准确源代码候选 `735e2e090e45caa70ee8a4bf9ffe7fd6d6c8c203` 的
+[CI 41844551679](https://github.com/shazhou-ww/pinboard/actions/runs/41844551679)
+已成功，完整 `pnpm check` 的四个矩阵 job 均为 success：
+
+| 环境                   | Job          | 结果    |
+| ---------------------- | ------------ | ------- |
+| Windows / Node 24.11.1 | 126624542234 | success |
+| Ubuntu / Node 24.11.1  | 126624542607 | success |
+| Ubuntu / Node 22.13.0  | 126624542659 | success |
+| Windows / Node 22.13.0 | 126624542683 | success |
+
+后续仅整理本 idea 的 contract/ledger/证据与提交事件，不再修改已验证的
+`apps`、`packages`、`scripts`、`.github`
+源码/测试/配置树。完整验证已持久化且没有生产部署，`I-AC03`
+完成，可以为准确同步的 Inner World 追加 `submitInner`，不代替上游验收。
 
 ## 运维与未验证边界
 

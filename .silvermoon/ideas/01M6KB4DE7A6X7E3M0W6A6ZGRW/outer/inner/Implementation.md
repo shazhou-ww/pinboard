@@ -54,6 +54,8 @@ token 禁止管理、过期边界及清理前后 401；SSR 测试覆盖默认 ac
 相关测试及 pnpm
 check 通过；文档说明实际保留起点、清理延迟、公开副本限制与运维失败处理。
 
-文档与针对性检查已完成；完整检查仍须满足，不能用排除测试的通过结果代替。当前环境的既有 Windows
-CLI DACL 失败与处理条件见
-[Evidence.md](Evidence.md)，本项在完整检查成功前保持未完成。
+文档与针对性检查已完成；源代码候选 `735e2e090e45caa70ee8a4bf9ffe7fd6d6c8c203`
+的完整 `pnpm check` 已在既有 CI 的 Ubuntu/Windows × Node
+22.13.0/24.11.1 四个 job 全部成功。当前本地 checkout 的既有 Windows CLI
+DACL 限制仍如实保留，没有排除测试或弱化权限来制造通过。可复核的运行链接、失败修正与结果见
+[Evidence.md](Evidence.md)。
