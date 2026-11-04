@@ -24,7 +24,7 @@ On 2026-11-03 the authorized bootstrap created:
 | --------------------- | --------------------------------------------------- |
 | Cloudflare account ID | `92c3c4fdcc84a1590555bccf4f111de2`                  |
 | Worker                | `pinboard`, initially a 503 placeholder             |
-| D1 database           | `pinboard` / `625b568d-106b-4fe1-af33-3eac4fe0a354` |
+| D1 database           | `pinboard` / `9f15fd50-e103-459f-9f3f-9db3036f91de` |
 | Private R2 bucket     | `pinboard-blocks`, managed public access disabled   |
 | Custom domain         | `pinboard.shazhou.work`, attached to `pinboard`     |
 
@@ -34,6 +34,13 @@ authorized operation before the first application release. Deployment does not
 initialize or migrate D1. Do not re-create these resources or re-bind the domain
 during routine CI. The bootstrap credential stays in `cfg`; it must not be
 copied into GitHub.
+
+On 2026-11-04 the user explicitly authorized discarding all production D1 test
+data and recreating this database for the retention release. The original D1
+UUID `625b568d-106b-4fe1-af33-3eac4fe0a354` was deleted; the current UUID above
+is a new empty database, not an in-place migration or fallback. R2 was not
+deleted. See [production reset evidence](retention-production.md) for the
+independently authorized schema operation, cutover and acceptance results.
 
 ## 1. Provision production resources once
 

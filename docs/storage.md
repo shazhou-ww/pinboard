@@ -154,6 +154,16 @@ writes and cleanup for a separately verified recovery. A pre-CAR or
 pre-retention Worker is **not** a data-compatible rollback. Cron activation,
 schema operations and production deployment require their own release approval.
 
+An explicitly authorized disposable-data reset can instead delete the old D1 and
+create a fresh database UUID, then apply all three migrations before publishing
+the retention-aware Worker. Keep the old deployed writer bound only to the
+deleted UUID until cutover; never bind it to the new schema. This causes an
+intentional database-backed API outage, invalidates old account pins and Agent
+tokens, and does not erase R2 objects. Unindexed CARs receive the normal
+first-observation seven-day grace period; unknown keys remain preserved. The
+[2026-11-04 production reset](retention-production.md) used this separately
+authorized path. It is not permission for future resets.
+
 ## Reproducible checks
 
 `pnpm check` includes Miniflare-backed storage tests with counted R2 operations,

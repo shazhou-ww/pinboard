@@ -22,7 +22,7 @@
     {
       "binding": "DB",
       "database_name": "pinboard",
-      "database_id": "625b568d-106b-4fe1-af33-3eac4fe0a354",
+      "database_id": "9f15fd50-e103-459f-9f3f-9db3036f91de",
       "migrations_dir": "migrations",
     },
   ],
