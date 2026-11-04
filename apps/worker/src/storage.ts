@@ -112,7 +112,12 @@ export async function getCar(
     return { body: object.body, size: manifest.size };
   }
   if (!(await headBlock(env, key(root)))) return null;
-  const dag = await completeDag(root, (link) => readBlock(env, key(link)));
+  const dag = await completeDag(root, async (link) => {
+    const legacy = await env.BLOCKS.get(key(link));
+    return legacy
+      ? new Uint8Array(await legacy.arrayBuffer())
+      : readBlock(env, key(link));
+  });
   const bytes = await encodeCar(dag);
   return { body: bytes, size: bytes.length };
 }

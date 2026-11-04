@@ -327,6 +327,18 @@ describe("CAR primary storage", () => {
     );
   });
 
+  it("exports legacy DAGs without a D1 lookup for every block", async () => {
+    const dag = await directory(64, "legacy-query-regression");
+    for (const [cid, bytes] of dag.blocks) await env.BLOCKS.put(cid, bytes);
+    const prepare = vi.spyOn(env.DB, "prepare");
+    const get = vi.spyOn(env.BLOCKS, "get");
+    const car = (await getCar(env, key(dag.root)))!;
+    expect(prepare).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenCalledTimes(dag.blocks.size);
+    const restored = await readCar(await responseBytes(car.body));
+    expect(restored.blocks).toEqual(dag.blocks);
+  });
+
   it("reads legacy and mixed DAGs, then repacks on pin without deleting legacy objects", async () => {
     const legacy = await file("legacy-only");
     for (const [cid, bytes] of legacy.blocks) await env.BLOCKS.put(cid, bytes);

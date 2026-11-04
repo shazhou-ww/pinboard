@@ -18,7 +18,7 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 确认验证环境与回退边界
+- [x] **D-S01:** 确认验证环境与回退边界
 - [ ] **D-S02:** 验证真实 R2 下载与性能
 
 ### Deployment acceptance criteria
