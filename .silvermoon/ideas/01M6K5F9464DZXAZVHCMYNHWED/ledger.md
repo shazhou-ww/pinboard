@@ -1,0 +1,27 @@
+# Ledger
+
+## Implementation
+
+### Implementation steps
+
+- [ ] **I-S01:** 明确打包存储与兼容策略
+- [ ] **I-S02:** 接入整包与单块读写
+- [ ] **I-S03:** 验证正确性与读写开销
+
+### Implementation acceptance criteria
+
+- [ ] **I-AC01:** 内容与接口兼容
+- [ ] **I-AC02:** 整包读取不再逐块放大
+- [ ] **I-AC03:** 失败处理与仓库检查通过
+
+## Deployment
+
+### Deployment steps
+
+- [ ] **D-S01:** 确认验证环境与回退边界
+- [ ] **D-S02:** 验证真实 R2 下载与性能
+
+### Deployment acceptance criteria
+
+- [ ] **D-AC01:** 远端内容可用且完整
+- [ ] **D-AC02:** 性能与空间取舍可核查
