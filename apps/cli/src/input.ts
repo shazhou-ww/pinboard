@@ -1,37 +1,30 @@
 import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
-import type { Stats } from "node:fs";
+import type { BigIntStats } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { CarReader } from "@ipld/car";
 import { uploadLimits } from "@workspace/contracts";
 import { buildDirectoryCar, type DirectoryEntry } from "@workspace/encoding";
 import { CliError, usage } from "./errors.js";
-import { noLinks } from "./permissions.js";
+import { noLinks, sameFileIdentity } from "./permissions.js";
 
 function sizeCheck(size: number): void {
   if (size > uploadLimits.maxBytes)
     throw new CliError("INPUT_LIMIT", "Input exceeds 32 MiB.");
 }
 
-function sameIdentity(before: Stats, after: Stats): boolean {
+function same(before: BigIntStats, after: BigIntStats): boolean {
   return (
-    before.dev === after.dev &&
-    before.ino === after.ino &&
-    before.size === after.size
-  );
-}
-
-function same(before: Stats, after: Stats): boolean {
-  return (
-    sameIdentity(before, after) &&
-    before.mtimeMs === after.mtimeMs &&
-    before.ctimeMs === after.ctimeMs
+    sameFileIdentity(before, after) &&
+    before.size === after.size &&
+    before.mtimeNs === after.mtimeNs &&
+    before.ctimeNs === after.ctimeNs
   );
 }
 
 async function* content(
   path: string,
-  before: Stats,
+  before: BigIntStats,
   signal: AbortSignal,
 ): AsyncGenerator<Uint8Array> {
   signal.throwIfAborted();
@@ -40,13 +33,14 @@ async function* content(
     constants.O_RDONLY | (constants.O_NOFOLLOW || 0),
   );
   try {
-    const opened = await file.stat();
+    const opened = await file.stat({ bigint: true });
     // Windows lstat and fstat can report different timestamp precision. Compare
     // timestamps only within the same API, while checking identity across both.
     if (
       !opened.isFile() ||
-      !sameIdentity(before, opened) ||
-      !same(before, await lstat(path))
+      !sameFileIdentity(before, opened) ||
+      before.size !== opened.size ||
+      !same(before, await lstat(path, { bigint: true }))
     )
       throw new CliError("INPUT_CHANGED", "Input changed before reading.");
     let total = 0;
@@ -56,14 +50,14 @@ async function* content(
       const { bytesRead } = await file.read(buffer);
       if (!bytesRead) break;
       total += bytesRead;
-      if (total > before.size)
+      if (BigInt(total) > before.size)
         throw new CliError("INPUT_CHANGED", "Input changed while reading.");
       yield buffer.subarray(0, bytesRead);
     }
     if (
-      total !== before.size ||
-      !same(opened, await file.stat()) ||
-      !same(before, await lstat(path))
+      BigInt(total) !== before.size ||
+      !same(opened, await file.stat({ bigint: true })) ||
+      !same(before, await lstat(path, { bigint: true }))
     )
       throw new CliError("INPUT_CHANGED", "Input changed while reading.");
   } finally {
@@ -88,7 +82,7 @@ export async function prepareInput(
   if (!label.trim() || label.trim().length > 200)
     return usage("Upload names must contain 1-200 characters.");
   await noLinks(path);
-  const stat = await lstat(path);
+  const stat = await lstat(path, { bigint: true });
   if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory()))
     throw new CliError(
       "INPUT_TYPE",
@@ -100,12 +94,12 @@ export async function prepareInput(
     let size = 0;
     async function walk(directory: string, prefix: string): Promise<void> {
       signal.throwIfAborted();
-      const before = await lstat(directory);
+      const before = await lstat(directory, { bigint: true });
       for (const entry of await readdir(directory)) {
         signal.throwIfAborted();
         const absolute = join(directory, entry);
         const relative = prefix ? `${prefix}/${entry}` : entry;
-        const child = await lstat(absolute);
+        const child = await lstat(absolute, { bigint: true });
         if (child.isSymbolicLink() || (!child.isFile() && !child.isDirectory()))
           throw new CliError(
             "INPUT_TYPE",
@@ -113,17 +107,17 @@ export async function prepareInput(
           );
         if (child.isDirectory()) await walk(absolute, relative);
         else {
-          size += child.size;
+          size += Number(child.size);
           sizeCheck(size);
           files.push({
             path: relative,
-            size: child.size,
+            size: Number(child.size),
             content: content(absolute, child, signal),
           });
         }
       }
-      const after = await lstat(directory);
-      if (before.ino !== after.ino || before.mtimeMs !== after.mtimeMs)
+      const after = await lstat(directory, { bigint: true });
+      if (!same(before, after))
         throw new CliError(
           "INPUT_CHANGED",
           "Directory changed while scanning.",
@@ -150,8 +144,8 @@ export async function prepareInput(
     }
     return { ...encoded, kind: "car", name: label };
   }
-  sizeCheck(stat.size);
-  const bytes = new Uint8Array(stat.size);
+  sizeCheck(Number(stat.size));
+  const bytes = new Uint8Array(Number(stat.size));
   let offset = 0;
   for await (const chunk of content(path, stat, signal)) {
     bytes.set(chunk, offset);

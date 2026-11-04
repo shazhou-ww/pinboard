@@ -55,5 +55,8 @@ jobs:
           "PINBOARD_TEST_ROOT=$env:USERPROFILE\pinboard-ci-fixtures" |
             Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Verify native CLI permissions
+        run: pnpm exec turbo run test --filter=@workspace/cli
+
       - name: Run all checks
         run: pnpm check

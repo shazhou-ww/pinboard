@@ -6,7 +6,12 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import { endpoint, validToken } from "./endpoint.js";
 import { CliError, missing } from "./errors.js";
-import { createProtectedFile, secureDirectory, verify } from "./permissions.js";
+import {
+  createProtectedFile,
+  sameFileIdentity,
+  secureDirectory,
+  verify,
+} from "./permissions.js";
 
 export function configDirectory(env: NodeJS.ProcessEnv): string {
   const base =
@@ -48,12 +53,11 @@ export class Store {
       constants.O_RDONLY | (constants.O_NOFOLLOW || 0),
     );
     try {
-      const actual = await handle.stat();
+      const actual = await handle.stat({ bigint: true });
       if (
-        before.dev !== actual.dev ||
-        before.ino !== actual.ino ||
-        actual.nlink !== 1 ||
-        actual.size > 1024 * 1024
+        !sameFileIdentity(before, actual) ||
+        actual.nlink !== 1n ||
+        actual.size > 1024n * 1024n
       )
         throw new CliError(
           "UNSAFE_PATH",

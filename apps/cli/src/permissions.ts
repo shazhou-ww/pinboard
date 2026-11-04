@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { lstat, mkdir, open } from "node:fs/promises";
-import type { Stats } from "node:fs";
+import type { BigIntStats } from "node:fs";
 import { dirname, parse, resolve } from "node:path";
 import { promisify } from "node:util";
 import { CliError, missing } from "./errors.js";
@@ -93,11 +93,13 @@ async function acl(
         maxBuffer: 16384,
       },
     );
-  } catch {
-    throw new CliError(
+  } catch (error) {
+    const failure = new CliError(
       "UNSAFE_PERMISSIONS",
       "Cannot establish or verify a protected current-user Windows DACL. Use a supported local filesystem; move unsafe existing Pinboard files aside manually.",
     );
+    failure.cause = error;
+    throw failure;
   }
 }
 
@@ -118,7 +120,23 @@ export async function noLinks(path: string): Promise<void> {
   }
 }
 
-export async function verify(path: string, directory = false): Promise<Stats> {
+export function sameFileIdentity(
+  before: BigIntStats,
+  after: BigIntStats,
+): boolean {
+  // Node 22 on Windows reports an unavailable device ID (zero) for path stat,
+  // but a volume ID for handle stat. File IDs must still match exactly.
+  return (
+    before.ino === after.ino &&
+    (before.dev === after.dev ||
+      (process.platform === "win32" && (before.dev === 0n || after.dev === 0n)))
+  );
+}
+
+export async function verify(
+  path: string,
+  directory = false,
+): Promise<BigIntStats> {
   await noLinks(path);
   if (directory && process.platform !== "win32") {
     let parent = dirname(resolve(path));
@@ -138,8 +156,8 @@ export async function verify(path: string, directory = false): Promise<Stats> {
       parent = next;
     }
   }
-  const stat = await lstat(path);
-  if (directory ? !stat.isDirectory() : !stat.isFile() || stat.nlink !== 1)
+  const stat = await lstat(path, { bigint: true });
+  if (directory ? !stat.isDirectory() : !stat.isFile() || stat.nlink !== 1n)
     throw new CliError(
       "UNSAFE_PATH",
       "Expected an owned directory or a single-link regular credentials file.",
@@ -149,8 +167,8 @@ export async function verify(path: string, directory = false): Promise<Stats> {
   } else {
     if (
       !process.getuid ||
-      stat.uid !== process.getuid() ||
-      (stat.mode & 0o7777) !== (directory ? 0o700 : 0o600)
+      stat.uid !== BigInt(process.getuid()) ||
+      (stat.mode & 0o7777n) !== (directory ? 0o700n : 0o600n)
     )
       throw new CliError(
         "UNSAFE_PERMISSIONS",

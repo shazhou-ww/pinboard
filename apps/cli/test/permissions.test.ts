@@ -5,6 +5,7 @@ import {
   link,
   lstat,
   mkdir,
+  open,
   readFile,
   rm,
   symlink,
@@ -15,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Store, configDirectory } from "../src/store.js";
 import {
   createProtectedFile,
+  sameFileIdentity,
   secureDirectory,
   verify,
 } from "../src/permissions.js";
@@ -35,6 +37,34 @@ const one = "https://one.example",
   two = "https://two.example";
 
 describe(`real ${process.platform} credential protection`, () => {
+  it("compares exact file IDs across real path and handle stat APIs", async () => {
+    const path = join(root, "identity");
+    await writeFile(path, "identity");
+    const before = await lstat(path, { bigint: true });
+    const handle = await open(path);
+    try {
+      const actual = await handle.stat({ bigint: true });
+      expect(sameFileIdentity(before, actual)).toBe(true);
+      expect(
+        sameFileIdentity(actual, { ...actual, ino: actual.ino + 1n }),
+      ).toBe(false);
+      expect(
+        sameFileIdentity(
+          { ...actual, ino: 9007199254740992n },
+          { ...actual, ino: 9007199254740993n },
+        ),
+      ).toBe(false);
+      expect(
+        sameFileIdentity({ ...actual, dev: 1n }, { ...actual, dev: 2n }),
+      ).toBe(false);
+      expect(
+        sameFileIdentity({ ...actual, dev: 0n }, { ...actual, dev: 1n }),
+      ).toBe(process.platform === "win32");
+    } finally {
+      await handle.close();
+    }
+  });
+
   it("uses only the platform configuration location", () => {
     const env = { LOCALAPPDATA: root, XDG_CONFIG_HOME: root };
     expect(configDirectory(env)).toBe(join(root, "pinboard"));
