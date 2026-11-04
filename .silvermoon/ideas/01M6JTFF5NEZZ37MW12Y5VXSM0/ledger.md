@@ -5,14 +5,14 @@
 ### Implementation steps
 
 - [ ] **I-S01:** 建立命令与认证边界
-- [ ] **I-S02:** 封装隔离的 Kubo 上传流程
+- [ ] **I-S02:** 复用 API 与共享目录编码
 - [ ] **I-S03:** 补齐验证与使用文档
 
 ### Implementation acceptance criteria
 
-- [ ] **I-AC01:** 上传内容与根 CID 一致
+- [ ] **I-AC01:** 上传内容与 Web 语义一致
 - [ ] **I-AC02:** 认证与自动化行为可靠
-- [ ] **I-AC03:** 本地隔离与工作区检查通过
+- [ ] **I-AC03:** 无 Kubo 依赖且工作区检查通过
 
 ## Deployment
 
