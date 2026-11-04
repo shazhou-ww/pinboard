@@ -198,6 +198,55 @@ schema or stored content**.
 The deploy command explicitly uses the production `wrangler.jsonc`, never the
 unauthenticated local PoC fixture.
 
+### CAR storage rollout prerequisite
+
+The CAR-indexed Worker requires the additive
+[`0002_car_storage.sql`](../apps/worker/migrations/0002_car_storage.sql) schema
+**before code deployment**. This is a separate authorized operation; do not give
+the release token D1 administrative permissions or add migrations to the release
+workflow.
+
+After implementation acceptance, use the authorized D1 operator credential
+without printing or copying it. Target account
+`92c3c4fdcc84a1590555bccf4f111de2`, database `pinboard`
+(`625b568d-106b-4fe1-af33-3eac4fe0a354`), and the production config explicitly.
+First inspect the actual schema and migration tracking:
+
+```powershell
+pnpm --filter @workspace/worker exec wrangler d1 execute pinboard --remote --config wrangler.jsonc --command "SELECT name, sql FROM sqlite_master WHERE type='table' AND name IN ('accounts','pins','car_dags','car_blocks','d1_migrations')"
+```
+
+For the existing manually initialized database, if the original tables exist and
+both CAR tables are absent, apply **only** the additive file:
+
+```powershell
+pnpm --filter @workspace/worker exec wrangler d1 execute pinboard --remote --config wrangler.jsonc --file migrations\0002_car_storage.sql
+```
+
+Do not blindly run all migrations on an existing database whose `0001` was
+initialized outside Wrangler's migration ledger. If CAR tables already exist,
+verify their exact columns, checks, foreign key and indexes against `0002`; do
+not rerun non-idempotent CREATE statements. A partial or conflicting schema
+needs deliberate reconciliation before deployment. For a genuinely empty new
+database, the normal `d1 migrations apply` path can initialize both migrations.
+
+Verify the schema again, record the result without credentials, then publish the
+next unused `release-YYMMDD-INDEX` tag at the accepted primary commit using the
+existing workflow. No tag is created by the implementation or this guide. After
+CAR-only writes begin, **do not roll back to the old block-only reader**:
+additive schema compatibility does not make old code able to read new objects.
+Retain the CAR-aware reader and forward-fix. See [storage recovery](storage.md).
+
+Production smoke must use the existing authenticated upload API/CLI, scoped
+short-lived Agent credentials supplied through the environment, and public
+raw/CAR download routes. Never mount the unauthenticated local PoC uploader.
+Record cold/cache-busted and repeated-response timings separately, verify raw
+payloads and independently reconstruct the CAR in offline Kubo, check a
+pre-existing legacy CID and denial of anonymous writes, then revoke the smoke
+token and remove only its account pins. Content remains public by design. R2
+request-count claims require platform traces/metrics, not HTTP latency alone;
+local counted-binding evidence is not a substitute for real R2 evidence.
+
 ## 5. Independent hot migrations
 
 Hot migration means **dual-write → backfill/catch-up → cutover**, not running

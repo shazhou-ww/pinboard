@@ -8,10 +8,10 @@ import {
   MAX_UPLOAD,
   parseCid,
   readCar,
-  storeDag,
   type Dag,
   verifyBlock,
 } from "./content.js";
+import { readBlock, storeDag } from "./storage.js";
 import { nameSchema, validate } from "./schemas.js";
 import type { Pin } from "@workspace/contracts";
 
@@ -77,7 +77,7 @@ export class PinService {
         key(link) === key(root) ? bytes : this.readBlock(link.toString()),
       );
     }
-    await storeDag(this.env.BLOCKS, dag);
+    await storeDag(this.env, dag);
     return this.save(dag, name);
   }
 
@@ -87,6 +87,7 @@ export class PinService {
     const dag = await completeDag(parseCid(cid), (link) =>
       this.readBlock(link.toString()),
     );
+    await storeDag(this.env, dag);
     return this.save(dag, name);
   }
 
@@ -104,8 +105,7 @@ export class PinService {
   }
 
   private async readBlock(cid: string): Promise<Uint8Array | undefined> {
-    const block = await this.env.BLOCKS.get(key(parseCid(cid)));
-    return block ? new Uint8Array(await block.arrayBuffer()) : undefined;
+    return readBlock(this.env, cid);
   }
 
   private async save(dag: Dag, name: string): Promise<Pin> {

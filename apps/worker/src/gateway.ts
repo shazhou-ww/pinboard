@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Bindings } from "./env.js";
 import { key, parseCid, PROBE_CID } from "./content.js";
 import { acceptsRaw, matchesEtag, onlyIfCached } from "./gateway-http.js";
+import { getBlock, headBlock } from "./storage.js";
 
 export const gateway = new Hono<{ Bindings: Bindings }>();
 
@@ -39,7 +40,7 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
   const metadataOnly = c.req.method === "HEAD" || notModified;
   const probe = key(cid) === PROBE_CID;
   if (probe || metadataOnly) {
-    const object = probe ? { size: 0 } : await c.env.BLOCKS.head(key(cid));
+    const object = probe ? { size: 0 } : await headBlock(c.env, key(cid));
     if (!object) return missing();
     const responseHeaders = {
       ...headers,
@@ -49,7 +50,7 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
       return new Response(null, { status: 304, headers: responseHeaders });
     return new Response(null, { headers: responseHeaders });
   }
-  const object = await c.env.BLOCKS.get(key(cid));
+  const object = await getBlock(c.env, key(cid));
   if (!object) return missing();
   return new Response(object.body, {
     headers: { ...headers, "Content-Length": String(object.size) },
@@ -58,7 +59,7 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
 
 gateway.get("/routing/v1/providers/:cid", async (c) => {
   const cid = parseCid(c.req.param("cid"));
-  const exists = key(cid) === PROBE_CID || (await c.env.BLOCKS.head(key(cid)));
+  const exists = key(cid) === PROBE_CID || (await headBlock(c.env, key(cid)));
   const providers = exists
     ? [
         {

@@ -13,8 +13,8 @@ import { createAuthConfig, getConfiguredProviders } from "./auth.js";
 import type { Bindings } from "./env.js";
 import { api } from "./api.js";
 import { gateway } from "./gateway.js";
-import { completeDag, key, parseCid } from "./content.js";
-import { encodeCar } from "./car.js";
+import { key, parseCid } from "./content.js";
+import { getCar } from "./storage.js";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -34,15 +34,12 @@ app.onError((error, context) => {
 app.route("/", gateway);
 app.get("/api/public/:cid/car", async (c) => {
   const root = parseCid(c.req.param("cid"));
-  if (!(await c.env.BLOCKS.head(key(root))))
-    return c.json({ error: "DAG not found" }, 404);
-  const dag = await completeDag(root, async (cid) => {
-    const block = await c.env.BLOCKS.get(key(cid));
-    return block ? new Uint8Array(await block.arrayBuffer()) : undefined;
-  });
-  return new Response(await encodeCar(dag), {
+  const car = await getCar(c.env, key(root));
+  if (!car) return c.json({ error: "DAG not found" }, 404);
+  return new Response(car.body, {
     headers: {
       "Content-Type": "application/vnd.ipld.car; version=1",
+      "Content-Length": String(car.size),
       "Content-Disposition": `attachment; filename="${key(root)}.car"`,
       "Content-Security-Policy": "default-src 'none'; sandbox",
       "X-Content-Type-Options": "nosniff",

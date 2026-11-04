@@ -283,6 +283,9 @@ importers:
       '@workspace/cli':
         specifier: workspace:*
         version: link:../cli
+      '@workspace/encoding':
+        specifier: workspace:*
+        version: link:../../packages/encoding
       miniflare:
         specifier: 'catalog:'
         version: 5.20261012.0-beta(@types/node@26.6.5)

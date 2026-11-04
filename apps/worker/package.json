@@ -28,6 +28,7 @@
     "hono": "catalog:"
   },
   "devDependencies": {
+    "@workspace/encoding": "workspace:*",
     "@workspace/cli": "workspace:*",
     "miniflare": "catalog:",
     "@cloudflare/workers-types": "catalog:",

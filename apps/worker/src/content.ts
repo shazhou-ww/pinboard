@@ -204,11 +204,3 @@ export async function importFile(bytes: Uint8Array): Promise<Dag> {
   if (!root) throw new HTTPException(400, { message: "Could not import file" });
   return completeDag(root, (cid) => blocks.get(key(cid)));
 }
-
-export async function storeDag(bucket: R2Bucket, dag: Dag): Promise<void> {
-  for (const [cid, bytes] of dag.blocks) {
-    await bucket.put(cid, bytes, {
-      httpMetadata: { contentType: "application/vnd.ipld.raw" },
-    });
-  }
-}

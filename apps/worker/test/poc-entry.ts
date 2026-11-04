@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { boundedBody, readCar, storeDag } from "../src/content.js";
+import { boundedBody, readCar } from "../src/content.js";
+import { storeDag } from "../src/storage.js";
 import type { Bindings } from "../src/env.js";
 import { gateway } from "../src/gateway.js";
 
@@ -9,7 +10,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.route("/", gateway);
 app.post("/poc/car", async (c) => {
   const dag = await readCar(await boundedBody(c.req.raw));
-  await storeDag(c.env.BLOCKS, dag);
+  await storeDag(c.env, dag);
   return c.json({
     cid: dag.root.toString(),
     blocks: dag.blocks.size,

@@ -3,12 +3,11 @@ import { spawn, execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { createSecureServer } from "node:http2";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const temp = await mkdtemp(path.join(tmpdir(), "pinboard-poc-"));
+const temp = await mkdtemp(path.join(root, ".kubo-poc-"));
 const ipfs = process.env.IPFS_BIN ?? "ipfs";
 const openssl = process.env.OPENSSL_BIN ?? "openssl";
 const children = [];
@@ -102,6 +101,34 @@ try {
     `Source daemon stopped; exported ${car.length} bytes, root ${cid}`,
   );
 
+  const wrangler = path.join(
+    root,
+    "apps",
+    "worker",
+    "node_modules",
+    "wrangler",
+    "bin",
+    "wrangler.js",
+  );
+  execFileSync(
+    process.execPath,
+    [
+      wrangler,
+      "d1",
+      "migrations",
+      "apply",
+      "DB",
+      "--local",
+      "--config",
+      "wrangler.poc.jsonc",
+      "--persist-to",
+      path.join(temp, "worker-state"),
+    ],
+    {
+      cwd: path.join(root, "apps", "worker"),
+      env: { ...process.env, CI: "true" },
+    },
+  );
   const worker = start(
     process.execPath,
     [

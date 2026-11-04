@@ -3,9 +3,9 @@
 **Pin blocks. Share by CID.**
 
 A deliberately small public IPFS content store: Cloudflare Workers + R2 for
-verified blocks, D1 for Google account identities, pin references and Agent
-token hashes. React and Hono reuse the fullstack template's same-origin/Auth.js
-setup.
+verified CAR archives, D1 for block locations, Google account identities, pin
+references and Agent token hashes. React and Hono reuse the fullstack template's
+same-origin/Auth.js setup.
 
 Production origin: `https://pinboard.shazhou.work`. Releases are tag-driven; see
 the [deployment guide](docs/deployment.md) for acceptance requirements.
@@ -29,6 +29,12 @@ All uploaded bytes are **public**, including bytes in failed partial writes.
 Account lists, labels, and tokens are private. Unpinning deletes **only your
 account reference**. Shared blocks, CDN copies and downloaded copies are not
 erased. Physical garbage collection is not implemented.
+
+New uploads use one CAR object and a CID-to-object/offset/length index, with
+legacy independent-block fallback. Complete indexed CAR downloads stream one
+object; raw block reads use R2 ranges. See
+[storage and recovery](docs/storage.md) for duplication tradeoffs, publication
+guarantees and rollout requirements.
 
 There is no arbitrary remote CID fetching, DHT announcement, IPNS publishing,
 always-on Kubo/Cluster, billing or organization system. A public HTTP endpoint

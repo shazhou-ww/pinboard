@@ -18,6 +18,7 @@ import { importFile } from "../src/content.js";
 import { buildDirectoryCar } from "../../web/src/directory.js";
 import { selectionForDirectory } from "../../web/src/uploads.js";
 import { encodeCar } from "../src/car.js";
+import { migrate } from "./migrations.js";
 
 const directory = resolve(
   process.env.PINBOARD_TEST_ROOT ?? ".",
@@ -111,17 +112,7 @@ beforeAll(async () => {
   runtimeOrigin = (await mf.ready).origin;
   expect((await fetch(runtimeOrigin + "/api/health")).status).toBe(200);
   const db = await mf.getD1Database("DB");
-  const sql = await readFile(
-    new URL("../migrations/0001_pinboard.sql", import.meta.url),
-    "utf8",
-  );
-  await db.batch(
-    sql
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => db.prepare(part)),
-  );
+  await migrate(db);
   env = {
     ...(await mf.getBindings<Pick<Bindings, "DB" | "BLOCKS" | "ASSETS">>()),
     ...bindings,

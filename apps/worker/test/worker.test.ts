@@ -1,6 +1,6 @@
 import { encode } from "@auth/core/jwt";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { readFile } from "node:fs/promises";
+import { migrate } from "./migrations.js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Bindings } from "../src/env.js";
 import app, { toSessionResponse } from "../src/index.js";
@@ -67,17 +67,7 @@ const rpc = (name: string, args: Record<string, unknown> = {}) =>
 
 beforeAll(async () => {
   const db = await mf.getD1Database("DB");
-  const sql = await readFile(
-    new URL("../migrations/0001_pinboard.sql", import.meta.url),
-    "utf8",
-  );
-  await db.batch(
-    sql
-      .split(";")
-      .map((statement) => statement.trim())
-      .filter(Boolean)
-      .map((statement) => db.prepare(statement)),
-  );
+  await migrate(db);
   env = {
     ...(await mf.getBindings<Pick<Bindings, "DB" | "BLOCKS" | "ASSETS">>()),
     APP_NAME: "Pinboard",

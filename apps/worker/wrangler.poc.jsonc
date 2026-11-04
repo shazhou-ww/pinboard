@@ -4,6 +4,14 @@
   "compatibility_date": "2026-10-14",
   "compatibility_flags": ["nodejs_compat"],
   "r2_buckets": [{ "binding": "BLOCKS", "bucket_name": "pinboard-poc-blocks" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pinboard-poc",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations",
+    },
+  ],
   "vars": {
     "PROVIDER_MULTIADDR": "/ip4/127.0.0.1/tcp/9443/tls/http",
     "PROVIDER_ID": "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH",

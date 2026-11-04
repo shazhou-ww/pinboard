@@ -14,6 +14,7 @@ import {
 import { gateway } from "../src/gateway.js";
 import type { Bindings } from "../src/env.js";
 import { PROBE_CID } from "../src/content.js";
+import { migrate } from "./migrations.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -21,6 +22,7 @@ const mf = new Miniflare(
     script: "export default { fetch() { return new Response('ok'); } };",
     compatibilityDate: "2026-10-14",
     r2Buckets: ["BLOCKS"],
+    d1Databases: ["DB"],
   }),
 );
 const bytes = new Uint8Array([
@@ -46,6 +48,7 @@ const etag = (root: string) => `"${root}.raw"`;
 
 beforeAll(async () => {
   env = await mf.getBindings<Bindings>();
+  await migrate(env.DB);
   cid = CID.createV1(0x55, await sha256.digest(bytes)).toString();
   missing = CID.createV1(
     0x55,
