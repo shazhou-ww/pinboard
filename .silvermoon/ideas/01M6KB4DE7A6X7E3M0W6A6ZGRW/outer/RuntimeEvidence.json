@@ -1,0 +1,581 @@
+{
+  "idea": "01M6KB4DE7A6X7E3M0W6A6ZGRW",
+  "contractRevision": "9550fba5fc89ced92539f0cd678320431748cd90",
+  "contractPrimary": "674133fe3c304e5e2c192362e2fb535dd9e151f4",
+  "acceptedImplementationRevision": "503ebb7ce2c4dc8f57397920baea6768c75fdfa3",
+  "sourceRevision": "674133fe3c304e5e2c192362e2fb535dd9e151f4",
+  "recordedAt": "2026-11-04T14:40:30.277Z",
+  "scope": "隔离本地独立 workerd / 真实 HTTP 与浏览器 / 无远程资源变更",
+  "productionMutations": 0,
+  "journal": [
+    {
+      "name": "存量迁移保留真实索引并初始化安全下限",
+      "foreignKeys": [],
+      "objects": [
+        {
+          "n": 1
+        }
+      ],
+      "memberships": [
+        {
+          "n": 256
+        }
+      ],
+      "state": [
+        {
+          "safe_after": "2026-11-11T14:36:00.949Z"
+        }
+      ],
+      "known": [
+        {
+          "n": 0
+        }
+      ],
+      "root": "bafybeibd6m7ssrirxmes4d7z3gn3e2j5rmn3pcxliyjs73t7pa3dkeucvi",
+      "blocks": 256,
+      "carBytes": 33447941
+    },
+    {
+      "name": "独立 Worker 已就绪",
+      "pid": 4304,
+      "origin": "http://127.0.0.1:51318",
+      "localOnly": true
+    },
+    {
+      "name": "首次真实 scheduled 回填后仍阻止未知 live pin 回收",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 0,
+        "backfilled": 1,
+        "backfillFailed": 0,
+        "discovered": 50,
+        "unknownObjects": 0,
+        "objectsDeleted": 0,
+        "objectsFailed": 0,
+        "blockedPins": 1
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 60,
+        "sqlStatements": 68,
+        "r2Calls": 2,
+        "r2Operations": {
+          "get": 1,
+          "head": 0,
+          "put": 0,
+          "delete": 0,
+          "list": 1
+        },
+        "bindingCalls": 62,
+        "wallMs": 151,
+        "ok": true
+      }
+    },
+    {
+      "name": "最大 256-block 近 32MiB 回填与清理预算实测",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 100,
+        "backfilled": 1,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 0,
+        "objectsDeleted": 20,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 355,
+        "sqlStatements": 403,
+        "r2Calls": 277,
+        "r2Operations": {
+          "get": 256,
+          "head": 0,
+          "put": 0,
+          "delete": 20,
+          "list": 1
+        },
+        "bindingCalls": 632,
+        "wallMs": 1429,
+        "ok": true
+      }
+    },
+    {
+      "name": "真实数据库故障保留删除声明并记录失败",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 0,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 6,
+        "unknownObjects": 1,
+        "objectsDeleted": 19,
+        "objectsFailed": 1,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 55,
+        "sqlStatements": 97,
+        "r2Calls": 21,
+        "r2Operations": {
+          "get": 0,
+          "head": 0,
+          "put": 0,
+          "delete": 20,
+          "list": 1
+        },
+        "bindingCalls": 76,
+        "wallMs": 287,
+        "ok": true
+      }
+    },
+    {
+      "name": "外部故障移除后幂等重试与剩余孤儿收敛",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 1,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 1,
+        "objectsDeleted": 10,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 44,
+        "sqlStatements": 68,
+        "r2Calls": 11,
+        "r2Operations": {
+          "get": 0,
+          "head": 0,
+          "put": 0,
+          "delete": 10,
+          "list": 1
+        },
+        "bindingCalls": 55,
+        "wallMs": 115,
+        "ok": true
+      }
+    },
+    {
+      "name": "独立 Worker 已就绪",
+      "pid": 43580,
+      "origin": "http://127.0.0.1:54826",
+      "localOnly": true
+    },
+    {
+      "name": "后续页新观测孤儿仍享有完整宽限期",
+      "freshOrphans": 6
+    },
+    {
+      "name": "外部故障移除后幂等重试与剩余孤儿收敛",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 0,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 1,
+        "objectsDeleted": 6,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 27,
+        "sqlStatements": 43,
+        "r2Calls": 7,
+        "r2Operations": {
+          "get": 0,
+          "head": 0,
+          "put": 0,
+          "delete": 6,
+          "list": 1
+        },
+        "bindingCalls": 34,
+        "wallMs": 87,
+        "ok": true
+      }
+    },
+    {
+      "name": "真实 HTTP 鉴权与隔离通过",
+      "anonymousPins": 401,
+      "anonymousTokens": 401,
+      "active": 200,
+      "revoked": 401,
+      "expired": 401,
+      "agentManagement": 403,
+      "crossAccountUnpin": 404
+    },
+    {
+      "name": "独立浏览器真实交互通过",
+      "browser": "Edg/156.0.4314.58",
+      "activeDefault": true,
+      "historySwitch": true,
+      "unpinRemoved": true,
+      "retentionNotice": true,
+      "tokenRequests": ["/api/tokens?view=active", "/api/tokens?view=history"]
+    },
+    {
+      "name": "停止自有 Worker 后取得一致备份",
+      "sqlExportBytes": 169183,
+      "carSha256": "fc69d321ebfa9a61a45b41d1652667bf7a0c0fdfe28aa4f160e3752033ed803c",
+      "carBytes": 33447941
+    },
+    {
+      "name": "独立 Worker 已就绪",
+      "pid": 9268,
+      "origin": "http://127.0.0.1:54826",
+      "localOnly": true
+    },
+    {
+      "name": "最后根账号 unpin 后跨账号 leaf 仍保护整个共享 CAR",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 0,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 1,
+        "objectsDeleted": 1,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 12,
+        "sqlStatements": 18,
+        "r2Calls": 2,
+        "r2Operations": {
+          "get": 0,
+          "head": 0,
+          "put": 0,
+          "delete": 1,
+          "list": 1
+        },
+        "bindingCalls": 14,
+        "wallMs": 32,
+        "ok": true
+      }
+    },
+    {
+      "name": "最后有效引用失去后不足七天仍保留",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 0,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 1,
+        "objectsDeleted": 0,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 9,
+        "sqlStatements": 13,
+        "r2Calls": 1,
+        "r2Operations": {
+          "get": 0,
+          "head": 0,
+          "put": 0,
+          "delete": 0,
+          "list": 1
+        },
+        "bindingCalls": 10,
+        "wallMs": 19,
+        "ok": true
+      }
+    },
+    {
+      "name": "隔离时间夹具超过七天后回收内容和索引",
+      "transport": "/cdn-cgi/local/scheduled?format=json",
+      "result": {
+        "event": "retention_completed",
+        "tokensDeleted": 0,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 1,
+        "objectsDeleted": 2,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      },
+      "budget": {
+        "event": "retention_runtime_budget",
+        "d1Calls": 13,
+        "sqlStatements": 21,
+        "r2Calls": 3,
+        "r2Operations": {
+          "get": 0,
+          "head": 0,
+          "put": 0,
+          "delete": 2,
+          "list": 1
+        },
+        "bindingCalls": 16,
+        "wallMs": 32,
+        "ok": true
+      }
+    },
+    {
+      "name": "独立 Worker 已就绪",
+      "pid": 652,
+      "origin": "http://127.0.0.1:54826",
+      "localOnly": true
+    },
+    {
+      "name": "真实快照恢复后 pin、CAR 与撤销状态一致",
+      "restoredCarSha256": "fc69d321ebfa9a61a45b41d1652667bf7a0c0fdfe28aa4f160e3752033ed803c",
+      "restoredPins": true,
+      "revokedStillDenied": true
+    },
+    {
+      "name": "独立 Worker 已就绪",
+      "pid": 33364,
+      "origin": "http://127.0.0.1:54826",
+      "localOnly": true
+    },
+    {
+      "name": "移除本地 Cron 配置并停止主动触发后 API 与鉴权保持正常",
+      "configuredCrons": [],
+      "legacyTestScheduledFlag": false,
+      "caveat": "本地 Cron 不自动按时钟运行；Local Explorer 手工入口不属于自动调度；不宣称验证远程调度暂停"
+    }
+  ],
+  "scheduledEvents": [
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 0,
+      "backfilled": 1,
+      "backfillFailed": 0,
+      "discovered": 50,
+      "unknownObjects": 0,
+      "objectsDeleted": 0,
+      "objectsFailed": 0,
+      "blockedPins": 1
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 60,
+      "sqlStatements": 68,
+      "r2Calls": 2,
+      "r2Operations": {
+        "get": 1,
+        "head": 0,
+        "put": 0,
+        "delete": 0,
+        "list": 1
+      },
+      "bindingCalls": 62,
+      "wallMs": 151,
+      "ok": true
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 100,
+      "backfilled": 1,
+      "backfillFailed": 0,
+      "discovered": 0,
+      "unknownObjects": 0,
+      "objectsDeleted": 20,
+      "objectsFailed": 0,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 355,
+      "sqlStatements": 403,
+      "r2Calls": 277,
+      "r2Operations": {
+        "get": 256,
+        "head": 0,
+        "put": 0,
+        "delete": 20,
+        "list": 1
+      },
+      "bindingCalls": 632,
+      "wallMs": 1429,
+      "ok": true
+    },
+    {
+      "event": "retention_object_failed",
+      "objectKey": "cars/orphan-20.car",
+      "message": "D1_ERROR: fixture-finalization-failure: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)"
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 0,
+      "backfilled": 0,
+      "backfillFailed": 0,
+      "discovered": 6,
+      "unknownObjects": 1,
+      "objectsDeleted": 19,
+      "objectsFailed": 1,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 55,
+      "sqlStatements": 97,
+      "r2Calls": 21,
+      "r2Operations": {
+        "get": 0,
+        "head": 0,
+        "put": 0,
+        "delete": 20,
+        "list": 1
+      },
+      "bindingCalls": 76,
+      "wallMs": 287,
+      "ok": true
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 1,
+      "backfilled": 0,
+      "backfillFailed": 0,
+      "discovered": 0,
+      "unknownObjects": 1,
+      "objectsDeleted": 10,
+      "objectsFailed": 0,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 44,
+      "sqlStatements": 68,
+      "r2Calls": 11,
+      "r2Operations": {
+        "get": 0,
+        "head": 0,
+        "put": 0,
+        "delete": 10,
+        "list": 1
+      },
+      "bindingCalls": 55,
+      "wallMs": 115,
+      "ok": true
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 0,
+      "backfilled": 0,
+      "backfillFailed": 0,
+      "discovered": 0,
+      "unknownObjects": 1,
+      "objectsDeleted": 6,
+      "objectsFailed": 0,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 27,
+      "sqlStatements": 43,
+      "r2Calls": 7,
+      "r2Operations": {
+        "get": 0,
+        "head": 0,
+        "put": 0,
+        "delete": 6,
+        "list": 1
+      },
+      "bindingCalls": 34,
+      "wallMs": 87,
+      "ok": true
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 0,
+      "backfilled": 0,
+      "backfillFailed": 0,
+      "discovered": 0,
+      "unknownObjects": 1,
+      "objectsDeleted": 1,
+      "objectsFailed": 0,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 12,
+      "sqlStatements": 18,
+      "r2Calls": 2,
+      "r2Operations": {
+        "get": 0,
+        "head": 0,
+        "put": 0,
+        "delete": 1,
+        "list": 1
+      },
+      "bindingCalls": 14,
+      "wallMs": 32,
+      "ok": true
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 0,
+      "backfilled": 0,
+      "backfillFailed": 0,
+      "discovered": 0,
+      "unknownObjects": 1,
+      "objectsDeleted": 0,
+      "objectsFailed": 0,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 9,
+      "sqlStatements": 13,
+      "r2Calls": 1,
+      "r2Operations": {
+        "get": 0,
+        "head": 0,
+        "put": 0,
+        "delete": 0,
+        "list": 1
+      },
+      "bindingCalls": 10,
+      "wallMs": 19,
+      "ok": true
+    },
+    {
+      "event": "retention_completed",
+      "tokensDeleted": 0,
+      "backfilled": 0,
+      "backfillFailed": 0,
+      "discovered": 0,
+      "unknownObjects": 1,
+      "objectsDeleted": 2,
+      "objectsFailed": 0,
+      "blockedPins": 0
+    },
+    {
+      "event": "retention_runtime_budget",
+      "d1Calls": 13,
+      "sqlStatements": 21,
+      "r2Calls": 3,
+      "r2Operations": {
+        "get": 0,
+        "head": 0,
+        "put": 0,
+        "delete": 2,
+        "list": 1
+      },
+      "bindingCalls": 16,
+      "wallMs": 32,
+      "ok": true
+    }
+  ]
+}
