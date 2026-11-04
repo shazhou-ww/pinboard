@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-14",
   "compatibility_flags": ["nodejs_compat"],
+  "triggers": { "crons": ["17 * * * *"] },
   "assets": {
     "binding": "ASSETS",
     "directory": "../web/dist",

@@ -7,15 +7,17 @@ accepted as before; stored block identifiers and export roots use CIDv1.
 
 ## Layout and reads
 
-- R2 `cars/<sha2-256-raw-CID-of-CAR-bytes>.car` holds the complete archive.
+- R2 `cars/<random-UUID>.car` holds the complete immutable archive. Previously
+  published content-addressed CAR keys remain readable.
 - D1 `car_dags` maps an uploaded or explicitly pinned root to its CAR object and
   archive length. `car_blocks` maps each normalized block CID to the object,
   **payload** offset and payload length (excluding section framing and CID).
 - New writes do not create independent full block objects. Within a CAR each
-  reachable CID occurs once. Exact retries reuse the same content-addressed
-  object. Overlapping but different DAGs each retain their complete CAR:
-  cross-CAR payload duplication is intentional, not global deduplication. The
-  global block index retains the first published location for each CID.
+  reachable CID occurs once. Each retry uses a fresh key so an old or delayed
+  garbage-collection delete cannot erase a new publication. Overlapping DAGs and
+  retries each retain their complete CAR: cross-CAR payload duplication is
+  intentional, not global deduplication. The global block index points to the
+  latest successfully published location.
 - Export of an indexed root performs one D1 lookup and one streamed R2 GET. It
   does not walk block indexes, fetch individual blocks or re-encode a CAR.
 - Raw GET performs one D1 lookup and an R2 range GET for the exact block
@@ -34,20 +36,24 @@ raw gateway still does not offer HTTP byte-range responses.
 
 ## Publication, failures and recovery
 
-The complete immutable CAR PUT finishes **before** one D1 batch transaction
-publishes its manifest and all missing block locations. Index rows are expanded
-with SQLite `json_each` from one bound JSON value, not one network request or
-SQL statement per block. The batch rolls back completely on a statement error.
-Only after publication does the service save the caller's account pin.
+The writer first reserves a `storage_objects` row in `writing` state. The
+complete immutable CAR PUT finishes **before** one D1 batch transaction
+publishes its manifest, block locations, physical membership and complete DAG
+membership, and marks the object `ready`. Index rows are expanded with SQLite
+`json_each` from one bound JSON value, not one network request or SQL statement
+per block. The batch rolls back completely on a statement error. Only after
+publication does a second transaction save the caller's account pin and clear
+the DAG blocks' last-unreferenced timestamps. A CHECK-constrained write guard
+rolls back either transaction if cleanup already claimed its object.
 
 R2 and D1 are not a distributed transaction. A failed PUT publishes no index; a
 failed SQL transaction can leave an unindexed CAR. A failed pin save or a lost
 response after commit can leave complete public content without a successful
 account-pin response. No operation reports success before all required writes
-finish. Retrying the identical upload deterministically restores the object,
-reuses the index and upserts the caller's pin; concurrent retries are safe. Do
-not delete an object as error compensation: a concurrent writer or a commit
-whose response was lost may already reference it.
+finish. Retrying the identical upload creates a fresh complete archive, updates
+the index and upserts the caller's pin; concurrent retries are safe. Do not
+delete an object as error compensation: a concurrent writer or a commit whose
+response was lost may already reference it.
 
 An indexed object that is missing, truncated, or does not yield the requested
 range fails closed with 503. It is not reported as an ordinary missing CID or a
@@ -56,39 +62,108 @@ service failures continue to surface as errors. Downloads remain trustless:
 clients must verify block CIDs; same-length out-of-band object corruption is not
 detected by metadata alone.
 
-Physical garbage collection is deliberately not implemented. Unpin removes only
-the account reference; CARs, block indexes and legacy objects remain. For
-reconciliation, compare a paginated R2 listing under `cars/` with **all**
-`car_dags.object_key` values, not just live pins. Unreferenced objects are
-orphan candidates, not immediately safe deletions: pause writers, settle
-in-flight/ambiguous commits and take a fresh consistent inventory before any
-separately approved cleanup. Never delete a referenced CAR simply because its
-root has no pins: another DAG's block locations may point into it. There is no
-automatic backfill, destructive migration or global deduplication.
+## Retention and automatic cleanup
+
+Unpin removes only the account reference, not the public content immediately.
+`dag_members` stores each verified root's complete reachable closure. The pin
+mutation and each affected `retained_blocks.unreferenced_at` update are atomic:
+the timestamp starts only when the last account pin or pinned DAG stops
+referencing that block. A new pin clears it. Archive creation time is never used
+as proof of the last reference loss.
+
+The hourly UTC cron (`17 * * * *`) performs bounded, retryable work:
+
+- Delete at most 100 token records whose earlier revocation/expiry is at least
+  30 days old. Repeated revocations never move the original revocation time.
+  Authentication always checks revocation and expiry, regardless of cleanup.
+- Verify at most one existing pinned DAG (at most the existing 256 blocks / 32
+  MiB bounds) to backfill its closure. Failures rotate behind other roots; **any
+  unverified live pin blocks new content deletion claims**. A legacy pin removed
+  before backfill also imposes a global seven-day safety floor.
+- Discover at most 50 R2 objects, checkpointing the opaque list cursor in D1.
+  Canonical legacy CID keys and `cars/*.car` objects are registered; other keys
+  are retained and counted for operator review. Undated legacy/orphan content
+  receives a fresh seven-day grace period from observation, not upload time.
+- Claim at most 20 old objects. Every physical member must be unreferenced for
+  at least seven days, and no active manifest may depend on the object. A whole
+  CAR containing any live/shared block remains intact, including duplicate
+  payloads; there is no CAR compaction or global deduplication.
+- Recheck liveness and mark `deleting` atomically with removing only that
+  object's manifest/block locations. Delete R2 next, then remove its registry
+  and physical membership. Finish bounded cleanup of unused closure/retention
+  metadata (50 roots, 256 block records and 50 backfill records per pass).
+
+Deletion claims do not expire and object keys are never reused. If cleanup fails
+or its response is lost, the persistent claim can be retried idempotently. A
+suspended writer cannot publish into a claimed/deleted object. A concurrent
+repin writes its own complete fresh archive before committing a reference; an
+in-flight read that loses a race on already-unreferenced content may fail and be
+retried, but cannot create a successful broken pin. A late abandoned PUT is
+rediscovered as an orphan, with a new conservative grace period.
+
+Seven days and 30 days are eligibility boundaries, not exact deletion deadlines.
+The hourly schedule, backlog, backfill, shared CARs and failures can extend
+retention. Neither unpin nor token history provides a restore/permanent-delete
+action. CDN caches, other IPFS nodes and downloaded copies are outside this
+cleanup's scope.
+
+### Observability and recovery
+
+Structured `retention_completed` logs report token/object deletion counts,
+discoveries, unknown keys, backfill progress, blocked pins and per-object
+failures. `retention_backfill_failed` identifies an unverifiable root;
+`retention_object_failed` identifies a failing key. `retention_failed` signals
+an aborted invocation and is rethrown to the scheduled event. No token
+plaintext, hash or account identity is logged.
+
+Per-object failures use exponential retry delay (one minute initially, capped at
+24 hours); failed entries do not starve other eligible work. Monitor repeated
+failures, blocked roots, unknown keys and backlog, for example:
+
+```sql
+SELECT state, count(*) FROM storage_objects GROUP BY state;
+SELECT object_key, attempts, retry_at FROM storage_objects WHERE attempts > 0;
+SELECT DISTINCT p.cid FROM pins p
+WHERE NOT EXISTS (SELECT 1 FROM dag_roots d WHERE d.root = p.cid);
+```
+
+For unavailable legacy blocks, recover verified bytes from a trusted source and
+upload/pin the complete DAG; do not mark a root verified by hand. For R2/D1
+failures restore service and let the next cron retry. To pause cleanup, remove
+the Worker's Cron Trigger through a separately authorized configuration change;
+do not roll back to the old writer or clear deletion claims. Already-running
+invocations may finish. Take verified D1/R2 backups before manual recovery;
+never perform bucket lifecycle expiry or delete objects from root-pin counts.
 
 ## Schema and operational compatibility
 
 Apply [`0002_car_storage.sql`](../apps/worker/migrations/0002_car_storage.sql)
-through a separately authorized schema operation **before** deploying the new
-Worker. The normal tag deployment workflow does not migrate D1. For a database
-with manually initialized `0001` and no migration history, inspect existing
-tables first and execute only `0002`; do not blindly replay `0001`. See
+and [`0003_retention.sql`](../apps/worker/migrations/0003_retention.sql) through
+a separately authorized schema operation **before** deploying the new Worker.
+The normal tag deployment workflow does not migrate D1. For a database with
+manually initialized `0001` and no migration history, inspect existing tables
+first and execute only missing migrations; do not blindly replay `0001`. See
 [deployment prerequisites](deployment.md#car-storage-rollout-prerequisite).
 
-The old Worker can continue using the additive schema before cutover, but cannot
-read CAR-only content created by the new Worker. After new writes begin, rolling
-back to a pre-CAR Worker is **not** a data-compatible rollback. Keep the new
-reader available and forward-fix, or stop new uploads and use a separately
-verified compatibility release. Do not copy all new blocks to independent
-objects merely to make rollback possible.
+Migration 0003 preserves existing manifests/indexes, registers their physical
+providers and initializes a seven-day safety floor; old pins are deliberately
+not declared verified. It changes the writer protocol: stop old writers before
+migration/cutover and never let an old release mutate this schema after cleanup
+activation. Forward-fix with the retention-aware reader/writer, or pause all
+writes and cleanup for a separately verified recovery. A pre-CAR or
+pre-retention Worker is **not** a data-compatible rollback. Cron activation,
+schema operations and production deployment require their own release approval.
 
 ## Reproducible checks
 
 `pnpm check` includes Miniflare-backed storage tests with counted R2 operations,
 real D1 batch rollback injection, range checks, overlapping/concurrent uploads,
-legacy/mixed content and independent CAR parsing. Its `CAR_STORAGE_MEASUREMENT`
-lines describe fixture size, request counts and storage overhead; local timings
-are not production latency evidence.
+legacy/mixed content and independent CAR parsing. Retention tests also cover
+exact boundaries, nested/shared references, repinning concurrent with deletion,
+late PUTs, migration/backfill, discovery pagination, bounded work and failure
+retries, plus authenticated active/history token views. Its
+`CAR_STORAGE_MEASUREMENT` lines describe fixture size, request counts and
+storage overhead; local timings are not production latency evidence.
 
 With Kubo installed, independently import and reconstruct the stored directory
 CAR in an empty offline repository:

@@ -140,7 +140,7 @@ describe("CAR primary storage", () => {
     await storeDag(env, dag);
     expect(put).toHaveBeenCalledTimes(1);
     expect(batch).toHaveBeenCalledTimes(1);
-    expect(batch.mock.calls[0]![0]).toHaveLength(2);
+    expect(batch.mock.calls[0]![0].length).toBe(9);
     const objects = await env.BLOCKS.list();
     expect(objects.objects).toHaveLength(1);
     expect(objects.objects[0]!.key).toMatch(/^cars\//);
@@ -199,7 +199,7 @@ describe("CAR primary storage", () => {
           carDataGet: 1,
           head: 0,
           bytes: bytes.length,
-          sqlPublicationStatements: 2,
+          sqlPublicationStatements: 9,
           blockRows: locations.results.length,
           indexJsonBytes: Buffer.byteLength(JSON.stringify(locations.results)),
           localD1BytesDelta: locations.meta.size_after - beforeSize,
@@ -276,7 +276,7 @@ describe("CAR primary storage", () => {
     );
   }, 30000);
 
-  it("deduplicates within a DAG, reuses exact retries, and quantifies cross-CAR duplication", async () => {
+  it("deduplicates within a DAG, fences retries with fresh objects, and quantifies cross-CAR duplication", async () => {
     const leaf = await file("shared-content");
     const roots: Dag[] = [];
     for (const name of ["first", "second"]) {
@@ -296,7 +296,7 @@ describe("CAR primary storage", () => {
     await storeDag(env, roots[0]!);
     await storeDag(env, roots[0]!);
     expect((await env.BLOCKS.list({ prefix: "cars/" })).objects).toHaveLength(
-      before,
+      before + 2,
     );
     const rows = await env.DB.prepare(
       "SELECT count(*) AS count FROM car_blocks WHERE cid = ?",
@@ -471,7 +471,7 @@ describe("CAR primary storage", () => {
     const count = (await env.BLOCKS.list({ prefix: "cars/" })).objects.length;
     await service.upload(text("failure-recovery"), "file", "recovered");
     expect((await env.BLOCKS.list({ prefix: "cars/" })).objects).toHaveLength(
-      count,
+      count + 1,
     );
     expect(await readBlock(env, key(dag.root))).toEqual(
       text("failure-recovery"),

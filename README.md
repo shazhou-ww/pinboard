@@ -27,8 +27,13 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 
 All uploaded bytes are **public**, including bytes in failed partial writes.
 Account lists, labels, and tokens are private. Unpinning deletes **only your
-account reference**. Shared blocks, CDN copies and downloaded copies are not
-erased. Physical garbage collection is not implemented.
+account reference** and immediately removes the pin from your list. Content is
+eligible for scheduled cleanup 7 days after its last account or DAG reference
+disappears. Shared CARs may remain longer; CDN, other nodes and downloaded
+copies are not erased. There is no recycle bin, restore or permanent-delete
+action. Revoked/expired Agent tokens stop authenticating immediately; their
+management records are kept for 30 days from the earlier invalidation time. The
+Web token list defaults to active entries, with a separate history view.
 
 New uploads use one CAR object and a CID-to-object/offset/length index, with
 legacy independent-block fallback. Complete indexed CAR downloads stream one
@@ -90,17 +95,17 @@ selection and public-content acknowledgement before uploading.
 
 ## Interfaces
 
-| Route                                             | Access                 | Purpose                                       |
-| ------------------------------------------------- | ---------------------- | --------------------------------------------- |
-| `/ipfs/:cid?format=raw`                           | Public GET/HEAD        | Raw verified block, never an HTML document    |
-| `/routing/v1/providers/:cid`                      | Public GET             | Delegated Routing JSON or NDJSON              |
-| `/api/public/:cid/car`                            | Public GET             | Complete DAG as an attachment                 |
-| `/share/:cid`                                     | Public                 | Safe share page; no content preview/execution |
-| `/api/pins`                                       | Session or Agent token | List or pin an already stored DAG             |
-| `/api/pins/upload?kind=file\|car\|block&name=...` | Session or Agent token | Upload; block mode also requires `cid`        |
-| `/api/pins/:cid`                                  | Session or Agent token | Detail or DELETE own reference                |
-| `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list or revoke account tokens          |
-| `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)          |
+| Route                                             | Access                 | Purpose                                                                   |
+| ------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------- |
+| `/ipfs/:cid?format=raw`                           | Public GET/HEAD        | Raw verified block, never an HTML document                                |
+| `/routing/v1/providers/:cid`                      | Public GET             | Delegated Routing JSON or NDJSON                                          |
+| `/api/public/:cid/car`                            | Public GET             | Complete DAG as an attachment                                             |
+| `/share/:cid`                                     | Public                 | Safe share page; no content preview/execution                             |
+| `/api/pins`                                       | Session or Agent token | List or pin an already stored DAG                                         |
+| `/api/pins/upload?kind=file\|car\|block&name=...` | Session or Agent token | Upload; block mode also requires `cid`                                    |
+| `/api/pins/:cid`                                  | Session or Agent token | Detail or DELETE own reference                                            |
+| `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
+| `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
 
 Uploads require `X-Pinboard-Public: true`. JSON pin requests require
 `{"cid":"...","name":"...","public":true}`. Cookie-authenticated mutations also

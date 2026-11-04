@@ -315,6 +315,31 @@ Before calling a release successful, verify:
 - Logs/traces, CPU, subrequest limits and expected traffic are acceptable.
 
 Local checks and `wrangler deploy --dry-run` are not a production deployment.
-Physical GC, takedown workflows, quotas/rate limiting and abuse operations
-remain outside the first version. Google login is authentication, not an abuse
-policy.
+The retention-aware release includes bounded automatic GC; see the rollout
+prerequisite below. Takedown workflows, quotas/rate limiting and abuse
+operations remain separate. Google login is authentication, not an abuse policy.
+
+## Retention rollout prerequisite
+
+Before deploying the retention-aware Worker, separately authorize and verify
+`0003_retention.sql` after the existing migrations. Stop old writers during this
+cutover: the new object reservation/fencing and reference timestamp protocol is
+not compatible with an old writer. Do not add migrations to the tag workflow.
+Keep verified D1/R2 backups and a retention-aware forward-fix artifact.
+
+The new configuration registers an hourly UTC Cron Trigger. In a separately
+authorized non-production environment, verify migration against representative
+existing CAR/legacy data, unknown-pin backfill safety, the scheduled entrypoint,
+logs, failure retries and active/history token views before authorizing any
+production rollout. New deletion claims stay blocked until live pin closures are
+verified, and legacy/orphan observations get conservative grace periods. Check
+actual Workers CPU/subrequest budgets against the bounded workload.
+
+To pause cleanup, remove the Cron Trigger using a separately authorized
+configuration update; allow already-running invocations to settle. Do not
+downgrade to an old writer, erase `deleting` claims, or apply R2 lifecycle
+expiry. See
+[storage retention and recovery](storage.md#retention-and-automatic-cleanup) for
+limits, operational queries and failure handling. Local tests/dry runs do not
+prove external scheduled execution. This repository change does not deploy,
+create a release tag, or enable deployment on branch pushes.

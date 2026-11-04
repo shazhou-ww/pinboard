@@ -58,6 +58,13 @@ describe("Pinboard interface", () => {
     expect(html).toContain("Drop one file or folder here");
     expect(html).not.toContain("Content type");
     expect(html).not.toContain("Raw IPFS block");
+    expect(html).toContain(
+      '<option value="active" selected="">Active tokens</option>',
+    );
+    expect(html).toContain("History (revoked or expired)");
+    expect(html).toContain("30");
+    expect(html).toContain("7 days");
+    expect(html).not.toContain("Physical garbage collection is deferred");
   });
   it("shows a pending immediate logout without a confirmation-page link", () => {
     const html = renderToStaticMarkup(

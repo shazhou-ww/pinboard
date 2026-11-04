@@ -38,6 +38,7 @@ export async function requestJson<T>(
 export function AccountManager() {
   const [pins, setPins] = useState<Pin[]>([]);
   const [tokens, setTokens] = useState<AgentToken[]>([]);
+  const [tokenView, setTokenView] = useState<"active" | "history">("active");
   const [cursor, setCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<Pin | null>(null);
   const [error, setError] = useState("");
@@ -59,7 +60,7 @@ export function AccountManager() {
   const refresh = async () => {
     const [page, list] = await Promise.all([
       requestJson<PinPage>("/api/pins"),
-      requestJson<{ tokens: AgentToken[] }>("/api/tokens"),
+      requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
     ]);
     setPins(page.pins);
     setCursor(page.nextCursor);
@@ -84,7 +85,7 @@ export function AccountManager() {
     let active = true;
     void Promise.all([
       requestJson<PinPage>("/api/pins"),
-      requestJson<{ tokens: AgentToken[] }>("/api/tokens"),
+      requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
     ])
       .then(([page, list]) => {
         if (active) {
@@ -103,7 +104,7 @@ export function AccountManager() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tokenView]);
 
   const copy = (text: string) =>
     perform(async () => {
@@ -390,7 +391,7 @@ export function AccountManager() {
                     onClick={() => {
                       if (
                         !window.confirm(
-                          "Remove your pin reference? Public bytes will remain available.",
+                          "Remove your pin reference? Unreferenced content is retained for 7 days. Public copies elsewhere may remain.",
                         )
                       )
                         return;
@@ -398,10 +399,13 @@ export function AccountManager() {
                         await requestJson(`/api/pins/${pin.cid}`, {
                           method: "DELETE",
                         });
+                        setPins((previous) =>
+                          previous.filter((item) => item.cid !== pin.cid),
+                        );
                         if (selected?.cid === pin.cid) setSelected(null);
                         await refresh();
                         setNotice(
-                          "Reference removed. Public bytes are retained; garbage collection is not enabled.",
+                          "Reference removed. Unreferenced content becomes eligible for cleanup after 7 days. Shared and external copies may remain.",
                         );
                       });
                     }}
@@ -533,6 +537,26 @@ export function AccountManager() {
             </div>
           </div>
         ) : null}
+        <label>
+          Token view
+          <select
+            value={tokenView}
+            disabled={busy}
+            onChange={(event) => {
+              setTokens([]);
+              setTokenView(
+                event.target.value === "history" ? "history" : "active",
+              );
+            }}
+          >
+            <option value="active">Active tokens</option>
+            <option value="history">History (revoked or expired)</option>
+          </select>
+        </label>
+        <p className="muted">
+          Revocation and expiry take effect immediately. History is kept for 30
+          days from whichever happens first, then removed by scheduled cleanup.
+        </p>
         <ul className="token-list">
           {tokens.map((token) => (
             <li key={token.id}>
@@ -545,6 +569,8 @@ export function AccountManager() {
               </div>
               {token.revokedAt ? (
                 <span className="muted">Revoked</span>
+              ) : token.expiresAt <= new Date().toISOString() ? (
+                <span className="muted">Expired</span>
               ) : (
                 <button
                   disabled={busy}
@@ -567,7 +593,10 @@ export function AccountManager() {
       </section>
       <p className="muted policy">
         Unpinning removes only your account reference. Shared blocks are never
-        deleted by another account. Physical garbage collection is deferred.
+        deleted by another account. Content without any account or DAG reference
+        is retained for 7 days before scheduled cleanup. CDN, other nodes and
+        downloaded copies may remain; there is no restore or permanent-delete
+        action.
       </p>
     </div>
   );

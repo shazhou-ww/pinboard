@@ -70,7 +70,16 @@ const tokenIdentity: MiddlewareHandler<AppEnv> = async (c, next) => {
 api.use("/api/tokens/*", tokenIdentity);
 api.use("/api/tokens", tokenIdentity);
 api.get("/api/tokens", async (c) =>
-  c.json({ tokens: await listTokens(c.env, c.get("principal")) }),
+  c.json({
+    tokens: await listTokens(
+      c.env,
+      c.get("principal"),
+      validate(
+        z.enum(["active", "history"]).default("active"),
+        c.req.query("view"),
+      ) === "history",
+    ),
+  }),
 );
 api.post("/api/tokens", async (c) =>
   c.json(

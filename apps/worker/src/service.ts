@@ -11,7 +11,7 @@ import {
   type Dag,
   verifyBlock,
 } from "./content.js";
-import { readBlock, storeDag } from "./storage.js";
+import { readBlock, storeDag, writeGuard } from "./storage.js";
 import { nameSchema, validate } from "./schemas.js";
 import type { Pin } from "@workspace/contracts";
 
@@ -77,8 +77,8 @@ export class PinService {
         key(link) === key(root) ? bytes : this.readBlock(link.toString()),
       );
     }
-    await storeDag(this.env, dag);
-    return this.save(dag, name);
+    const objectKey = await storeDag(this.env, dag);
+    return this.save(dag, name, objectKey);
   }
 
   async pin(cid: string, name: string): Promise<Pin> {
@@ -87,17 +87,30 @@ export class PinService {
     const dag = await completeDag(parseCid(cid), (link) =>
       this.readBlock(link.toString()),
     );
-    await storeDag(this.env, dag);
-    return this.save(dag, name);
+    const objectKey = await storeDag(this.env, dag);
+    return this.save(dag, name, objectKey);
   }
 
   async unpin(cid: string): Promise<void> {
     requireScope(this.principal, "pins:delete");
-    const result = await this.env.DB.prepare(
-      "DELETE FROM pins WHERE account_id = ? AND cid = ?",
-    )
-      .bind(this.principal.accountId, key(parseCid(cid)))
-      .run();
+    const root = key(parseCid(cid));
+    const now = new Date();
+    const results = await this.env.DB.batch([
+      this.env.DB.prepare(
+        "UPDATE retention_state SET safe_after = max(safe_after, ?) WHERE id = 1 AND EXISTS (SELECT 1 FROM pins WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM dag_roots WHERE root = pins.cid))",
+      ).bind(
+        new Date(now.getTime() + 7 * 86400000).toISOString(),
+        this.principal.accountId,
+        root,
+      ),
+      this.env.DB.prepare(
+        "DELETE FROM pins WHERE account_id = ? AND cid = ?",
+      ).bind(this.principal.accountId, root),
+      this.env.DB.prepare(
+        "UPDATE retained_blocks SET unreferenced_at = ? WHERE unreferenced_at IS NULL AND cid IN (SELECT cid FROM dag_members WHERE root = ?) AND NOT EXISTS (SELECT 1 FROM dag_members m JOIN pins p ON p.cid = m.root WHERE m.cid = retained_blocks.cid)",
+      ).bind(now.toISOString(), root),
+    ]);
+    const result = results[1]!;
     if (!result.meta.changes)
       throw new HTTPException(404, {
         message: "Pin not found in your account",
@@ -108,13 +121,18 @@ export class PinService {
     return readBlock(this.env, cid);
   }
 
-  private async save(dag: Dag, name: string): Promise<Pin> {
+  private async save(dag: Dag, name: string, objectKey: string): Promise<Pin> {
     const cid = key(dag.root);
-    const result = await this.env.DB.prepare(
-      "INSERT INTO pins (account_id, cid, name, size, blocks) VALUES (?, ?, ?, ?, ?) ON CONFLICT(account_id, cid) DO UPDATE SET name = excluded.name RETURNING cid, name, size, blocks, created_at AS createdAt",
-    )
-      .bind(this.principal.accountId, cid, name, dag.size, dag.blocks.size)
-      .first<Pin>();
+    const results = await this.env.DB.batch([
+      writeGuard(this.env.DB, objectKey, "ready"),
+      this.env.DB.prepare(
+        "INSERT INTO pins (account_id, cid, name, size, blocks) VALUES (?, ?, ?, ?, ?) ON CONFLICT(account_id, cid) DO UPDATE SET name = excluded.name RETURNING cid, name, size, blocks, created_at AS createdAt",
+      ).bind(this.principal.accountId, cid, name, dag.size, dag.blocks.size),
+      this.env.DB.prepare(
+        "UPDATE retained_blocks SET unreferenced_at = NULL WHERE cid IN (SELECT cid FROM dag_members WHERE root = ?)",
+      ).bind(cid),
+    ]);
+    const result = results[1]!.results[0] as Pin | undefined;
     if (!result) throw new Error("Failed to save pin reference");
     return result;
   }

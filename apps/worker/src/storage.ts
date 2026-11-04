@@ -1,7 +1,5 @@
 import { CarIndexer } from "@ipld/car";
 import { HTTPException } from "hono/http-exception";
-import { CID } from "multiformats/cid";
-import { sha256 } from "multiformats/hashes/sha2";
 import { encodeCar } from "./car.js";
 import { completeDag, key, parseCid, type Dag } from "./content.js";
 import type { Bindings } from "./env.js";
@@ -17,26 +15,82 @@ function unavailable(): never {
   throw new HTTPException(503, { message: "Stored CAR is unavailable" });
 }
 
-export async function storeDag(env: Storage, dag: Dag): Promise<void> {
+export async function storeDag(env: Storage, dag: Dag): Promise<string> {
   const bytes = await encodeCar(dag);
-  const objectKey = `cars/${CID.createV1(0x55, await sha256.digest(bytes)).toString()}.car`;
+  // Never reuse a key: a delayed GC delete or abandoned PUT must not touch a
+  // concurrent repin's archive.
+  const objectKey = `cars/${crypto.randomUUID()}.car`;
   const index = await CarIndexer.fromBytes(bytes);
   const rows: [string, number, number][] = [];
   for await (const block of index)
     rows.push([key(block.cid), block.blockOffset, block.blockLength]);
-  // Content-addressed retries are safe even if a previous D1 commit's response
-  // was lost. Never delete on error: another writer may reference this object.
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    "INSERT INTO storage_objects (object_key, state, unreferenced_at, retry_at) VALUES (?, 'writing', ?, ?)",
+  )
+    .bind(objectKey, now, now)
+    .run();
   await env.BLOCKS.put(objectKey, bytes, {
     httpMetadata: { contentType: "application/vnd.ipld.car; version=1" },
   });
   await env.DB.batch([
+    writeGuard(env.DB, objectKey, "writing"),
     env.DB.prepare(
-      "INSERT INTO car_dags (root, object_key, size) VALUES (?, ?, ?) ON CONFLICT(root) DO NOTHING",
+      "INSERT INTO car_dags (root, object_key, size) VALUES (?, ?, ?) ON CONFLICT(root) DO UPDATE SET object_key = excluded.object_key, size = excluded.size",
     ).bind(key(dag.root), objectKey, bytes.length),
     env.DB.prepare(
-      "INSERT INTO car_blocks (cid, object_key, byte_offset, byte_length) SELECT json_extract(value, '$[0]'), ?, json_extract(value, '$[1]'), json_extract(value, '$[2]') FROM json_each(?) WHERE true ON CONFLICT(cid) DO NOTHING",
+      "INSERT INTO car_blocks (cid, object_key, byte_offset, byte_length) SELECT json_extract(value, '$[0]'), ?, json_extract(value, '$[1]'), json_extract(value, '$[2]') FROM json_each(?) WHERE true ON CONFLICT(cid) DO UPDATE SET object_key = excluded.object_key, byte_offset = excluded.byte_offset, byte_length = excluded.byte_length",
     ).bind(objectKey, JSON.stringify(rows)),
+    env.DB.prepare(
+      "INSERT INTO object_blocks (object_key, cid) SELECT ?, json_extract(value, '$[0]') FROM json_each(?)",
+    ).bind(objectKey, JSON.stringify(rows)),
+    ...dagStatements(env.DB, dag, now),
+    env.DB.prepare(
+      "UPDATE storage_objects SET state = 'ready' WHERE object_key = ?",
+    ).bind(objectKey),
   ]);
+  return objectKey;
+}
+
+export function writeGuard(
+  db: D1Database,
+  objectKey: string,
+  state: "writing" | "ready",
+): D1PreparedStatement {
+  // A CHECK constraint aborts the entire publication transaction if GC has
+  // claimed the object while a writer was suspended outside D1.
+  return db
+    .prepare(
+      "INSERT OR REPLACE INTO retention_write_guard (id) VALUES (CASE WHEN EXISTS (SELECT 1 FROM storage_objects WHERE object_key = ? AND state = ?) THEN 1 ELSE 0 END)",
+    )
+    .bind(objectKey, state);
+}
+
+export function dagStatements(
+  db: D1Database,
+  dag: Dag,
+  now: string,
+): D1PreparedStatement[] {
+  const root = key(dag.root);
+  const members = JSON.stringify([...dag.blocks.keys()]);
+  return [
+    db.prepare("INSERT OR IGNORE INTO dag_roots (root) VALUES (?)").bind(root),
+    db
+      .prepare(
+        "INSERT OR IGNORE INTO dag_members (root, cid) SELECT ?, value FROM json_each(?)",
+      )
+      .bind(root, members),
+    db
+      .prepare(
+        "INSERT OR IGNORE INTO retained_blocks (cid, unreferenced_at) SELECT value, ? FROM json_each(?)",
+      )
+      .bind(now, members),
+    db
+      .prepare(
+        "UPDATE retained_blocks SET unreferenced_at = NULL WHERE cid IN (SELECT cid FROM dag_members WHERE root = ?) AND EXISTS (SELECT 1 FROM pins WHERE cid = ?)",
+      )
+      .bind(root, root),
+  ];
 }
 
 async function locate(env: Storage, cid: string): Promise<Location | null> {

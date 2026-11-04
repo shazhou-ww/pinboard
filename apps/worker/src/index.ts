@@ -15,6 +15,7 @@ import { api } from "./api.js";
 import { gateway } from "./gateway.js";
 import { key, parseCid } from "./content.js";
 import { getCar } from "./storage.js";
+import { runRetention } from "./retention.js";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -83,7 +84,14 @@ app.notFound((context) =>
   ),
 );
 
-export default app;
+export default Object.assign(app, {
+  async scheduled(
+    _controller: ScheduledController,
+    env: Bindings,
+  ): Promise<void> {
+    await runRetention(env);
+  },
+});
 
 export function toSessionResponse(session: Session): SessionResponse {
   return {
