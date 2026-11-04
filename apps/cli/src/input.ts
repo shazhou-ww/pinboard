@@ -13,11 +13,17 @@ function sizeCheck(size: number): void {
     throw new CliError("INPUT_LIMIT", "Input exceeds 32 MiB.");
 }
 
-function same(before: Stats, after: Stats): boolean {
+function sameIdentity(before: Stats, after: Stats): boolean {
   return (
     before.dev === after.dev &&
     before.ino === after.ino &&
-    before.size === after.size &&
+    before.size === after.size
+  );
+}
+
+function same(before: Stats, after: Stats): boolean {
+  return (
+    sameIdentity(before, after) &&
     before.mtimeMs === after.mtimeMs &&
     before.ctimeMs === after.ctimeMs
   );
@@ -34,7 +40,14 @@ async function* content(
     constants.O_RDONLY | (constants.O_NOFOLLOW || 0),
   );
   try {
-    if (!(await file.stat()).isFile() || !same(before, await file.stat()))
+    const opened = await file.stat();
+    // Windows lstat and fstat can report different timestamp precision. Compare
+    // timestamps only within the same API, while checking identity across both.
+    if (
+      !opened.isFile() ||
+      !sameIdentity(before, opened) ||
+      !same(before, await lstat(path))
+    )
       throw new CliError("INPUT_CHANGED", "Input changed before reading.");
     let total = 0;
     for (;;) {
@@ -49,7 +62,7 @@ async function* content(
     }
     if (
       total !== before.size ||
-      !same(before, await file.stat()) ||
+      !same(opened, await file.stat()) ||
       !same(before, await lstat(path))
     )
       throw new CliError("INPUT_CHANGED", "Input changed while reading.");

@@ -10,7 +10,6 @@ import { Readable, Writable } from "node:stream";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { setTimeout as sleep } from "node:timers/promises";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Bindings } from "../src/env.js";
 import { accountForGoogle, type Principal } from "../src/identity.js";
@@ -20,7 +19,10 @@ import { buildDirectoryCar } from "../../web/src/directory.js";
 import { selectionForDirectory } from "../../web/src/uploads.js";
 import { encodeCar } from "../src/car.js";
 
-const directory = resolve(".worker-cli-tests");
+const directory = resolve(
+  process.env.PINBOARD_TEST_ROOT ?? ".",
+  ".worker-cli-tests",
+);
 let mf: Miniflare;
 let env: Bindings;
 let origin: string;
@@ -28,6 +30,10 @@ let runtimeOrigin: string;
 let principal: Principal;
 let token: string;
 let slowWrites = 0;
+let releaseSlowResponse!: () => void;
+const slowResponse = new Promise<void>((resolve) => {
+  releaseSlowResponse = resolve;
+});
 const inFlight = new Set<Promise<void>>();
 const server = createServer((request, response) => {
   const operation = (async () => {
@@ -54,7 +60,7 @@ const server = createServer((request, response) => {
       "timeout-commit"
     ) {
       slowWrites++;
-      await sleep(500);
+      await slowResponse;
     }
     const responseHeaders = new Headers(result.headers);
     responseHeaders.delete("content-encoding");
@@ -140,6 +146,7 @@ beforeAll(async () => {
 }, 30000);
 
 afterAll(async () => {
+  releaseSlowResponse();
   server.closeAllConnections();
   await new Promise<void>((done, reject) => {
     server.close((error) => {
@@ -242,20 +249,26 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     const bytes = new TextEncoder().encode("committed-before-lost-response");
     const path = join(directory, "timeout.bin");
     await writeFile(path, bytes);
-    const result = await cli(
-      ["upload", path, "--name", "timeout-commit", "--timeout", "200"],
-      token,
-      origin,
-    );
-    expect(result.code).toBe(1);
-    expect(result.out).toBe("");
-    expect(JSON.parse(result.err)).toMatchObject({
-      error: { code: "TIMEOUT", uncertain: true },
-    });
-    expect(slowWrites).toBe(1);
-    const cid = (await importFile(bytes)).root.toString();
-    expect(pinResult(await cli(["inspect", cid])).name).toBe("timeout-commit");
-  });
+    try {
+      const result = await cli(
+        ["upload", path, "--name", "timeout-commit", "--timeout", "5000"],
+        token,
+        origin,
+      );
+      expect(result.code).toBe(1);
+      expect(result.out).toBe("");
+      expect(JSON.parse(result.err)).toMatchObject({
+        error: { code: "TIMEOUT", uncertain: true },
+      });
+      expect(slowWrites).toBe(1);
+      const cid = (await importFile(bytes)).root.toString();
+      expect(pinResult(await cli(["inspect", cid])).name).toBe(
+        "timeout-commit",
+      );
+    } finally {
+      releaseSlowResponse();
+    }
+  }, 15000);
   it("runs the built CLI executable over local HTTP without an IPFS executable or RPC", async () => {
     const path = fileURLToPath(
       new URL("../../cli/dist/main.js", import.meta.url),

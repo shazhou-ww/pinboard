@@ -10,7 +10,7 @@ import { credentials, stdinToken } from "../src/credentials.js";
 import { Store } from "../src/store.js";
 import { prepareInput } from "../src/input.js";
 
-const directory = resolve(".cli-tests");
+const directory = resolve(process.env.PINBOARD_TEST_ROOT ?? ".", ".cli-tests");
 const token = "synthetic-test-token";
 const cid = "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a";
 const record = {
@@ -308,8 +308,13 @@ describe("top-level command and output contracts", () => {
     ).toBe(1);
   });
   it("honors timeouts and interruption without reporting write success", async () => {
+    let entered!: () => void;
+    let dispatched = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
     const fetcher: typeof fetch = (_input, init) =>
       new Promise((_resolve, reject) => {
+        entered();
         init!.signal!.addEventListener(
           "abort",
           () => {
@@ -318,22 +323,33 @@ describe("top-level command and output contracts", () => {
           { once: true },
         );
       });
-    const timed = await invoke(["remove", cid, "--timeout", "10", "--json"], {
-      fetcher,
-    });
+    vi.useFakeTimers();
+    let timed: Awaited<ReturnType<typeof invoke>>;
+    try {
+      const pending = invoke(["remove", cid, "--timeout", "10000", "--json"], {
+        fetcher,
+      });
+      await dispatched;
+      await vi.advanceTimersByTimeAsync(10000);
+      timed = await pending;
+    } finally {
+      vi.useRealTimers();
+    }
     expect(timed.code).toBe(1);
     expect(timed.out).toBe("");
     expect(JSON.parse(timed.err)).toMatchObject({
       error: { code: "TIMEOUT", uncertain: true },
     });
     const controller = new AbortController();
+    dispatched = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
     const result = invoke(["remove", cid, "--json"], {
       fetcher,
       signal: controller.signal,
     });
-    setTimeout(() => {
-      controller.abort(new Error("interrupt"));
-    }, 20);
+    await dispatched;
+    controller.abort(new Error("interrupt"));
     expect((await result).code).toBe(130);
   });
 });

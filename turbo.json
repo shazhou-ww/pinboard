@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.com/schema.json",
+  "globalPassThroughEnv": ["PINBOARD_TEST_ROOT"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

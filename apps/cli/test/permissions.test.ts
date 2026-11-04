@@ -20,7 +20,10 @@ import {
 } from "../src/permissions.js";
 
 const execute = promisify(execFile);
-const root = resolve(".permission-tests");
+const root = resolve(
+  process.env.PINBOARD_TEST_ROOT ?? ".",
+  ".permission-tests",
+);
 beforeAll(async () => {
   await rm(root, { recursive: true, force: true });
   await mkdir(root, { recursive: true });
