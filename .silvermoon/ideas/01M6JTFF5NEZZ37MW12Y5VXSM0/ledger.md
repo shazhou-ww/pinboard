@@ -11,7 +11,7 @@
 ### Implementation acceptance criteria
 
 - [x] **I-AC01:** 上传内容与 Web 语义一致
-- [ ] **I-AC02:** 认证与自动化行为可靠
+- [x] **I-AC02:** 认证与自动化行为可靠
 - [x] **I-AC03:** 无 Kubo 依赖且工作区检查通过
 
 ## Deployment

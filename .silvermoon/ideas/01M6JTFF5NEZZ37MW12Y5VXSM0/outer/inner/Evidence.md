@@ -168,7 +168,50 @@ CI；I-AC02 继续未完成，不追加 `submitInner` 或
 在四个平台均于测试前被新集成的无关想法文档格式拦截：
 `01M6K5F9464DZXAZVHCMYNHWED/outer/inner/ideal/Idea.md` 和
 `outer/inner/Implementation.md`
-不符合 Prettier。已通知该想法的负责会话处理，CLI 会话未修改其接受的理想世界。此运行不能证明修复后的矩阵结果；I-AC02 仍未完成。
+不符合 Prettier。已通知该想法的负责会话处理，CLI 会话未修改其接受的理想世界。截至该次运行，修复后的矩阵结果仍未得到证明，I-AC02 未完成。
+
+### 最终平台结果与缺口关闭
+
+格式问题由 CAR 想法的负责会话修复并按其权限处理重新接受；本会话通过普通 merge/fetch 保留了该历史及随后提交的 CAR 存储实现。CLI 的理想世界、生命周期事件和现实世界契约未改动。
+
+Windows Node.js 22 的进一步本地实测确认：同一文件的路径 `lstat.dev`
+为零（不可用），句柄 `fstat.dev`
+为实际卷 ID；最初仅调整时间戳比较不足以解决问题。提交
+`006e56fc2470c5732158c482f52f66589e8b1ac3`
+为输入和凭据读取统一使用精确 bigint 文件 ID；只在 Windows 的设备 ID 不可用时允许该字段缺省，仍要求精确 inode、单链接凭据和现有路径/句柄检查。增加真实路径/句柄回归及超过 JavaScript 安全整数范围的不同 inode 拒绝断言。本机已有 Node.js
+22.13.0 下 CLI 测试 50 项通过、2 项平台/权限限制跳过。
+
+运行
+[41825511934](https://github.com/shazhou-ww/pinboard/actions/runs/41825511934)
+和
+[41826449509](https://github.com/shazhou-ww/pinboard/actions/runs/41826449509)
+显示 Ubuntu 两版本成功，但 Windows 原生 PowerShell 辅助进程在 15 秒期限内未返回，内部诊断为
+`code: null`、`killed: true`、
+`signal: SIGTERM`、空 stdout/stderr。关闭不用的 stdin 后该问题仍存在；没有通过延长期限、跳过权限检查或降低要求制造成功。
+
+最终提交 `82b72b6b7c2cebbf7b00a9b0a056621cd93a179c`
+将权限辅助脚本改为直接调用 Windows PowerShell/.NET 文件系统 ACL API，不再依赖
+`Get-Acl`、`Get-Item` 或 `New-Object`
+模块发现；当前 SID、受保护唯一授权、继承禁用、祖先所有者/替换权限及 reparse拒绝要求均保留。提交前本地
+`pnpm check` 20/20 任务通过。
+
+[CI 41827926346](https://github.com/shazhou-ww/pinboard/actions/runs/41827926346)
+针对该准确提交实际完成并全部成功：
+
+| 平台与 Node.js  | Job ID         | CLI 原生测试    | 完整检查 |
+| --------------- | -------------- | --------------- | -------- |
+| Windows 22.13.0 | `126567441475` | 51 通过、1 跳过 | 20/20    |
+| Ubuntu 22.13.0  | `126567442138` | 50 通过、2 跳过 | 20/20    |
+| Windows 24.11.1 | `126567442149` | 51 通过、1 跳过 | 20/20    |
+| Ubuntu 24.11.1  | `126567442216` | 50 通过、2 跳过 | 20/20    |
+
+原生测试前置任务在各 runner 上无缓存实际执行；完整检查随后仅复用本任务产生的 3 个依赖/CLI 结果。Windows 唯一跳过为 POSIX 专属测试，实际另一 Windows 所有者的受保护文件拒绝测试已执行并通过；Ubuntu 跳过两个 Windows 专属用例，实际 POSIX
+0700/0600、所有者、链接和祖先权限拒绝已执行。所有平台的 6 项真实 Worker CLI
+HTTP 集成通过；合并 CAR 实现后 Worker 全套为 66 通过、1 项独立的可选 smoke 跳过，不是 CLI 权限或集成用例跳过。
+
+因此 I-AC02 的跨平台证据缺口已关闭，并据实勾选其 ledger 条目；所有 I-* 工作与验收条目均完成。这里记录的是实施结果，不追加
+`submitInner` 或
+`acceptInner`，不改动 D-*，不声称生产账户验收，不发布 npm 或执行生产 rollout。准确的后续世界修订及提交/门禁由父任务重新观察并处理。
 
 ### 本地复现命令
 
