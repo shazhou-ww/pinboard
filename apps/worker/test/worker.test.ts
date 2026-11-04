@@ -430,7 +430,7 @@ describe("pins and immutable public reads", () => {
     });
     expect(head.headers.get("content-length")).toBe(String(bytes.length));
     expect(await head.text()).toBe("");
-    expect((await request(`/ipfs/${cid}`)).status).toBe(406);
+    expect((await request(`/ipfs/${cid}`)).status).toBe(400);
     expect((await request(`/ipfs/${cid}?format=html`)).status).toBe(406);
     const probe = await request("/ipfs/bafkqaaa?format=raw", {
       method: "HEAD",

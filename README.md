@@ -100,6 +100,45 @@ require an Origin matching `AUTH_URL` (or `PUBLIC_ORIGIN`). Agent names are
 labels, not credentials. Web and MCP use the same `PinService`, accountId and
 scopes.
 
+### Raw gateway HTTP contract
+
+`GET` and `HEAD /ipfs/:cid` serve a single locally stored block, without remote
+retrieval. Select raw with `?format=raw` or an `Accept` header:
+
+- Explicit `format=raw` takes precedence over `Accept`, even if the header is
+  malformed or excludes raw. Empty or unsupported `format` values return 406.
+  Omitting both `format` and `Accept` returns 400.
+- Without `format`, `application/vnd.ipld.raw`, `application/*` and `*/*` are
+  supported media ranges, matched case-insensitively. Quality values must be
+  between 0 and 1 with at most three decimal places; `q=0` excludes a range. The
+  most specific matching range determines raw's quality, so an exact `q=0`
+  overrides a positive wildcard. Equal-specificity duplicates use the highest
+  quality. Higher-quality unsupported formats never select another
+  representation. Raw has no media-type parameters, so parameterized ranges do
+  not match it (a separate unparameterized wildcard can still match).
+- A valid header that does not accept raw returns 406, including similar but
+  different types such as `application/vnd.ipld.raw-extra`. Empty or malformed
+  `Accept` returns 400, even if another member accepts raw. This includes
+  invalid media ranges, parameters, duplicate parameter names and quality
+  values; quoted quality values are rejected.
+- Successful responses retain raw bytes and length, attachment disposition,
+  CORS, browser safety headers and immutable caching. GET and HEAD share the
+  ETag `"<normalized-CIDv1>.raw"`; equivalent CIDv0/v1 inputs share this ETag.
+  `X-Ipfs-Path` preserves the requested CID.
+- `If-None-Match` uses weak comparison, supports validator lists and `*`, and
+  returns a bodyless 304 only after local availability is confirmed. Malformed
+  validator lists are ignored. HEAD and matching conditional requests use
+  metadata without downloading block bytes.
+- Missing roots return 404, or 412 when `Cache-Control` includes the
+  case-insensitive, bare `only-if-cached` directive. Storage failures remain
+  errors rather than cache hits or missing roots. The empty identity probe
+  `bafkqaaa` is always available, with length 0 and the same conditional rules.
+
+This is a non-recursive, raw-only gateway. Standard CAR negotiation, IPNS,
+gateway path traversal and byte-range responses are not supported. The separate
+`/api/public/:cid/car` endpoint exports a complete CARv1 DAG; it is not standard
+trustless CAR gateway negotiation. Clients must still verify retrieved CIDs.
+
 ### Deliberate first-version limits
 
 - Upload body and unique DAG bytes: 32 MiB; block: 2 MiB; DAG: 256 unique

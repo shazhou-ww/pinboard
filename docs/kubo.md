@@ -21,6 +21,32 @@ Kubo probes `HEAD /ipfs/bafkqaaa?format=raw` (empty identity block), expects a
 200 raw response, and subsequently requests individual blocks with `?format=raw`
 / `Accept: application/vnd.ipld.raw`.
 
+The [raw HTTP contract](../README.md#raw-gateway-http-contract) also covers GET
+probes, weak/list/wildcard `If-None-Match` (bodyless 304), normalized
+`"<CIDv1>.raw"` ETags, weighted Accept ranges and `only-if-cached` (412 for an
+unavailable root, rather than ordinary 404). An explicit `format=raw` works
+without Accept and overrides it; omitting both selectors returns 400. This
+raw-only scope does not include standard CAR negotiation, IPNS, path traversal
+or byte ranges. Custom CAR export remains a separate API.
+
+### Local protocol regression coverage
+
+[`apps/worker/test/gateway.test.ts`](../apps/worker/test/gateway.test.ts)
+exercises the actual gateway handlers against simulated R2, independently of
+authentication setup. The requirement-to-test mapping is:
+
+| Requirement                     | Test name (GET and HEAD variants where applicable)                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TG-01 conditional requests      | `weakly compares validators and lists only after checking availability`; `does not turn storage failures into cache hits, 304s or missing roots` |
+| TG-02 raw negotiation           | `negotiates only acceptable raw media ranges`; `rejects malformed Accept but lets explicit format override it`                                   |
+| TG-03 local cache misses        | `applies only-if-cached to unavailable roots without network retrieval`                                                                          |
+| TG-04 explicit selection        | `rejects malformed Accept but lets explicit format override it`                                                                                  |
+| TG-05 representation validators | `normalizes equivalent CIDv0/v1 representations and validators`; `keeps GET and HEAD representation headers identical`                           |
+| TG-08 regression evidence       | All of the above plus `preserves raw bytes, representation headers and the empty probe`, existing Worker routing/CAR/auth tests and `pnpm check` |
+
+These are local protocol assertions, not a production compatibility
+certification or a replacement for independent client CID verification.
+
 Provider responses use the `peer` schema, a stable Peer ID and a
 `/dns4/.../tcp/443/tls/http` multiaddr. The Peer ID here is an HTTP provider
 identifier, not an account, Agent credential, or a claim that a libp2p server
@@ -124,6 +150,13 @@ causing a recursive internet fetch.
 
 - Check `HEAD https://pinboard.shazhou.work/ipfs/bafkqaaa?format=raw` over
   HTTP/2: 200, raw content type, length 0, no redirect.
+- Check GET/HEAD probes and stored blocks for matching weak/list/wildcard
+  validators (304 with no body), nonmatching validators (200), identical
+  normalized raw ETags and unchanged payload bytes. Check missing roots return
+  404 normally and 412 with `only-if-cached`.
+- Check raw Accept negotiation, including wildcards, exact `q=0` overriding
+  wildcards, malformed headers (400), unacceptable formats (406), and missing
+  selectors (400). Confirm explicit `format=raw` still works without Accept.
 - Check routing JSON and NDJSON and the advertised production multiaddr.
 - Upload using a real account, turn off the source node, then use a **new
   independent** Kubo repo with no cached content for `cat` and `get`.
