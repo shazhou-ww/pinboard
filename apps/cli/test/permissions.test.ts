@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, type ExecFileOptions } from "node:child_process";
 import { promisify } from "node:util";
 import {
   chmod,
@@ -21,7 +21,16 @@ import {
   verify,
 } from "../src/permissions.js";
 
-const execute = promisify(execFile);
+const executeFile = promisify(execFile);
+const execute = (
+  file: string,
+  args: string[],
+  options: ExecFileOptions = {},
+) => {
+  const pending = executeFile(file, args, { ...options, encoding: "utf8" });
+  pending.child.stdin?.end();
+  return pending;
+};
 const root = resolve(
   process.env.PINBOARD_TEST_ROOT ?? ".",
   ".permission-tests",
