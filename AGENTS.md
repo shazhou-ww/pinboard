@@ -28,5 +28,15 @@
   do not weaken server-side authorization.
 - Never commit `.dev.vars` or real credentials. Update only `.dev.vars.example`
   when documenting required variables.
-- Keep push deployment disabled by default. Do not deploy or enable production
-  deployment unless explicitly requested.
+- Production releases are tag-driven: push an annotated `release-YYMMDD-INDEX`
+  tag pointing to a commit already on `origin/main`. `YYMMDD` must be a valid
+  calendar date; `INDEX` is a positive integer without leading zeros, using the
+  next unused index for that date.
+- Normal branch pushes (including `main`) run CI only. Do not add branch-push or
+  manual deployment triggers, create release branches, or change package
+  versions to release.
+- Do not create or push release tags or deploy production unless explicitly
+  requested. Deployment does not run D1 migrations; production schema changes
+  require separate authorization.
+- Follow [the deployment guide](docs/deployment.md) for release prerequisites,
+  commands, and acceptance checks.
