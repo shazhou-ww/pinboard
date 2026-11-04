@@ -21,8 +21,9 @@ RPC 或远程 CID 拉取。标准 IPFS 客户端仍可在显式配置下读取�
 
 ```powershell
 pinboard config set endpoint https://pinboard.shazhou.work
+pinboard config set-token
 
-# PINBOARD_AGENT_TOKEN 由用户在本机通过秘密管理机制提供。
+# set-token 从隐藏输入读取并保存；PINBOARD_AGENT_TOKEN 可覆盖本次凭据。
 pinboard upload .\file.txt
 pinboard upload .\folder --name example
 pinboard import .\archive.car
@@ -52,10 +53,38 @@ pinboard upload .\file.txt --endpoint http://localhost:8787
 - `remove` 仅删除账户引用；帮助必须说明公开 blocks、CDN 及他人副本不会随之擦除。
 - `config set`
   只保存服务地址等非敏感设置；默认使用现有生产 origin，本地地址必须显式配置。移除原方案的 Kubo 路径与版本设置。
-- Token 来自 `PINBOARD_AGENT_TOKEN`，可提供 `--token-stdin`
-  作为互斥替代；同时指定时明确报用法错误。不提供命令行明文 token 参数或明文配置存储。第一版不实现 OAuth 登录、token 签发或 OS 密钥链，token 从 Web 获取。
+- Token 默认读取配置旁的受限权限凭据文件，`PINBOARD_AGENT_TOKEN`
+  可对本次命令覆盖；`--token-stdin`
+  作为不落盘的互斥替代。环境变量与该选项同时指定时明确报用法错误。不提供命令行明文 token 参数，不把 token 混入普通 config。第一版不实现 OAuth 登录、token 签发或 OS 密钥链，token 从 Web 获取。
 - 每条联网命令均支持 `--endpoint` 单次覆盖，不修改用户配置；优先级为
   `--endpoint`、`PINBOARD_ENDPOINT`、用户配置、默认值。切换 endpoint 时由用户提供对应服务的 token，不自动探测或转发其他服务的凭据。配置放在用户配置目录，不写进项目；不因当前工作目录中的文件而暗中改写目标 origin。
+
+## 本地 token 文件与权限
+
+在同一用户配置目录中固定放置 `config.json` 与独立的
+`tokens.json`，前者只存非敏感设置，后者保存按 endpoint 绑定的 token。Windows 使用
+`%LOCALAPPDATA%\pinboard`；POSIX 使用 `$XDG_CONFIG_HOME/pinboard`，未设置时为
+`~/.config/pinboard`。不在当前项目或 Git 仓库内搜索凭据，不默认放到漫游配置目录。
+
+`tokens.json`
+是权限保护的明文文件，不是加密保险箱。保护目标是隔离其他普通 OS 用户；不能阻止同用户进程、管理员/root、备份工具或被攻陷的账户读取。文档必须如实说明此边界。
+
+- POSIX：专用配置目录归当前用户所有且为 `0700`，token 文件及临时写入文件为
+  `0600`；验证所有权和有效访问权限，包括可能扩大权限的 ACL。不得仅依赖默认 umask。
+- Windows：对专用配置目录与凭据文件设置并验证受保护 DACL，移除继承的其他主体访问许可，仅为当前用户 SID 授予所需访问。不能把
+  `chmod(0600)` 当成 Windows
+  ACL 的替代；在不支持或无法可靠核验 ACL 的文件系统上拒绝本地保存。
+- 在写入任何秘密字节前建立受限权限；通过安全创建、同目录原子替换与并发冲突处理避免短暂公开或覆盖其他 endpoint 的记录。验证实际读取对象为当前用户拥有的普通文件，拒绝符号链接、重解析跳转及非预期硬链接，避免路径替换攻击。
+- 默认读本地凭据时先验证权限，权限过宽、文件损坏、所有者不符或验证失败均明确报错，不偷偷读入、不自动修复未知文件，也不回退成匿名请求。平台权限实现及修复指引在实施阶段验证，不以未实现的跨平台承诺代替测试。
+- `pinboard config set-token [--endpoint ...]`
+  从 TTY 隐藏输入读取；非交互使用显式
+  `--token-stdin`，不接受 token 位置参数、不回显。`pinboard config remove-token [--endpoint ...]`
+  仅删除对应本地记录，不撤销服务端 token；远端撤销仍在 Web 进行。配置查询与诊断永远不输出秘密。
+
+先按 endpoint 配置优先级解析本次目标，并验证为不带 userinfo、query、fragment 或业务路径的 HTTP(S)
+origin；按规范化 origin 键查找本地 token。只有已保存该目标的记录才可自动使用，绝不回退到默认 endpoint 的 token。命令行与环境变量显式提供的 token 绑定本次解析出的目标，不自动落盘；环境变量存在但为空或无效时明确失败，不悄悄使用旧文件凭据。显式凭据覆盖时不读取本地秘密文件。
+
+使用本地文件是持久化路径，环境变量/标准输入是覆盖路径，不引入系统凭据库依赖。缺少 token 时提示保存或提供凭据的方式，不在普通上传或查询命令中突然打开交互登录。
 
 ## 三条上传路径
 
