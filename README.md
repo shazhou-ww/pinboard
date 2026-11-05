@@ -128,6 +128,12 @@ no longer a floating action. There is no visible wall title or explanatory
 footer. Drop instructions appear in the empty state, on drag-over and in the Add
 tooltip instead of occupying a permanent row above the pins.
 
+Right-click a pin card or use its **…** button to open **View details**, **Copy
+link** (the public share page), **Copy CID** and **Unpin**. Keyboard users can
+open the menu with Shift+F10, navigate with arrow keys, Home and End, and
+dismiss it with Escape. Unpin keeps the existing confirmation and removes only
+the account reference.
+
 Drop one file or folder anywhere on the wall to open the same **Make a pin**
 dialog. Review the selection and optionally edit its pin name before confirming.
 **Settings** opens a dialog for Agent tokens, MCP authorizations and local
