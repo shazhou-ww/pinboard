@@ -57,6 +57,7 @@ export function AccountManager({
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
   const [cursor, setCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<Pin | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [renaming, setRenaming] = useState<{
     cid: string;
     name: string;
@@ -79,6 +80,35 @@ export function AccountManager({
   const [tokenScopes, setTokenScopes] = useState(["pins:read"]);
   const [expires, setExpires] = useState(30);
   const [newToken, setNewToken] = useState("");
+
+  const selectedCid = selected?.cid;
+  useEffect(() => {
+    if (!selectedCid) {
+      setDetailsLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setDetailsLoading(true);
+    void requestJson<Pin>(`/api/pins/${selectedCid}`, {
+      signal: controller.signal,
+    })
+      .then((pin) => {
+        if (!controller.signal.aborted)
+          setSelected((current) =>
+            current?.cid === selectedCid ? pin : current,
+          );
+      })
+      .catch((failure: unknown) => {
+        if (!controller.signal.aborted)
+          setError(
+            failure instanceof Error ? failure.message : String(failure),
+          );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDetailsLoading(false);
+      });
+    return () => controller.abort();
+  }, [selectedCid]);
 
   useEffect(() => {
     if (!notice) return;
@@ -316,11 +346,11 @@ export function AccountManager({
   };
   const openPin = (pin: Pin) => {
     setSelected(pin);
+    setDetailsLoading(true);
     setRenaming(null);
-    void perform(async () => {
-      setProgress("Loading pin details...");
-      setSelected(await requestJson<Pin>(`/api/pins/${pin.cid}`));
-    });
+    setError("");
+    setNotice("");
+    setProgress("");
   };
   const unpin = (pin: Pin) => {
     if (
@@ -361,7 +391,11 @@ export function AccountManager({
         </div>
       ) : null}
       <Snackbar
-        message={error || progress || notice}
+        message={
+          error ||
+          progress ||
+          (detailsLoading ? "Loading pin details..." : notice)
+        }
         error={!!error}
         busy={busy}
         onReload={() => {
@@ -559,25 +593,21 @@ export function AccountManager({
         open={!!selected}
         title="Pin details"
         busy={busy}
+        dismissOnOutsideClick
         onClose={() => {
           setSelected(null);
+          setDetailsLoading(false);
           setRenaming(null);
         }}
       >
-        {error ? (
-          <p className="notice" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {progress ? <p role="status">{progress}</p> : null}
         {selected ? (
-          <div className="pin-detail">
+          <div className="pin-detail" aria-busy={busy || detailsLoading}>
             <h3>{selected.name}</h3>
             <button
               className="detail-cid"
               title="Copy full CID"
               aria-label={`Copy CID ${selected.cid}`}
-              disabled={busy}
+              disabled={busy || detailsLoading}
               onClick={() => {
                 void copy(selected.cid);
               }}
@@ -590,7 +620,7 @@ export function AccountManager({
             </p>
             <div className="actions">
               <button
-                disabled={busy}
+                disabled={busy || detailsLoading}
                 onClick={() =>
                   setRenaming({ cid: selected.cid, name: selected.name })
                 }
@@ -598,7 +628,7 @@ export function AccountManager({
                 Rename
               </button>
               <button
-                disabled={busy}
+                disabled={busy || detailsLoading}
                 onClick={() => {
                   void copy(`${location.origin}/share/${selected.cid}`);
                 }}
@@ -611,7 +641,7 @@ export function AccountManager({
               </a>
               <button
                 className="danger"
-                disabled={busy}
+                disabled={busy || detailsLoading}
                 onClick={() => unpin(selected)}
               >
                 Unpin
