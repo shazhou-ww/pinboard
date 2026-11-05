@@ -17,7 +17,7 @@ catalog:
   ipfs-unixfs-importer: ^16.1.1
   multiformats: ^14.0.5
   miniflare: 5.20261012.0-beta
-  zod: ^3.25.76
+  zod: ^4.6.7
   "@auth/core": ^0.41.3
   "@cloudflare/workers-types": ^5.20261014.1
   "@eslint/js": ^10.0.1
