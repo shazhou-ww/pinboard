@@ -81,6 +81,12 @@ export function AccountManager({
   const [newToken, setNewToken] = useState("");
 
   useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 5000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
     try {
       setSkipReminder(localStorage.getItem(publicReminderKey) === "true");
     } catch {
@@ -354,30 +360,14 @@ export function AccountManager({
           Drop one file or folder to make a pin
         </div>
       ) : null}
-      {error ? (
-        <div className="notice" role="alert">
-          {error}{" "}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              void perform(refresh);
-            }}
-          >
-            Reload
-          </button>
-        </div>
-      ) : null}
-      {notice ? (
-        <p role="status" className="notice success">
-          {notice}
-        </p>
-      ) : null}
-      {progress ? (
-        <p role="status" className="notice">
-          {progress}
-        </p>
-      ) : null}
+      <Snackbar
+        message={error || progress || notice}
+        error={!!error}
+        busy={busy}
+        onReload={() => {
+          void perform(refresh);
+        }}
+      />
       <div
         className="floating-tools"
         role="toolbar"
@@ -579,11 +569,6 @@ export function AccountManager({
             {error}
           </p>
         ) : null}
-        {notice ? (
-          <p className="notice success" role="status">
-            {notice}
-          </p>
-        ) : null}
         {progress ? <p role="status">{progress}</p> : null}
         {selected ? (
           <div className="pin-detail">
@@ -684,11 +669,6 @@ export function AccountManager({
         {error ? (
           <p role="alert" className="notice">
             {error}
-          </p>
-        ) : null}
-        {notice ? (
-          <p role="status" className="notice success">
-            {notice}
           </p>
         ) : null}
         <section>
@@ -866,6 +846,40 @@ export function AccountManager({
           permanent-delete action.
         </p>
       </Dialog>
+    </div>
+  );
+}
+
+export function Snackbar({
+  message,
+  error,
+  busy,
+  onReload,
+}: {
+  message: string;
+  error: boolean;
+  busy: boolean;
+  onReload: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (message) ref.current?.showPopover();
+    else ref.current?.hidePopover();
+  }, [message]);
+  return (
+    <div
+      ref={ref}
+      popover="manual"
+      className={`snackbar${error ? " snackbar-error" : ""}`}
+      role={error ? "alert" : "status"}
+      aria-atomic="true"
+    >
+      {message}
+      {error ? (
+        <button type="button" disabled={busy} onClick={onReload}>
+          Reload
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -1060,7 +1074,29 @@ export function PinCard({
           </button>
         ))}
       </div>
-      <div className="pin-info">
+      <div
+        className="pin-info"
+        role="group"
+        aria-label={`Pin information for ${pin.name}`}
+        tabIndex={0}
+        onClick={(event) => {
+          if (
+            !busy &&
+            !(event.target instanceof Element && event.target.closest("button"))
+          )
+            onOpen();
+        }}
+        onKeyDown={(event) => {
+          if (
+            !busy &&
+            event.target === event.currentTarget &&
+            (event.key === "Enter" || event.key === " ")
+          ) {
+            event.preventDefault();
+            onOpen();
+          }
+        }}
+      >
         <div className="pin-info-summary">
           <strong className="pin-name" title={pin.name}>
             {pin.name}

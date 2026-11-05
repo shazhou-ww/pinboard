@@ -7,7 +7,7 @@ import {
 } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Dashboard, HomeHeader, SharePage } from "../src/ui.js";
-import { formatSize, PinCard } from "../src/manager.js";
+import { formatSize, PinCard, Snackbar } from "../src/manager.js";
 
 const bootstrap = {
   appName: "Pinboard",
@@ -28,6 +28,48 @@ function findButton(
   return undefined;
 }
 describe("Pinboard interface", () => {
+  it("renders floating success feedback without a layout notice", () => {
+    const html = renderToStaticMarkup(
+      <Snackbar
+        message="Pinned. These bytes are now public."
+        error={false}
+        busy={false}
+        onReload={() => {}}
+      />,
+    );
+    expect(html).toContain('popover="manual"');
+    expect(html).toContain('class="snackbar"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-atomic="true"');
+    expect(html).toContain("Pinned. These bytes are now public.");
+    expect(html).not.toContain('class="notice');
+    expect(html).not.toContain("<button");
+  });
+  it("keeps error feedback explicit and routes Reload while respecting busy state", () => {
+    const onReload = vi.fn();
+    let snackbar: ReactNode = null;
+    function SnackbarProbe() {
+      snackbar = Snackbar({
+        message: "Clipboard permission denied",
+        error: true,
+        busy: false,
+        onReload,
+      });
+      return snackbar;
+    }
+    const html = renderToStaticMarkup(<SnackbarProbe />);
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('class="snackbar snackbar-error"');
+    const reload = findButton(snackbar, "Reload");
+    if (!reload?.props.onClick) throw new Error("Missing Reload action.");
+    reload.props.onClick();
+    expect(onReload).toHaveBeenCalledOnce();
+    expect(
+      renderToStaticMarkup(
+        <Snackbar message="Failed" error busy onReload={onReload} />,
+      ),
+    ).toContain('disabled=""');
+  });
   it("routes the account dropdown Settings action to the account manager", () => {
     const onSettings = vi.fn();
     let header: ReactNode = null;
@@ -191,7 +233,8 @@ describe("Pinboard interface", () => {
       />,
     );
     expect(html).toContain('class="pin-preview"');
-    expect(html).toContain('class="pin-info"');
+    expect(html).toContain('class="pin-info" role="group"');
+    expect(html).toContain('aria-label="Pin information for photo.png"');
     expect(html).toContain(
       '<div class="pin-info-summary"><strong class="pin-name" title="photo.png">photo.png</strong><span class="pin-size">1.0 KiB</span></div>',
     );
