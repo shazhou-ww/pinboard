@@ -1,6 +1,7 @@
 import type { AgentToken, Pin } from "@shazhou/pinboard-contracts";
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -539,6 +540,10 @@ export function AccountManager({
                 onCopyCid={(onCopied) => {
                   void copy(pin.cid, onCopied);
                 }}
+                onCopyLink={() => {
+                  void copy(`${location.origin}/share/${pin.cid}`);
+                }}
+                onUnpin={() => unpin(pin)}
               />
             ))}
           </ul>
@@ -871,13 +876,21 @@ export function PinCard({
   busy,
   onOpen,
   onCopyCid,
+  onCopyLink,
+  onUnpin,
 }: {
   pin: Pin;
   previews?: PreviewClient;
   busy: boolean;
   onOpen: () => void;
   onCopyCid: (onCopied: () => void) => void;
+  onCopyLink: () => void;
+  onUnpin: () => void;
 }) {
+  const menuId = useId();
+  const menu = useRef<HTMLDivElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copyConfirmation, setCopyConfirmation] = useState<number | null>(null);
   const copySequence = useRef(0);
   const copied = copyConfirmation !== null;
@@ -886,8 +899,63 @@ export function PinCard({
     const timer = setTimeout(() => setCopyConfirmation(null), 1500);
     return () => clearTimeout(timer);
   }, [copyConfirmation]);
+  const closeMenu = () => {
+    menu.current?.hidePopover();
+    menuTrigger.current?.focus();
+  };
+  const openMenu = (point?: { x: number; y: number }, last = false) => {
+    const popover = menu.current;
+    const trigger = menuTrigger.current;
+    if (busy || !popover || !trigger) return;
+    const anchor = trigger.getBoundingClientRect();
+    popover.showPopover();
+    const bounds = popover.getBoundingClientRect();
+    popover.style.left = `${Math.max(8, Math.min(point?.x ?? anchor.right - bounds.width, window.innerWidth - bounds.width - 8))}px`;
+    popover.style.top = `${Math.max(8, Math.min(point?.y ?? anchor.bottom + 4, window.innerHeight - bounds.height - 8))}px`;
+    const items =
+      popover.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+    items[last ? items.length - 1 : 0]?.focus();
+  };
+  useEffect(() => {
+    if (busy) menu.current?.hidePopover();
+  }, [busy]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const dismiss = () => menu.current?.hidePopover();
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && menu.current?.contains(event.target))
+        return;
+      dismiss();
+    };
+    window.addEventListener("resize", dismiss);
+    document.addEventListener("scroll", onScroll, true);
+    return () => {
+      window.removeEventListener("resize", dismiss);
+      document.removeEventListener("scroll", onScroll, true);
+    };
+  }, [menuOpen]);
+  const copyCid = () => {
+    setCopyConfirmation(null);
+    onCopyCid(() => setCopyConfirmation(++copySequence.current));
+  };
   return (
-    <li className={`pin-card${copied ? " copy-confirmed" : ""}`}>
+    <li
+      className={`pin-card${copied ? " copy-confirmed" : ""}`}
+      onContextMenu={(event) => {
+        if (busy) return;
+        event.preventDefault();
+        openMenu({ x: event.clientX, y: event.clientY });
+      }}
+      onKeyDown={(event) => {
+        if (
+          event.key === "ContextMenu" ||
+          (event.shiftKey && event.key === "F10")
+        ) {
+          event.preventDefault();
+          openMenu();
+        }
+      }}
+    >
       <PinPreview pin={pin} client={previews} />
       <button
         type="button"
@@ -896,6 +964,102 @@ export function PinCard({
         disabled={busy}
         onClick={onOpen}
       />
+      <button
+        ref={menuTrigger}
+        type="button"
+        className="pin-menu-trigger"
+        aria-label={`Pin options for ${pin.name}`}
+        aria-haspopup="menu"
+        aria-controls={menuId}
+        aria-expanded={menuOpen}
+        disabled={busy}
+        onClick={() => {
+          if (menu.current?.matches(":popover-open")) closeMenu();
+          else openMenu();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            openMenu(undefined, event.key === "ArrowUp");
+          }
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="5" cy="12" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="19" cy="12" r="1" />
+        </svg>
+      </button>
+      <div
+        ref={menu}
+        id={menuId}
+        popover="auto"
+        className="pin-context-menu"
+        role="menu"
+        aria-label={`Pin options for ${pin.name}`}
+        onToggle={(event) => setMenuOpen(event.newState === "open")}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onKeyDown={(event) => {
+          const items = Array.from(
+            event.currentTarget.querySelectorAll<HTMLButtonElement>(
+              '[role="menuitem"]',
+            ),
+          );
+          const index = items.findIndex(
+            (item) => item === document.activeElement,
+          );
+          let next: number;
+          switch (event.key) {
+            case "ArrowDown":
+              next = (index + 1) % items.length;
+              break;
+            case "ArrowUp":
+              next = (index - 1 + items.length) % items.length;
+              break;
+            case "Home":
+              next = 0;
+              break;
+            case "End":
+              next = items.length - 1;
+              break;
+            case "Escape":
+            case "Tab":
+              if (event.key === "Escape") event.preventDefault();
+              event.stopPropagation();
+              closeMenu();
+              return;
+            default:
+              return;
+          }
+          event.preventDefault();
+          items[next]?.focus();
+        }}
+      >
+        {[
+          { label: "View details", action: onOpen },
+          { label: "Copy link", action: onCopyLink },
+          { label: "Copy CID", action: copyCid },
+          { label: "Unpin", action: onUnpin },
+        ].map(({ label, action }) => (
+          <button
+            key={label}
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className={label === "Unpin" ? "danger" : undefined}
+            disabled={busy}
+            onClick={() => {
+              closeMenu();
+              action();
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="pin-info">
         <div className="pin-info-summary">
           <strong className="pin-name" title={pin.name}>
@@ -910,10 +1074,7 @@ export function PinCard({
             aria-label={`Copy CID for ${pin.name}`}
             title={`Copy full CID: ${pin.cid}`}
             disabled={busy}
-            onClick={() => {
-              setCopyConfirmation(null);
-              onCopyCid(() => setCopyConfirmation(++copySequence.current));
-            }}
+            onClick={copyCid}
           >
             <code>{copied ? "CID copied" : pin.cid}</code>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

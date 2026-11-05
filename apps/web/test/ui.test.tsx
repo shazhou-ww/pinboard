@@ -172,7 +172,7 @@ describe("Pinboard interface", () => {
       ),
     ).toContain(".dev.vars");
   });
-  it("renders preview-first cards with a complete CID copy capsule and no inline management actions", () => {
+  it("renders preview-first cards with a CID capsule and accessible actions menu", () => {
     const pin = {
       cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
       name: "photo.png",
@@ -181,7 +181,14 @@ describe("Pinboard interface", () => {
       createdAt: "2026-11-05T00:00:00Z",
     };
     const html = renderToStaticMarkup(
-      <PinCard pin={pin} busy={false} onOpen={() => {}} onCopyCid={() => {}} />,
+      <PinCard
+        pin={pin}
+        busy={false}
+        onOpen={() => {}}
+        onCopyCid={() => {}}
+        onCopyLink={() => {}}
+        onUnpin={() => {}}
+      />,
     );
     expect(html).toContain('class="pin-preview"');
     expect(html).toContain('class="pin-info"');
@@ -201,14 +208,67 @@ describe("Pinboard interface", () => {
     );
     expect(html).not.toContain("<a");
     expect(html).toContain("1.0 KiB");
-    expect(html.match(/<button/g)).toHaveLength(2);
+    expect(html).toContain('aria-label="Pin options for photo.png"');
+    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('popover="auto"');
+    expect(html).toContain('role="menu"');
+    expect(html.match(/role="menuitem"/g)).toHaveLength(4);
+    expect(html.match(/tabindex="-1"/g)).toHaveLength(4);
+    expect(html.match(/<button/g)).toHaveLength(7);
     expect(html).not.toContain("Rename");
-    expect(html).not.toContain("Unpin");
+    expect(html).toContain("View details");
+    expect(html).toContain("Copy link");
+    expect(html).toContain("Copy CID");
+    expect(html).toContain('class="danger">Unpin</button>');
     const busy = renderToStaticMarkup(
-      <PinCard pin={pin} busy onOpen={() => {}} onCopyCid={() => {}} />,
+      <PinCard
+        pin={pin}
+        busy
+        onOpen={() => {}}
+        onCopyCid={() => {}}
+        onCopyLink={() => {}}
+        onUnpin={() => {}}
+      />,
     );
-    expect(busy.match(/disabled=""/g)).toHaveLength(2);
+    expect(busy.match(/disabled=""/g)).toHaveLength(7);
   });
+  it.each(["View details", "Copy link", "Copy CID", "Unpin"])(
+    "routes the card menu's %s action to its pin callback",
+    (label) => {
+      const callbacks = {
+        "View details": vi.fn(),
+        "Copy link": vi.fn(),
+        "Copy CID": vi.fn(),
+        Unpin: vi.fn(),
+      };
+      let card: ReactNode = null;
+      function CardProbe() {
+        card = PinCard({
+          pin: {
+            cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
+            name: "photo.png",
+            size: 1024,
+            blocks: 1,
+            createdAt: "2026-11-05T00:00:00Z",
+          },
+          busy: false,
+          onOpen: callbacks["View details"],
+          onCopyLink: callbacks["Copy link"],
+          onCopyCid: callbacks["Copy CID"],
+          onUnpin: callbacks.Unpin,
+        });
+        return card;
+      }
+      renderToStaticMarkup(<CardProbe />);
+      const action = findButton(card, label);
+      if (!action?.props.onClick) throw new Error("Missing pin menu action.");
+      action.props.onClick();
+      for (const [name, callback] of Object.entries(callbacks)) {
+        expect(callback).toHaveBeenCalledTimes(name === label ? 1 : 0);
+      }
+    },
+  );
   it("shares only safe downloads, never renders uploaded active content", () => {
     const html = renderToStaticMarkup(
       <SharePage cid="bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u" />,
