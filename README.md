@@ -96,9 +96,10 @@ login bypass in the production Worker.
 ## Web uploads
 
 UI icons use [Phosphor](https://github.com/phosphor-icons/react) (MIT), with a
-shared duotone style and the existing green palette. Import icons through
-`apps/web/src/icon.tsx` to keep sizing and accessibility defaults consistent;
-label meaningful icons and hide decorative icons from assistive technology.
+regular action icons, duotone content/brand icons and the existing green
+palette. Import icons through `apps/web/src/icon.tsx` to keep sizing and
+accessibility defaults consistent; label meaningful icons and hide decorative
+icons from assistive technology.
 
 ### Local UI preview
 

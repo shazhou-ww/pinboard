@@ -39,7 +39,14 @@ export function Icon({
   return (
     <Glyph
       size={20}
-      weight="duotone"
+      weight={
+        name === "file" ||
+        name === "folder" ||
+        name === "unknown" ||
+        name === "brand"
+          ? "duotone"
+          : "regular"
+      }
       aria-hidden="true"
       focusable="false"
       {...props}

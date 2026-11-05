@@ -43,7 +43,10 @@ configuration, with **no Authorization header or pasted token**:
 1. Start the server/connection in VS Code. Its first unauthenticated request
    receives a `401` challenge linking to
    `/.well-known/oauth-protected-resource/mcp`. Discovery points to the same
-   origin's `/.well-known/oauth-authorization-server`.
+   origin's `/.well-known/oauth-authorization-server`. This includes an initial
+   anonymous `POST /mcp` without an Origin header. MCP never authenticates
+   browser cookies; explicitly foreign origins are still rejected, and browser
+   API mutations still require a same-origin header.
 2. The client registers its callback at `POST /oauth/register` and opens
    `/oauth/authorize` with `resource` exactly equal to the canonical `/mcp` URL,
    `response_type=code`, a fresh verifier's S256 challenge, and client state.

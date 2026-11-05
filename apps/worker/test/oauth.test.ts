@@ -201,6 +201,60 @@ beforeAll(async () => {
 afterAll(() => mf.dispose());
 
 describe("OAuth discovery and public registration", () => {
+  it.each(["POST", "GET", "DELETE"])(
+    "challenges unauthenticated MCP %s requests without accepting browser cookies",
+    async (method) => {
+      for (const cookie of ["", aliceCookie]) {
+        const response = await request("/mcp", {
+          method,
+          headers: {
+            ...(cookie ? { cookie } : {}),
+            accept: "application/json, text/event-stream",
+            "content-type": "application/json",
+          },
+          ...(method === "POST"
+            ? {
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "initialize",
+                  params: {
+                    protocolVersion: "2025-11-25",
+                    capabilities: {},
+                    clientInfo: { name: "test-client", version: "1.0.0" },
+                  },
+                }),
+              }
+            : {}),
+        });
+        expect(response.status).toBe(401);
+        expect(response.headers.get("www-authenticate")).toContain(
+          `${origin}/.well-known/oauth-protected-resource/mcp`,
+        );
+        privateResponse(response);
+      }
+    },
+  );
+  it("still rejects foreign MCP origins and cookie mutations without a same-origin header", async () => {
+    const foreign = await request("/mcp", {
+      method: "POST",
+      headers: { origin: "https://evil.test" },
+    });
+    expect(foreign.status).toBe(403);
+    expect(await foreign.json()).toMatchObject({
+      error: "Origin not allowed",
+    });
+    for (const path of ["/api/pins", "/api/tokens"]) {
+      const response = await request(path, {
+        method: "POST",
+        headers: { cookie: aliceCookie },
+      });
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        error: "Same-origin browser request required",
+      });
+    }
+  });
   it("advertises resource metadata and S256 on the same origin; no cookie authentication for MCP", async () => {
     for (const token of ["", "unknown", "po_unknown"]) {
       const response = await request("/mcp", {
