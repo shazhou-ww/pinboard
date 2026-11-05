@@ -5,6 +5,7 @@ import type {
 } from "@shazhou/pinboard-contracts";
 import { useRef, type MouseEventHandler } from "react";
 import { AccountManager } from "./manager.js";
+import { Icon } from "./icon.js";
 
 export type DashboardState =
   | { readonly kind: "loading" }
@@ -43,7 +44,7 @@ export function HomeHeader({
       }}
     >
       <a className="brand" href="/" aria-label="Pinboard home">
-        <span className="brand-mark" aria-hidden="true" />
+        <Icon name="brand" className="brand-mark" />
         Pinboard
       </a>
       {user ? (
@@ -63,9 +64,7 @@ export function HomeHeader({
             <span className="account-name">
               {signingOut ? "Signing out..." : name}
             </span>
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
+            <Icon name="caretDown" />
           </button>
           <div
             ref={menu}
@@ -89,10 +88,7 @@ export function HomeHeader({
                 onSettings?.();
               }}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="m9 3-.6 2.4-2 .9-2.1-.7-2 3.4 1.6 1.7v2.6L2.3 15l2 3.4 2.1-.7 2 .9L9 21h6l.6-2.4 2-.9 2.1.7 2-3.4-1.6-1.7v-2.6L21.7 9l-2-3.4-2.1.7-2-.9L15 3Z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+              <Icon name="settings" />
               Settings
             </button>
             <button
@@ -104,9 +100,7 @@ export function HomeHeader({
               disabled={disabled || signingOut}
               aria-busy={signingOut}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M9 5H4v14h5M14 8l4 4-4 4M8 12h10" />
-              </svg>
+              <Icon name="signOut" />
               {signingOut ? "Signing out..." : "Sign out"}
             </button>
           </div>
@@ -195,7 +189,7 @@ export function Dashboard({
                   {signingIn === provider.id
                     ? `Connecting to ${provider.label}...`
                     : `Continue with ${provider.label}`}
-                  <span aria-hidden="true">↗</span>
+                  <Icon name="externalLink" />
                 </button>
               ))}
             </div>

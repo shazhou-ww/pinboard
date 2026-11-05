@@ -19,6 +19,7 @@ import { OAuthGrants } from "./oauth.js";
 import { PinPreview } from "./pin-preview.js";
 import { PreviewClient } from "./preview-client.js";
 import { apiFetch } from "./api.js";
+import { Icon } from "./icon.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -421,9 +422,7 @@ export function AccountManager({
               }
             }}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Icon name="add" />
           </button>
           <div className="add-options" id="add-options">
             <button
@@ -439,9 +438,7 @@ export function AccountManager({
                 }
               }}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M3 7V5h6l3 3h9v12H3V7ZM12 11v6M9 14h6" />
-              </svg>
+              <Icon name="addFolder" />
             </button>
           </div>
         </div>
@@ -635,9 +632,11 @@ export function AccountManager({
               >
                 Copy link
               </button>
-              <a href={`/share/${selected.cid}`}>Open share ↗</a>
+              <a href={`/share/${selected.cid}`}>
+                Open share <Icon name="externalLink" size={16} />
+              </a>
               <a href={`/api/public/${selected.cid}/car`}>
-                Download complete CAR ↓
+                Download complete CAR <Icon name="download" size={16} />
               </a>
               <button
                 className="danger"
@@ -1028,11 +1027,7 @@ export function PinCard({
           }
         }}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <circle cx="5" cy="12" r="1" />
-          <circle cx="12" cy="12" r="1" />
-          <circle cx="19" cy="12" r="1" />
-        </svg>
+        <Icon name="more" />
       </button>
       <div
         ref={menu}
@@ -1143,16 +1138,7 @@ export function PinCard({
             onClick={copyCid}
           >
             <code>{copied ? "CID copied" : pin.cid}</code>
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              {copied ? (
-                <path d="m5 12 4 4L19 6" />
-              ) : (
-                <>
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
-                </>
-              )}
-            </svg>
+            <Icon name={copied ? "check" : "copy"} />
             <span className="visually-hidden" role="status">
               {copied ? "CID copied" : ""}
             </span>

@@ -28,20 +28,15 @@ describe("typed, display-only content previews", () => {
       /\.pin-card \.pin-preview img\s*\{[^}]*min-height:\s*0;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center;/u,
     );
   });
-  it("uses folded document icons instead of empty checkbox-like outlines", () => {
+  it("sizes Phosphor icons consistently without CSS-drawn shapes", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
       "utf8",
     );
     expect(styles).toMatch(
-      /\.preview-entry-icon\[data-kind="file"\]\s*\{[^}]*clip-path:\s*polygon\(/u,
+      /\.preview-entry-icon\s*\{[^}]*width:\s*18px;[^}]*height:\s*18px;/u,
     );
-    expect(styles).toMatch(
-      /\.preview-entry-icon\[data-kind="file"\]::before\s*\{[^}]*border-left:[^}]*border-bottom:/u,
-    );
-    expect(styles).toMatch(
-      /\.preview-entry-icon\[data-kind="file"\]::after\s*\{[^}]*box-shadow:/u,
-    );
+    expect(styles).not.toMatch(/\.preview-entry-icon[^{}]*::(?:before|after)/u);
     expect(styles).toMatch(
       /\.preview-truncated\s*\{[^}]*position:\s*absolute;[^}]*top:\s*5px;/u,
     );
@@ -139,6 +134,14 @@ describe("typed, display-only content previews", () => {
     expect(markup).toContain('data-depth="1"');
     expect(markup).toContain('aria-label="File"');
     expect(markup).toContain('aria-label="Folder"');
+    expect(markup.match(/<svg /gu)).toHaveLength(3);
+    expect(markup.match(/opacity="0.2"/gu)).toHaveLength(3);
+    expect(
+      markup.match(/<svg (?=[^>]*role="img")(?=[^>]*aria-hidden="false")/gu),
+    ).toHaveLength(2);
+    expect(markup).toMatch(
+      /<svg [^>]*aria-hidden="true"[^>]*data-kind="directory"/u,
+    );
     expect(markup).toContain('class="preview-folder-heading"');
     expect(markup).not.toMatch(/href=|<button|<a |total/iu);
   });

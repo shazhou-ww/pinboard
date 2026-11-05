@@ -8,6 +8,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { Dashboard, HomeHeader, SharePage } from "../src/ui.js";
 import { formatSize, PinCard, Snackbar } from "../src/manager.js";
+import { Icon } from "../src/icon.js";
 
 const bootstrap = {
   appName: "Pinboard",
@@ -82,6 +83,16 @@ describe("Pinboard interface", () => {
     }
     const html = renderToStaticMarkup(<HeaderProbe />);
     expect(html).toContain("alice@example.test");
+    for (const name of ["brand", "caretDown", "settings", "signOut"] as const) {
+      expect(html).toContain(
+        renderToStaticMarkup(
+          <Icon
+            name={name}
+            {...(name === "brand" ? { className: "brand-mark" } : {})}
+          />,
+        ),
+      );
+    }
     const settings = findButton(header, "Settings");
     if (!settings?.props.onClick) throw new Error("Missing Settings action.");
     settings.props.onClick();
@@ -99,6 +110,7 @@ describe("Pinboard interface", () => {
     expect(html).toContain("Reading by CID is always public");
     expect(html).toContain('class="home-header"');
     expect(html).toContain('href="#signin"');
+    expect(html).toContain(renderToStaticMarkup(<Icon name="externalLink" />));
     expect(html).not.toContain("<footer");
   });
   it("lists configured providers on the homepage and disables them during sign-in", () => {
@@ -157,6 +169,8 @@ describe("Pinboard interface", () => {
     );
     expect(toolbar.match(/class="floating-button /g)).toHaveLength(2);
     expect(toolbar.match(/<svg /g)).toHaveLength(2);
+    expect(toolbar).toContain(renderToStaticMarkup(<Icon name="add" />));
+    expect(toolbar).toContain(renderToStaticMarkup(<Icon name="addFolder" />));
     expect(toolbar).not.toContain("Settings");
     expect(toolbar).not.toContain(">Settings</button>");
     expect(toolbar).not.toContain(">Choose folder</button>");
@@ -246,9 +260,8 @@ describe("Pinboard interface", () => {
       '<span class="visually-hidden" role="status"></span>',
     );
     expect(html).not.toContain(`${pin.cid.slice(0, 16)}…`);
-    expect(html).toContain(
-      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">',
-    );
+    expect(html).toContain(renderToStaticMarkup(<Icon name="more" />));
+    expect(html).toContain(renderToStaticMarkup(<Icon name="copy" />));
     expect(html).not.toContain("<a");
     expect(html).toContain("1.0 KiB");
     expect(html).toContain('aria-label="Pin options for photo.png"');

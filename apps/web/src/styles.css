@@ -29,6 +29,9 @@ a {
   color: inherit;
   text-underline-offset: 4px;
 }
+svg {
+  vertical-align: middle;
+}
 button,
 input,
 select {
@@ -83,11 +86,9 @@ select:focus-visible {
   letter-spacing: -0.8px;
 }
 .brand-mark {
-  width: 14px;
-  height: 18px;
-  border: 2px solid #326849;
-  border-radius: 3px 3px 7px 7px;
-  transform: rotate(20deg);
+  width: 24px;
+  height: 24px;
+  color: #326849;
 }
 .intro {
   padding: 70px 0 44px;
@@ -466,11 +467,6 @@ footer {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .account-popover,
 .pin-context-menu {
@@ -742,11 +738,6 @@ footer {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .pin-size {
   font-size: 12px;
@@ -890,59 +881,13 @@ footer {
   white-space: nowrap;
 }
 .preview-entry-icon {
-  position: relative;
   flex: 0 0 auto;
-  width: 12px;
-  height: 15px;
-  border: 1px solid #849180;
-  border-radius: 2px;
-  background: #fffefa;
-}
-.preview-entry-icon[data-kind="file"] {
-  clip-path: polygon(0 0, 7px 0, 100% 5px, 100% 100%, 0 100%);
-}
-.preview-entry-icon[data-kind="file"]::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 5px;
-  height: 5px;
-  border-left: 1px solid #849180;
-  border-bottom: 1px solid #849180;
-  background: #edf2e8;
-}
-.preview-entry-icon[data-kind="file"]::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 7px;
-  width: 5px;
-  height: 1px;
-  background: #849180;
-  box-shadow: 0 3px #849180;
+  width: 18px;
+  height: 18px;
+  color: #849180;
 }
 .preview-entry-icon[data-kind="directory"] {
-  width: 16px;
-  height: 12px;
-  border-color: #708769;
-  background: #d3dfc5;
-}
-.preview-entry-icon[data-kind="directory"]::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: -4px;
-  width: 7px;
-  height: 3px;
-  border: 1px solid #708769;
-  border-bottom: 0;
-  border-radius: 2px 2px 0 0;
-  background: #d3dfc5;
-}
-.preview-entry-icon[data-kind="unknown"] {
-  border-style: dashed;
-  background: transparent;
+  color: #708769;
 }
 .preview-folder-empty {
   margin: 0;
@@ -996,11 +941,6 @@ footer {
 .floating-button svg {
   width: 22px;
   height: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .add-tool {
   position: relative;

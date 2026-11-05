@@ -5,6 +5,7 @@ import type {
   PreviewImage,
 } from "@shazhou/pinboard-contracts";
 import { PreviewClient, PreviewRequestError } from "./preview-client.js";
+import { Icon } from "./icon.js";
 
 function Thumbnail({ image, name }: { image: PreviewImage; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -83,10 +84,10 @@ export function PreviewContent({
       return (
         <div className="preview-directory">
           <div className="preview-folder-heading">
-            <span
+            <Icon
+              name="folder"
               className="preview-entry-icon"
               data-kind="directory"
-              aria-hidden="true"
             />
             <span>Folder</span>
             {preview.content.total === undefined ? (
@@ -102,10 +103,18 @@ export function PreviewContent({
             <ul aria-label="Folder contents">
               {preview.content.entries.map((entry, index) => (
                 <li key={index} data-depth={entry.depth} data-kind={entry.kind}>
-                  <span
+                  <Icon
+                    name={
+                      entry.kind === "directory"
+                        ? "folder"
+                        : entry.kind === "file"
+                          ? "file"
+                          : "unknown"
+                    }
                     className="preview-entry-icon"
                     data-kind={entry.kind}
                     role="img"
+                    aria-hidden={false}
                     aria-label={
                       entry.kind === "directory"
                         ? "Folder"
