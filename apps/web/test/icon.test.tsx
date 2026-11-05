@@ -37,6 +37,22 @@ describe("shared Phosphor icons", () => {
     }
   });
 
+  it.each([
+    "add",
+    "addFolder",
+    "caretDown",
+    "check",
+    "copy",
+    "download",
+    "externalLink",
+    "more",
+    "settings",
+    "signOut",
+  ] as const)("renders %s without translucent background shapes", (name) => {
+    const markup = renderToStaticMarkup(<Icon name={name} />);
+    expect(markup).not.toContain('opacity="0.2"');
+  });
+
   it("preserves explicit labels, sizes and styles for meaningful icons", () => {
     const markup = renderToStaticMarkup(
       <Icon
