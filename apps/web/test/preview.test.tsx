@@ -49,6 +49,19 @@ describe("typed, display-only content previews", () => {
       /\.pin-info\s*\{[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
   });
+  it("uses lighter, tighter frosting for sparse text and folders while preserving image frosting", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.pin-info\s*\{[^}]*background:\s*#fffefab8;[^}]*backdrop-filter:\s*blur\(16px\)/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*#fffefa73;[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
+    );
+    expect(styles).toMatch(/\.preview-directory li\s*\{[^}]*height:\s*28px;/u);
+  });
   it("scopes pin row layout to direct children and keeps directory list spacing compact", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
