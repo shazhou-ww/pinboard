@@ -190,19 +190,20 @@ jobs, and pending cards poll every two seconds at most 24 times. Account changes
 dispose the previous request client; cached descriptions are never a substitute
 for an authorized Pin list or server-side access checks.
 
-UTF-8 excerpts contain at most 2,400 characters. Cards use the available height
-above the information strip to display these excerpts; thumbnail images fill the
-card with a centered crop on the longer axis, without changing the original
-bytes, thumbnail CID or stored aspect ratio. Display Markdown escapes source
-punctuation; structured/code text uses literal code fences, not invented
-headings or AI summaries. Links, HTML and remote images remain inert text.
-Verified directories use a folder-tab heading and a compact, read-only directory
-tree with distinct file/folder icons and hierarchy lines. They show at most 24
-actual names across two entry levels, without subfolder navigation.
-Sampled/truncated overviews are labelled and never claim unverified totals. PDF,
-GIF, video, audio and unknown binary content use explicit unsupported
-placeholders with only reliably identified metadata. Invalid or oversized images
-fail explicitly instead of downloading originals.
+UTF-8 excerpts contain at most 2,400 characters. Text and directory previews
+extend to the card's bottom edge behind the translucent, frosted information
+strip rather than stopping above it. Sampling labels stay above the content;
+thumbnail images fill the card with a centered crop on the longer axis, without
+changing the original bytes, thumbnail CID or stored aspect ratio. Display
+Markdown escapes source punctuation; structured/code text uses literal code
+fences, not invented headings or AI summaries. Links, HTML and remote images
+remain inert text. Verified directories use a folder-tab heading and a compact,
+read-only directory tree with folded-page file icons, folder tabs and hierarchy
+lines. They show at most 24 actual names across two entry levels, without
+subfolder navigation. Sampled/truncated overviews are labelled and never claim
+unverified totals. PDF, GIF, video, audio and unknown binary content use
+explicit unsupported placeholders with only reliably identified metadata.
+Invalid or oversized images fail explicitly instead of downloading originals.
 
 Previews are shared by source CID and generation version, without account names.
 `pending`, `ready`, `unsupported` and `failed` are distinct from their

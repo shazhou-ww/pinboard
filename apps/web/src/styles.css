@@ -784,7 +784,8 @@ footer {
   inset: 0;
   grid-template-rows: minmax(0, 1fr) auto;
   border-radius: 0;
-  padding: 24px 24px 64px;
+  padding: 24px 24px 0;
+  overflow: hidden;
 }
 .pin-card .pin-preview.has-image {
   grid-template-rows: minmax(0, 1fr);
@@ -817,6 +818,11 @@ footer {
 }
 .preview-code {
   margin: 0;
+}
+.pin-card .preview-text,
+.pin-card .preview-code,
+.pin-card .preview-directory {
+  align-self: start;
 }
 .preview-directory ul {
   list-style: none;
@@ -887,6 +893,30 @@ footer {
   border-radius: 2px;
   background: #fffefa;
 }
+.preview-entry-icon[data-kind="file"] {
+  clip-path: polygon(0 0, 7px 0, 100% 5px, 100% 100%, 0 100%);
+}
+.preview-entry-icon[data-kind="file"]::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 5px;
+  height: 5px;
+  border-left: 1px solid #849180;
+  border-bottom: 1px solid #849180;
+  background: #edf2e8;
+}
+.preview-entry-icon[data-kind="file"]::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 5px;
+  height: 1px;
+  background: #849180;
+  box-shadow: 0 3px #849180;
+}
 .preview-entry-icon[data-kind="directory"] {
   width: 16px;
   height: 12px;
@@ -915,8 +945,15 @@ footer {
   font-size: 13px;
 }
 .preview-truncated {
-  font-size: 12px;
-  align-self: end;
+  position: absolute;
+  top: 5px;
+  right: 24px;
+  max-width: calc(100% - 48px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #64705f;
 }
 .canvas-empty {
   min-height: 50dvh;

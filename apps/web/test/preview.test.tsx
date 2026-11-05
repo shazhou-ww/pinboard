@@ -10,7 +10,7 @@ const render = (preview: ContentPreview) =>
   );
 const base = { version: 1, status: "ready" as const, truncated: false };
 describe("typed, display-only content previews", () => {
-  it("uses the available card height for excerpts and centers image crops in a constrained grid", () => {
+  it("extends previews behind the frosted information strip and centers image crops", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
       "utf8",
@@ -19,13 +19,34 @@ describe("typed, display-only content previews", () => {
       /\.pin-card \.pin-preview\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;/u,
     );
     expect(styles).toMatch(
-      /\.pin-card \.pin-preview\s*\{[^}]*padding:\s*24px 24px 64px;/u,
+      /\.pin-card \.pin-preview\s*\{[^}]*padding:\s*24px 24px 0;[^}]*overflow:\s*hidden;/u,
     );
     expect(styles).toMatch(
       /\.pin-card \.pin-preview\.has-image\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\);/u,
     );
     expect(styles).toMatch(
       /\.pin-card \.pin-preview img\s*\{[^}]*min-height:\s*0;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center;/u,
+    );
+  });
+  it("uses folded document icons instead of empty checkbox-like outlines", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-icon\[data-kind="file"\]\s*\{[^}]*clip-path:\s*polygon\(/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-icon\[data-kind="file"\]::before\s*\{[^}]*border-left:[^}]*border-bottom:/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-icon\[data-kind="file"\]::after\s*\{[^}]*box-shadow:/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-truncated\s*\{[^}]*position:\s*absolute;[^}]*top:\s*5px;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-info\s*\{[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
   });
   it("scopes pin row layout to direct children and keeps directory list spacing compact", () => {
