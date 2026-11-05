@@ -3,6 +3,7 @@ import { uploadLimits } from "@shazhou/pinboard-contracts";
 import { exporter, type ReadableStorage } from "ipfs-unixfs-exporter";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
+import { apiFetch } from "./api.js";
 
 export const maxPreviewBytes = 8 * 1024 * 1024;
 const maxPreviewCarBytes =
@@ -104,7 +105,7 @@ export async function loadImage(
   cid: string,
   signal: AbortSignal,
 ): Promise<Blob | null> {
-  const response = await fetch(`/api/public/${cid}/car`, { signal });
+  const response = await apiFetch(`/api/public/${cid}/car`, { signal });
   if (!response.ok)
     throw new Error(`Image preview failed: HTTP ${response.status}.`);
   if (!response.body) throw new Error("Image preview response is empty.");

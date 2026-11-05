@@ -1,5 +1,11 @@
 import type { AgentToken, Pin } from "@shazhou/pinboard-contracts";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   selectionForDirectory,
   selectionForFile,
@@ -9,6 +15,7 @@ import {
 import { Dialog } from "./dialog.js";
 import { OAuthGrants } from "./oauth.js";
 import { PinPreview } from "./pin-preview.js";
+import { apiFetch } from "./api.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -16,7 +23,7 @@ export async function requestJson<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(path, init);
+  const response = await apiFetch(path, init);
   if (!response.ok) {
     const body: unknown = await response.json();
     const message =
@@ -33,7 +40,11 @@ export async function requestJson<T>(
     : ((await response.json()) as T);
 }
 
-export function AccountManager() {
+export function AccountManager({
+  renderHeader,
+}: {
+  renderHeader: (onSettings: () => void, disabled: boolean) => ReactNode;
+}) {
   const [pins, setPins] = useState<Pin[]>([]);
   const [tokens, setTokens] = useState<AgentToken[]>([]);
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
@@ -120,10 +131,11 @@ export function AccountManager() {
     };
   }, [tokenView]);
 
-  const copy = (text: string) =>
+  const copy = (text: string, onCopied?: () => void) =>
     perform(async () => {
       await navigator.clipboard.writeText(text);
-      setNotice("Copied to clipboard.");
+      if (onCopied) onCopied();
+      else setNotice("Copied to clipboard.");
     });
   const choose = (
     prepare: () => UploadSelection | Promise<UploadSelection>,
@@ -326,6 +338,10 @@ export function AccountManager() {
       className={`manager canvas${dragging ? " drag-active" : ""}`}
       aria-busy={busy}
     >
+      {renderHeader(
+        () => setSettingsOpen(true),
+        busy || settingsOpen || !!uploadSelection || !!selected,
+      )}
       {dragging ? (
         <div className="canvas-drop" aria-hidden="true">
           Drop one file or folder to make a pin
@@ -365,7 +381,7 @@ export function AccountManager() {
             type="button"
             className="floating-button primary"
             aria-label="Add file"
-            title="Add file"
+            title="Choose a file, or drop one file or folder anywhere."
             disabled={busy || !!uploadSelection || settingsOpen || !!selected}
             onClick={() => {
               if (filePicker.current) {
@@ -398,19 +414,6 @@ export function AccountManager() {
             </button>
           </div>
         </div>
-        <button
-          type="button"
-          className="floating-button secondary"
-          aria-label="Settings"
-          title="Settings"
-          disabled={busy || !!uploadSelection || !!selected}
-          onClick={() => setSettingsOpen(true)}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="m9 3-.6 2.4-2 .9-2.1-.7-2 3.4 1.6 1.7v2.6L2.3 15l2 3.4 2.1-.7 2 .9L9 21h6l.6-2.4 2-.9 2.1.7 2-3.4-1.6-1.7v-2.6L21.7 9l-2-3.4-2.1.7-2-.9L15 3Z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        </button>
       </div>
       <input
         ref={filePicker}
@@ -508,12 +511,7 @@ export function AccountManager() {
         </form>
       </Dialog>
       <section className="pin-wall" aria-label="Your pins">
-        <div className="section-title">
-          <h2>Your pins</h2>
-          <p className="muted">
-            Drop one file or folder anywhere here, or use Add.
-          </p>
-        </div>
+        <h1 className="visually-hidden">Your pins</h1>
         {!loaded ? (
           <p role="status">Loading your pins...</p>
         ) : !pins.length ? (
@@ -531,8 +529,8 @@ export function AccountManager() {
                 pin={pin}
                 busy={busy}
                 onOpen={() => openPin(pin)}
-                onCopyCid={() => {
-                  void copy(pin.cid);
+                onCopyCid={(onCopied) => {
+                  void copy(pin.cid, onCopied);
                 }}
               />
             ))}
@@ -869,10 +867,18 @@ export function PinCard({
   pin: Pin;
   busy: boolean;
   onOpen: () => void;
-  onCopyCid: () => void;
+  onCopyCid: (onCopied: () => void) => void;
 }) {
+  const [copyConfirmation, setCopyConfirmation] = useState<number | null>(null);
+  const copySequence = useRef(0);
+  const copied = copyConfirmation !== null;
+  useEffect(() => {
+    if (copyConfirmation === null) return;
+    const timer = setTimeout(() => setCopyConfirmation(null), 1500);
+    return () => clearTimeout(timer);
+  }, [copyConfirmation]);
   return (
-    <li className="pin-card">
+    <li className={`pin-card${copied ? " copy-confirmed" : ""}`}>
       <PinPreview pin={pin} />
       <button
         type="button"
@@ -882,21 +888,39 @@ export function PinCard({
         onClick={onOpen}
       />
       <div className="pin-info">
-        <strong className="pin-name" title={pin.name}>
-          {pin.name}
-        </strong>
-        <div className="pin-info-meta">
+        <div className="pin-info-summary">
+          <strong className="pin-name" title={pin.name}>
+            {pin.name}
+          </strong>
+          <span className="pin-size">{formatSize(pin.size)}</span>
+        </div>
+        <div className="pin-info-cid">
           <button
             type="button"
             className="pin-cid"
             aria-label={`Copy CID for ${pin.name}`}
             title={`Copy full CID: ${pin.cid}`}
             disabled={busy}
-            onClick={onCopyCid}
+            onClick={() => {
+              setCopyConfirmation(null);
+              onCopyCid(() => setCopyConfirmation(++copySequence.current));
+            }}
           >
-            <code>{pin.cid.slice(0, 16)}…</code>
+            <code>{copied ? "CID copied" : pin.cid}</code>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              {copied ? (
+                <path d="m5 12 4 4L19 6" />
+              ) : (
+                <>
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+                </>
+              )}
+            </svg>
+            <span className="visually-hidden" role="status">
+              {copied ? "CID copied" : ""}
+            </span>
           </button>
-          <span className="pin-size">{formatSize(pin.size)}</span>
         </div>
       </div>
     </li>

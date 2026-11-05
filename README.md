@@ -95,15 +95,43 @@ login bypass in the production Worker.
 
 ## Web uploads
 
+### Local UI preview
+
+For a read-only UI demo without OAuth, explicitly enable the local preview when
+starting Vite. In PowerShell, set `$env:VITE_UI_PREVIEW = "true"` before running
+`pnpm dev`, then open `http://localhost:5173/#preview`.
+
+The hash is a one-shot trigger: it is removed with `history.replaceState` before
+the app renders, preserving the pathname and query. The preview identity is kept
+in this tab's `sessionStorage`, so refresh keeps it active. Entering `#preview`
+on an already-open page reinitializes the page once. **Sign out** exits preview,
+clears the tab's preview state and returns to `/` without signing out any real
+OAuth session. Closing the tab ends its preview session.
+
+Preview requires Vite development mode, the explicit flag and a loopback host.
+Production builds exclude the demo modules and continue using real
+authorization. The demo has synthetic images and pins; uploads, edits, token
+changes and other API writes are rejected. It does not validate real
+upload/download or OAuth flows. No test-account credentials or production
+authentication bypass exist.
+
+### Choosing content
+
 The signed-in homepage is a responsive content wall, not a free-positioned or
 zoomable canvas. **Add** opens the file picker directly; hover or keyboard focus
 reveals **Choose folder**. Mobile and touch devices show the file and folder
-actions directly, without an expansion arrow. All floating actions, including
-**Settings**, are vertically arranged circular icon buttons with accessible
-names. Drop one file or folder anywhere on the wall to open the same **Make a
-pin** dialog. Review the selection and optionally edit its pin name before
-confirming. **Settings** opens a dialog for Agent tokens, MCP authorizations and
-local browser preferences.
+actions directly, without an expansion arrow. The floating add actions are
+vertically arranged circular icon buttons with accessible names. A compact
+frosted-glass header keeps branding on the left and the signed-in account on the
+right. The account dropdown contains **Settings** and **Sign out**; Settings is
+no longer a floating action. There is no visible wall title or explanatory
+footer. Drop instructions appear in the empty state, on drag-over and in the Add
+tooltip instead of occupying a permanent row above the pins.
+
+Drop one file or folder anywhere on the wall to open the same **Make a pin**
+dialog. Review the selection and optionally edit its pin name before confirming.
+**Settings** opens a dialog for Agent tokens, MCP authorizations and local
+browser preferences.
 
 The public-content reminder appears in the upload dialog, not as a permanent
 checkbox on the homepage. **Do not remind me in this browser** is saved in this
@@ -117,12 +145,19 @@ of stored blocks load previews as their cards enter the viewport. The browser
 verifies CAR block hashes and reconstructs UnixFS file bytes before creating a
 local image URL; the image type is checked from its signature rather than
 trusting the pin label. Other content, folders and larger images remain
-information cards. Cards are preview-first, with a translucent bottom strip
-containing the pin name, a 16-character CID prefix and size. Clicking the CID
-copies its complete value without opening details. Clicking anywhere else on the
-card (or using its keyboard action) opens a modal with the full CID, timestamp,
-block count, rename, share, CAR download and Unpin actions. Renaming updates
-both the card and modal without changing the CID.
+information cards. Cards are preview-first, with a translucent, frosted-glass
+bottom strip showing the name and size by default. Hovering over a card or
+focusing it with the keyboard raises the strip to reveal a single-line CID copy
+capsule, with a copy icon instead of link styling. Long CIDs are visually
+ellipsized, while the tooltip and copied value retain the complete CID. The
+transition respects reduced-motion preferences. Clicking the capsule copies the
+full CID without opening details. Successful copies show "CID copied" and a
+checkmark inside the capsule for 1.5 seconds, then restore the CID; repeated
+copies restart the confirmation. Copy failures show an error instead of success.
+Touch users can also copy the full CID in the details dialog. Clicking anywhere
+else on the card (or using its keyboard action) opens a modal with the full CID,
+timestamp, block count, rename, share, CAR download and Unpin actions. Renaming
+updates both the card and modal without changing the CID.
 
 SVG, HTML and other active content are never embedded. Preview errors remain
 visible on the card and do not prevent pin management or CAR downloads.

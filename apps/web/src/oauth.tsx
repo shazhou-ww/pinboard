@@ -1,5 +1,6 @@
 import { signIn } from "@hono/auth-js/react";
 import { useEffect, useState } from "react";
+import { apiFetch } from "./api.js";
 
 type Consent = {
   accountId: string;
@@ -27,7 +28,7 @@ const labels: Record<string, string> = {
 };
 
 async function oauthJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
+  const response = await apiFetch(path, init);
   if (!response.ok)
     throw new Error(
       `Request failed (${response.status}). Restart the connection if it expired.`,
@@ -158,7 +159,7 @@ export function OAuthConsent() {
       return;
     }
     const controller = new AbortController();
-    void fetch(path, { signal: controller.signal })
+    void apiFetch(path, { signal: controller.signal })
       .then(async (response) => {
         if (response.status === 401) {
           setLogin(true);

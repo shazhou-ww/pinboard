@@ -1,13 +1,50 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import { Dashboard, SharePage } from "../src/ui.js";
+import {
+  Children,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { describe, expect, it, vi } from "vitest";
+import { Dashboard, HomeHeader, SharePage } from "../src/ui.js";
 import { formatSize, PinCard } from "../src/manager.js";
 
 const bootstrap = {
   appName: "Pinboard",
   providers: [{ id: "google" as const, label: "Google" }],
 };
+type ButtonTree = { children?: ReactNode; onClick?: () => void };
+function findButton(
+  node: ReactNode,
+  label: string,
+): ReactElement<ButtonTree> | undefined {
+  if (!isValidElement<ButtonTree>(node)) return undefined;
+  const children = Children.toArray(node.props.children);
+  if (node.type === "button" && children.includes(label)) return node;
+  for (const child of children) {
+    const button = findButton(child, label);
+    if (button) return button;
+  }
+  return undefined;
+}
 describe("Pinboard interface", () => {
+  it("routes the account dropdown Settings action to the account manager", () => {
+    const onSettings = vi.fn();
+    let header: ReactNode = null;
+    function HeaderProbe() {
+      header = HomeHeader({
+        user: { name: "Alice", email: "alice@example.test" },
+        onSettings,
+      });
+      return header;
+    }
+    const html = renderToStaticMarkup(<HeaderProbe />);
+    expect(html).toContain("alice@example.test");
+    const settings = findButton(header, "Settings");
+    if (!settings?.props.onClick) throw new Error("Missing Settings action.");
+    settings.props.onClick();
+    expect(onSettings).toHaveBeenCalledOnce();
+  });
   it("shows a restrained Google-only login and public-content notice", () => {
     const html = renderToStaticMarkup(
       <Dashboard state={{ kind: "ready", bootstrap, session: null }} />,
@@ -18,6 +55,9 @@ describe("Pinboard interface", () => {
     expect(html).not.toContain('href="/api/auth/signin');
     expect(html).not.toContain("GitHub");
     expect(html).toContain("Reading by CID is always public");
+    expect(html).toContain('class="home-header"');
+    expect(html).toContain('href="#signin"');
+    expect(html).not.toContain("<footer");
   });
   it("lists configured providers on the homepage and disables them during sign-in", () => {
     const configured = {
@@ -54,7 +94,17 @@ describe("Pinboard interface", () => {
     expect(html).not.toContain("I understand all uploaded bytes");
     expect(html).toContain("Uploaded content will be public");
     expect(html).toContain("Do not remind me in this browser");
-    expect(html).toContain('class="shell canvas-shell"');
+    expect(html).toContain('class="shell home-shell canvas-shell"');
+    expect(html).toContain('class="home-header"');
+    expect(html).toMatch(/popovertarget="account-menu"/i);
+    expect(html).toContain('popover="auto"');
+    expect(html).toContain('aria-label="Account actions"');
+    expect(html).not.toContain('class="identity"');
+    expect(html).not.toContain("<footer");
+    expect(html).not.toContain("<h2>Your pins</h2>");
+    expect(html).not.toContain(
+      "Drop one file or folder anywhere here, or use Add.",
+    );
     expect(html).toContain('aria-label="Pinboard tools"');
     expect(html).toContain('aria-label="Add file"');
     expect(html).toContain('aria-label="Settings"');
@@ -63,8 +113,9 @@ describe("Pinboard interface", () => {
       html.indexOf('role="toolbar"'),
       html.indexOf('aria-label="Choose file"'),
     );
-    expect(toolbar.match(/class="floating-button /g)).toHaveLength(3);
-    expect(toolbar.match(/<svg /g)).toHaveLength(3);
+    expect(toolbar.match(/class="floating-button /g)).toHaveLength(2);
+    expect(toolbar.match(/<svg /g)).toHaveLength(2);
+    expect(toolbar).not.toContain("Settings");
     expect(toolbar).not.toContain(">Settings</button>");
     expect(toolbar).not.toContain(">Choose folder</button>");
     expect(html.match(/<dialog/g)).toHaveLength(3);
@@ -73,7 +124,7 @@ describe("Pinboard interface", () => {
     expect(html).toContain("Create Agent token");
     expect(html).toContain("Choose file");
     expect(html).toContain("Choose folder");
-    expect(html).toContain("Drop one file or folder anywhere here");
+    expect(html).toContain("drop one file or folder anywhere.");
     expect(html).not.toContain("Content type");
     expect(html).not.toContain("Raw IPFS block");
     expect(html).toContain(
@@ -121,7 +172,7 @@ describe("Pinboard interface", () => {
       ),
     ).toContain(".dev.vars");
   });
-  it("renders preview-first cards with a copyable CID prefix and no inline management actions", () => {
+  it("renders preview-first cards with a complete CID copy capsule and no inline management actions", () => {
     const pin = {
       cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
       name: "photo.png",
@@ -134,9 +185,21 @@ describe("Pinboard interface", () => {
     );
     expect(html).toContain('class="pin-preview"');
     expect(html).toContain('class="pin-info"');
+    expect(html).toContain(
+      '<div class="pin-info-summary"><strong class="pin-name" title="photo.png">photo.png</strong><span class="pin-size">1.0 KiB</span></div>',
+    );
+    expect(html).toContain('<div class="pin-info-cid"><button');
     expect(html).toContain('aria-label="View details for photo.png"');
     expect(html).toContain('aria-label="Copy CID for photo.png"');
-    expect(html).toContain(`<code>${pin.cid.slice(0, 16)}…</code>`);
+    expect(html).toContain(`<code>${pin.cid}</code>`);
+    expect(html).toContain(
+      '<span class="visually-hidden" role="status"></span>',
+    );
+    expect(html).not.toContain(`${pin.cid.slice(0, 16)}…`);
+    expect(html).toContain(
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">',
+    );
+    expect(html).not.toContain("<a");
     expect(html).toContain("1.0 KiB");
     expect(html.match(/<button/g)).toHaveLength(2);
     expect(html).not.toContain("Rename");
