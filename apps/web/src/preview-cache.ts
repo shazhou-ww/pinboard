@@ -21,7 +21,10 @@ const object = (value: unknown): value is Record<string, unknown> =>
 const integer = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
-export function isContentPreview(value: unknown): value is ContentPreview {
+export function isContentPreview(
+  value: unknown,
+  allowObjectUrls = false,
+): value is ContentPreview {
   if (
     !object(value) ||
     !integer(value.version) ||
@@ -42,7 +45,9 @@ export function isContentPreview(value: unknown): value is ContentPreview {
       return (
         object(content) &&
         typeof content.cid === "string" &&
-        content.url === `/ipfs/${content.cid}` &&
+        typeof content.url === "string" &&
+        (content.url === `/ipfs/${content.cid}` ||
+          (allowObjectUrls && content.url.startsWith("blob:"))) &&
         integer(content.width) &&
         content.width > 0 &&
         content.width <= 480 &&

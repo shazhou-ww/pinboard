@@ -7,6 +7,7 @@ import { useEffect, useState, type MouseEvent } from "react";
 
 import { Dashboard, SharePage, type DashboardState } from "./ui.js";
 import { OAuthConsent } from "./oauth.js";
+import { apiFetch, leavePreviewMode } from "./api.js";
 
 export function App() {
   if (location.pathname === "/connect/mcp") return <OAuthConsent />;
@@ -36,7 +37,13 @@ function Home() {
 
   function handleSignOut() {
     setSigningOut(true);
-    void signOut({ callbackUrl: "/" })
+    void (async () => {
+      if (await leavePreviewMode()) {
+        location.assign("/");
+        return;
+      }
+      await signOut({ callbackUrl: "/" });
+    })()
       .catch(showAuthError)
       .finally(() => setSigningOut(false));
   }
@@ -92,7 +99,7 @@ async function loadDashboard(signal: AbortSignal): Promise<{
 }
 
 async function fetchJson<T>(path: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch(path, {
+  const response = await apiFetch(path, {
     headers: {
       accept: "application/json",
     },

@@ -12,6 +12,7 @@ import {
   previewRetentionMs,
   type CachedPreview,
 } from "./preview-cache.js";
+import { apiFetch, previewEnabled } from "./api.js";
 
 export class PreviewRequestError extends Error {
   constructor(
@@ -128,7 +129,7 @@ export class PreviewClient {
     const controller = new AbortController();
     this.controllers.add(controller);
     try {
-      const response = await fetch("/api/pins/previews", {
+      const response = await apiFetch("/api/pins/previews", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ cids: batch.map(([cid]) => cid) }),
@@ -159,7 +160,7 @@ export class PreviewClient {
           !expected.delete(item.cid)
         )
           throw new Error("Invalid or duplicate preview batch CID");
-        if ("preview" in item && isContentPreview(item.preview))
+        if ("preview" in item && isContentPreview(item.preview, previewEnabled))
           results.set(item.cid, item.preview);
         else if (
           "error" in item &&
@@ -196,7 +197,11 @@ export class PreviewClient {
               bytes,
             };
             this.remember(cid, entry);
-            updates.push(entry);
+            if (
+              result.contentType !== "image/webp" ||
+              !result.content.url.startsWith("blob:")
+            )
+              updates.push(entry);
           } else
             console.warn(
               "Preview description exceeds the local cache entry budget",

@@ -1,8 +1,9 @@
 import type {
   BootstrapResponse,
   SessionResponse,
+  SessionUser,
 } from "@shazhou/pinboard-contracts";
-import type { MouseEventHandler } from "react";
+import { useRef, type MouseEventHandler } from "react";
 import { AccountManager } from "./manager.js";
 
 export type DashboardState =
@@ -13,6 +14,111 @@ export type DashboardState =
       readonly bootstrap: BootstrapResponse;
       readonly session: SessionResponse | null;
     };
+
+export function HomeHeader({
+  user,
+  onSettings,
+  onSignOut,
+  signingOut = false,
+  disabled = false,
+}: {
+  user: SessionUser | null;
+  onSettings?: () => void;
+  onSignOut?: MouseEventHandler<HTMLButtonElement> | undefined;
+  signingOut?: boolean;
+  disabled?: boolean;
+}) {
+  const menu = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const name = user?.name?.trim() || user?.email || "Google account";
+  return (
+    <header
+      className="home-header"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && menu.current?.matches(":popover-open")) {
+          event.preventDefault();
+          menu.current.hidePopover();
+          trigger.current?.focus();
+        }
+      }}
+    >
+      <a className="brand" href="/" aria-label="Pinboard home">
+        <span className="brand-mark" aria-hidden="true" />
+        Pinboard
+      </a>
+      {user ? (
+        <>
+          <button
+            ref={trigger}
+            type="button"
+            className="account-trigger"
+            popoverTarget="account-menu"
+            aria-label={`Account options for ${name}`}
+            aria-busy={signingOut}
+            disabled={disabled || signingOut}
+          >
+            <span className="account-avatar" aria-hidden="true">
+              {Array.from(name)[0]?.toUpperCase()}
+            </span>
+            <span className="account-name">
+              {signingOut ? "Signing out..." : name}
+            </span>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            ref={menu}
+            id="account-menu"
+            popover="auto"
+            className="account-popover"
+            role="group"
+            aria-label="Account actions"
+          >
+            <div className="account-identity">
+              <strong>{name}</strong>
+              {user.email && user.email !== name ? (
+                <span>{user.email}</span>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              disabled={disabled || signingOut}
+              onClick={() => {
+                menu.current?.hidePopover();
+                onSettings?.();
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="m9 3-.6 2.4-2 .9-2.1-.7-2 3.4 1.6 1.7v2.6L2.3 15l2 3.4 2.1-.7 2 .9L9 21h6l.6-2.4 2-.9 2.1.7 2-3.4-1.6-1.7v-2.6L21.7 9l-2-3.4-2.1.7-2-.9L15 3Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                menu.current?.hidePopover();
+                onSignOut?.(event);
+              }}
+              disabled={disabled || signingOut}
+              aria-busy={signingOut}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 5H4v14h5M14 8l4 4-4 4M8 12h10" />
+              </svg>
+              {signingOut ? "Signing out..." : "Sign out"}
+            </button>
+          </div>
+        </>
+      ) : (
+        <a className="header-signin" href="#signin">
+          Sign in
+        </a>
+      )}
+    </header>
+  );
+}
 
 export function Dashboard({
   state,
@@ -27,29 +133,11 @@ export function Dashboard({
   readonly onSignOut?: MouseEventHandler<HTMLButtonElement>;
   readonly signingOut?: boolean;
 }) {
+  const user = state.kind === "ready" ? (state.session?.user ?? null) : null;
   return (
-    <main
-      className={`shell${state.kind === "ready" && state.session?.user ? " canvas-shell" : ""}`}
-    >
-      <header className="masthead">
-        <a className="brand" href="/" aria-label="Pinboard home">
-          <span className="brand-mark" aria-hidden="true" />
-          Pinboard
-        </a>
-        {state.kind === "ready" && state.session?.user ? (
-          <button
-            type="button"
-            onClick={onSignOut}
-            disabled={signingOut}
-            aria-busy={signingOut}
-          >
-            {signingOut ? "Signing out..." : "Sign out"}
-          </button>
-        ) : (
-          <span>Small by design.</span>
-        )}
-      </header>
-      {!(state.kind === "ready" && state.session?.user) ? (
+    <main className={`shell home-shell${user ? " canvas-shell" : ""}`}>
+      {!user ? <HomeHeader user={null} /> : null}
+      {!user ? (
         <section className="intro">
           <p className="eyebrow">A quiet home for content-addressed things</p>
           <h1>
@@ -71,21 +159,22 @@ export function Dashboard({
           <p>{state.message}</p>
           <a href="/">Try again</a>
         </div>
-      ) : state.session?.user ? (
-        <>
-          <p className="identity">
-            Signed in as{" "}
-            {state.session.user.name ??
-              state.session.user.email ??
-              "Google account"}
-          </p>
-          <AccountManager
-            key={state.session.user.id}
-            accountId={state.session.user.id}
-          />
-        </>
+      ) : user ? (
+        <AccountManager
+          key={user.id}
+          accountId={user.id}
+          renderHeader={(onSettings, disabled) => (
+            <HomeHeader
+              user={user}
+              onSettings={onSettings}
+              disabled={disabled}
+              onSignOut={onSignOut}
+              signingOut={signingOut}
+            />
+          )}
+        />
       ) : (
-        <section className="panel signin">
+        <section className="panel signin" id="signin" tabIndex={-1}>
           <h2>Keep something worth keeping.</h2>
           <p>
             Sign in to upload and manage your pins. Reading by CID is always
@@ -118,12 +207,6 @@ export function Dashboard({
           )}
         </section>
       )}
-      <footer>
-        <span>Content is public. Ownership is private.</span>
-        <a href="https://docs.ipfs.tech/concepts/content-addressing/">
-          What is a CID? ↗
-        </a>
-      </footer>
     </main>
   );
 }
