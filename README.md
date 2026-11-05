@@ -134,6 +134,14 @@ open the menu with Shift+F10, navigate with arrow keys, Home and End, and
 dismiss it with Escape. Unpin keeps the existing confirmation and removes only
 the account reference.
 
+On desktop, the compact **…** button appears when hovering the preview or
+focusing the button with the keyboard. The bottom information strip expands only
+when hovered or focused itself, not when hovering the rest of the card. Touch
+devices keep the menu button and CID action visible. Operation feedback floats
+below the fixed header without moving the wall; success messages dismiss after
+five seconds. Errors remain visible for recovery, and progress remains until the
+operation completes.
+
 Drop one file or folder anywhere on the wall to open the same **Make a pin**
 dialog. Review the selection and optionally edit its pin name before confirming.
 **Settings** opens a dialog for Agent tokens, MCP authorizations and local
