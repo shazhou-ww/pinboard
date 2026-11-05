@@ -19,6 +19,7 @@ import { OAuthGrants } from "./oauth.js";
 import { PinPreview } from "./pin-preview.js";
 import { PreviewClient } from "./preview-client.js";
 import { apiFetch } from "./api.js";
+import { BackgroundSettings } from "./background.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -843,6 +844,7 @@ export function AccountManager({
         <OAuthGrants />
         <section className="browser-settings">
           <h3>Browser preferences</h3>
+          <BackgroundSettings disabled={busy} onError={setError} />
           <label className="check">
             <input
               type="checkbox"
