@@ -48,6 +48,16 @@ is a new empty database, not an in-place migration or fallback. R2 was not
 deleted. See [production reset evidence](retention-production.md) for the
 independently authorized schema operation, cutover and acceptance results.
 
+The publications release requires the additive
+[`0006_publications.sql`](../apps/worker/migrations/0006_publications.sql)
+migration before deploying its application code. It can be applied while the
+previous release is still serving traffic; doing so does not activate the
+feature. Once publications or recently deleted objects exist, do not roll back
+to retention-unaware application code: it cannot protect publication-only
+references or enforce the recovery window. Prefer a forward fix that preserves
+the new retention model. Schema application still requires separate
+authorization and is not part of tag-driven deployment.
+
 ## 1. Provision production resources once
 
 The workflow expects these resources to exist in the intended Cloudflare

@@ -52,7 +52,7 @@ describe("MCP consent and grant management interface", () => {
       "alice",
       "Read your pins",
       "public content",
-      "Remove your pin",
+      "Move pins to recently deleted",
       "Allow selected permissions",
       "Cancel connection",
       "one hour",

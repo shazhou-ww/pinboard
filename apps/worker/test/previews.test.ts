@@ -23,6 +23,7 @@ import { thumbnail } from "../src/preview-image.js";
 import { migrate } from "./migrations.js";
 import app from "../src/index.js";
 import { createToken } from "../src/tokens.js";
+import { expireDeleted } from "../src/recently-deleted.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -87,6 +88,15 @@ async function count(sql: string, ...args: (string | number)[]) {
   return (await env.DB.prepare(sql)
     .bind(...args)
     .first<{ n: number }>())!.n;
+}
+// Exercise physical preview-GC after recovery has expired. Real recovery
+// timing is covered separately in publications.test.ts.
+async function releasePin(service: PinService, cid: string) {
+  await service.unpin(cid);
+  await env.DB.prepare("UPDATE deleted_pins SET expires_at = ? WHERE cid = ?")
+    .bind(new Date().toISOString(), cid)
+    .run();
+  await expireDeleted(env, Date.now());
 }
 
 describe("bounded source-derived previews", () => {
@@ -164,8 +174,8 @@ describe("bounded source-derived previews", () => {
         missing,
       ),
     ).toBe(0);
-    await service.unpin(ownPin.cid);
-    await new PinService(env, other).unpin(foreign.cid);
+    await releasePin(service, ownPin.cid);
+    await releasePin(new PinService(env, other), foreign.cid);
   });
 
   it("bounds batch input, enforces scope/origin and limits eager generation to two jobs", async () => {
@@ -275,7 +285,7 @@ describe("bounded source-derived previews", () => {
       1,
     );
     await Promise.all(
-      [...pins, ...exhausted].map((pin) => service.unpin(pin.cid)),
+      [...pins, ...exhausted].map((pin) => releasePin(service, pin.cid)),
     );
   });
 
@@ -652,17 +662,17 @@ describe("real images, CID delivery and retention references", () => {
     expect(b.value.content.cid).toBe(cid);
     const second = new PinService(env, other);
     await second.pin(a.pin.cid, "account two secret");
-    await service.unpin(a.pin.cid);
-    await service.unpin(b.pin.cid);
+    await releasePin(service, a.pin.cid);
+    await releasePin(service, b.pin.cid);
     const future = Date.now() + 8 * 86400000;
     await runPreviews(env, future);
     expect(await readBlock(env, cid)).toBeDefined();
     const direct = await second.pin(cid, "direct thumbnail");
     expect(direct.cid).toBe(cid);
-    await second.unpin(a.pin.cid);
+    await releasePin(second, a.pin.cid);
     await runPreviews(env, future + 8 * 86400000);
     expect(await readBlock(env, cid)).toBeDefined();
-    await second.unpin(cid);
+    await releasePin(second, cid);
     // Simulate an old generation retained in the same schema.
     await env.DB.prepare(
       "UPDATE content_previews SET version = ? WHERE source_cid = ?",
@@ -684,7 +694,7 @@ describe("real images, CID delivery and retention references", () => {
     const regenerated = await getPreview(env, a.pin.cid);
     expect(regenerated.status).toBe("ready");
     expect(await readBlock(env, cid)).toBeDefined();
-    await second.unpin(a.pin.cid);
+    await releasePin(second, a.pin.cid);
     await env.DB.prepare(
       "UPDATE preview_images SET unreferenced_at = ? WHERE cid = ?",
     )
@@ -713,7 +723,7 @@ describe("real images, CID delivery and retention references", () => {
       await readFile(new URL("fixtures/transparent.png", import.meta.url)),
     );
     if (value.contentType !== "image/webp") throw new Error("not image");
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     const cid = value.content.cid;
     const orphan = await env.DB.prepare(
       "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
@@ -744,7 +754,7 @@ describe("real images, CID delivery and retention references", () => {
     );
     if (value.contentType !== "image/webp") throw new Error("not image");
     const cid = value.content.cid;
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     await env.DB.prepare(
       "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
     )
@@ -824,7 +834,7 @@ describe("real images, CID delivery and retention references", () => {
       ]);
       const dag = await readCar(car.bytes);
       if (kind !== "car") await storeDag(env, dag);
-      await service.unpin(pin.cid);
+      await releasePin(service, pin.cid);
       await env.DB.prepare(
         "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
       )
@@ -900,7 +910,7 @@ describe("real images, CID delivery and retention references", () => {
       } finally {
         release();
         spy.mockRestore();
-        if (directoryCid) await second.unpin(directoryCid);
+        if (directoryCid) await releasePin(second, directoryCid);
       }
     },
   );
@@ -925,7 +935,7 @@ describe("real images, CID delivery and retention references", () => {
       "car",
       "folder containing image bytes",
     );
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     await runPreviews(env, Date.now() + 8 * 86400000);
     expect(
       await env.DB.prepare(
@@ -934,7 +944,7 @@ describe("real images, CID delivery and retention references", () => {
         .bind(cid)
         .first(),
     ).toMatchObject({ unreferenced_at: null });
-    await new PinService(env, other).unpin(folder.cid);
+    await releasePin(new PinService(env, other), folder.cid);
     const row = await env.DB.prepare(
       "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
     )
@@ -1013,7 +1023,7 @@ describe("real images, CID delivery and retention references", () => {
     const oldCid = old.value.content.cid;
     const currentCid = current.value.content.cid;
     expect(oldCid).not.toBe(currentCid);
-    await service.unpin(old.pin.cid);
+    await releasePin(service, old.pin.cid);
     // Reference-only version-swap fixture using two genuinely encoded BLOBs;
     // source fidelity is tested by the actual decoder/encoder cases separately.
     await env.DB.prepare(

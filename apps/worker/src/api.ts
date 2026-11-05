@@ -15,6 +15,7 @@ import { createToken, listTokens, revokeToken } from "./tokens.js";
 import { oauthOrigin } from "./oauth.js";
 import { getPreview, processPreview, processPreviewBatch } from "./previews.js";
 import { previewBatchLimit } from "@shazhou/pinboard-contracts";
+import { publicationApi } from "./publication-api.js";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
@@ -22,6 +23,7 @@ api.use("*", async (c, next) => {
   checkOrigin(c, c.req.path !== "/mcp");
   await next();
 });
+api.route("/", publicationApi);
 api.use("/api/pins/*", requireIdentity);
 api.use("/api/pins", requireIdentity);
 api.get("/api/pins", async (c) =>

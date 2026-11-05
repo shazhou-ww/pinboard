@@ -101,6 +101,35 @@ afterEach(() => {
 });
 
 describe("one-shot local UI preview", () => {
+  it("includes independent publication cards, rollback history and recovery fixtures without enabling writes", async () => {
+    stored.set(key, "read-only");
+    const { apiFetch } = await import("../src/api.js");
+    const page = (await (await apiFetch("/api/publications")).json()) as {
+      publications: {
+        id: string;
+        currentRevision: number;
+        revisionCount: number;
+      }[];
+    };
+    expect(page.publications).toHaveLength(3);
+    const rollback = page.publications.find(
+      (item) => item.currentRevision === 3,
+    )!;
+    expect(rollback.revisionCount).toBe(5);
+    expect(
+      (await apiFetch(`/api/public/publications/${rollback.id}/history`))
+        .status,
+    ).toBe(200);
+    expect((await apiFetch("/api/recently-deleted")).status).toBe(200);
+    for (const path of [
+      "/api/publications",
+      `/api/publications/${rollback.id}/publish`,
+      `/api/publications/${rollback.id}/restore`,
+    ]) {
+      expect((await apiFetch(path, { method: "POST" })).status).toBe(405);
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("consumes the hash before returning to the same route and query", async () => {
     url = new URL("http://127.0.0.1:5178/share/example?sort=recent#preview");
     const { initializePreview } = await import("../src/dev-preview.js");

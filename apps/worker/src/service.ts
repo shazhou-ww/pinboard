@@ -44,7 +44,7 @@ export class PinService {
   ): Promise<{ pins: Pin[]; nextCursor: string | null }> {
     requireScope(this.principal, "pins:read");
     const result = await this.env.DB.prepare(
-      "SELECT cid, name, size, blocks, created_at AS createdAt FROM pins WHERE account_id = ? AND cid > ? ORDER BY cid LIMIT 51",
+      "SELECT cid, name, size, blocks, created_at AS createdAt FROM pins WHERE account_id = ? AND cid > ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) ORDER BY cid LIMIT 51",
     )
       .bind(this.principal.accountId, cursor ?? "")
       .all<Pin>();
@@ -58,7 +58,7 @@ export class PinService {
   async detail(cid: string): Promise<Pin> {
     requireScope(this.principal, "pins:read");
     const pin = await this.env.DB.prepare(
-      "SELECT cid, name, size, blocks, created_at AS createdAt FROM pins WHERE account_id = ? AND cid = ?",
+      "SELECT cid, name, size, blocks, created_at AS createdAt FROM pins WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid)",
     )
       .bind(this.principal.accountId, key(parseCid(cid)))
       .first<Pin>();
@@ -77,7 +77,7 @@ export class PinService {
       });
     const unique = [...new Set(cids.map((cid) => key(parseCid(cid))))];
     const owned = await this.env.DB.prepare(
-      `SELECT cid FROM pins WHERE account_id = ? AND cid IN (${unique.map(() => "?").join(",")})`,
+      `SELECT cid FROM pins WHERE account_id = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) AND cid IN (${unique.map(() => "?").join(",")})`,
     )
       .bind(this.principal.accountId, ...unique)
       .all<{ cid: string }>();
@@ -152,37 +152,33 @@ export class PinService {
     requireScope(this.principal, "pins:delete");
     const root = key(parseCid(cid));
     const now = new Date();
-    const results = await this.env.DB.batch([
-      this.env.DB.prepare(
-        "UPDATE retention_state SET safe_after = max(safe_after, ?) WHERE id = 1 AND EXISTS (SELECT 1 FROM pins WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM dag_roots WHERE root = pins.cid))",
-      ).bind(
-        new Date(now.getTime() + 7 * 86400000).toISOString(),
-        this.principal.accountId,
-        root,
-      ),
-      this.env.DB.prepare(
-        "DELETE FROM pins WHERE account_id = ? AND cid = ?",
-      ).bind(this.principal.accountId, root),
-      this.env.DB.prepare(
-        "UPDATE retained_blocks SET unreferenced_at = ? WHERE unreferenced_at IS NULL AND cid IN (SELECT cid FROM dag_members WHERE root = ?) AND NOT EXISTS (SELECT 1 FROM dag_members m JOIN pins p ON p.cid = m.root WHERE m.cid = retained_blocks.cid)",
-      ).bind(now.toISOString(), root),
-      refreshPreviewReferences(this.env.DB, now.getTime(), root),
-      this.env.DB.prepare(
-        "UPDATE content_previews SET unreferenced_at = ? WHERE source_cid = ? AND NOT EXISTS (SELECT 1 FROM pins WHERE cid = ?)",
-      ).bind(now.toISOString(), root, root),
-    ]);
-    const result = results[1]!;
-    if (!result.meta.changes)
+    const pin = await this.env.DB.prepare(
+      "SELECT cid FROM pins WHERE account_id = ? AND cid = ?",
+    )
+      .bind(this.principal.accountId, root)
+      .first();
+    if (!pin)
       throw new HTTPException(404, {
         message: "Pin not found in your account",
       });
+    await this.env.DB.prepare(
+      `INSERT OR IGNORE INTO deleted_pins (account_id, cid, deleted_at, expires_at)
+      SELECT account_id, cid, ?, ? FROM pins WHERE account_id = ? AND cid = ?`,
+    )
+      .bind(
+        now.toISOString(),
+        new Date(now.getTime() + 30 * 86400000).toISOString(),
+        this.principal.accountId,
+        root,
+      )
+      .run();
   }
 
   async rename(cid: string, name: string): Promise<Pin> {
     requireScope(this.principal, "pins:write");
     const label = validate(nameSchema, name);
     const pin = await this.env.DB.prepare(
-      "UPDATE pins SET name = ? WHERE account_id = ? AND cid = ? RETURNING cid, name, size, blocks, created_at AS createdAt",
+      "UPDATE pins SET name = ? WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) RETURNING cid, name, size, blocks, created_at AS createdAt",
     )
       .bind(label, this.principal.accountId, key(parseCid(cid)))
       .first<Pin>();
@@ -229,6 +225,9 @@ export class PinService {
       this.env.DB.prepare(
         "UPDATE content_previews SET unreferenced_at = NULL WHERE source_cid = ?",
       ).bind(cid),
+      this.env.DB.prepare(
+        "DELETE FROM deleted_pins WHERE account_id = ? AND cid = ?",
+      ).bind(this.principal.accountId, cid),
       ...images.flatMap((image) => {
         const bytes = dag.blocks.get(image.cid);
         return bytes

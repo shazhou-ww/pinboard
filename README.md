@@ -25,6 +25,10 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 - Sign in with Google to list, inspect and unpin your own content.
 - Rename an account's pin from Web, CLI or `PATCH /api/pins/:cid`, without
   changing its CID or re-uploading public content.
+- [Publish evolving content](docs/publications.md) behind a stable public link,
+  with immutable numbered revisions, public history and explicit rollback.
+- Recover deleted pins and publications for 30 days through Web, CLI, HTTP or
+  MCP.
 - Give an agent a scoped, expiring, revocable token for HTTP and remote MCP.
 - Connect an interactive MCP client through browser Google sign-in and explicit
   OAuth consent, without copying an API token (after the OAuth
@@ -32,14 +36,16 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 - Use explicitly configured Kubo clients as readers, without a server-side Kubo.
 
 All uploaded bytes are **public**, including bytes in failed partial writes.
-Account lists, labels, and tokens are private. Unpinning deletes **only your
-account reference** and immediately removes the pin from your list. Content is
-eligible for scheduled cleanup 7 days after its last account or DAG reference
-disappears. Shared CARs may remain longer; CDN, other nodes and downloaded
-copies are not erased. There is no recycle bin, restore or permanent-delete
-action. Revoked/expired Agent tokens stop authenticating immediately; their
-management records are kept for 30 days from the earlier invalidation time. The
-Web token list defaults to active entries, with a separate history view.
+Account lists, labels, and tokens are private. Publication titles and their
+complete revision histories are public. Unpin and publication deletion remove
+the object from normal lists and retain its references for a 30-day recovery
+window in **Recently deleted**. Expiry releases only that object's references;
+the last account, DAG or publication reference then starts seven days of cleanup
+grace. Shared CARs may remain longer; CDN, other nodes and downloaded copies are
+not erased. There is no permanent-delete action. Revoked/expired Agent tokens
+stop authenticating immediately; their management records are kept for 30 days
+from the earlier invalidation time. The Web token list defaults to active
+entries, with a separate history view.
 
 New uploads use one CAR object and a CID-to-object/offset/length index, with
 legacy independent-block fallback. Complete indexed CAR downloads stream one
@@ -116,10 +122,11 @@ OAuth session. Closing the tab ends its preview session.
 
 Preview requires Vite development mode, the explicit flag and a loopback host.
 Production builds exclude the demo modules and continue using real
-authorization. The demo has synthetic images and pins; uploads, edits, token
-changes and other API writes are rejected. It does not validate real
-upload/download or OAuth flows. No test-account credentials or production
-authentication bypass exist.
+authorization. The demo has synthetic images, pins, publications (including a
+v3-of-5 rollback) and recently deleted items; uploads, edits, token changes and
+other API writes are rejected. It does not validate real upload/download or
+OAuth flows. No test-account credentials or production authentication bypass
+exist.
 
 ### Choosing content
 
@@ -137,8 +144,9 @@ tooltip instead of occupying a permanent row above the pins.
 Right-click a pin card or use its **…** button to open **View details**, **Copy
 link** (the public share page), **Copy CID** and **Unpin**. Keyboard users can
 open the menu with Shift+F10, navigate with arrow keys, Home and End, and
-dismiss it with Escape. Unpin keeps the existing confirmation and removes only
-the account reference.
+dismiss it with Escape. **Add to a publication** creates a public stable link or
+publishes to an existing one. Unpin moves only that pin to recently deleted;
+publication references remain independent.
 
 On desktop, the compact **…** button appears when hovering the preview or
 focusing the button with the keyboard. The bottom information strip expands only
@@ -363,8 +371,9 @@ Clients must still verify retrieved CIDs.
 - MCP inline upload: 2 MiB decoded. Larger content uses the same token on the
   HTTP upload route, not a base64-encoded 32 MiB JSON message.
 - Tokens expire in 1-365 days (default 30); scopes are `pins:read`,
-  `pins:write`, `pins:delete`. Secrets are shown once and only SHA-256 hashes
-  are stored.
+  `pins:write`, `pins:delete`, `publications:read`, `publications:write`,
+  `publications:delete`. Old pin-write tokens gain no publication authority.
+  Secrets are shown once and only SHA-256 hashes are stored.
 
 Inputs outside these limits fail explicitly. Additional Worker CPU, memory,
 subrequest and account-plan limits still apply; large-load testing is not a

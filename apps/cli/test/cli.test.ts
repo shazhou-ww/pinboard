@@ -10,6 +10,7 @@ import { Client } from "../src/client.js";
 import { credentials, stdinToken } from "../src/credentials.js";
 import { Store } from "../src/store.js";
 import { prepareInput } from "../src/input.js";
+import * as inputModule from "../src/input.js";
 
 const directory = resolve(process.env.PINBOARD_TEST_ROOT ?? ".", ".cli-tests");
 const token = "synthetic-test-token";
@@ -21,6 +22,215 @@ const record = {
   blocks: 1,
   createdAt: "2026-01-01",
 };
+describe("publication and recovery commands", () => {
+  it.each([
+    {
+      args: [
+        "publication",
+        "create",
+        cid,
+        "--title",
+        "Public title",
+        "--request-id",
+        "create-key",
+      ],
+      path: "/api/publications",
+      method: "POST",
+    },
+    { args: ["publication", "list"], path: "/api/publications", method: "GET" },
+    {
+      args: ["publication", "get", "stable-id"],
+      path: "/api/public/publications/stable-id",
+      method: "GET",
+    },
+    {
+      args: ["publication", "get", "stable-id", "--revision", "3"],
+      path: "/api/public/publications/stable-id/versions/3",
+      method: "GET",
+    },
+    {
+      args: ["publication", "history", "stable-id"],
+      path: "/api/public/publications/stable-id/history",
+      method: "GET",
+    },
+    {
+      args: [
+        "publication",
+        "publish",
+        "stable-id",
+        cid,
+        "--sequence",
+        "2",
+        "--request-id",
+        "publish-key",
+      ],
+      path: "/api/publications/stable-id/publish",
+      method: "POST",
+    },
+    {
+      args: [
+        "publication",
+        "rollback",
+        "stable-id",
+        "1",
+        "--sequence",
+        "2",
+        "--request-id",
+        "rollback-key",
+      ],
+      path: "/api/publications/stable-id/rollback",
+      method: "POST",
+    },
+    {
+      args: ["publication", "remove", "stable-id"],
+      path: "/api/publications/stable-id",
+      method: "DELETE",
+    },
+    {
+      args: ["publication", "restore", "stable-id"],
+      path: "/api/publications/stable-id/restore",
+      method: "POST",
+    },
+    { args: ["deleted"], path: "/api/recently-deleted", method: "GET" },
+    {
+      args: ["restore", cid],
+      path: `/api/pins/${cid}/restore`,
+      method: "POST",
+    },
+  ])("routes $args consistently", async ({ args, path, method }) => {
+    let captured: RequestInit | undefined;
+    const fetcher: typeof fetch = (input, init) => {
+      expect(
+        new URL(input instanceof Request ? input.url : input).pathname,
+      ).toBe(path);
+      expect(init?.method).toBe(method);
+      captured = init;
+      return Promise.resolve(
+        method === "DELETE"
+          ? new Response(null, { status: 204 })
+          : Response.json({ ok: true }),
+      );
+    };
+    const result = await invoke([...args, "--json"], { fetcher });
+    expect(result.code).toBe(0);
+    if (path.includes("/api/public/"))
+      expect(new Headers(captured?.headers).has("authorization")).toBe(false);
+    else
+      expect(new Headers(captured?.headers).get("authorization")).toBe(
+        `Bearer ${token}`,
+      );
+    if (args[1] === "publish")
+      expect(
+        JSON.parse(typeof captured?.body === "string" ? captured.body : ""),
+      ).toEqual({
+        cid,
+        expectedSequence: 2,
+        requestId: "publish-key",
+      });
+    if (args[1] === "create")
+      expect(
+        JSON.parse(typeof captured?.body === "string" ? captured.body : ""),
+      ).toMatchObject({
+        title: "Public title",
+        public: true,
+        requestId: "create-key",
+      });
+  });
+
+  it("reports an explicitly preserved uploaded pin when publication fails", async () => {
+    const file = join(directory, "publication-upload.txt");
+    const prepared = vi
+      .spyOn(inputModule, "prepareInput")
+      .mockResolvedValueOnce({
+        bytes: new TextEncoder().encode("publication upload"),
+        kind: "file",
+        name: "publication-upload.txt",
+      });
+    const paths: string[] = [];
+    const result = await invoke(
+      [
+        "upload",
+        file,
+        "--publication",
+        "stable-id",
+        "--sequence",
+        "2",
+        "--request-id",
+        "partial-key",
+        "--json",
+      ],
+      {
+        fetcher: (input, init) => {
+          paths.push(
+            new URL(input instanceof Request ? input.url : input).pathname,
+          );
+          if (paths.length === 1) return Promise.resolve(Response.json(record));
+          expect(
+            JSON.parse(typeof init?.body === "string" ? init.body : ""),
+          ).toMatchObject({
+            cid,
+            expectedSequence: 2,
+            requestId: "partial-key",
+          });
+          return Promise.resolve(
+            Response.json({ error: "Sequence conflict" }, { status: 409 }),
+          );
+        },
+      },
+    );
+    prepared.mockRestore();
+    expect(result.code).toBe(1);
+    expect(result.err).toBe("");
+    expect(JSON.parse(result.out)).toMatchObject({
+      partialSuccess: true,
+      pin: record,
+      publicationError: { status: 409, requestId: "partial-key" },
+    });
+    expect(paths).toEqual([
+      "/api/pins/upload",
+      "/api/publications/stable-id/publish",
+    ]);
+  });
+  it("still reports a completed upload when publication is interrupted", async () => {
+    const prepared = vi
+      .spyOn(inputModule, "prepareInput")
+      .mockResolvedValueOnce({
+        bytes: new TextEncoder().encode("interrupted publication"),
+        kind: "file",
+        name: "publication.txt",
+      });
+    const controller = new AbortController();
+    let requests = 0;
+    const result = await invoke(
+      [
+        "upload",
+        "publication.txt",
+        "--publication",
+        "stable-id",
+        "--sequence",
+        "1",
+        "--request-id",
+        "interrupt-key",
+        "--json",
+      ],
+      {
+        signal: controller.signal,
+        fetcher: () => {
+          if (++requests === 1) return Promise.resolve(Response.json(record));
+          controller.abort();
+          return Promise.reject(new Error("Interrupted after upload"));
+        },
+      },
+    );
+    prepared.mockRestore();
+    expect(result.code).toBe(130);
+    expect(JSON.parse(result.out)).toMatchObject({
+      partialSuccess: true,
+      pin: record,
+      publicationError: { requestId: "interrupt-key" },
+    });
+  });
+});
 beforeAll(async () => {
   await rm(directory, { recursive: true, force: true });
   await mkdir(directory, { recursive: true });
@@ -136,7 +346,7 @@ describe("top-level command and output contracts", () => {
       expect(text).toContain("pinboard rename <CID> <NAME>");
       expect(text).toContain("--endpoint ORIGIN");
       expect(text).toContain("All commands: --json, --help.");
-      expect(text.trim().split("\n").length).toBeLessThanOrEqual(19);
+      expect(text.trim().split("\n").length).toBeLessThanOrEqual(30);
       expect(text).not.toContain("pinboard pins");
       expect(text).not.toContain("PUBLIC");
       expect(text).not.toContain("NOT erased");

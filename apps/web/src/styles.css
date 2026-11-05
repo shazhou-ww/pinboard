@@ -632,6 +632,66 @@ footer {
   gap: 12px;
   min-width: 0;
 }
+.pin-card:has(.publication-badge) .pin-info-summary {
+  display: grid;
+  gap: 1px;
+}
+.publication-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - 70px);
+  padding: 3px 8px;
+  border: 1px solid #33775833;
+  border-radius: 5px;
+  background: #fffefae6;
+  color: #23332d;
+  font-size: 11px;
+  pointer-events: none;
+}
+.publication-history {
+  list-style: none;
+  padding: 0;
+}
+.publication-history li {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #dce1d8;
+}
+.publication-history li > div {
+  min-width: 0;
+  flex: 1 1 200px;
+}
+.publication-history p {
+  margin: 3px 0;
+}
+.publication-page {
+  padding-bottom: 60px;
+}
+.publication-page h1 {
+  overflow-wrap: anywhere;
+}
+.publication-page > .pin-preview {
+  position: relative;
+  height: 320px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fffefa;
+  border: 1px solid #dce1d8;
+}
+.publication-page > .pin-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .pin-info-cid {
   min-height: 0;
   overflow: hidden;
@@ -786,6 +846,14 @@ footer {
 .pin-card .pin-preview.has-image {
   grid-template-rows: minmax(0, 1fr);
   padding: 0;
+}
+.pin-card:has(.publication-badge) .pin-preview:not(.has-image) {
+  padding-top: 48px;
+}
+.pin-card:has(.publication-badge) .pin-size {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pin-card .pin-preview img {
   min-height: 0;

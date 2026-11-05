@@ -12,6 +12,7 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { PushPinIcon } from "@phosphor-icons/react/dist/csr/PushPin";
 import { QuestionIcon } from "@phosphor-icons/react/dist/csr/Question";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
 import type { IconProps } from "@phosphor-icons/react";
 
 const icons = {
@@ -29,6 +30,7 @@ const icons = {
   settings: GearIcon,
   signOut: SignOutIcon,
   unknown: QuestionIcon,
+  publication: StackIcon,
 };
 
 export function Icon({

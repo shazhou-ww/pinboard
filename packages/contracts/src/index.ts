@@ -42,6 +42,65 @@ export interface Pin {
   readonly createdAt: string;
 }
 
+export interface PublicationRevision {
+  readonly revision: number;
+  readonly cid: string;
+  readonly size: number;
+  readonly blocks: number;
+  readonly createdAt: string;
+}
+
+export interface Publication {
+  readonly id: string;
+  readonly title: string;
+  readonly currentRevision: number;
+  readonly revisionCount: number;
+  readonly sequence: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly current: PublicationRevision;
+}
+
+export interface PublicationWrite {
+  readonly expectedSequence: number;
+  readonly requestId: string;
+}
+
+export interface PublicationResult {
+  readonly status: "created" | "published" | "rolled-back" | "nop";
+  readonly publication: Publication;
+}
+
+export interface PublicationHistory {
+  readonly publication: Publication;
+  readonly revisions: readonly PublicationRevision[];
+  readonly operations: readonly {
+    sequence: number;
+    revision: number;
+    kind: string;
+    createdAt: string;
+  }[];
+}
+
+export interface DeletedItem {
+  readonly kind: "pin" | "publication";
+  readonly id: string;
+  readonly title: string;
+  readonly deletedAt: string;
+  readonly expiresAt: string;
+}
+
+export type UploadPublicationResult =
+  | { readonly pin: Pin; readonly publication: PublicationResult }
+  | {
+      readonly pin: Pin;
+      readonly partialSuccess: true;
+      readonly publicationError: {
+        readonly status: number;
+        readonly message: string;
+      };
+    };
+
 export interface PreviewImage {
   readonly cid: string;
   readonly url: string;

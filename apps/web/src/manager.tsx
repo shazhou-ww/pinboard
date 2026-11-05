@@ -1,4 +1,9 @@
-import type { AgentToken, Pin } from "@shazhou/pinboard-contracts";
+import type {
+  AgentToken,
+  Pin,
+  Publication,
+  PublicationResult,
+} from "@shazhou/pinboard-contracts";
 import {
   useEffect,
   useId,
@@ -20,6 +25,11 @@ import { PinPreview } from "./pin-preview.js";
 import { PreviewClient } from "./preview-client.js";
 import { apiFetch } from "./api.js";
 import { Icon } from "./icon.js";
+import {
+  DeletedDialog,
+  PublicationDialog,
+  PublicationPreview,
+} from "./publications.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -54,6 +64,15 @@ export function AccountManager({
   const previews = useMemo(() => new PreviewClient(accountId), [accountId]);
   useEffect(() => previews.attach(), [previews]);
   const [pins, setPins] = useState<Pin[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [publicationCursor, setPublicationCursor] = useState<string | null>(
+    null,
+  );
+  const [selectedPublication, setSelectedPublication] =
+    useState<Publication | null>(null);
+  const [publishingPin, setPublishingPin] = useState<Pin | null>(null);
+  const [deletedOpen, setDeletedOpen] = useState(false);
+  const [uploadPublication, setUploadPublication] = useState("");
   const [tokens, setTokens] = useState<AgentToken[]>([]);
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
   const [cursor, setCursor] = useState<string | null>(null);
@@ -81,6 +100,8 @@ export function AccountManager({
   const [tokenScopes, setTokenScopes] = useState(["pins:read"]);
   const [expires, setExpires] = useState(30);
   const [newToken, setNewToken] = useState("");
+  const publicationDialogOpen =
+    !!selectedPublication || !!publishingPin || deletedOpen;
 
   const selectedCid = selected?.cid;
   useEffect(() => {
@@ -127,13 +148,18 @@ export function AccountManager({
     }
   }, []);
   const refresh = async () => {
-    const [page, list] = await Promise.all([
+    const [page, list, publicationPage] = await Promise.all([
       requestJson<PinPage>("/api/pins"),
       requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
+      requestJson<{ publications: Publication[]; nextCursor: string | null }>(
+        "/api/publications",
+      ),
     ]);
     setPins(page.pins);
     setCursor(page.nextCursor);
     setTokens(list.tokens);
+    setPublications(publicationPage.publications);
+    setPublicationCursor(publicationPage.nextCursor);
     setLoaded(true);
   };
   const perform = async (operation: () => Promise<void>) => {
@@ -155,12 +181,17 @@ export function AccountManager({
     void Promise.all([
       requestJson<PinPage>("/api/pins"),
       requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
+      requestJson<{ publications: Publication[]; nextCursor: string | null }>(
+        "/api/publications",
+      ),
     ])
-      .then(([page, list]) => {
+      .then(([page, list, publicationPage]) => {
         if (active) {
           setPins(page.pins);
           setCursor(page.nextCursor);
           setTokens(list.tokens);
+          setPublications(publicationPage.publications);
+          setPublicationCursor(publicationPage.nextCursor);
           setLoaded(true);
         }
       })
@@ -196,6 +227,7 @@ export function AccountManager({
       setProgress("Reading selection...");
       const selection = await prepare();
       setUploadName(selection.name);
+      setUploadPublication("");
       setUploadSelection(selection);
     });
   };
@@ -204,14 +236,32 @@ export function AccountManager({
     const enter = (event: DragEvent) => {
       if (!event.dataTransfer?.types.includes("Files")) return;
       depth++;
-      setDragging(!busy && !settingsOpen && !uploadSelection && !selected);
+      setDragging(
+        !busy &&
+          !settingsOpen &&
+          !uploadSelection &&
+          !selected &&
+          !publicationDialogOpen,
+      );
     };
     const over = (event: DragEvent) => {
       if (!event.dataTransfer?.types.includes("Files")) return;
       event.preventDefault();
       event.dataTransfer.dropEffect =
-        busy || settingsOpen || uploadSelection || selected ? "none" : "copy";
-      setDragging(!busy && !settingsOpen && !uploadSelection && !selected);
+        busy ||
+        settingsOpen ||
+        uploadSelection ||
+        selected ||
+        publicationDialogOpen
+          ? "none"
+          : "copy";
+      setDragging(
+        !busy &&
+          !settingsOpen &&
+          !uploadSelection &&
+          !selected &&
+          !publicationDialogOpen,
+      );
     };
     const leave = (event: DragEvent) => {
       if (!event.dataTransfer?.types.includes("Files")) return;
@@ -223,7 +273,12 @@ export function AccountManager({
       event.preventDefault();
       depth = 0;
       setDragging(false);
-      if (settingsOpen || uploadSelection || selected) {
+      if (
+        settingsOpen ||
+        uploadSelection ||
+        selected ||
+        publicationDialogOpen
+      ) {
         setError(
           "Close the current dialog before adding another file or folder.",
         );
@@ -242,7 +297,7 @@ export function AccountManager({
       document.removeEventListener("dragleave", leave);
       document.removeEventListener("drop", drop);
     };
-  }, [busy, settingsOpen, uploadSelection, selected]);
+  }, [busy, settingsOpen, uploadSelection, selected, publicationDialogOpen]);
   const upload = (event: FormEvent) => {
     event.preventDefault();
     if (
@@ -299,6 +354,41 @@ export function AccountManager({
         pin,
         ...previous.filter((entry) => entry.cid !== pin.cid),
       ]);
+      if (uploadPublication) {
+        const target = publications.find(
+          (item) => item.id === uploadPublication,
+        );
+        if (!target)
+          throw new Error(
+            `Upload succeeded (${pin.cid}); publication no longer selected. Pin preserved.`,
+          );
+        const requestId = crypto.randomUUID();
+        try {
+          const result = await requestJson<PublicationResult>(
+            `/api/publications/${target.id}/publish`,
+            {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                cid: pin.cid,
+                expectedSequence: target.sequence,
+                requestId,
+              }),
+            },
+          );
+          setNotice(
+            result.status === "nop"
+              ? "Uploaded. Already current; no version was created."
+              : "Uploaded and published.",
+          );
+        } catch (failure) {
+          throw new Error(
+            `Upload succeeded; publication failed or is unconfirmed. Pin ${pin.cid} is preserved. Retry publication request ${requestId} with sequence ${target.sequence}, or refresh its details. ${failure instanceof Error ? failure.message : String(failure)}`,
+          );
+        }
+        await refresh();
+        return;
+      }
       await refresh();
       setNotice("Pinned. These bytes are now public.");
     });
@@ -356,7 +446,7 @@ export function AccountManager({
   const unpin = (pin: Pin) => {
     if (
       !window.confirm(
-        "Remove your pin reference? Unreferenced content is retained for 7 days. Public copies elsewhere may remain.",
+        "Move this pin to recently deleted? Restore within 30 days. Publications keep their own references. Public copies elsewhere may remain.",
       )
     )
       return;
@@ -367,7 +457,7 @@ export function AccountManager({
       setRenaming(null);
       await refresh();
       setNotice(
-        "Reference removed. Unreferenced content becomes eligible for cleanup after 7 days. Shared and external copies may remain.",
+        "Moved to recently deleted. Restore within 30 days in Settings. Publication references and public copies remain independent.",
       );
     });
   };
@@ -384,7 +474,11 @@ export function AccountManager({
     >
       {renderHeader(
         () => setSettingsOpen(true),
-        busy || settingsOpen || !!uploadSelection || !!selected,
+        busy ||
+          settingsOpen ||
+          !!uploadSelection ||
+          !!selected ||
+          publicationDialogOpen,
       )}
       {dragging ? (
         <div className="canvas-drop" aria-hidden="true">
@@ -414,7 +508,13 @@ export function AccountManager({
             className="floating-button primary"
             aria-label="Add file"
             title="Choose a file, or drop one file or folder anywhere."
-            disabled={busy || !!uploadSelection || settingsOpen || !!selected}
+            disabled={
+              busy ||
+              !!uploadSelection ||
+              settingsOpen ||
+              !!selected ||
+              publicationDialogOpen
+            }
             onClick={() => {
               if (filePicker.current) {
                 filePicker.current.value = "";
@@ -430,7 +530,13 @@ export function AccountManager({
               className="floating-button secondary"
               aria-label="Choose folder"
               title="Choose folder"
-              disabled={busy || !!uploadSelection || settingsOpen || !!selected}
+              disabled={
+                busy ||
+                !!uploadSelection ||
+                settingsOpen ||
+                !!selected ||
+                publicationDialogOpen
+              }
               onClick={() => {
                 if (folderPicker.current) {
                   folderPicker.current.value = "";
@@ -443,6 +549,22 @@ export function AccountManager({
           </div>
         </div>
       </div>
+      <PublicationDialog
+        publication={selectedPublication}
+        pin={publishingPin}
+        pins={pins}
+        publications={publications}
+        onClose={() => {
+          setSelectedPublication(null);
+          setPublishingPin(null);
+        }}
+        onChanged={refresh}
+      />
+      <DeletedDialog
+        open={deletedOpen}
+        onClose={() => setDeletedOpen(false)}
+        onChanged={refresh}
+      />
       <input
         ref={filePicker}
         aria-label="Choose file"
@@ -499,6 +621,27 @@ export function AccountManager({
             Up to 32 MiB including directory metadata. Empty folders are not
             included.
           </p>
+          <label>
+            After uploading
+            <select
+              value={uploadPublication}
+              disabled={busy}
+              onChange={(event) => setUploadPublication(event.target.value)}
+            >
+              <option value="">Keep as a pin only</option>
+              {publications.map((item) => (
+                <option key={item.id} value={item.id}>
+                  Publish to {item.title} (current v{item.currentRevision})
+                </option>
+              ))}
+            </select>
+          </label>
+          {uploadPublication ? (
+            <p className="muted">
+              The publication's follow link will change. Its public title stays
+              the same. If publication fails, your uploaded pin is preserved.
+            </p>
+          ) : null}
           {!skipReminder ? (
             <div className="public-reminder">
               <strong>Uploaded content will be public</strong>
@@ -533,7 +676,7 @@ export function AccountManager({
               className="primary"
               disabled={busy || !uploadSelection || !uploadName.trim()}
             >
-              Upload &amp; pin
+              {uploadPublication ? "Upload & publish" : "Upload & pin"}
             </button>
           </div>
         </form>
@@ -542,7 +685,7 @@ export function AccountManager({
         <h1 className="visually-hidden">Your pins</h1>
         {!loaded ? (
           <p role="status">Loading your pins...</p>
-        ) : !pins.length ? (
+        ) : !pins.length && !publications.length ? (
           <div className="canvas-empty">
             <h3>Keep something here.</h3>
             <p className="muted">
@@ -565,6 +708,32 @@ export function AccountManager({
                   void copy(`${location.origin}/share/${pin.cid}`);
                 }}
                 onUnpin={() => unpin(pin)}
+                onPublish={() => {
+                  setSelected(null);
+                  setPublishingPin(pin);
+                }}
+              />
+            ))}
+            {publications.map((publication) => (
+              <PinCard
+                key={`publication:${publication.id}`}
+                pin={{
+                  cid: publication.current.cid,
+                  name: publication.title,
+                  size: publication.current.size,
+                  blocks: publication.current.blocks,
+                  createdAt: publication.createdAt,
+                }}
+                publication={publication}
+                busy={busy}
+                onOpen={() => setSelectedPublication(publication)}
+                onCopyCid={(onCopied) => {
+                  void copy(publication.current.cid, onCopied);
+                }}
+                onCopyLink={() => {
+                  void copy(`${location.origin}/p/${publication.id}`);
+                }}
+                onUnpin={() => setSelectedPublication(publication)}
               />
             ))}
           </ul>
@@ -583,6 +752,28 @@ export function AccountManager({
             }}
           >
             Load more
+          </button>
+        ) : null}
+        {publicationCursor ? (
+          <button
+            disabled={busy}
+            onClick={() => {
+              void perform(async () => {
+                const page = await requestJson<{
+                  publications: Publication[];
+                  nextCursor: string | null;
+                }>(
+                  `/api/publications?cursor=${encodeURIComponent(publicationCursor)}`,
+                );
+                setPublications((previous) => [
+                  ...previous,
+                  ...page.publications,
+                ]);
+                setPublicationCursor(page.nextCursor);
+              });
+            }}
+          >
+            Load more publications
           </button>
         ) : null}
       </section>
@@ -616,6 +807,15 @@ export function AccountManager({
               {new Date(selected.createdAt).toLocaleString()}
             </p>
             <div className="actions">
+              <button
+                disabled={busy || detailsLoading}
+                onClick={() => {
+                  setPublishingPin(selected);
+                  setSelected(null);
+                }}
+              >
+                Add to a publication
+              </button>
               <button
                 disabled={busy || detailsLoading}
                 onClick={() =>
@@ -682,9 +882,9 @@ export function AccountManager({
               </form>
             ) : null}
             <p className="muted policy">
-              Unpinning removes only your account reference. Unreferenced
-              content is retained for 7 days; downloaded and cached copies may
-              remain.
+              Unpinning moves this pin to recently deleted for 30 days. Restore
+              before expiry. Publication references remain independent; public
+              CID bytes and external copies cannot be recalled.
             </p>
           </div>
         ) : null}
@@ -700,6 +900,21 @@ export function AccountManager({
             {error}
           </p>
         ) : null}
+        <section>
+          <h2>Recently deleted</h2>
+          <p className="muted">
+            Pins and publications can be restored for 30 days with their
+            original identity and links.
+          </p>
+          <button
+            onClick={() => {
+              setSettingsOpen(false);
+              setDeletedOpen(true);
+            }}
+          >
+            Open recently deleted
+          </button>
+        </section>
         <section>
           <div className="section-title">
             <h2>Let an agent help</h2>
@@ -742,7 +957,14 @@ export function AccountManager({
             </div>
             <fieldset>
               <legend>Permissions</legend>
-              {["pins:read", "pins:write", "pins:delete"].map((scope) => (
+              {[
+                "pins:read",
+                "pins:write",
+                "pins:delete",
+                "publications:read",
+                "publications:write",
+                "publications:delete",
+              ].map((scope) => (
                 <label className="check" key={scope}>
                   <input
                     type="checkbox"
@@ -868,11 +1090,10 @@ export function AccountManager({
           </p>
         </section>
         <p className="muted policy">
-          Unpinning removes only your account reference. Shared blocks are never
-          deleted by another account. Content without any account or DAG
-          reference is retained for 7 days before scheduled cleanup. CDN, other
-          nodes and downloaded copies may remain; there is no restore or
-          permanent-delete action.
+          Deleted pins and publications are recoverable for 30 days. Expiry
+          releases only their own references. The last reference then starts
+          seven days of cleanup grace. CDN, other nodes and downloaded copies
+          may remain. There is no permanent-delete action.
         </p>
       </Dialog>
     </div>
@@ -921,6 +1142,8 @@ export function PinCard({
   onCopyCid,
   onCopyLink,
   onUnpin,
+  onPublish,
+  publication,
 }: {
   pin: Pin;
   previews?: PreviewClient;
@@ -929,6 +1152,8 @@ export function PinCard({
   onCopyCid: (onCopied: () => void) => void;
   onCopyLink: () => void;
   onUnpin: () => void;
+  onPublish?: () => void;
+  publication?: Publication;
 }) {
   const menuId = useId();
   const menu = useRef<HTMLDivElement>(null);
@@ -999,11 +1224,23 @@ export function PinCard({
         }
       }}
     >
-      <PinPreview pin={pin} client={previews} />
+      {publication ? (
+        <PublicationPreview
+          key={`${publication.id}:${publication.currentRevision}`}
+          publication={publication}
+        />
+      ) : (
+        <PinPreview pin={pin} client={previews} />
+      )}
+      {publication ? (
+        <span className="publication-badge">
+          <Icon name="publication" size={14} /> Publication
+        </span>
+      ) : null}
       <button
         type="button"
         className="pin-open"
-        aria-label={`View details for ${pin.name}`}
+        aria-label={`View details for ${publication ? "publication " : ""}${pin.name}`}
         disabled={busy}
         onClick={onOpen}
       />
@@ -1011,7 +1248,7 @@ export function PinCard({
         ref={menuTrigger}
         type="button"
         className="pin-menu-trigger"
-        aria-label={`Pin options for ${pin.name}`}
+        aria-label={`${publication ? "Publication" : "Pin"} options for ${pin.name}`}
         aria-haspopup="menu"
         aria-controls={menuId}
         aria-expanded={menuOpen}
@@ -1035,7 +1272,7 @@ export function PinCard({
         popover="auto"
         className="pin-context-menu"
         role="menu"
-        aria-label={`Pin options for ${pin.name}`}
+        aria-label={`${publication ? "Publication" : "Pin"} options for ${pin.name}`}
         onToggle={(event) => setMenuOpen(event.newState === "open")}
         onContextMenu={(event) => {
           event.preventDefault();
@@ -1079,9 +1316,18 @@ export function PinCard({
       >
         {[
           { label: "View details", action: onOpen },
-          { label: "Copy link", action: onCopyLink },
+          {
+            label: publication ? "Copy follow link" : "Copy link",
+            action: onCopyLink,
+          },
           { label: "Copy CID", action: copyCid },
-          { label: "Unpin", action: onUnpin },
+          ...(onPublish
+            ? [{ label: "Add to a publication", action: onPublish }]
+            : []),
+          {
+            label: publication ? "Manage publication & history" : "Unpin",
+            action: onUnpin,
+          },
         ].map(({ label, action }) => (
           <button
             key={label}
@@ -1102,7 +1348,7 @@ export function PinCard({
       <div
         className="pin-info"
         role="group"
-        aria-label={`Pin information for ${pin.name}`}
+        aria-label={`${publication ? "Publication" : "Pin"} information for ${pin.name}`}
         tabIndex={0}
         onClick={(event) => {
           if (
@@ -1126,7 +1372,12 @@ export function PinCard({
           <strong className="pin-name" title={pin.name}>
             {pin.name}
           </strong>
-          <span className="pin-size">{formatSize(pin.size)}</span>
+          <span className="pin-size">
+            {publication
+              ? `Current v${publication.currentRevision} · ${publication.revisionCount} ${publication.revisionCount === 1 ? "version" : "versions"} · `
+              : ""}
+            {formatSize(pin.size)}
+          </span>
         </div>
         <div className="pin-info-cid">
           <button

@@ -1,5 +1,44 @@
 # Agents and remote MCP
 
+## Publications and recovery tools
+
+These tools use the same services, CAS and recovery lifecycle as Web, CLI and
+HTTP. Publication title and complete history are public; account identities and
+private pin labels are not included.
+
+| Tool                   | Input                                    | Permission                               |
+| ---------------------- | ---------------------------------------- | ---------------------------------------- |
+| `publication_create`   | `title,cid,public:true,requestId`        | `publications:write`, `pins:read`        |
+| `publication_list`     | optional `cursor`                        | `publications:read`                      |
+| `publication_get`      | `id`, optional fixed `revision`          | public metadata                          |
+| `publication_history`  | `id`                                     | public metadata                          |
+| `publication_publish`  | `id,cid,expectedSequence,requestId`      | `publications:write`, `pins:read`        |
+| `publication_rollback` | `id,revision,expectedSequence,requestId` | `publications:write`                     |
+| `publication_delete`   | `id`                                     | `publications:delete`                    |
+| `recently_deleted`     | optional `cursor`                        | corresponding pin/publication read scope |
+| `restore`              | `kind: "pin"` or `"publication"`, `id`   | corresponding delete scope               |
+
+`upload` additionally accepts `publicationId` and
+`publicationWrite:{expectedSequence,requestId}`. Upload runs first; publication
+failure returns the successful `pin`, `partialSuccess:true` and
+`publicationError`, never silently deleting the successful upload. It also
+requires publication-write and pin-read scopes. The existing inline upload limit
+and public acknowledgement still apply.
+
+Use the current **sequence**, not revision number, as `expectedSequence`.
+Current CID is NOP; republishing a noncurrent historical CID creates the next
+revision. Rollback creates none. Retry identical payloads with the same request
+ID to recover persisted results (including NOP); payload reuse or stale sequence
+returns a 409 tool error. Pin-write-only credentials gain no publication write
+capability. Existing OAuth resource, consent, expiry and revocation boundaries
+remain unchanged.
+
+Delete/Unpin removes an object from normal lists for a 30-day recovery window;
+restore reopens original links/history without a new revision. Repeat deletion
+does not extend expiry. Expiry releases only that object's references, and the
+last reference starts seven days of GC grace. See
+[publications and recovery](publications.md) for all public URLs and caching.
+
 ## Browser OAuth for interactive clients
 
 The OAuth implementation uses the authorization primitives in MCP's
@@ -152,9 +191,9 @@ Tools:
 
 Inline MCP data is limited to 2 MiB decoded. `kind` is `file`, `car` or `block`.
 CAR requires a single root and all reachable blocks; `pin` only references
-content already in Pinboard. Unpin removes only the calling account's reference.
-Expected permission/validation errors are MCP tool results with `isError: true`,
-not success-shaped fallbacks.
+content already in Pinboard. Unpin moves only the calling account's pin to
+recently deleted for 30 days. Expected permission/validation errors are MCP tool
+results with `isError: true`, not success-shaped fallbacks.
 
 For a larger file/CAR (up to 32 MiB), use an API token on the HTTP route (MCP
 OAuth credentials are deliberately not accepted there), then use MCP to list or

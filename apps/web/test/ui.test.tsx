@@ -174,7 +174,7 @@ describe("Pinboard interface", () => {
     expect(toolbar).not.toContain("Settings");
     expect(toolbar).not.toContain(">Settings</button>");
     expect(toolbar).not.toContain(">Choose folder</button>");
-    expect(html.match(/<dialog/g)).toHaveLength(3);
+    expect(html.match(/<dialog/g)).toHaveLength(5);
     expect(html).toContain('aria-label="Pin details"');
     expect(html).not.toContain('class="intro"');
     expect(html).toContain("Create Agent token");
@@ -188,7 +188,7 @@ describe("Pinboard interface", () => {
     );
     expect(html).toContain("History (revoked or expired)");
     expect(html).toContain("30");
-    expect(html).toContain("7 days");
+    expect(html).toContain("30 days");
     expect(html).not.toContain("Physical garbage collection is deferred");
   });
   it("shows a pending immediate logout without a confirmation-page link", () => {

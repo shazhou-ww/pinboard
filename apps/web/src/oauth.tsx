@@ -24,7 +24,13 @@ type Grant = {
 const labels: Record<string, string> = {
   "pins:read": "Read your pins",
   "pins:write": "Upload public content and create or rename pins",
-  "pins:delete": "Remove your pin references",
+  "pins:delete": "Move pins to recently deleted and restore them",
+  "publications:read":
+    "List your publications and recently deleted publications",
+  "publications:write":
+    "Create publications, publish versions and change their public follow links",
+  "publications:delete":
+    "Close public publication links and restore publications",
 };
 
 async function oauthJson<T>(path: string, init?: RequestInit): Promise<T> {

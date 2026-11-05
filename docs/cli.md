@@ -1,5 +1,49 @@
 # Pinboard CLI
 
+## Publications and recovery
+
+Publication titles and the complete revision history are public. Private pin
+labels and account identity are not. Existing pin-write tokens do not gain
+publication authority: explicitly grant the appropriate `publications:read`,
+`publications:write` or `publications:delete` scopes. Publishing an existing pin
+also needs `pins:read`; uploading needs `pins:write`.
+
+```powershell
+pinboard publication create <CID> --title "Field notes" --request-id create-notes
+pinboard publication list
+pinboard publication get <ID>
+pinboard publication get <ID> --revision 3
+pinboard publication history <ID>
+pinboard publication download <ID> --revision 3 --output .\fixed-notes.txt
+pinboard publication export <ID> --output .\current.car
+pinboard publication publish <ID> <CID> --sequence 1 --request-id publish-notes-2
+pinboard publication rollback <ID> 1 --sequence 2 --request-id rollback-notes
+pinboard upload .\notes.txt --publication <ID> --sequence 3 --request-id upload-notes
+pinboard publication remove <ID>
+pinboard deleted
+pinboard publication restore <ID>
+pinboard remove <CID>
+pinboard restore <CID>
+```
+
+Public get/history/download/export commands send no token. Publication downloads
+resolve once and verify/download only that actual CID for the whole operation.
+Omit `--revision` to resolve current. `--sequence` is the current publication
+sequence, not a revision number. Retry an uncertain operation with the same
+`--request-id` and identical payload to get its persisted result. Outdated
+sequence or request-ID payload reuse yields 409. Current-CID publish is NOP;
+noncurrent historical CID creates a new revision. Rollback creates none.
+
+Upload/import with `--publication` preserves the successful pin if publication
+fails, emits `{pin,partialSuccess:true,publicationError}` (also with `--json`)
+and exits 1. Retry just `publication publish` using the reported CID, sequence
+and request ID. Removal moves a pin or publication to recently deleted for 30
+days. `deleted --cursor ...` paginates recovery items and their deadlines;
+restore retains original IDs and history. Only expiry releases references, then
+the last reference starts the existing seven-day GC grace. No permanent deletion
+or content recall is implied. See
+[the HTTP and lifecycle reference](publications.md).
+
 The CLI is a direct client of the existing Pinboard HTTP API. It needs Node.js
 22.13+ and pnpm 11.22+, **not Kubo, an IPFS executable, or a daemon**. It does
 not fetch remote CIDs to create pins.

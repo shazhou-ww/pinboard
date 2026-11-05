@@ -1,5 +1,8 @@
 import type { PreviewAsset } from "./dev-preview-data.js";
-import { previewBatchLimit } from "@shazhou/pinboard-contracts";
+import {
+  previewBatchLimit,
+  type PublicationHistory,
+} from "@shazhou/pinboard-contracts";
 
 export const previewStorageKey = "pinboard:ui-preview";
 let assets: Promise<readonly PreviewAsset[]> | undefined;
@@ -110,6 +113,60 @@ export async function previewRequest(
   );
   const data = await assets;
   init?.signal?.throwIfAborted();
+  const histories = publicationFixtures(data);
+  if (pathname === "/api/publications")
+    return json({
+      publications: histories.map((item) => item.publication),
+      nextCursor: null,
+    });
+  if (pathname === "/api/recently-deleted")
+    return json({
+      items: [
+        {
+          kind: "pin",
+          id: data[0]!.pin.cid,
+          title: "Archived coast study",
+          deletedAt: "2026-11-01T10:00:00Z",
+          expiresAt: "2026-12-01T10:00:00Z",
+        },
+        {
+          kind: "publication",
+          id: "preview-deleted-publication",
+          title: "Previous field notes",
+          deletedAt: "2026-11-03T10:00:00Z",
+          expiresAt: "2026-12-03T10:00:00Z",
+        },
+      ],
+      nextCursor: null,
+    });
+  for (const history of histories) {
+    const root = `/api/public/publications/${history.publication.id}`;
+    if (
+      pathname === root ||
+      pathname === `/api/publications/${history.publication.id}`
+    )
+      return json(history.publication);
+    if (pathname === `${root}/history`) return json(history);
+    const preview = new RegExp(`^${root}/preview/([1-9]\\d*)$`).exec(pathname);
+    if (preview) {
+      const revision = history.revisions.find(
+        (item) => item.revision === Number(preview[1]),
+      );
+      const asset = data.find((item) => item.pin.cid === revision?.cid);
+      return asset
+        ? json(asset.preview)
+        : json({ error: "Revision not found" }, 404);
+    }
+    const version = new RegExp(`^${root}/versions/([1-9]\\d*)$`).exec(pathname);
+    if (version) {
+      const revision = history.revisions.find(
+        (item) => item.revision === Number(version[1]),
+      );
+      return revision
+        ? json({ publication: history.publication, revision })
+        : json({ error: "Revision not found" }, 404);
+    }
+  }
   if (cids)
     return json({
       previews: cids.map((cid) => {
@@ -132,6 +189,62 @@ export async function previewRequest(
       return new Response(asset.car, {
         headers: { "content-type": "application/vnd.ipld.car" },
       });
+  }
+
+  function publicationFixtures(
+    data: readonly PreviewAsset[],
+  ): PublicationHistory[] {
+    return [
+      {
+        id: "preview-publication-first",
+        title: "Coast journal",
+        current: 1,
+        count: 1,
+        asset: 0,
+      },
+      {
+        id: "preview-publication-rollback",
+        title: "Field notes, a continuing edition",
+        current: 3,
+        count: 5,
+        asset: 3,
+      },
+      {
+        id: "preview-publication-shared",
+        title: "Another publication of the same coast",
+        current: 2,
+        count: 2,
+        asset: 0,
+      },
+    ].map((fixture) => {
+      const source = data[fixture.asset] ?? data[0]!;
+      const revisions = Array.from({ length: fixture.count }, (_, index) => ({
+        revision: index + 1,
+        cid: source.pin.cid,
+        size: source.pin.size,
+        blocks: source.pin.blocks,
+        createdAt: `2026-11-0${index + 1}T10:00:00Z`,
+      }));
+      return {
+        publication: {
+          id: fixture.id,
+          title: fixture.title,
+          currentRevision: fixture.current,
+          revisionCount: fixture.count,
+          sequence: fixture.count + (fixture.current < fixture.count ? 1 : 0),
+          createdAt: revisions[0]!.createdAt,
+          updatedAt: revisions.at(-1)!.createdAt,
+          current: revisions[fixture.current - 1]!,
+        },
+        revisions: [...revisions].reverse(),
+        operations: revisions.map((revision) => ({
+          sequence: revision.revision,
+          revision: revision.revision,
+          kind: "publish",
+          createdAt: revision.createdAt,
+        })),
+      };
+    });
   }
   return json(
     { error: "This API is unavailable in the local UI preview." },

@@ -308,7 +308,7 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
     z.object({
       accountId: z.string(),
       approve: z.boolean(),
-      scopes: z.array(scopeSchema).max(3),
+      scopes: z.array(scopeSchema).max(scopes.length),
     }),
     await jsonBody(c.req.raw),
   );
