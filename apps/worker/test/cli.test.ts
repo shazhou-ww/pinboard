@@ -4,7 +4,7 @@ import { run } from "@shazhou/pinboard";
 import type { Pin } from "@shazhou/pinboard-contracts";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createServer } from "node:http";
-import { readFile, mkdir, writeFile, rm } from "node:fs/promises";
+import { readFile, readdir, mkdir, writeFile, rm } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { execFile } from "node:child_process";
@@ -97,8 +97,18 @@ beforeAll(async () => {
   };
   mf = new Miniflare(
     convertV4MiniflareOptions({
-      modules: true,
-      scriptPath: fileURLToPath(new URL("../dist/index.js", import.meta.url)),
+      modules: [
+        {
+          type: "ESModule",
+          path: fileURLToPath(new URL("../dist/index.js", import.meta.url)),
+        },
+        ...(await readdir(new URL("../dist/", import.meta.url)))
+          .filter((name) => name.endsWith(".wasm"))
+          .map((name) => ({
+            type: "CompiledWasm" as const,
+            path: fileURLToPath(new URL(`../dist/${name}`, import.meta.url)),
+          })),
+      ],
       compatibilityDate: "2026-10-14",
       compatibilityFlags: ["nodejs_compat"],
       d1Databases: ["DB"],

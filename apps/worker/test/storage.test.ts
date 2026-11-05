@@ -333,7 +333,7 @@ describe("CAR primary storage", () => {
     const prepare = vi.spyOn(env.DB, "prepare");
     const get = vi.spyOn(env.BLOCKS, "get");
     const car = (await getCar(env, key(dag.root)))!;
-    expect(prepare).toHaveBeenCalledTimes(2);
+    expect(prepare).toHaveBeenCalledTimes(3);
     expect(get).toHaveBeenCalledTimes(dag.blocks.size);
     const restored = await readCar(await responseBytes(car.body));
     expect(restored.blocks).toEqual(dag.blocks);

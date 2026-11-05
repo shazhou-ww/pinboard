@@ -31,6 +31,10 @@ function malformedAccept(): never {
 }
 
 export function acceptsRaw(accept: string): boolean {
+  return acceptsMedia(accept, RAW_TYPE);
+}
+
+export function acceptsMedia(accept: string, requested: string): boolean {
   const ranges = splitQuoted(accept, ",") ?? malformedAccept();
   let specificity = -1;
   let quality = 0;
@@ -58,9 +62,9 @@ export function acceptsRaw(accept: string): boolean {
     const type = media!.toLowerCase();
     if (hasMediaParameters) continue;
     const rank =
-      type === RAW_TYPE
+      type === requested
         ? 2
-        : type === "application/*"
+        : type === `${requested.split("/")[0]}/*`
           ? 1
           : type === "*/*"
             ? 0

@@ -42,6 +42,42 @@ export interface Pin {
   readonly createdAt: string;
 }
 
+export interface PreviewImage {
+  readonly cid: string;
+  readonly url: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+export type PreviewPayload =
+  | { readonly contentType: "image/webp"; readonly content: PreviewImage }
+  | {
+      readonly contentType: "text/plain" | "text/markdown";
+      readonly content: string;
+    }
+  | {
+      readonly contentType: "application/vnd.pinboard.directory+json";
+      readonly content: {
+        readonly entries: readonly {
+          readonly name: string;
+          readonly kind: "file" | "directory" | "unknown";
+          readonly depth: number;
+        }[];
+        readonly total?: number;
+      };
+    }
+  | {
+      readonly contentType: "application/vnd.pinboard.file+json";
+      readonly content: { readonly size?: number; readonly mediaType?: string };
+    };
+
+export type ContentPreview = PreviewPayload & {
+  readonly version: number;
+  readonly status: "pending" | "ready" | "unsupported" | "failed";
+  readonly truncated: boolean;
+  readonly reason?: string;
+};
+
 export interface AgentToken {
   readonly id: string;
   readonly name: string;

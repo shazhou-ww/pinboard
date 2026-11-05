@@ -235,7 +235,7 @@ form > button {
   margin: 0;
   list-style: none;
 }
-.pin-list li {
+.pin-list > li {
   padding: 20px 0;
   border-top: 1px solid #e4e8df;
   display: grid;
@@ -491,6 +491,43 @@ footer {
 }
 .pin-card .pin-preview:has([role="status"]) {
   align-content: center;
+}
+.preview-text,
+.preview-code,
+.preview-directory {
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.preview-text,
+.preview-code {
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.preview-code {
+  margin: 0;
+}
+.preview-directory ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.preview-directory p {
+  margin: 0 0 8px;
+}
+.preview-directory li {
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-truncated {
+  font-size: 12px;
+  align-self: end;
 }
 .canvas-empty {
   min-height: 50dvh;

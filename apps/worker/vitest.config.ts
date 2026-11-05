@@ -1,7 +1,21 @@
 import { defineConfig } from "vitest/config";
+import { readFileSync } from "node:fs";
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "test-precompiled-wasm",
+      enforce: "pre",
+      load(id) {
+        if (id.endsWith(".wasm"))
+          return `export default new WebAssembly.Module(Uint8Array.from(Buffer.from(${JSON.stringify(readFileSync(id).toString("base64"))}, "base64")));`;
+        return undefined;
+      },
+    },
+  ],
   test: {
+    maxWorkers: 2,
+    server: { deps: { inline: [/@jsquash\//u] } },
     coverage: {
       include: ["src/**/*.ts"],
       provider: "v8",

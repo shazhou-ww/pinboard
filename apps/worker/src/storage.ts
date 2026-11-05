@@ -5,6 +5,10 @@ import { completeDag, key, parseCid, type Dag } from "./content.js";
 import type { Bindings } from "./env.js";
 
 type Storage = Pick<Bindings, "DB" | "BLOCKS">;
+export type D1Blob = ArrayBuffer | number[];
+export function blobBytes(bytes: D1Blob): Uint8Array<ArrayBuffer> {
+  return Array.isArray(bytes) ? Uint8Array.from(bytes) : new Uint8Array(bytes);
+}
 interface Location {
   object_key: string;
   byte_offset: number;
@@ -106,7 +110,14 @@ export async function headBlock(
   cid: string,
 ): Promise<{ size: number } | null> {
   const location = await locate(env, cid);
-  if (!location) return env.BLOCKS.head(key(parseCid(cid)));
+  if (!location) {
+    const image = await env.DB.prepare(
+      "SELECT length(bytes) AS size FROM preview_images WHERE cid = ?",
+    )
+      .bind(key(parseCid(cid)))
+      .first<{ size: number }>();
+    return image ?? env.BLOCKS.head(key(parseCid(cid)));
+  }
   const object = await env.BLOCKS.head(location.object_key);
   if (!object || object.size < location.byte_offset + location.byte_length)
     unavailable();
@@ -118,7 +129,18 @@ export async function getBlock(
   cid: string,
 ): Promise<{ size: number; body: ReadableStream } | null> {
   const location = await locate(env, cid);
-  if (!location) return env.BLOCKS.get(key(parseCid(cid)));
+  if (!location) {
+    const image = await env.DB.prepare(
+      "SELECT bytes FROM preview_images WHERE cid = ?",
+    )
+      .bind(key(parseCid(cid)))
+      .first<{ bytes: D1Blob }>();
+    if (image) {
+      const bytes = blobBytes(image.bytes);
+      return { size: bytes.length, body: new Blob([bytes]).stream() };
+    }
+    return env.BLOCKS.get(key(parseCid(cid)));
+  }
   if (location.byte_length === 0) {
     await headBlock(env, cid);
     return { size: 0, body: new Blob([]).stream() };

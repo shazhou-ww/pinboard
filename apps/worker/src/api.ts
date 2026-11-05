@@ -13,6 +13,7 @@ import { PinService } from "./service.js";
 import { jsonBody, pinSchema, renamePinSchema, validate } from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
 import { oauthOrigin } from "./oauth.js";
+import { getPreview, processPreview } from "./previews.js";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
@@ -31,7 +32,9 @@ api.get("/api/pins", async (c) =>
 api.post("/api/pins", async (c) => {
   const input = validate(pinSchema, await jsonBody(c.req.raw));
   return c.json(
-    await new PinService(c.env, c.get("principal")).pin(input.cid, input.name),
+    await new PinService(c.env, c.get("principal"), (work) => {
+      c.executionCtx.waitUntil(work);
+    }).pin(input.cid, input.name),
     201,
   );
 });
@@ -46,12 +49,9 @@ api.post("/api/pins/upload", async (c) => {
     c.req.query("name"),
   );
   return c.json(
-    await new PinService(c.env, c.get("principal")).upload(
-      await boundedBody(c.req.raw),
-      kind,
-      name,
-      c.req.query("cid"),
-    ),
+    await new PinService(c.env, c.get("principal"), (work) => {
+      c.executionCtx.waitUntil(work);
+    }).upload(await boundedBody(c.req.raw), kind, name, c.req.query("cid")),
     201,
   );
 });
@@ -60,6 +60,16 @@ api.get("/api/pins/:cid", async (c) =>
     await new PinService(c.env, c.get("principal")).detail(c.req.param("cid")),
   ),
 );
+api.get("/api/pins/:cid/preview", async (c) => {
+  const pin = await new PinService(c.env, c.get("principal")).detail(
+    c.req.param("cid"),
+  );
+  const preview = await getPreview(c.env, pin.cid);
+  if (preview.status === "pending" || preview.status === "failed")
+    c.executionCtx.waitUntil(processPreview(c.env, pin.cid));
+  c.header("Cache-Control", "private, no-store");
+  return c.json(preview);
+});
 api.delete("/api/pins/:cid", async (c) => {
   await new PinService(c.env, c.get("principal")).unpin(c.req.param("cid"));
   return c.body(null, 204);
@@ -118,5 +128,7 @@ api.all("/mcp", async (c) => {
     return c.json({ error: "Stateless MCP supports POST only" }, 405, {
       Allow: "POST",
     });
-  return handleMcp(c.req.raw, c.env, principal);
+  return handleMcp(c.req.raw, c.env, principal, (work) => {
+    c.executionCtx.waitUntil(work);
+  });
 });
