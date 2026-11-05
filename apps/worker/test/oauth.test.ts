@@ -323,6 +323,46 @@ describe("OAuth discovery and public registration", () => {
 });
 
 describe("browser login, explicit consent and CSRF", () => {
+  it("requires fresh Google sign-in instead of failing consent when a signed session references a deleted account", async () => {
+    const removed = await accountForGoogle(env.DB, "oauth-removed-account");
+    const staleCookie = `authjs.session-token=${await encode({
+      token: { accountId: removed },
+      secret: env.AUTH_SECRET,
+      salt: "authjs.session-token",
+    })}`;
+    await env.DB.prepare("DELETE FROM accounts WHERE id = ?")
+      .bind(removed)
+      .run();
+    const flow = await start();
+    expect((await preview(flow, staleCookie)).status).toBe(401);
+    expect(
+      (await decide(flow, true, ["pins:read"], staleCookie, removed)).status,
+    ).toBe(401);
+    expect(
+      await env.DB.prepare(
+        "SELECT account_id, used_at FROM oauth_requests WHERE id = ?",
+      )
+        .bind(flow.id)
+        .first(),
+    ).toMatchObject({ account_id: null, used_at: null });
+    const replacement = await accountForGoogle(env.DB, "oauth-removed-account");
+    expect(replacement).not.toBe(removed);
+    const freshCookie = `authjs.session-token=${await encode({
+      token: { accountId: replacement },
+      secret: env.AUTH_SECRET,
+      salt: "authjs.session-token",
+    })}`;
+    expect((await preview(flow, freshCookie)).status).toBe(200);
+    expect(
+      (await decide(flow, true, ["pins:read"], freshCookie, replacement))
+        .status,
+    ).toBe(200);
+    expect(
+      await env.DB.prepare("SELECT account_id FROM oauth_grants WHERE id = ?")
+        .bind(flow.id)
+        .first(),
+    ).toMatchObject({ account_id: replacement });
+  });
   it("requires the same browser and Google session, binds the consent to one account and never auto-approves", async () => {
     const flow = await start();
     expect(flow.response.status).toBe(302);

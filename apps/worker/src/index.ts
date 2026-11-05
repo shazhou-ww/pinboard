@@ -17,6 +17,7 @@ import { key, parseCid } from "./content.js";
 import { getCar } from "./storage.js";
 import { runRetention } from "./retention.js";
 import { oauth } from "./oauth.js";
+import { requireSessionAccount } from "./identity.js";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -71,8 +72,10 @@ app.get("/api/bootstrap", (context) =>
 );
 
 app.use("/api/me", verifyAuth());
-app.get("/api/me", (context) => {
-  const session = context.get("authUser").session;
+app.get("/api/me", async (context) => {
+  const user = context.get("authUser");
+  await requireSessionAccount(context.env.DB, user.token?.accountId);
+  const session = user.session;
   return context.json(toSessionResponse(session));
 });
 app.route("/", api);

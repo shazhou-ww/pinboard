@@ -61,7 +61,12 @@ configuration, with **no Authorization header or pasted token**:
    returns `access_denied` with the original client state and creates no grant.
    Closing the page also grants nothing. Requests are browser-cookie-bound,
    account-bound when reviewed, single-use and expire after **10 minutes**.
-   Switching accounts requires restarting authorization.
+   Switching accounts requires restarting authorization. A signed browser
+   session whose account no longer exists in D1 is rejected by protected routes
+   and requires Google sign-in again, rather than failing consent with a server
+   error. If an older deployed release shows a server error immediately, sign
+   out of Pinboard, sign in again and start a new connection from the MCP
+   client.
 5. After approval, the client exchanges the **60-second**, one-use code at
    `POST /oauth/token` with the original client ID, exact callback, resource and
    verifier. One atomic database update prevents concurrent double redemption.

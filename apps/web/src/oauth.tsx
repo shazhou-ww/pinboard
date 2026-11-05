@@ -132,7 +132,9 @@ export function OAuthConsent() {
         }
         if (!response.ok)
           throw new Error(
-            "Authorization expired or account changed. Restart the connection.",
+            response.status === 400 || response.status === 403
+              ? "Authorization expired or account changed. Restart the connection."
+              : `Authorization request failed (${response.status}). Please retry.`,
           );
         const data = (await response.json()) as Consent;
         setConsent(data);

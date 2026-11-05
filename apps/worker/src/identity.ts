@@ -50,6 +50,25 @@ export async function hashToken(token: string): Promise<string> {
   ).join("");
 }
 
+export async function requireSessionAccount(
+  db: D1Database,
+  accountId: unknown,
+): Promise<string> {
+  if (typeof accountId !== "string" || !accountId)
+    throw new HTTPException(401, { message: "Sign in with Google" });
+  const account = await db
+    .prepare("SELECT id FROM accounts WHERE id = ?")
+    .bind(accountId)
+    .first<{ id: string }>();
+  if (!account) {
+    console.warn(JSON.stringify({ event: "session_account_missing" }));
+    throw new HTTPException(401, {
+      message: "Session account no longer exists. Sign in with Google again",
+    });
+  }
+  return account.id;
+}
+
 export async function authenticate(
   c: Context<AppEnv>,
   sessionOnly = false,
@@ -84,9 +103,10 @@ export async function authenticate(
     };
   }
   const user = await getAuthUser(c);
-  const accountId = user?.token?.accountId;
-  if (typeof accountId !== "string" || !accountId)
-    throw new HTTPException(401, { message: "Sign in with Google" });
+  const accountId = await requireSessionAccount(
+    c.env.DB,
+    user?.token?.accountId,
+  );
   return { accountId, scopes, kind: "session" };
 }
 

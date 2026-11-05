@@ -299,6 +299,42 @@ describe("identity and HTTP boundaries", () => {
     });
     expect(toSessionResponse({ expires: "2099" })).toEqual({ expires: "2099" });
   });
+  it.each(["http", "https"])(
+    "rejects stale %s sessions consistently across identity and private APIs",
+    async (protocol) => {
+      const staleOrigin = `${protocol}://example.test`;
+      const bindings = {
+        ...env,
+        AUTH_URL: `${staleOrigin}/api/auth`,
+        PUBLIC_ORIGIN: staleOrigin,
+      };
+      const salt =
+        protocol === "https"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token";
+      const staleCookie = `${salt}=${await encode({
+        token: { accountId: crypto.randomUUID() },
+        secret: env.AUTH_SECRET,
+        salt,
+      })}`;
+      for (const path of [
+        "/api/me",
+        "/api/pins",
+        "/api/tokens",
+        "/api/oauth/grants",
+      ]) {
+        const response = await app.request(
+          staleOrigin + path,
+          { headers: { cookie: staleCookie } },
+          bindings,
+        );
+        expect(response.status).toBe(401);
+        expect(await response.json()).toEqual({
+          error: "Session account no longer exists. Sign in with Google again",
+        });
+      }
+    },
+  );
   it("binds Google provider subjects, not email or labels, in the JWT callback", async () => {
     const jwt = createAuthConfig(env).callbacks!.jwt!;
     const result = await jwt({
