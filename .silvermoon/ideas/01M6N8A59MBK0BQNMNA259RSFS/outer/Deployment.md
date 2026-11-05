@@ -2,7 +2,7 @@
 
 本契约区分隔离本地验证与生产落地。实现使用现有 Worker 内的预编译 WASM、D1
 BLOB 与既有 R2，不需要 Images
-binding 或独立图片服务。本地结果不代表生产 CPU 配额、迁移或上线已验证。实际环境、迁移恢复顺序与未满足条件见[落地验证记录](Rollout-readiness.md)。
+binding 或独立图片服务。隔离验证及恢复顺序见[落地准备记录](Rollout-readiness.md)，本次获准的生产迁移、tag 发布及平台实际执行结果见[生产发布证据](Production-verification.md)；不以本地结果冒充生产证据。
 
 ## Steps
 
