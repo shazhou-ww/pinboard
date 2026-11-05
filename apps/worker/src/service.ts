@@ -14,11 +14,24 @@ import {
 import { readBlock, storeDag, writeGuard } from "./storage.js";
 import { nameSchema, validate } from "./schemas.js";
 import type { Pin } from "@shazhou/pinboard-contracts";
+import {
+  enqueuePreview,
+  previewLog,
+  processPreview,
+  refreshPreviewReferences,
+} from "./previews.js";
+
+interface ExistingThumbnail {
+  cid: string;
+  width: number;
+  height: number;
+}
 
 export class PinService {
   constructor(
     private readonly env: Bindings,
     private readonly principal: Principal,
+    private readonly schedule?: (work: Promise<void>) => void,
   ) {}
 
   async list(
@@ -77,18 +90,28 @@ export class PinService {
         key(link) === key(root) ? bytes : this.readBlock(link.toString()),
       );
     }
+    const images = await this.existingThumbnails([...dag.blocks.keys()]);
     const objectKey = await storeDag(this.env, dag);
-    return this.save(dag, name, objectKey);
+    return this.save(dag, name, objectKey, images);
   }
 
   async pin(cid: string, name: string): Promise<Pin> {
     requireScope(this.principal, "pins:write");
     validate(nameSchema, name);
+    const root = key(parseCid(cid));
+    const images = new Map(
+      (await this.existingThumbnails([root], root)).map((image) => [
+        image.cid,
+        image,
+      ]),
+    );
     const dag = await completeDag(parseCid(cid), (link) =>
       this.readBlock(link.toString()),
     );
+    for (const image of await this.existingThumbnails([...dag.blocks.keys()]))
+      images.set(image.cid, image);
     const objectKey = await storeDag(this.env, dag);
-    return this.save(dag, name, objectKey);
+    return this.save(dag, name, objectKey, [...images.values()]);
   }
 
   async unpin(cid: string): Promise<void> {
@@ -109,6 +132,10 @@ export class PinService {
       this.env.DB.prepare(
         "UPDATE retained_blocks SET unreferenced_at = ? WHERE unreferenced_at IS NULL AND cid IN (SELECT cid FROM dag_members WHERE root = ?) AND NOT EXISTS (SELECT 1 FROM dag_members m JOIN pins p ON p.cid = m.root WHERE m.cid = retained_blocks.cid)",
       ).bind(now.toISOString(), root),
+      refreshPreviewReferences(this.env.DB, now.getTime(), root),
+      this.env.DB.prepare(
+        "UPDATE content_previews SET unreferenced_at = ? WHERE source_cid = ? AND NOT EXISTS (SELECT 1 FROM pins WHERE cid = ?)",
+      ).bind(now.toISOString(), root, root),
     ]);
     const result = results[1]!;
     if (!result.meta.changes)
@@ -136,7 +163,26 @@ export class PinService {
     return readBlock(this.env, cid);
   }
 
-  private async save(dag: Dag, name: string, objectKey: string): Promise<Pin> {
+  private async existingThumbnails(
+    cids: string[],
+    root?: string,
+  ): Promise<ExistingThumbnail[]> {
+    const rows = await this.env.DB.prepare(
+      `SELECT cid, width, height FROM preview_images
+       WHERE cid IN (SELECT value FROM json_each(?))
+       OR cid IN (SELECT cid FROM dag_members WHERE root = ?)`,
+    )
+      .bind(JSON.stringify(cids), root ?? null)
+      .all<ExistingThumbnail>();
+    return rows.results;
+  }
+
+  private async save(
+    dag: Dag,
+    name: string,
+    objectKey: string,
+    images: ExistingThumbnail[],
+  ): Promise<Pin> {
     const cid = key(dag.root);
     const results = await this.env.DB.batch([
       writeGuard(this.env.DB, objectKey, "ready"),
@@ -146,9 +192,29 @@ export class PinService {
       this.env.DB.prepare(
         "UPDATE retained_blocks SET unreferenced_at = NULL WHERE cid IN (SELECT cid FROM dag_members WHERE root = ?)",
       ).bind(cid),
+      this.env.DB.prepare(
+        "UPDATE content_previews SET unreferenced_at = NULL WHERE source_cid = ?",
+      ).bind(cid),
+      ...images.flatMap((image) => {
+        const bytes = dag.blocks.get(image.cid);
+        return bytes
+          ? [
+              this.env.DB.prepare(
+                "INSERT OR IGNORE INTO preview_images (cid, bytes, width, height) VALUES (?, ?, ?, ?)",
+              ).bind(image.cid, bytes, image.width, image.height),
+            ]
+          : [];
+      }),
+      refreshPreviewReferences(this.env.DB, Date.now(), cid),
     ]);
     const result = results[1]!.results[0] as Pin | undefined;
     if (!result) throw new Error("Failed to save pin reference");
+    try {
+      await enqueuePreview(this.env, cid);
+      if (this.schedule) this.schedule(processPreview(this.env, cid));
+    } catch (error) {
+      previewLog("preview_scheduling_failed", cid, error);
+    }
     return result;
   }
 }

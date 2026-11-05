@@ -1,8 +1,13 @@
 import { Hono } from "hono";
 import type { Bindings } from "./env.js";
 import { key, parseCid, PROBE_CID } from "./content.js";
-import { acceptsRaw, matchesEtag, onlyIfCached } from "./gateway-http.js";
-import { getBlock, headBlock } from "./storage.js";
+import {
+  acceptsMedia,
+  acceptsRaw,
+  matchesEtag,
+  onlyIfCached,
+} from "./gateway-http.js";
+import { blobBytes, getBlock, headBlock, type D1Blob } from "./storage.js";
 
 export const gateway = new Hono<{ Bindings: Bindings }>();
 
@@ -10,6 +15,45 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
   const cid = parseCid(c.req.param("cid"));
   const format = c.req.query("format");
   const accept = c.req.header("accept");
+  if (
+    format === undefined &&
+    (accept === undefined ||
+      (acceptsMedia(accept, "image/webp") &&
+        !(
+          accept.toLowerCase().includes("application/vnd.ipld.raw") &&
+          acceptsRaw(accept)
+        )))
+  ) {
+    const image = await c.env.DB.prepare(
+      "SELECT bytes FROM preview_images WHERE cid = ?",
+    )
+      .bind(key(cid))
+      .first<{ bytes: D1Blob }>();
+    if (image) {
+      const bytes = blobBytes(image.bytes);
+      const headers = {
+        "Content-Type": "image/webp",
+        "Content-Length": String(bytes.length),
+        "Cache-Control": "public, max-age=29030400, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+        ETag: `"${key(cid)}.webp"`,
+        "X-Ipfs-Path": `/ipfs/${key(cid)}`,
+      };
+      return new Response(
+        c.req.method === "HEAD" ||
+          matchesEtag(c.req.header("if-none-match"), headers.ETag)
+          ? null
+          : bytes,
+        {
+          status: matchesEtag(c.req.header("if-none-match"), headers.ETag)
+            ? 304
+            : 200,
+          headers,
+        },
+      );
+    }
+  }
   if (format === undefined && accept === undefined)
     return c.json({ error: "Request format=raw or an Accept header" }, 400);
   if (format !== undefined ? format !== "raw" : !acceptsRaw(accept!)) {
