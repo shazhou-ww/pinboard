@@ -755,18 +755,99 @@ footer {
 }
 .preview-directory ul {
   list-style: none;
-  padding: 0;
+  padding: 0 0 0 12px;
   margin: 0;
+  border-left: 1px solid #bdcbb7;
 }
-.preview-directory p {
-  margin: 0 0 8px;
+.preview-folder-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  margin-bottom: 10px;
+  color: #35523b;
+  font-size: 13px;
+  font-weight: 600;
 }
-.preview-directory li {
-  font-size: 14px;
-  line-height: 1.5;
+.preview-folder-count {
+  margin-left: auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #6b796b;
+  font-size: 11px;
+  font-weight: 400;
+}
+.preview-directory li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 24px;
+}
+.preview-directory li::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 0;
+  width: 7px;
+  height: 12px;
+  border-bottom: 1px solid #bdcbb7;
+}
+.preview-directory li[data-depth="1"] {
+  margin-left: 24px;
+}
+.preview-directory li[data-depth="1"]::before {
+  border-left: 1px solid #bdcbb7;
+}
+.preview-directory li[data-kind="directory"] .preview-entry-name {
+  font-weight: 600;
+}
+.preview-entry-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-entry-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 15px;
+  border: 1px solid #849180;
+  border-radius: 2px;
+  background: #fffefa;
+}
+.preview-entry-icon[data-kind="directory"] {
+  width: 16px;
+  height: 12px;
+  border-color: #708769;
+  background: #d3dfc5;
+}
+.preview-entry-icon[data-kind="directory"]::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -4px;
+  width: 7px;
+  height: 3px;
+  border: 1px solid #708769;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  background: #d3dfc5;
+}
+.preview-entry-icon[data-kind="unknown"] {
+  border-style: dashed;
+  background: transparent;
+}
+.preview-folder-empty {
+  margin: 0;
+  color: #6b796b;
+  font-size: 13px;
 }
 .preview-truncated {
   font-size: 12px;

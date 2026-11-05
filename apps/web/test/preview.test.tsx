@@ -37,7 +37,7 @@ describe("typed, display-only content previews", () => {
     expect(styles).not.toMatch(/\.pin-list\s+li\s*\{/u);
     expect(styles).toMatch(/\.preview-directory ul\s*\{[^}]*margin:\s*0;/u);
     expect(styles).toMatch(
-      /\.preview-directory p\s*\{[^}]*margin:\s*0 0 8px;/u,
+      /\.preview-folder-heading\s*\{[^}]*margin-bottom:\s*10px;/u,
     );
   });
   it("uses only the separately cacheable thumbnail URL, not a CAR or data URL", () => {
@@ -101,7 +101,42 @@ describe("typed, display-only content previews", () => {
     });
     expect(markup).toContain("&lt;evil&gt;.txt");
     expect(markup).toContain("photos");
+    expect(markup).toContain('aria-label="Folder contents"');
+    expect(markup).toContain('data-depth="1"');
+    expect(markup).toContain('aria-label="File"');
+    expect(markup).toContain('aria-label="Folder"');
+    expect(markup).toContain('class="preview-folder-heading"');
     expect(markup).not.toMatch(/href=|<button|<a |total/iu);
+  });
+  it("only reports verified counts and distinguishes empty folders from sampled empty previews", () => {
+    const directory = {
+      ...base,
+      contentType: "application/vnd.pinboard.directory+json" as const,
+      content: { entries: [], total: 0 },
+    };
+    expect(render(directory)).toContain("Empty folder");
+    expect(render(directory)).toContain("0");
+    expect(
+      render({ ...directory, truncated: true, content: { entries: [] } }),
+    ).toContain("No entries in this preview");
+    expect(
+      render({ ...directory, content: { entries: [], total: 1 } }),
+    ).toContain("top-level");
+  });
+  it("keeps unknown folder entries honest and long names inert", () => {
+    const markup = render({
+      ...base,
+      contentType: "application/vnd.pinboard.directory+json",
+      content: {
+        entries: [
+          { name: "<script>" + "x".repeat(200), kind: "unknown", depth: 0 },
+        ],
+      },
+    });
+    expect(markup).toContain('aria-label="Unknown item"');
+    expect(markup).toContain('data-kind="unknown"');
+    expect(markup).toContain("&lt;script&gt;");
+    expect(markup).not.toMatch(/<script|href=|tabindex=|role="tree"/iu);
   });
   it.each(["pending", "failed", "unsupported"] as const)(
     "shows %s independently of content type and preserves reliable file metadata",

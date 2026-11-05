@@ -82,25 +82,51 @@ export function PreviewContent({
     case "application/vnd.pinboard.directory+json":
       return (
         <div className="preview-directory">
-          <p className="muted">
-            Folder overview
-            {preview.content.total === undefined
-              ? ""
-              : ` (${preview.content.total} top-level ${preview.content.total === 1 ? "entry" : "entries"})`}
-          </p>
-          <ul>
-            {preview.content.entries.map((entry, index) => (
-              <li
-                key={index}
-                style={{ paddingInlineStart: `${entry.depth}em` }}
-              >
-                <span aria-label={entry.kind}>
-                  {entry.kind === "directory" ? "▸ " : "· "}
-                </span>
-                {entry.name}
-              </li>
-            ))}
-          </ul>
+          <div className="preview-folder-heading">
+            <span
+              className="preview-entry-icon"
+              data-kind="directory"
+              aria-hidden="true"
+            />
+            <span>Folder</span>
+            {preview.content.total === undefined ? (
+              ""
+            ) : (
+              <span className="preview-folder-count">
+                {preview.content.total} top-level{" "}
+                {preview.content.total === 1 ? "entry" : "entries"}
+              </span>
+            )}
+          </div>
+          {preview.content.entries.length ? (
+            <ul aria-label="Folder contents">
+              {preview.content.entries.map((entry, index) => (
+                <li key={index} data-depth={entry.depth} data-kind={entry.kind}>
+                  <span
+                    className="preview-entry-icon"
+                    data-kind={entry.kind}
+                    role="img"
+                    aria-label={
+                      entry.kind === "directory"
+                        ? "Folder"
+                        : entry.kind === "file"
+                          ? "File"
+                          : "Unknown item"
+                    }
+                  />
+                  <span className="preview-entry-name" title={entry.name}>
+                    {entry.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="preview-folder-empty">
+              {preview.content.total === 0 && !preview.truncated
+                ? "Empty folder"
+                : "No entries in this preview"}
+            </p>
+          )}
         </div>
       );
     case "application/vnd.pinboard.file+json":

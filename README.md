@@ -181,11 +181,13 @@ card with a centered crop on the longer axis, without changing the original
 bytes, thumbnail CID or stored aspect ratio. Display Markdown escapes source
 punctuation; structured/code text uses literal code fences, not invented
 headings or AI summaries. Links, HTML and remote images remain inert text.
-Verified directories show at most 24 actual names across two entry levels,
-without subfolder navigation. Sampled/truncated overviews are labelled and never
-claim unverified totals. PDF, GIF, video, audio and unknown binary content use
-explicit unsupported placeholders with only reliably identified metadata.
-Invalid or oversized images fail explicitly instead of downloading originals.
+Verified directories use a folder-tab heading and a compact, read-only directory
+tree with distinct file/folder icons and hierarchy lines. They show at most 24
+actual names across two entry levels, without subfolder navigation.
+Sampled/truncated overviews are labelled and never claim unverified totals. PDF,
+GIF, video, audio and unknown binary content use explicit unsupported
+placeholders with only reliably identified metadata. Invalid or oversized images
+fail explicitly instead of downloading originals.
 
 Previews are shared by source CID and generation version, without account names.
 `pending`, `ready`, `unsupported` and `failed` are distinct from their
