@@ -18,7 +18,8 @@ import { previewBatchLimit } from "@shazhou/pinboard-contracts";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
-  checkOrigin(c);
+  // MCP never accepts cookies; anonymous initialization must reach its 401 challenge.
+  checkOrigin(c, c.req.path !== "/mcp");
   await next();
 });
 api.use("/api/pins/*", requireIdentity);
