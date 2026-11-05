@@ -44,6 +44,7 @@ catalog:
   string-width: ^8.3.0
   ipfs-unixfs-exporter: ^16.2.3
   esbuild: ^0.28.2
+  fake-indexeddb: ^6.2.7
 
 minimumReleaseAgeExclude:
   - "@turbo/darwin-64@2.11.8"

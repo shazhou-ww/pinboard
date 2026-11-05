@@ -1,5 +1,5 @@
 import type { AgentToken, Pin } from "@shazhou/pinboard-contracts";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   selectionForDirectory,
   selectionForFile,
@@ -9,6 +9,7 @@ import {
 import { Dialog } from "./dialog.js";
 import { OAuthGrants } from "./oauth.js";
 import { PinPreview } from "./pin-preview.js";
+import { PreviewClient } from "./preview-client.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -33,7 +34,13 @@ export async function requestJson<T>(
     : ((await response.json()) as T);
 }
 
-export function AccountManager() {
+export function AccountManager({
+  accountId,
+}: {
+  accountId?: string | undefined;
+}) {
+  const previews = useMemo(() => new PreviewClient(accountId), [accountId]);
+  useEffect(() => previews.attach(), [previews]);
   const [pins, setPins] = useState<Pin[]>([]);
   const [tokens, setTokens] = useState<AgentToken[]>([]);
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
@@ -529,6 +536,7 @@ export function AccountManager() {
               <PinCard
                 key={pin.cid}
                 pin={pin}
+                previews={previews}
                 busy={busy}
                 onOpen={() => openPin(pin)}
                 onCopyCid={() => {
@@ -862,18 +870,20 @@ export function AccountManager() {
 
 export function PinCard({
   pin,
+  previews,
   busy,
   onOpen,
   onCopyCid,
 }: {
   pin: Pin;
+  previews?: PreviewClient;
   busy: boolean;
   onOpen: () => void;
   onCopyCid: () => void;
 }) {
   return (
     <li className="pin-card">
-      <PinPreview pin={pin} />
+      <PinPreview pin={pin} client={previews} />
       <button
         type="button"
         className="pin-open"

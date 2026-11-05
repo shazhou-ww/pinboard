@@ -71,13 +71,37 @@ export async function enqueuePreview(
   cid: string,
   time = Date.now(),
 ) {
+  await enqueueStatement(env, cid, time).run();
+}
+
+function enqueueStatement(env: Bindings, cid: string, time: number) {
   const descriptor = placeholder("pending");
-  await env.DB.prepare(
+  return env.DB.prepare(
     `INSERT OR IGNORE INTO content_previews (source_cid, version, status, descriptor, retry_at)
      SELECT ?, ?, 'pending', ?, ? WHERE EXISTS (SELECT 1 FROM pins WHERE cid = ?)`,
+  ).bind(cid, PREVIEW_VERSION, JSON.stringify(descriptor), nowIso(time), cid);
+}
+
+export async function getPreviews(
+  env: Bindings,
+  cids: readonly string[],
+): Promise<Map<string, ContentPreview>> {
+  if (!cids.length) return new Map();
+  await env.DB.batch(cids.map((cid) => enqueueStatement(env, cid, Date.now())));
+  const rows = await env.DB.prepare(
+    `SELECT source_cid, descriptor FROM content_previews WHERE version = ? AND source_cid IN (${cids.map(() => "?").join(",")})`,
   )
-    .bind(cid, PREVIEW_VERSION, JSON.stringify(descriptor), nowIso(time), cid)
-    .run();
+    .bind(PREVIEW_VERSION, ...cids)
+    .all<{ source_cid: string; descriptor: string }>();
+  const result = new Map(
+    rows.results.map((row) => [
+      row.source_cid,
+      JSON.parse(row.descriptor) as ContentPreview,
+    ]),
+  );
+  for (const cid of cids)
+    if (!result.has(cid)) result.set(cid, placeholder("pending"));
+  return result;
 }
 
 export async function getPreview(
@@ -446,6 +470,38 @@ export async function processPreview(
   }
 }
 
+async function duePreviews(
+  env: Bindings,
+  time: number,
+  cids?: readonly string[],
+) {
+  return env.DB.prepare(
+    `SELECT source_cid FROM content_previews WHERE version = ? AND status IN ('pending', 'failed')
+     AND attempts < ? AND retry_at <= ? AND (lease_until IS NULL OR lease_until <= ?)
+     AND EXISTS (SELECT 1 FROM pins WHERE cid = source_cid)
+     ${cids ? `AND source_cid IN (${cids.map(() => "?").join(",")})` : ""}
+     ORDER BY retry_at LIMIT 2`,
+  )
+    .bind(
+      PREVIEW_VERSION,
+      MAX_ATTEMPTS,
+      nowIso(time),
+      nowIso(time),
+      ...(cids ?? []),
+    )
+    .all<{ source_cid: string }>();
+}
+
+export async function processPreviewBatch(
+  env: Bindings,
+  cids: readonly string[],
+) {
+  if (!cids.length) return;
+  const jobs = await duePreviews(env, Date.now(), cids);
+  for (const { source_cid } of jobs.results)
+    await processPreview(env, source_cid);
+}
+
 export async function runPreviews(env: Bindings, time = Date.now()) {
   const exhausted = await env.DB.prepare(
     `UPDATE content_previews SET status = 'failed', descriptor = ?, lease = NULL, lease_until = NULL
@@ -474,13 +530,7 @@ export async function runPreviews(env: Bindings, time = Date.now()) {
     .bind(PREVIEW_VERSION)
     .all<{ cid: string }>();
   for (const { cid } of missing.results) await enqueuePreview(env, cid, time);
-  const jobs = await env.DB.prepare(
-    `SELECT source_cid FROM content_previews WHERE version = ? AND status IN ('pending', 'failed')
-     AND attempts < ? AND retry_at <= ? AND (lease_until IS NULL OR lease_until <= ?)
-     AND EXISTS (SELECT 1 FROM pins WHERE cid = source_cid) ORDER BY retry_at LIMIT 2`,
-  )
-    .bind(PREVIEW_VERSION, MAX_ATTEMPTS, nowIso(time), nowIso(time))
-    .all<{ source_cid: string }>();
+  const jobs = await duePreviews(env, time);
   for (const { source_cid } of jobs.results)
     await processPreview(env, source_cid, time);
   const cutoff = nowIso(time - PREVIEW_RETENTION_MS);

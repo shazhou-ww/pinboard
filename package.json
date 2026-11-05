@@ -59,6 +59,7 @@
     "@vitest/coverage-v8": "catalog:",
     "esbuild": "catalog:",
     "eslint": "catalog:",
+    "fake-indexeddb": "catalog:",
     "globals": "catalog:",
     "hono": "catalog:",
     "prettier": "catalog:",

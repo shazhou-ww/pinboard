@@ -121,6 +121,26 @@ pixels. Actual aspect-preserving WebP thumbnails have a 480-pixel maximum edge
 and 64 KiB maximum size. D1 stores their binary BLOBs under SHA2-256 raw CIDs;
 the browser separately loads immutable `/ipfs/:thumbnailCid` images.
 
+After loading the current account's authorized Pin list, visible cards first
+reuse preview descriptions from memory or account-scoped IndexedDB. Ready
+descriptions are fresh for one hour, unsupported descriptions for five minutes;
+stale entries up to seven days old render immediately while being refreshed.
+Pending and failed states are not persisted. The cache stores no account labels
+or image BLOBs: memory holds at most 128 entries; IndexedDB retains at most 500
+entries and 2 MiB of JSON payloads, with a 16 KiB per-entry budget and
+least-recently-used eviction. Browser storage failures are logged and leave
+normal authenticated network loading available.
+
+Visible misses and stale descriptions are coalesced over 16 ms into
+`POST /api/pins/previews` requests, with at most 32 CIDs per batch. Duplicate
+in-flight requests share one result. Each CID is checked against the current
+account, and missing/unowned entries return individual 404 results without
+revealing shared metadata. Batch responses remain private and `no-store`; the
+single-Pin endpoint remains supported. Each batch starts at most two generation
+jobs, and pending cards poll every two seconds at most 24 times. Account changes
+dispose the previous request client; cached descriptions are never a substitute
+for an authorized Pin list or server-side access checks.
+
 UTF-8 excerpts contain at most 2,400 characters. Display Markdown escapes source
 punctuation; structured/code text uses literal code fences, not invented
 headings or AI summaries. Links, HTML and remote images remain inert text.
@@ -195,6 +215,7 @@ selection and public-content acknowledgement before uploading.
 | `/api/pins/upload?kind=file\|car\|block&name=...` | Session or Agent token | Upload; block mode also requires `cid`                                    |
 | `/api/pins/:cid`                                  | Session or Agent token | Detail or DELETE own reference                                            |
 | `/api/pins/:cid/preview`                          | Session or Agent token | Own pin's typed preview; lazy generation, no image bytes                  |
+| `/api/pins/previews`                              | Session or Agent token | POST up to 32 CIDs; per-item authorized preview descriptions              |
 | `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
 | `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
 

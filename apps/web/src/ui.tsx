@@ -79,7 +79,10 @@ export function Dashboard({
               state.session.user.email ??
               "Google account"}
           </p>
-          <AccountManager />
+          <AccountManager
+            key={state.session.user.id}
+            accountId={state.session.user.id}
+          />
         </>
       ) : (
         <section className="panel signin">

@@ -102,7 +102,9 @@ const server = createServer((request, response) => {
     if (request.url === "/api/auth/session" || request.url === "/api/me") {
       response.setHeader("content-type", "application/json");
       response.end(
-        JSON.stringify({ user: { name: "Synthetic preview account" } }),
+        JSON.stringify({
+          user: { id: "browser", name: "Synthetic preview account" },
+        }),
       );
       return;
     }

@@ -90,6 +90,195 @@ async function count(sql: string, ...args: (string | number)[]) {
 }
 
 describe("bounded source-derived previews", () => {
+  it("batches only owned previews, deduplicates CIDs and reports denied items without leaking shared metadata", async () => {
+    const ownPin = await service.upload(
+      text("batch owned excerpt"),
+      "file",
+      "private batch name",
+    );
+    const foreign = await new PinService(env, other).upload(
+      text("foreign batch excerpt"),
+      "file",
+      "foreign private name",
+    );
+    await processPreview(env, ownPin.cid);
+    const missing = CID.createV1(
+      0x55,
+      await sha256.digest(text("batch missing")),
+    ).toString();
+    const token = (
+      await createToken(env, owner, {
+        name: "batch-read",
+        scopes: ["pins:read"],
+        expiresInDays: 1,
+      })
+    ).token;
+    const response = await app.request(
+      "https://preview.test/api/pins/previews",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          cids: [ownPin.cid, foreign.cid, missing, ownPin.cid],
+        }),
+      },
+      env,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const result: unknown = await response.json();
+    expect(result).toMatchObject({
+      previews: [
+        {
+          cid: ownPin.cid,
+          preview: {
+            status: "ready",
+            content: "batch owned excerpt",
+          },
+        },
+        {
+          cid: foreign.cid,
+          error: { status: 404, message: "Pin not found in your account" },
+        },
+        {
+          cid: missing,
+          error: { status: 404, message: "Pin not found in your account" },
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toMatch(
+      /private batch name|foreign batch excerpt|foreign private name|bytes|Base64/,
+    );
+    expect(
+      await count(
+        "SELECT attempts AS n FROM content_previews WHERE source_cid = ?",
+        foreign.cid,
+      ),
+    ).toBe(0);
+    expect(
+      await count(
+        "SELECT COUNT(*) AS n FROM content_previews WHERE source_cid = ?",
+        missing,
+      ),
+    ).toBe(0);
+    await service.unpin(ownPin.cid);
+    await new PinService(env, other).unpin(foreign.cid);
+  });
+
+  it("bounds batch input, enforces scope/origin and limits eager generation to two jobs", async () => {
+    const pins = await Promise.all(
+      [0, 1, 2].map((i) =>
+        service.upload(text(`batch queued ${i}`), "file", `batch ${i}`),
+      ),
+    );
+    const exhausted = await Promise.all(
+      [0, 1].map((i) =>
+        service.upload(text(`batch exhausted ${i}`), "file", `failed ${i}`),
+      ),
+    );
+    await env.DB.batch(
+      exhausted.map((pin) =>
+        env.DB.prepare(
+          "UPDATE content_previews SET status='failed', attempts=3, descriptor=json_set(descriptor, '$.status', 'failed') WHERE source_cid=?",
+        ).bind(pin.cid),
+      ),
+    );
+    const token = (
+      await createToken(env, owner, {
+        name: "batch scope",
+        scopes: ["pins:read"],
+        expiresInDays: 1,
+      })
+    ).token;
+    const writeOnly = (
+      await createToken(env, owner, {
+        name: "batch write only",
+        scopes: ["pins:write"],
+        expiresInDays: 1,
+      })
+    ).token;
+    const request = (body: unknown, credential = token, origin?: string) =>
+      app.request(
+        "https://preview.test/api/pins/previews",
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${credential}`,
+            "content-type": "application/json",
+            ...(origin ? { origin } : {}),
+          },
+          body: JSON.stringify(body),
+        },
+        env,
+      );
+    for (const body of [
+      { cids: [] },
+      { cids: Array(33).fill(pins[0]!.cid) },
+      { cids: ["not-a-cid"] },
+      { cids: [pins[0]!.cid], extra: true },
+    ])
+      expect((await request(body)).status).toBe(400);
+    expect((await request({ cids: ["x".repeat(20000)] })).status).toBe(413);
+    expect((await request({ cids: [pins[0]!.cid] }, writeOnly)).status).toBe(
+      403,
+    );
+    expect(
+      (await request({ cids: [pins[0]!.cid] }, token, "https://evil.test"))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await app.request(
+          "https://preview.test/api/pins/previews",
+          {
+            method: "POST",
+            headers: { origin: "https://preview.test" },
+            body: JSON.stringify({ cids: [pins[0]!.cid] }),
+          },
+          env,
+        )
+      ).status,
+    ).toBe(401);
+    const pending: Promise<unknown>[] = [];
+    const response = await app.request(
+      "https://preview.test/api/pins/previews",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          cids: [...exhausted, ...pins].map((pin) => pin.cid),
+        }),
+      },
+      env,
+      {
+        waitUntil(work) {
+          pending.push(work);
+        },
+        passThroughOnException() {},
+        props: {},
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty("previews.length", 5);
+    await Promise.all(pending);
+    const states = await Promise.all(
+      pins.map((pin) => getPreview(env, pin.cid)),
+    );
+    expect(states.filter((state) => state.status === "ready")).toHaveLength(2);
+    expect(states.filter((state) => state.status === "pending")).toHaveLength(
+      1,
+    );
+    await Promise.all(
+      [...pins, ...exhausted].map((pin) => service.unpin(pin.cid)),
+    );
+  });
+
   it("authorizes the lazy endpoint before accessing shared metadata and returns a typed, private description", async () => {
     const pin = await service.upload(
       text("authorized endpoint excerpt"),

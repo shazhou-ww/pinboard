@@ -78,6 +78,19 @@ export type ContentPreview = PreviewPayload & {
   readonly reason?: string;
 };
 
+export const previewBatchLimit = 32;
+
+export type PreviewBatchItem =
+  | { readonly cid: string; readonly preview: ContentPreview }
+  | {
+      readonly cid: string;
+      readonly error: { readonly status: 404; readonly message: string };
+    };
+
+export interface PreviewBatchResponse {
+  readonly previews: readonly PreviewBatchItem[];
+}
+
 export interface AgentToken {
   readonly id: string;
   readonly name: string;

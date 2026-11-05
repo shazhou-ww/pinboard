@@ -13,9 +13,14 @@ import {
 } from "./content.js";
 import { readBlock, storeDag, writeGuard } from "./storage.js";
 import { nameSchema, validate } from "./schemas.js";
-import type { Pin } from "@shazhou/pinboard-contracts";
+import {
+  previewBatchLimit,
+  type Pin,
+  type PreviewBatchResponse,
+} from "@shazhou/pinboard-contracts";
 import {
   enqueuePreview,
+  getPreviews,
   previewLog,
   processPreview,
   refreshPreviewReferences,
@@ -62,6 +67,35 @@ export class PinService {
         message: "Pin not found in your account",
       });
     return pin;
+  }
+
+  async previews(cids: readonly string[]): Promise<PreviewBatchResponse> {
+    requireScope(this.principal, "pins:read");
+    if (!cids.length || cids.length > previewBatchLimit)
+      throw new HTTPException(400, {
+        message: "Expected 1 to 32 preview CIDs",
+      });
+    const unique = [...new Set(cids.map((cid) => key(parseCid(cid))))];
+    const owned = await this.env.DB.prepare(
+      `SELECT cid FROM pins WHERE account_id = ? AND cid IN (${unique.map(() => "?").join(",")})`,
+    )
+      .bind(this.principal.accountId, ...unique)
+      .all<{ cid: string }>();
+    const previews = await getPreviews(
+      this.env,
+      owned.results.map((pin) => pin.cid),
+    );
+    return {
+      previews: unique.map((cid) => {
+        const preview = previews.get(cid);
+        return preview
+          ? { cid, preview }
+          : {
+              cid,
+              error: { status: 404, message: "Pin not found in your account" },
+            };
+      }),
+    };
   }
 
   async upload(

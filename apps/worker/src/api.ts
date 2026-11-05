@@ -13,7 +13,8 @@ import { PinService } from "./service.js";
 import { jsonBody, pinSchema, renamePinSchema, validate } from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
 import { oauthOrigin } from "./oauth.js";
-import { getPreview, processPreview } from "./previews.js";
+import { getPreview, processPreview, processPreviewBatch } from "./previews.js";
+import { previewBatchLimit } from "@shazhou/pinboard-contracts";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
@@ -29,6 +30,33 @@ api.get("/api/pins", async (c) =>
     ),
   ),
 );
+api.post("/api/pins/previews", async (c) => {
+  const input = validate(
+    z
+      .object({
+        cids: z.array(z.string().min(1).max(256)).min(1).max(previewBatchLimit),
+      })
+      .strict(),
+    await jsonBody(c.req.raw),
+  );
+  const result = await new PinService(c.env, c.get("principal")).previews(
+    input.cids,
+  );
+  const pending = result.previews.filter(
+    (item) =>
+      "preview" in item &&
+      (item.preview.status === "pending" || item.preview.status === "failed"),
+  );
+  if (pending.length)
+    c.executionCtx.waitUntil(
+      processPreviewBatch(
+        c.env,
+        pending.map((item) => item.cid),
+      ),
+    );
+  c.header("Cache-Control", "private, no-store");
+  return c.json(result);
+});
 api.post("/api/pins", async (c) => {
   const input = validate(pinSchema, await jsonBody(c.req.raw));
   return c.json(
