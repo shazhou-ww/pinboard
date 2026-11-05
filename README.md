@@ -142,6 +142,13 @@ below the fixed header without moving the wall; success messages dismiss after
 five seconds. Errors remain visible for recovery, and progress remains until the
 operation completes.
 
+Pin details open immediately with the listed metadata and refresh in the
+background without inserting a loading row or resizing the panel. Click or tap
+outside the panel, press Escape or use Close to dismiss it, including while its
+details are loading. Closing cancels the read so late responses cannot reopen
+the panel. Pending writes still prevent dismissal. Upload and Settings dialogs
+retain their explicit Close/Cancel behavior.
+
 Drop one file or folder anywhere on the wall to open the same **Make a pin**
 dialog. Review the selection and optionally edit its pin name before confirming.
 **Settings** opens a dialog for Agent tokens, MCP authorizations and local
