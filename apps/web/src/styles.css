@@ -343,6 +343,34 @@ legend {
   margin-left: 12px;
   text-decoration: underline;
 }
+.snackbar {
+  position: fixed;
+  inset: 76px auto auto 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 92px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #cdd5c9;
+  border-radius: 12px;
+  color: #23332d;
+  background: #fffefae6;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px #23332d1a;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.snackbar-error {
+  background: #faede7;
+  border-color: #e6cdc3;
+}
+.snackbar button {
+  margin-left: 12px;
+  text-decoration: underline;
+}
 .success {
   background: #eaf1e4;
 }
@@ -494,16 +522,16 @@ footer {
   z-index: 3;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 10px;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
   border: 1px solid #23332d14;
   border-radius: 50%;
   background: #fffefae6;
 }
 .pin-menu-trigger svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   fill: currentColor;
 }
 .pin-menu-trigger:hover,
@@ -529,6 +557,7 @@ footer {
   outline-offset: -2px;
 }
 .pin-context-menu > .danger {
+  margin-left: 0;
   margin-top: 4px;
   border-top: 1px solid #dce1d8;
   border-radius: 0 0 6px 6px;
@@ -575,9 +604,13 @@ footer {
   -webkit-backdrop-filter: blur(16px) saturate(1.15);
   backdrop-filter: blur(16px) saturate(1.15);
   border-top: 1px solid #23332d14;
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 2;
   transition: grid-template-rows 180ms ease;
+}
+.pin-info:focus-visible {
+  outline: 2px solid #337758;
+  outline-offset: -3px;
 }
 .pin-info .pin-name {
   display: block;
@@ -606,26 +639,55 @@ footer {
     transform 180ms ease,
     visibility 0s linear 180ms;
 }
-.pin-card:has(:focus-visible) .pin-info,
+.pin-info:focus-visible,
+.pin-info:has(:focus-visible),
 .pin-card.copy-confirmed .pin-info {
   grid-template-rows: auto 1fr;
 }
-.pin-card:has(:focus-visible) .pin-info-cid,
+.pin-info:focus-visible .pin-info-cid,
+.pin-info:has(:focus-visible) .pin-info-cid,
 .pin-card.copy-confirmed .pin-info-cid {
   opacity: 1;
   visibility: visible;
   transform: none;
   transition-delay: 0s;
 }
-@media (hover: hover) {
-  .pin-card:hover .pin-info {
+@media (hover: hover) and (pointer: fine) {
+  .pin-menu-trigger {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pin-card:has(.pin-open:hover) .pin-menu-trigger,
+  .pin-menu-trigger:hover,
+  .pin-menu-trigger:focus-visible,
+  .pin-menu-trigger[aria-expanded="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .pin-info:hover {
     grid-template-rows: auto 1fr;
   }
-  .pin-card:hover .pin-info-cid {
+  .pin-info:hover .pin-info-cid {
     opacity: 1;
     visibility: visible;
     transform: none;
     transition-delay: 0s;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .pin-menu-trigger {
+    width: 44px;
+    height: 44px;
+    padding: 13px;
+  }
+  .pin-info {
+    grid-template-rows: auto 1fr;
+  }
+  .pin-info-cid {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
