@@ -4,7 +4,6 @@ import type {
 } from "@shazhou/pinboard-contracts";
 import type { MouseEventHandler } from "react";
 import { AccountManager } from "./manager.js";
-import { OAuthGrants } from "./oauth.js";
 
 export type DashboardState =
   | { readonly kind: "loading" }
@@ -29,7 +28,9 @@ export function Dashboard({
   readonly signingOut?: boolean;
 }) {
   return (
-    <main className="shell">
+    <main
+      className={`shell${state.kind === "ready" && state.session?.user ? " canvas-shell" : ""}`}
+    >
       <header className="masthead">
         <a className="brand" href="/" aria-label="Pinboard home">
           <span className="brand-mark" aria-hidden="true" />
@@ -48,19 +49,21 @@ export function Dashboard({
           <span>Small by design.</span>
         )}
       </header>
-      <section className="intro">
-        <p className="eyebrow">A quiet home for content-addressed things</p>
-        <h1>
-          Pin blocks.
-          <br />
-          <em>Share by CID.</em>
-        </h1>
-        <p>
-          Save a file or a complete IPFS DAG. Keep the CID.
-          <br />
-          No feeds. No folders to organize. Just what you pin.
-        </p>
-      </section>
+      {!(state.kind === "ready" && state.session?.user) ? (
+        <section className="intro">
+          <p className="eyebrow">A quiet home for content-addressed things</p>
+          <h1>
+            Pin blocks.
+            <br />
+            <em>Share by CID.</em>
+          </h1>
+          <p>
+            Save a file or a complete IPFS DAG. Keep the CID.
+            <br />
+            No feeds. No folders to organize. Just what you pin.
+          </p>
+        </section>
+      ) : null}
       {state.kind === "loading" ? (
         <p role="status">Checking your session...</p>
       ) : state.kind === "error" ? (
@@ -77,7 +80,6 @@ export function Dashboard({
               "Google account"}
           </p>
           <AccountManager />
-          <OAuthGrants />
         </>
       ) : (
         <section className="panel signin">

@@ -37,6 +37,35 @@ async function oauthJson<T>(path: string, init?: RequestInit): Promise<T> {
     : ((await response.json()) as T);
 }
 
+export function OAuthSignIn({
+  busy,
+  onSignIn,
+}: {
+  busy: boolean;
+  onSignIn: () => void;
+}) {
+  return (
+    <section className="panel signin oauth-panel">
+      <h1>Sign in to connect MCP</h1>
+      <p>Sign-in does not grant access. You will review permissions next.</p>
+      <div className="actions" role="group" aria-label="Sign-in options">
+        <button
+          type="button"
+          className="primary"
+          disabled={busy}
+          aria-busy={busy}
+          onClick={onSignIn}
+        >
+          {busy ? "Connecting to Google..." : "Continue with Google"}
+        </button>
+        <a className="secondary" href="/">
+          Leave without authorizing
+        </a>
+      </div>
+    </section>
+  );
+}
+
 export function ConsentDetails({
   consent,
   selected,
@@ -51,7 +80,7 @@ export function ConsentDetails({
   onDecide: (approve: boolean) => void;
 }) {
   return (
-    <section className="panel">
+    <section className="panel oauth-panel">
       <h1>Connect MCP client?</h1>
       <p>
         <strong>{consent.clientName}</strong> requests access to your Pinboard
@@ -102,7 +131,12 @@ export function ConsentDetails({
         >
           Allow selected permissions
         </button>
-        <button type="button" disabled={busy} onClick={() => onDecide(false)}>
+        <button
+          type="button"
+          className="secondary"
+          disabled={busy}
+          onClick={() => onDecide(false)}
+        >
           Cancel connection
         </button>
       </div>
@@ -193,16 +227,7 @@ export function OAuthConsent() {
       {error ? (
         <p role="alert">{error}</p>
       ) : login ? (
-        <section className="panel">
-          <h1>Sign in to connect MCP</h1>
-          <p>
-            Sign-in does not grant access. You will review permissions next.
-          </p>
-          <button disabled={busy} onClick={signInWithGoogle}>
-            Continue with Google
-          </button>
-          <a href="/">Leave without authorizing</a>
-        </section>
+        <OAuthSignIn busy={busy} onSignIn={signInWithGoogle} />
       ) : consent ? (
         <ConsentDetails
           consent={consent}

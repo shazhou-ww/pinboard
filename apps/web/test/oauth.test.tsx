@@ -1,8 +1,30 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ConsentDetails, GrantList } from "../src/oauth.js";
+import { ConsentDetails, GrantList, OAuthSignIn } from "../src/oauth.js";
 
 describe("MCP consent and grant management interface", () => {
+  it("presents Google sign-in as a primary button separate from leaving without authorizing", () => {
+    const html = renderToStaticMarkup(
+      <OAuthSignIn busy={false} onSignIn={() => {}} />,
+    );
+    expect(html).toContain('class="panel signin oauth-panel"');
+    expect(html).toContain('role="group" aria-label="Sign-in options"');
+    expect(html).toContain(
+      '<button type="button" class="primary" aria-busy="false">Continue with Google</button>',
+    );
+    expect(html).toContain(
+      '<a class="secondary" href="/">Leave without authorizing</a>',
+    );
+  });
+  it("shows and disables pending Google sign-in while keeping the leave action available", () => {
+    const html = renderToStaticMarkup(<OAuthSignIn busy onSignIn={() => {}} />);
+    expect(html).toContain(
+      '<button type="button" class="primary" disabled="" aria-busy="true">Connecting to Google...</button>',
+    );
+    expect(html).toContain(
+      '<a class="secondary" href="/">Leave without authorizing</a>',
+    );
+  });
   it("escapes unverified client text, displays exact callback/resource and requires explicit scoped consent", () => {
     const html = renderToStaticMarkup(
       <ConsentDetails
@@ -38,6 +60,13 @@ describe("MCP consent and grant management interface", () => {
     ])
       expect(html).toContain(text);
     expect(html.match(/checked=""/g)).toHaveLength(1);
+    expect(html).toContain('class="panel oauth-panel"');
+    expect(html).toContain(
+      '<button type="button" class="primary">Allow selected permissions</button>',
+    );
+    expect(html).toContain(
+      '<button type="button" class="secondary">Cancel connection</button>',
+    );
   });
   it("disables approval without permissions and disables decisions during submission", () => {
     const consent = {

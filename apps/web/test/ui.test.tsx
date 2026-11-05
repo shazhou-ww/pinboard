@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Dashboard, SharePage } from "../src/ui.js";
-import { formatSize } from "../src/manager.js";
+import { formatSize, PinCard } from "../src/manager.js";
 
 const bootstrap = {
   appName: "Pinboard",
@@ -51,11 +51,29 @@ describe("Pinboard interface", () => {
     expect(html).toContain("Sign out");
     expect(html).not.toContain('href="/api/auth/signout"');
     expect(html).toContain("Your pins");
-    expect(html).toContain("I understand all uploaded bytes");
+    expect(html).not.toContain("I understand all uploaded bytes");
+    expect(html).toContain("Uploaded content will be public");
+    expect(html).toContain("Do not remind me in this browser");
+    expect(html).toContain('class="shell canvas-shell"');
+    expect(html).toContain('aria-label="Pinboard tools"');
+    expect(html).toContain('aria-label="Add file"');
+    expect(html).toContain('aria-label="Settings"');
+    expect(html).not.toContain("More add options");
+    const toolbar = html.slice(
+      html.indexOf('role="toolbar"'),
+      html.indexOf('aria-label="Choose file"'),
+    );
+    expect(toolbar.match(/class="floating-button /g)).toHaveLength(3);
+    expect(toolbar.match(/<svg /g)).toHaveLength(3);
+    expect(toolbar).not.toContain(">Settings</button>");
+    expect(toolbar).not.toContain(">Choose folder</button>");
+    expect(html.match(/<dialog/g)).toHaveLength(3);
+    expect(html).toContain('aria-label="Pin details"');
+    expect(html).not.toContain('class="intro"');
     expect(html).toContain("Create Agent token");
     expect(html).toContain("Choose file");
     expect(html).toContain("Choose folder");
-    expect(html).toContain("Drop one file or folder here");
+    expect(html).toContain("Drop one file or folder anywhere here");
     expect(html).not.toContain("Content type");
     expect(html).not.toContain("Raw IPFS block");
     expect(html).toContain(
@@ -102,6 +120,31 @@ describe("Pinboard interface", () => {
         />,
       ),
     ).toContain(".dev.vars");
+  });
+  it("renders preview-first cards with a copyable CID prefix and no inline management actions", () => {
+    const pin = {
+      cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
+      name: "photo.png",
+      size: 1024,
+      blocks: 1,
+      createdAt: "2026-11-05T00:00:00Z",
+    };
+    const html = renderToStaticMarkup(
+      <PinCard pin={pin} busy={false} onOpen={() => {}} onCopyCid={() => {}} />,
+    );
+    expect(html).toContain('class="pin-preview"');
+    expect(html).toContain('class="pin-info"');
+    expect(html).toContain('aria-label="View details for photo.png"');
+    expect(html).toContain('aria-label="Copy CID for photo.png"');
+    expect(html).toContain(`<code>${pin.cid.slice(0, 16)}…</code>`);
+    expect(html).toContain("1.0 KiB");
+    expect(html.match(/<button/g)).toHaveLength(2);
+    expect(html).not.toContain("Rename");
+    expect(html).not.toContain("Unpin");
+    const busy = renderToStaticMarkup(
+      <PinCard pin={pin} busy onOpen={() => {}} onCopyCid={() => {}} />,
+    );
+    expect(busy.match(/disabled=""/g)).toHaveLength(2);
   });
   it("shares only safe downloads, never renders uploaded active content", () => {
     const html = renderToStaticMarkup(

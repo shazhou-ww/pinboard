@@ -95,10 +95,41 @@ login bypass in the production Worker.
 
 ## Web uploads
 
-Make a pin offers **Choose file** and **Choose folder**, plus a shared drop
-zone. There is no protocol-format selector. Files, including `.car` files, are
-saved as ordinary files in the Web UI; use CLI `import` or the API/MCP CAR mode
-for protocol imports.
+The signed-in homepage is a responsive content wall, not a free-positioned or
+zoomable canvas. **Add** opens the file picker directly; hover or keyboard focus
+reveals **Choose folder**. Mobile and touch devices show the file and folder
+actions directly, without an expansion arrow. All floating actions, including
+**Settings**, are vertically arranged circular icon buttons with accessible
+names. Drop one file or folder anywhere on the wall to open the same **Make a
+pin** dialog. Review the selection and optionally edit its pin name before
+confirming. **Settings** opens a dialog for Agent tokens, MCP authorizations and
+local browser preferences.
+
+The public-content reminder appears in the upload dialog, not as a permanent
+checkbox on the homepage. **Do not remind me in this browser** is saved in this
+origin's `localStorage` only when confirming an upload, never on cancellation.
+It is not synced to the account or other devices. Clearing site data or enabling
+the reminder in Settings restores it. Upload confirmation remains required, and
+all uploads still explicitly acknowledge public content to the server.
+
+PNG, JPEG, GIF and WebP pins with matching filename extensions and at most 8 MiB
+of stored blocks load previews as their cards enter the viewport. The browser
+verifies CAR block hashes and reconstructs UnixFS file bytes before creating a
+local image URL; the image type is checked from its signature rather than
+trusting the pin label. Other content, folders and larger images remain
+information cards. Cards are preview-first, with a translucent bottom strip
+containing the pin name, a 16-character CID prefix and size. Clicking the CID
+copies its complete value without opening details. Clicking anywhere else on the
+card (or using its keyboard action) opens a modal with the full CID, timestamp,
+block count, rename, share, CAR download and Unpin actions. Renaming updates
+both the card and modal without changing the CID.
+
+SVG, HTML and other active content are never embedded. Preview errors remain
+visible on the card and do not prevent pin management or CAR downloads.
+
+There is no protocol-format selector. Files, including `.car` files, are saved
+as ordinary files in the Web UI; use CLI `import` or the API/MCP CAR mode for
+protocol imports.
 
 Folders are packaged into a complete UnixFS directory CAR in the browser and
 sent through the existing authenticated upload API. The encoder is loaded only
