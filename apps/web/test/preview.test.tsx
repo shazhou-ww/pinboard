@@ -10,6 +10,24 @@ const render = (preview: ContentPreview) =>
   );
 const base = { version: 1, status: "ready" as const, truncated: false };
 describe("typed, display-only content previews", () => {
+  it("uses the available card height for excerpts and centers image crops in a constrained grid", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\s*\{[^}]*padding:\s*24px 24px 64px;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\.has-image\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\);/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview img\s*\{[^}]*min-height:\s*0;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center;/u,
+    );
+  });
   it("scopes pin row layout to direct children and keeps directory list spacing compact", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),

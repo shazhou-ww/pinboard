@@ -671,16 +671,20 @@ footer {
 .pin-card .pin-preview {
   position: absolute;
   inset: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
   border-radius: 0;
-  padding: 24px 24px 104px;
+  padding: 24px 24px 64px;
 }
 .pin-card .pin-preview.has-image {
+  grid-template-rows: minmax(0, 1fr);
   padding: 0;
 }
 .pin-card .pin-preview img {
+  min-height: 0;
   height: 100%;
   max-height: none;
   object-fit: cover;
+  object-position: center;
 }
 .pin-card .pin-preview:has([role="status"]) {
   align-content: center;
