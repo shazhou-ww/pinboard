@@ -16,6 +16,7 @@ import { gateway } from "./gateway.js";
 import { key, parseCid } from "./content.js";
 import { getCar } from "./storage.js";
 import { runRetention } from "./retention.js";
+import { runPreviews } from "./previews.js";
 import { oauth } from "./oauth.js";
 import { requireSessionAccount } from "./identity.js";
 
@@ -94,7 +95,7 @@ export default Object.assign(app, {
     _controller: ScheduledController,
     env: Bindings,
   ): Promise<void> {
-    await runRetention(env);
+    await Promise.all([runRetention(env), runPreviews(env)]);
   },
 });
 

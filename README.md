@@ -140,24 +140,58 @@ It is not synced to the account or other devices. Clearing site data or enabling
 the reminder in Settings restores it. Upload confirmation remains required, and
 all uploads still explicitly acknowledge public content to the server.
 
-PNG, JPEG, GIF and WebP pins with matching filename extensions and at most 8 MiB
-of stored blocks load previews as their cards enter the viewport. The browser
-verifies CAR block hashes and reconstructs UnixFS file bytes before creating a
-local image URL; the image type is checked from its signature rather than
-trusting the pin label. Other content, folders and larger images remain
-information cards. Cards are preview-first, with a translucent, frosted-glass
-bottom strip showing the name and size by default. Hovering over a card or
-focusing it with the keyboard raises the strip to reveal a single-line CID copy
-capsule, with a copy icon instead of link styling. Long CIDs are visually
-ellipsized, while the tooltip and copied value retain the complete CID. The
-transition respects reduced-motion preferences. Clicking the capsule copies the
-full CID without opening details. Successful copies show "CID copied" and a
-checkmark inside the capsule for 1.5 seconds, then restore the CID; repeated
-copies restart the confirmation. Copy failures show an error instead of success.
-Touch users can also copy the full CID in the details dialog. Clicking anywhere
-else on the card (or using its keyboard action) opens a modal with the full CID,
-timestamp, block count, rename, share, CAR download and Unpin actions. Renaming
-updates both the card and modal without changing the CID.
+Cards load small, typed preview descriptions as they enter the viewport; the
+wall never downloads original CARs to build previews. The existing Worker
+verifies locally stored UnixFS content, not account labels or filename
+extensions. JPEG, PNG and WebP images use bundled WebAssembly codecs (no Images
+binding or external image service), capped at 8 MiB input and 2 million decoded
+pixels. Actual aspect-preserving WebP thumbnails have a 480-pixel maximum edge
+and 64 KiB maximum size. D1 stores their binary BLOBs under SHA2-256 raw CIDs;
+the browser separately loads immutable `/ipfs/:thumbnailCid` images.
+
+UTF-8 excerpts contain at most 2,400 characters. Display Markdown escapes source
+punctuation; structured/code text uses literal code fences, not invented
+headings or AI summaries. Links, HTML and remote images remain inert text.
+Verified directories show at most 24 actual names across two entry levels,
+without subfolder navigation. Sampled/truncated overviews are labelled and never
+claim unverified totals. PDF, GIF, video, audio and unknown binary content use
+explicit unsupported placeholders with only reliably identified metadata.
+Invalid or oversized images fail explicitly instead of downloading originals.
+
+Previews are shared by source CID and generation version, without account names.
+`pending`, `ready`, `unsupported` and `failed` are distinct from their
+`contentType`/`content` payload. Authenticated uploads (Web, CLI, HTTP and MCP)
+enqueue generation after the pin is saved; errors are logged without undoing the
+pin. The existing hourly cron processes at most two due jobs and discovers at
+most two missing legacy previews per run. Opening a card lazily enqueues missing
+previews too. A two-minute fenced lease prevents duplicate publication; failed
+jobs retry with backoff, at most three attempts per version. A generation
+version bump is required to retry exhausted/unsupported content after fixing a
+generator.
+
+Different originals can share identical thumbnail bytes. Each source retains its
+last published generation until a replacement is published, even if the new
+generation is pending or fails. GC rechecks published source previews and
+account pins, including directly pinned thumbnails and DAG membership, in the
+same D1 transaction as deletion. Unreferenced thumbnails and metadata have a
+seven-day grace period; version swaps do not erase old images immediately. A
+direct pin suspended during GC republishes its verified image BLOB atomically
+with the new reference. Preview artifacts never create account pins on their
+own. Cached copies cannot be recalled after collection.
+
+Cards remain preview-first, with a translucent, frosted-glass bottom strip
+showing the name and size by default. Hovering over a card or focusing it with
+the keyboard raises the strip to reveal a single-line CID copy capsule, with a
+copy icon instead of link styling. Long CIDs are visually ellipsized, while the
+tooltip and copied value retain the complete CID. The transition respects
+reduced-motion preferences. Clicking the capsule copies the full CID without
+opening details. Successful copies show "CID copied" and a checkmark inside the
+capsule for 1.5 seconds, then restore the CID; repeated copies restart the
+confirmation. Copy failures show an error instead of success. Touch users can
+also copy the full CID in the details dialog. Clicking anywhere else on the card
+(or using its keyboard action) opens a modal with the full CID, timestamp, block
+count, rename, share, CAR download and Unpin actions. Renaming updates both the
+card and modal without changing the CID.
 
 SVG, HTML and other active content are never embedded. Preview errors remain
 visible on the card and do not prevent pin management or CAR downloads.
@@ -188,12 +222,14 @@ selection and public-content acknowledgement before uploading.
 | Route                                             | Access                 | Purpose                                                                   |
 | ------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------- |
 | `/ipfs/:cid?format=raw`                           | Public GET/HEAD        | Raw verified block, never an HTML document                                |
+| `/ipfs/:thumbnailCid`                             | Public GET/HEAD        | Independently cacheable generated WebP image                              |
 | `/routing/v1/providers/:cid`                      | Public GET             | Delegated Routing JSON or NDJSON                                          |
 | `/api/public/:cid/car`                            | Public GET             | Complete DAG as an attachment                                             |
 | `/share/:cid`                                     | Public                 | Safe share page; no content preview/execution                             |
 | `/api/pins`                                       | Session or Agent token | List or pin an already stored DAG                                         |
 | `/api/pins/upload?kind=file\|car\|block&name=...` | Session or Agent token | Upload; block mode also requires `cid`                                    |
 | `/api/pins/:cid`                                  | Session or Agent token | Detail or DELETE own reference                                            |
+| `/api/pins/:cid/preview`                          | Session or Agent token | Own pin's typed preview; lazy generation, no image bytes                  |
 | `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
 | `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
 
@@ -248,10 +284,17 @@ retrieval. Select raw with `?format=raw` or an `Accept` header:
   errors rather than cache hits or missing roots. The empty identity probe
   `bafkqaaa` is always available, with length 0 and the same conditional rules.
 
-This is a non-recursive, raw-only gateway. Standard CAR negotiation, IPNS,
-gateway path traversal and byte-range responses are not supported. The separate
-`/api/public/:cid/car` endpoint exports a complete CARv1 DAG; it is not standard
-trustless CAR gateway negotiation. Clients must still verify retrieved CIDs.
+Generated thumbnail CIDs additionally serve WebP at `/ipfs/:cid` when the client
+accepts images (or sends no `Accept`). Explicit raw requests still deliver the
+exact CID-encoded block bytes. Images have their own `.webp` ETag, immutable
+caching, `nosniff` and sandbox headers; conditional GET/HEAD work independently
+of the private, non-cacheable preview description.
+
+This is a non-recursive gateway, not a general UnixFS rendering service.
+Standard CAR negotiation, IPNS, gateway path traversal and byte-range responses
+are not supported. The separate `/api/public/:cid/car` endpoint exports a
+complete CARv1 DAG; it is not standard trustless CAR gateway negotiation.
+Clients must still verify retrieved CIDs.
 
 ### Deliberate first-version limits
 

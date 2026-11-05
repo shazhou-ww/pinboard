@@ -39,8 +39,18 @@ const bytes = new TextEncoder().encode(
   "<script>globalThis.pwned=true</script>",
 );
 const origin = "http://example.test";
-const request = (path: string, init?: RequestInit) =>
-  app.request(origin + path, init, env);
+const request = async (path: string, init?: RequestInit) => {
+  const pending: Promise<unknown>[] = [];
+  const response = await app.request(origin + path, init, env, {
+    waitUntil(work) {
+      pending.push(work);
+    },
+    passThroughOnException() {},
+    props: {},
+  });
+  await Promise.all(pending);
+  return response;
+};
 const sessionHeaders = () => ({
   cookie,
   origin,

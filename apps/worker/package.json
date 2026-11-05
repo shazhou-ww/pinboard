@@ -14,11 +14,15 @@
     "types": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@jsquash/jpeg": "catalog:",
+    "@jsquash/png": "catalog:",
+    "@jsquash/webp": "catalog:",
     "@ipld/car": "catalog:",
     "@ipld/dag-cbor": "catalog:",
     "@ipld/dag-pb": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
     "ipfs-unixfs-importer": "catalog:",
+    "ipfs-unixfs-exporter": "catalog:",
     "multiformats": "catalog:",
     "zod": "catalog:",
     "@auth/core": "catalog:",

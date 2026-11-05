@@ -15,7 +15,6 @@
     "@shazhou/pinboard-encoding": "workspace:*",
     "@ipld/car": "catalog:",
     "ipfs-unixfs-importer": "catalog:",
-    "ipfs-unixfs-exporter": "catalog:",
     "multiformats": "catalog:",
     "@hono/auth-js": "catalog:",
     "@fontsource-variable/instrument-sans": "catalog:",

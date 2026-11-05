@@ -84,6 +84,8 @@ export async function previewRequest(
   if (pathname === "/api/pins")
     return json({ pins: data.map((asset) => asset.pin), nextCursor: null });
   for (const asset of data) {
+    if (pathname === `/api/pins/${asset.pin.cid}/preview`)
+      return json(asset.preview);
     if (pathname === `/api/pins/${asset.pin.cid}`) return json(asset.pin);
     if (pathname === `/api/public/${asset.pin.cid}/car`)
       return new Response(asset.car, {

@@ -11,8 +11,9 @@ export async function handleMcp(
   request: Request,
   env: Bindings,
   principal: Principal,
+  schedule?: (work: Promise<void>) => void,
 ): Promise<Response> {
-  const service = new PinService(env, principal);
+  const service = new PinService(env, principal, schedule);
   const server = new McpServer({ name: "pinboard", version: "0.1.0" });
   const result = async (operation: () => Promise<unknown>) => {
     try {

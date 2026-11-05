@@ -1,14 +1,23 @@
 import { CarWriter } from "@ipld/car";
-import type { Pin } from "@shazhou/pinboard-contracts";
+import type {
+  ContentPreview,
+  Pin,
+  PreviewImage,
+} from "@shazhou/pinboard-contracts";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
 
 export interface PreviewAsset {
   readonly pin: Pin;
   readonly car: Uint8Array<ArrayBuffer>;
+  readonly preview: ContentPreview;
 }
 
-async function asset(name: string, bytes: Uint8Array): Promise<PreviewAsset> {
+async function asset(
+  name: string,
+  bytes: Uint8Array,
+  image?: PreviewImage,
+): Promise<PreviewAsset> {
   const cid = CID.createV1(0x55, await sha256.digest(bytes));
   const { writer, out } = CarWriter.create([cid]);
   const collecting = (async () => {
@@ -35,6 +44,21 @@ async function asset(name: string, bytes: Uint8Array): Promise<PreviewAsset> {
       createdAt: "2026-01-01T00:00:00Z",
     },
     car: await collecting,
+    preview: image
+      ? {
+          version: 1,
+          status: "ready",
+          truncated: false,
+          contentType: "image/webp",
+          content: image,
+        }
+      : {
+          version: 1,
+          status: "ready",
+          truncated: false,
+          contentType: "text/plain",
+          content: new TextDecoder().decode(bytes),
+        },
   };
 }
 
@@ -103,8 +127,38 @@ export async function createPreviewAssets(): Promise<readonly PreviewAsset[]> {
         else reject(new Error("Could not encode the local preview image."));
       }, "image/png");
     });
+    const thumbnail = document.createElement("canvas");
+    thumbnail.width = 480;
+    thumbnail.height = 320;
+    const thumbnailContext = thumbnail.getContext("2d");
+    if (!thumbnailContext)
+      throw new Error("Canvas is unavailable for local thumbnails.");
+    thumbnailContext.drawImage(canvas, 0, 0, 480, 320);
+    const webp = await new Promise<Blob>((resolve, reject) => {
+      thumbnail.toBlob(
+        (value) => {
+          if (value?.type === "image/webp" && value.size <= 64 * 1024)
+            resolve(value);
+          else
+            reject(
+              new Error("Could not encode a bounded local WebP thumbnail."),
+            );
+        },
+        "image/webp",
+        0.7,
+      );
+    });
+    const thumbnailCid = CID.createV1(
+      0x55,
+      await sha256.digest(new Uint8Array(await webp.arrayBuffer())),
+    );
     result.push(
-      await asset(image.name, new Uint8Array(await blob.arrayBuffer())),
+      await asset(image.name, new Uint8Array(await blob.arrayBuffer()), {
+        cid: thumbnailCid.toString(),
+        url: URL.createObjectURL(webp),
+        width: 480,
+        height: 320,
+      }),
     );
   }
   result.push(

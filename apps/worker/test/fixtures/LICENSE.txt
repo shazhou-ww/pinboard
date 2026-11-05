@@ -1,0 +1,6 @@
+photo.png: NASA photograph of astronaut Eileen Collins (public domain).
+Source: scikit-image v0.24.0, skimage/data/astronaut.png
+https://github.com/scikit-image/scikit-image/blob/v0.24.0/skimage/data/README.txt
+https://raw.githubusercontent.com/scikit-image/scikit-image/v0.24.0/skimage/data/astronaut.png
+photo.jpg and portrait.jpg are test-only JPEG/crop derivatives of this image.
+transparent.png is an original programmatically drawn RGBA test illustration.

@@ -8,10 +8,23 @@ const demo = vi.hoisted(() => {
     blocks: 1,
     createdAt: "2026-01-01T00:00:00Z",
   };
+  const preview = {
+    version: 1,
+    status: "ready",
+    truncated: false,
+    contentType: "image/webp",
+    content: {
+      cid: "thumbnail",
+      url: "/ipfs/thumbnail",
+      width: 480,
+      height: 320,
+    },
+  } as const;
   return {
     pin,
+    preview,
     createPreviewAssets: vi.fn(() =>
-      Promise.resolve([{ pin, car: new Uint8Array([1, 2, 3]) }]),
+      Promise.resolve([{ pin, preview, car: new Uint8Array([1, 2, 3]) }]),
     ),
   };
 });
@@ -245,6 +258,9 @@ describe("one-shot local UI preview", () => {
     expect(await (await apiFetch(`/api/pins/${demo.pin.cid}`)).json()).toEqual(
       demo.pin,
     );
+    expect(
+      await (await apiFetch(`/api/pins/${demo.pin.cid}/preview`)).json(),
+    ).toEqual(demo.preview);
     const car = await apiFetch(`/api/public/${demo.pin.cid}/car`);
     expect(car.headers.get("content-type")).toBe("application/vnd.ipld.car");
     expect(new Uint8Array(await car.arrayBuffer())).toEqual(
