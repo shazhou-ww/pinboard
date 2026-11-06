@@ -178,6 +178,10 @@ describe("Pinboard interface", () => {
     expect(html).toContain('aria-label="Pin details"');
     expect(html).not.toContain('class="intro"');
     expect(html).toContain("Create Agent token");
+    expect(html).toContain("Background palette");
+    expect(html).toContain("Mist blue &amp; lavender");
+    expect(html).toContain("Sand &amp; rose");
+    expect(html).toContain("Silver &amp; ice blue");
     expect(html).toContain("Choose file");
     expect(html).toContain("Choose folder");
     expect(html).toContain("drop one file or folder anywhere.");

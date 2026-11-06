@@ -30,6 +30,7 @@ import {
   PublicationDialog,
   PublicationPreview,
 } from "./publications.js";
+import { BackgroundSettings } from "./background.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -54,6 +55,37 @@ export async function requestJson<T>(
     : ((await response.json()) as T);
 }
 
+export async function publishUploadedPin(
+  pin: Pin,
+  target: Publication | { title: string },
+): Promise<PublicationResult> {
+  const existing = "id" in target;
+  const requestId = crypto.randomUUID();
+  try {
+    return await requestJson<PublicationResult>(
+      existing ? `/api/publications/${target.id}/publish` : "/api/publications",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          existing
+            ? { cid: pin.cid, expectedSequence: target.sequence, requestId }
+            : {
+                cid: pin.cid,
+                title: target.title.trim(),
+                public: true,
+                requestId,
+              },
+        ),
+      },
+    );
+  } catch (failure) {
+    throw new Error(
+      `Upload succeeded; publication failed or is unconfirmed. Pin ${pin.cid} is preserved. Retry publication request ${requestId}${existing ? ` with sequence ${target.sequence}, or refresh its details` : " with the same public title"}. ${failure instanceof Error ? failure.message : String(failure)}`,
+    );
+  }
+}
+
 export function AccountManager({
   accountId,
   renderHeader,
@@ -73,6 +105,7 @@ export function AccountManager({
   const [publishingPin, setPublishingPin] = useState<Pin | null>(null);
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [uploadPublication, setUploadPublication] = useState("");
+  const [uploadPublicTitle, setUploadPublicTitle] = useState("");
   const [tokens, setTokens] = useState<AgentToken[]>([]);
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
   const [cursor, setCursor] = useState<string | null>(null);
@@ -228,6 +261,7 @@ export function AccountManager({
       const selection = await prepare();
       setUploadName(selection.name);
       setUploadPublication("");
+      setUploadPublicTitle("");
       setUploadSelection(selection);
     });
   };
@@ -310,6 +344,13 @@ export function AccountManager({
       );
       return;
     }
+    if (
+      uploadPublication === "create" &&
+      (!uploadPublicTitle.trim() || uploadPublicTitle.trim().length > 200)
+    ) {
+      setError("Enter a public title containing 1-200 characters.");
+      return;
+    }
     void perform(async () => {
       if (!skipReminder && rememberReminder) {
         try {
@@ -355,37 +396,20 @@ export function AccountManager({
         ...previous.filter((entry) => entry.cid !== pin.cid),
       ]);
       if (uploadPublication) {
-        const target = publications.find(
-          (item) => item.id === uploadPublication,
-        );
+        const target =
+          uploadPublication === "create"
+            ? { title: uploadPublicTitle }
+            : publications.find((item) => item.id === uploadPublication);
         if (!target)
           throw new Error(
             `Upload succeeded (${pin.cid}); publication no longer selected. Pin preserved.`,
           );
-        const requestId = crypto.randomUUID();
-        try {
-          const result = await requestJson<PublicationResult>(
-            `/api/publications/${target.id}/publish`,
-            {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({
-                cid: pin.cid,
-                expectedSequence: target.sequence,
-                requestId,
-              }),
-            },
-          );
-          setNotice(
-            result.status === "nop"
-              ? "Uploaded. Already current; no version was created."
-              : "Uploaded and published.",
-          );
-        } catch (failure) {
-          throw new Error(
-            `Upload succeeded; publication failed or is unconfirmed. Pin ${pin.cid} is preserved. Retry publication request ${requestId} with sequence ${target.sequence}, or refresh its details. ${failure instanceof Error ? failure.message : String(failure)}`,
-          );
-        }
+        const result = await publishUploadedPin(pin, target);
+        setNotice(
+          result.status === "nop"
+            ? "Uploaded. Already current; no version was created."
+            : "Uploaded and published.",
+        );
         await refresh();
         return;
       }
@@ -629,6 +653,7 @@ export function AccountManager({
               onChange={(event) => setUploadPublication(event.target.value)}
             >
               <option value="">Keep as a pin only</option>
+              <option value="create">Create a publication</option>
               {publications.map((item) => (
                 <option key={item.id} value={item.id}>
                   Publish to {item.title} (current v{item.currentRevision})
@@ -636,7 +661,25 @@ export function AccountManager({
               ))}
             </select>
           </label>
-          {uploadPublication ? (
+          {uploadPublication === "create" ? (
+            <>
+              <label>
+                Public title
+                <input
+                  value={uploadPublicTitle}
+                  disabled={busy}
+                  required
+                  maxLength={200}
+                  onChange={(event) => setUploadPublicTitle(event.target.value)}
+                />
+              </label>
+              <p className="muted">
+                This title and the complete version history will be public. Your
+                private pin name stays private. If publication fails, your
+                uploaded pin is preserved.
+              </p>
+            </>
+          ) : uploadPublication ? (
             <p className="muted">
               The publication's follow link will change. Its public title stays
               the same. If publication fails, your uploaded pin is preserved.
@@ -674,7 +717,12 @@ export function AccountManager({
             </button>
             <button
               className="primary"
-              disabled={busy || !uploadSelection || !uploadName.trim()}
+              disabled={
+                busy ||
+                !uploadSelection ||
+                !uploadName.trim() ||
+                (uploadPublication === "create" && !uploadPublicTitle.trim())
+              }
             >
               {uploadPublication ? "Upload & publish" : "Upload & pin"}
             </button>
@@ -1064,6 +1112,7 @@ export function AccountManager({
         <OAuthGrants />
         <section className="browser-settings">
           <h3>Browser preferences</h3>
+          <BackgroundSettings disabled={busy} onError={setError} />
           <label className="check">
             <input
               type="checkbox"

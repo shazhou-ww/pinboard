@@ -10,7 +10,9 @@ identities and private pin labels are not included.
 
 Use a pin's **Add to a publication** menu action to create a publication with an
 explicit public title, or publish that pin to an existing publication. The
-upload dialog also lets you select an existing publication. Upload always
+upload dialog also lets you **Create a publication** with a separate explicit
+**Public title**, even when you have no publications yet, or select an existing
+publication. The default **Keep as a pin only** does not publish. Upload always
 finishes first; if publication fails, the uploaded pin remains and the UI
 reports that partial success.
 

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Publication } from "@shazhou/pinboard-contracts";
-import { PinCard } from "../src/manager.js";
+import { AccountManager, PinCard, publishUploadedPin } from "../src/manager.js";
 import { PublicationDialog, DeletedDialog } from "../src/publications.js";
 import { Icon } from "../src/icon.js";
 
@@ -29,7 +29,70 @@ const publication: Publication = {
   },
 };
 const noop = () => {};
+afterEach(() => vi.unstubAllGlobals());
 describe("publication wall identity and management", () => {
+  it("offers upload-time creation even when the account has no publications", () => {
+    const html = renderToStaticMarkup(
+      <AccountManager renderHeader={() => null} />,
+    );
+    expect(html).toContain(
+      '<option value="" selected="">Keep as a pin only</option>',
+    );
+    expect(html).toContain(
+      '<option value="create">Create a publication</option>',
+    );
+  });
+
+  it("creates an uploaded publication with explicit public title, not the private pin name", async () => {
+    const result = { publication, status: "published" };
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(Response.json(result, { status: 201 }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await publishUploadedPin(pin, { title: " Public title " })).toEqual(
+      result,
+    );
+    const [path, init] = fetch.mock.calls[0]!;
+    expect(path).toBe("/api/publications");
+    expect(JSON.parse(init.body)).toEqual({
+      cid: pin.cid,
+      title: "Public title",
+      public: true,
+      requestId: expect.any(String),
+    });
+    expect(init.body).not.toContain(pin.name);
+  });
+
+  it("preserves existing-publication CAS and current-CID NOP behavior", async () => {
+    const result = { publication, status: "nop" };
+    const fetch = vi.fn().mockResolvedValue(Response.json(result));
+    vi.stubGlobal("fetch", fetch);
+    expect(await publishUploadedPin(pin, publication)).toEqual(result);
+    const [path, init] = fetch.mock.calls[0]!;
+    expect(path).toBe(`/api/publications/${publication.id}/publish`);
+    expect(JSON.parse(init.body)).toEqual({
+      cid: pin.cid,
+      expectedSequence: publication.sequence,
+      requestId: expect.any(String),
+    });
+  });
+
+  it.each([{ title: "Public title" }, publication])(
+    "reports preserved upload and retry identity when publication fails",
+    async (target) => {
+      const fetch = vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ error: "Conflict" }, { status: 409 }),
+        );
+      vi.stubGlobal("fetch", fetch);
+      await expect(publishUploadedPin(pin, target)).rejects.toThrow(
+        `Pin ${pin.cid} is preserved. Retry publication request`,
+      );
+      expect(fetch).toHaveBeenCalledOnce();
+    },
+  );
+
   it("uses the exact pin card frame while distinguishing current revision from total history after rollback", () => {
     const render = (item?: Publication) =>
       renderToStaticMarkup(

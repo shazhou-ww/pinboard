@@ -1,18 +1,66 @@
 :root {
+  --background-start: #e6edf3;
+  --background-end: #e8e3ef;
+  --background-light: #f0f4f8;
+  --background-wash: #dcd9eb;
   font-family: "Instrument Sans Variable", sans-serif;
   color: #23332d;
-  background: #f7f7f2;
+  background-color: var(--background-start);
+  background-image:
+    url("./assets/pinboard-pattern.svg"),
+    radial-gradient(
+      ellipse at 12% 10%,
+      var(--background-light),
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse at 90% 92%,
+      var(--background-wash),
+      transparent 66%
+    ),
+    linear-gradient(145deg, var(--background-start), var(--background-end));
+  background-size:
+    480px 960px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-attachment: fixed;
   font-synthesis: none;
   line-height: 1.6;
+}
+:root[data-background="sand"],
+.background-swatch[data-background="sand"] {
+  --background-start: #f0e9e1;
+  --background-end: #eddfdf;
+  --background-light: #f7f1e9;
+  --background-wash: #e9d7d9;
+}
+:root[data-background="ice"],
+.background-swatch[data-background="ice"] {
+  --background-start: #eceef0;
+  --background-end: #ddeaf0;
+  --background-light: #f4f6f7;
+  --background-wash: #d0e1eb;
+}
+.background-swatch[data-background="mist"] {
+  --background-start: #e6edf3;
+  --background-end: #e8e3ef;
+  --background-light: #f0f4f8;
+  --background-wash: #dcd9eb;
 }
 * {
   box-sizing: border-box;
 }
 html {
-  scrollbar-gutter: stable;
+  height: 100%;
+  overflow: hidden;
 }
 body {
   margin: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  /* Keep the scroll gutter inside the page, behind the full-width header. */
+  scrollbar-gutter: stable;
 }
 .visually-hidden {
   position: absolute;
@@ -186,7 +234,7 @@ label {
   gap: 7px;
   font-size: 13px;
 }
-input:not([type="checkbox"]),
+input:not([type="checkbox"]):not([type="radio"]),
 select {
   width: 100%;
   background: #fffefa;
@@ -1090,6 +1138,59 @@ body:has(.canvas-dialog[open]) {
   border-radius: 6px;
   font-size: 13px;
 }
+.background-options {
+  min-width: 0;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+.background-options legend {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.background-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.background-choice {
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #cdd5c9;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.background-choice:has(input:checked) {
+  border-color: #337758;
+  box-shadow: inset 0 0 0 1px #337758;
+}
+.background-choice:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.5;
+}
+.background-choice input {
+  margin: 0;
+  accent-color: #294d38;
+}
+.background-swatch {
+  grid-column: 1 / -1;
+  height: 48px;
+  border-radius: 3px;
+  background:
+    radial-gradient(
+      ellipse at 12% 10%,
+      var(--background-light),
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse at 90% 92%,
+      var(--background-wash),
+      transparent 66%
+    ),
+    linear-gradient(145deg, var(--background-start), var(--background-end));
+}
 @media (max-width: 600px), (hover: none), (pointer: coarse) {
   .add-options {
     position: static;
@@ -1098,6 +1199,9 @@ body:has(.canvas-dialog[open]) {
   }
 }
 @media (max-width: 600px) {
+  .background-choices {
+    grid-template-columns: 1fr;
+  }
   .shell {
     padding: 0 22px;
   }

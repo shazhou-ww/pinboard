@@ -136,10 +136,22 @@ reveals **Choose folder**. Mobile and touch devices show the file and folder
 actions directly, without an expansion arrow. The floating add actions are
 vertically arranged circular icon buttons with accessible names. A compact
 frosted-glass header keeps branding on the left and the signed-in account on the
-right. The account dropdown contains **Settings** and **Sign out**; Settings is
-no longer a floating action. There is no visible wall title or explanatory
-footer. Drop instructions appear in the empty state, on drag-over and in the Add
-tooltip instead of occupying a permanent row above the pins.
+right, extending across the reserved scrollbar gutter even on short pages. The
+backdrop defaults to mist blue and lavender. **Settings → Browser preferences →
+Background palette** also offers sand and rose, or silver and ice blue. Changes
+apply immediately across the app and persist in this browser's `localStorage`,
+not the account. Clearing site data restores the default. Unavailable or invalid
+saved preferences are logged and leave the default background usable; failed
+saves show an error in Settings without changing the current palette. All
+palettes share the same bundled, low-contrast silver linework: an evenly
+staggered 480 × 960 px SVG tile with varied icon sizes and seamless wrapping on
+both axes. Its fixed CSS size prevents stretching on larger screens; only the
+gradient fills the viewport. There is no runtime layout or collision
+calculation, and the background adds no interactive or accessibility nodes. The
+account dropdown contains **Settings** and **Sign out**; Settings is no longer a
+floating action. There is no visible wall title or explanatory footer. Drop
+instructions appear in the empty state, on drag-over and in the Add tooltip
+instead of occupying a permanent row above the pins.
 
 Right-click a pin card or use its **…** button to open **View details**, **Copy
 link** (the public share page), **Copy CID** and **Unpin**. Keyboard users can
@@ -147,6 +159,11 @@ open the menu with Shift+F10, navigate with arrow keys, Home and End, and
 dismiss it with Escape. **Add to a publication** creates a public stable link or
 publishes to an existing one. Unpin moves only that pin to recently deleted;
 publication references remain independent.
+
+The upload dialog's **After uploading** selector always offers **Create a
+publication**, including for an account with no existing publications. Enter a
+separate **Public title** to publish; **Keep as a pin only** remains the
+default.
 
 On desktop, the compact **…** button appears when hovering the preview or
 focusing the button with the keyboard. The bottom information strip expands only
