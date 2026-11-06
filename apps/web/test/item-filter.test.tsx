@@ -20,6 +20,12 @@ it("overrides generic input styling with the pill-shaped search selector", () =>
   expect(styles.indexOf(selector)).toBeGreaterThan(
     styles.indexOf('input:not([type="checkbox"]):not([type="radio"])'),
   );
+  expect(styles).toMatch(
+    /\.item-filter input\[type="search"\]\s*\{[^}]*height:\s*44px;/u,
+  );
+  expect(styles).toMatch(
+    /\.item-filter:focus-within\s*\{[^}]*width:\s*min\(420px,\s*calc\(100vw - 600px\)\);/u,
+  );
 });
 
 const host = vi.hoisted(() => ({
