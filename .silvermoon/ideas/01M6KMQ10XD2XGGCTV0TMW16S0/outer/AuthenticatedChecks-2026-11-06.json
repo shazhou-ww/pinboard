@@ -1,0 +1,231 @@
+{
+  "recordedAt": "2026-11-06T08:18:19.264Z",
+  "applicationCommit": "2b109be68a8105bef2b1c51171e937c774f6b553",
+  "workerVersion": "418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7",
+  "databaseId": "9f15fd50-e103-459f-9f3f-9db3036f91de",
+  "authorization": "Explicit user authorization in this standalone session on 2026-11-06: synthetic public fixtures, least-privilege temporary credentials and cleanup limited to only operation-owned resources; normal browser consent and second authorized account",
+  "defaultDay": {
+    "name": "Pinboard acceptance 20261106 - default 1d KEEP UNTIL EXPIRY",
+    "sdkVersion": "1.32.2",
+    "startedAt": "2026-11-06T07:33:07.536Z",
+    "stage": "waiting_for_natural_expiry_do_not_revoke",
+    "checks": [
+      {
+        "label": "default-1d-token-metadata",
+        "at": "2026-11-06T07:33:23.242Z",
+        "passed": true,
+        "expiresIn": 86400,
+        "refreshTokenIssued": false,
+        "scope": "pins:read"
+      },
+      {
+        "label": "sdk-initialize-tools-list-call",
+        "at": "2026-11-06T07:33:25.325Z",
+        "passed": true,
+        "accountContentPersisted": false
+      },
+      {
+        "label": "immediately-after-issue",
+        "at": "2026-11-06T07:33:25.723Z",
+        "status": 200
+      }
+    ],
+    "credentialPersistence": "memory-only",
+    "issuedAtObserved": "2026-11-06T07:33:23.242Z",
+    "expiresIn": 86400,
+    "expectedCheckAfter": "2026-11-07T07:33:28.242Z"
+  },
+  "lifetimeMatrix": {
+    "startedAt": "2026-11-06T08:05:02.893Z",
+    "sdkVersion": "1.32.2",
+    "stage": "ready",
+    "current": null,
+    "flows": [
+      {
+        "id": "7d",
+        "completedAt": "2026-11-06T08:05:23.421Z",
+        "expiresIn": 604800,
+        "expiresInPresent": true,
+        "refreshTokenIssued": false,
+        "scope": "pins:read pins:write pins:delete",
+        "sdkListPassed": true,
+        "accountContentPersisted": false
+      },
+      {
+        "id": "30d",
+        "completedAt": "2026-11-06T08:05:56.978Z",
+        "expiresIn": 2592000,
+        "expiresInPresent": true,
+        "refreshTokenIssued": false,
+        "scope": "pins:read",
+        "sdkListPassed": true,
+        "accountContentPersisted": false
+      },
+      {
+        "id": "never",
+        "completedAt": "2026-11-06T08:06:27.215Z",
+        "expiresIn": null,
+        "expiresInPresent": false,
+        "refreshTokenIssued": false,
+        "scope": "pins:read",
+        "sdkListPassed": true,
+        "accountContentPersisted": false
+      },
+      {
+        "id": "cancel",
+        "completedAt": "2026-11-06T08:06:59.255Z",
+        "error": "access_denied",
+        "codeIssued": false,
+        "tokenIssued": false
+      }
+    ],
+    "checks": [
+      {
+        "label": "7d-sdk-discovered-request-scope",
+        "scope": "pins:read"
+      },
+      {
+        "label": "7d-received-token-metadata",
+        "at": "2026-11-06T08:05:21.897Z",
+        "expiresIn": 604800,
+        "expiresInPresent": true,
+        "refreshTokenIssued": false,
+        "scope": "pins:read pins:write pins:delete"
+      },
+      {
+        "label": "30d-sdk-discovered-request-scope",
+        "scope": "pins:read"
+      },
+      {
+        "label": "30d-received-token-metadata",
+        "at": "2026-11-06T08:05:53.675Z",
+        "expiresIn": 2592000,
+        "expiresInPresent": true,
+        "refreshTokenIssued": false,
+        "scope": "pins:read"
+      },
+      {
+        "label": "30d-readonly-upload-denied",
+        "passed": true
+      },
+      {
+        "label": "never-sdk-discovered-request-scope",
+        "scope": "pins:read"
+      },
+      {
+        "label": "never-received-token-metadata",
+        "at": "2026-11-06T08:06:24.561Z",
+        "expiresIn": null,
+        "expiresInPresent": false,
+        "refreshTokenIssued": false,
+        "scope": "pins:read"
+      },
+      {
+        "label": "never-readonly-upload-denied",
+        "passed": true
+      },
+      {
+        "label": "cancel-sdk-discovered-request-scope",
+        "scope": "pins:read"
+      },
+      {
+        "label": "permanent-grant-post-user-revocation",
+        "at": "2026-11-06T08:07:06.814Z",
+        "status": 200,
+        "passed": false,
+        "boundary": "new request after user revocation; no in-flight conclusion"
+      },
+      {
+        "label": "permanent-grant-post-user-revocation",
+        "at": "2026-11-06T08:10:06.544Z",
+        "status": 401,
+        "passed": true,
+        "boundary": "new request after user revocation; no in-flight conclusion"
+      }
+    ],
+    "credentials": "memory-only",
+    "validationStep": "readonly-upload-denial"
+  },
+  "firstHelperAttempt": {
+    "startedAt": "2026-11-06T08:03:26.662Z",
+    "sdkVersion": "1.32.2",
+    "stage": "failed",
+    "current": "7d",
+    "flows": [],
+    "checks": [],
+    "credentials": "memory-only",
+    "errorType": "AssertionError"
+  },
+  "crossAccount": {
+    "startedAt": "2026-11-06T08:11:13.126Z",
+    "name": "Pinboard acceptance 20261106 - SECOND ACCOUNT ONLY",
+    "stage": "failed",
+    "checks": [
+      {
+        "label": "B-cannot-read-A-private-pin",
+        "passed": true,
+        "expectedToolStatus": 404
+      },
+      {
+        "label": "B-cannot-delete-A-pin",
+        "passed": true,
+        "expectedToolStatus": 404
+      },
+      {
+        "label": "same-public-content-independent-account-labels",
+        "passed": true
+      },
+      {
+        "label": "B-unpin-does-not-remove-A-pin",
+        "passed": true
+      },
+      {
+        "label": "second-account-credential-revoked",
+        "status": 401,
+        "passed": true,
+        "at": "2026-11-06T08:16:10.033Z"
+      }
+    ],
+    "cleanup": [
+      {
+        "account": "B",
+        "action": "only-own-fixture-pin-soft-deleted",
+        "at": "2026-11-06T08:13:41.378Z"
+      },
+      {
+        "account": "A",
+        "action": "only-own-fixture-pin-soft-deleted",
+        "at": "2026-11-06T08:13:43.871Z"
+      }
+    ],
+    "credentials": "memory-only except dedicated API Token in CLI protected store",
+    "fixture": {
+      "cid": "bafkreicodzf2fc6l27tfsbvrrwpiigg4impslhpfzf2e2szi3dpii5d7he",
+      "publicSynthetic": true,
+      "sourceBytes": 78
+    },
+    "errorType": "AssertionError"
+  },
+  "apiTokenCompatibility": [
+    {
+      "label": "api-token-cli-list",
+      "passed": true,
+      "existingAccountContentPersisted": false
+    },
+    {
+      "label": "api-token-mcp-initialize-list",
+      "passed": true,
+      "accountContentPersisted": false
+    }
+  ],
+  "limitations": [
+    "SDK 1.32.2 is not VS Code plus Copilot acceptance",
+    "One-day natural expiry has not yet occurred",
+    "7d and 30d token metadata verified; natural expiry not observed",
+    "First lifetime helper attempted to compare three scopes after SDK requested only pins:read; failed attempt retained and superseded by explicitly requested scope set",
+    "Cross-account four core checks and both own-pin cleanups passed; final private-HTTP-API assertion erroneously expected 401 instead of the implementation contract 403; that extra assertion remains excluded, not called passed",
+    "First permanent revocation probe returned 200 while D1 revoked_at was null; after user confirmed actual Revoked state, probe returned 401 and D1 marked revoked",
+    "Short-lived helper processes were stopped; day-expiry helper remains detached with the access credential only in memory",
+    "Operation-owned temporary API Token still awaits user revocation after remaining compatibility work"
+  ]
+}

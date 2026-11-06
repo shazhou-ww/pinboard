@@ -23,5 +23,5 @@
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** 远端内容可用且完整
+- [x] **D-AC01:** 远端内容可用且完整
 - [ ] **D-AC02:** 性能与空间取舍可核查
