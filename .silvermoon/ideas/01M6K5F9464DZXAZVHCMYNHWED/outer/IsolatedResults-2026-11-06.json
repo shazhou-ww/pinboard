@@ -9302,8 +9302,52 @@
     ]
   },
   "cleanup": {
-    "stage": "pending-after-durable-evidence-sync",
-    "mustNotSubmitOuterYet": true
+    "name": "pinboard-car-verify-261106-6ee549",
+    "databaseId": "b9a5b4ef-f743-439c-b201-e3e9b801238b",
+    "evidenceSynchronizedBeforeDeletion": "c353e82101ceb0065db2317fe08132b125521386",
+    "preflight": {
+      "at": "2026-11-06T12:30:05.028Z",
+      "objects": 165,
+      "bytes": 17074379,
+      "bucketInventorySha256": "cfd8cbe3c2aef08512a2794c759c9c2d9b299464e0e2aac1fd494282d5e5dbe4",
+      "databaseContentSha256": "65c1d39b89dab3e2f39e150811d4d098f16be1d04c89f4e1bb2d8f83103683d2",
+      "manifests": 2,
+      "blockRows": 163,
+      "unknownTables": 0
+    },
+    "stage": "cleaned-and-independently-verified",
+    "startedAt": "2026-11-06T12:31:26.822Z",
+    "completed": [
+      {
+        "action": "delete-only-operation-owned-worker",
+        "at": "2026-11-06T12:31:28.301Z"
+      },
+      {
+        "action": "delete-exact-165-whitelisted-objects-and-confirm-empty",
+        "at": "2026-11-06T12:31:29.465Z"
+      },
+      {
+        "action": "delete-only-operation-owned-empty-bucket",
+        "at": "2026-11-06T12:31:30.162Z"
+      },
+      {
+        "action": "delete-only-operation-owned-temporary-database",
+        "at": "2026-11-06T12:31:31.193Z"
+      }
+    ],
+    "cleanupComplete": true,
+    "confirmedAbsent": {
+      "worker": true,
+      "bucket": true,
+      "database": true
+    },
+    "confirmationMethod": "Independent authenticated GET of each exact operation-owned resource returned HTTP 404; only 404 counted as absence",
+    "completedAt": "2026-11-06T12:31:32.062Z",
+    "productionWorkerOrStorageMutatedByCleanup": false,
+    "controlledStorageOperationConservativeUpperBoundIncludingCleanup": 3600,
+    "operationCap": 5000,
+    "localTemporaryCredentialRemoved": true,
+    "localCredentialRemovalAt": "2026-11-06T12:36:55.596Z"
   },
   "limitations": [
     "Current isolated same-runtime old/new read algorithm comparison, not historical production or a full old-app/dependency replay",
@@ -9314,6 +9358,26 @@
     "Raw reads regress by approximately 36-85 percent in this environment; not all paths get faster",
     "Cold candidates are not guaranteed internal R2 cold cache; results do not define a universal SLA",
     "No monetary/billing estimate or cross-CAR deduplication claim",
-    "Temporary resources remain until the evidence is synchronized; final cleanup must be separately confirmed before submitOuter"
+    "Temporary resources and access credential are now removed; source/measurement artifacts remain as durable evidence"
+  ],
+  "reproducibilityArtifacts": [
+    {
+      "path": "BenchmarkWorker.source.txt",
+      "rawInputSha256": "8feb943c3dc59c2246467420e5c69fb47ca253acec86515015d8f2b87b0de693",
+      "gitLfNormalizedSha256": "90351876769adde037ff129899e6a18b03694e200d7f182456f5c48362270786",
+      "normalization": "CRLF to LF only; source semantics unchanged"
+    },
+    {
+      "path": "BenchmarkVerifier.source.txt",
+      "rawInputSha256": "f3be08b137e2228a0b8c287ea80dcdc4bddf07bd5d232c046c317ebecb4d5819",
+      "gitLfNormalizedSha256": "418907b96eb8cdc1952070e7f730473ea25756353a8d4fef06ed551989bea5f4",
+      "normalization": "CRLF to LF only; source semantics unchanged"
+    },
+    {
+      "path": "FixtureGenerator.source.txt",
+      "rawInputSha256": "cf5c8e11029d837f526c4f867742df54ce221288feb3f0efd801c044eedded7d",
+      "gitLfNormalizedSha256": "278eec6cd5f76d706b83d7e7626207d4e59e945f274ca4b839b034e8f38f223d",
+      "normalization": "CRLF to LF only; source semantics unchanged"
+    }
   ]
 }

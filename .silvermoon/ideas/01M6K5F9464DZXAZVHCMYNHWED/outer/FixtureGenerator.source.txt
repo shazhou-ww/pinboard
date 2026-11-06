@@ -1,0 +1,47 @@
+import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const root = fileURLToPath(new URL("./authorized-fixtures", import.meta.url));
+await mkdir(root, { recursive: false });
+const source = path.join(root, "small-files");
+await mkdir(path.join(source, "nested"), { recursive: true });
+const hash = data => createHash("sha256").update(data).digest("hex");
+const files = [];
+for (let index = 0; index < 128; index++) {
+  const relative = index === 0 ? "empty.txt" : `${index % 2 ? "nested/" : ""}file-${String(index).padStart(3, "0")}.txt`;
+  const data = index === 0 ? Buffer.alloc(0) : Buffer.from(`Pinboard public synthetic CAR acceptance fixture 20261106; file=${index}\n`.repeat(16));
+  await writeFile(path.join(source, ...relative.split("/")), data, { flag: "wx" });
+  files.push({ path: relative, bytes: data.length, sha256: hash(data) });
+}
+const big = Buffer.alloc(8 * 1024 * 1024);
+for (let offset = 0, index = 0; offset < big.length; offset += 32, index++) {
+  const digest = createHash("sha256").update(`Pinboard public synthetic 8MiB acceptance 20261106 block ${index}`).digest();
+  digest.copy(big, offset);
+}
+const bigFile = path.join(root, "large-8mib.bin");
+await writeFile(bigFile, big, { flag: "wx" });
+const kuboRepo = path.join(root, "source-kubo");
+function kubo(args, maxBuffer = 64 * 1024 * 1024) {
+  const result = spawnSync("ipfs", ["--offline", ...args], { env: { ...process.env, IPFS_PATH: kuboRepo }, timeout: 120000, maxBuffer, windowsHide: true });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`Kubo ${args[0]} failed: ${result.stderr.toString()}`);
+  return result.stdout;
+}
+kubo(["init", "--profile=test"]);
+const parameters = ["--cid-version=1", "--raw-leaves=true", "--chunker=size-262144", "--hash=sha2-256", "--pin=false", "--quieter"];
+const fixtures = [];
+for (const [name, input, manifest] of [
+  ["small-128", source, files],
+  ["large-8mib", bigFile, [{ path: "large-8mib.bin", bytes: big.length, sha256: hash(big) }]],
+]) {
+  const cid = kubo(["add", "--recursive", ...parameters, input]).toString().trim();
+  const car = kubo(["dag", "export", cid]);
+  const filename = path.join(root, name + ".car");
+  await writeFile(filename, car, { flag: "wx" });
+  fixtures.push({ name, root: cid, fileCount: manifest.length, sourceBytes: manifest.reduce((sum, file) => sum + file.bytes, 0), carBytes: car.length, carSha256: hash(car), files: manifest });
+}
+await writeFile(path.join(root, "manifest.json"), JSON.stringify({ createdAt: new Date().toISOString(), publicSynthetic: true, sourceRepoOffline: true, kubo: kubo(["version"]).toString().trim(), parameters, fixtures }, null, 2) + "\n", { flag: "wx" });
+console.log(JSON.stringify(fixtures.map(({ files, ...summary }) => summary), null, 2));

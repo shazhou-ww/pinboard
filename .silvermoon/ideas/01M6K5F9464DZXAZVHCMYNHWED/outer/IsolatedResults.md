@@ -8,12 +8,14 @@
 **96 次读取全部 200 且内容校验通过**；四次新建离线 Kubo 仓库重建全部匹配源文件。平台准确 trace 也独立确认整包旧路径为 130/33 次 GET，新路径为 1 次 GET。
 
 **整包显著加速，但 raw 读取退化约 36%–85%。**
-这是同一当前隔离环境、真实旧/新存储读算法的对照，不是历史生产时点、完整旧应用/旧依赖重放或全站 SLA。对照目标没有以不同样本拼接或本地 mock 替代。清理尚待持久化证据后执行；本结果不构成人类验收，不可据此直接 acceptOuter。
+这是同一当前隔离环境、真实旧/新存储读算法的对照，不是历史生产时点、完整旧应用/旧依赖重放或全站 SLA。对照目标没有以不同样本拼接或本地 mock 替代。证据先同步后已完成临时资源清理并独立复核；本结果不构成人类验收，不可据此直接 acceptOuter。
 
 原始每次 UTC、路径、响应/缓存头、CF-Ray/机房、时延、CID 校验、对象清单、离线逐文件 SHA、源代码快照与 bundle 哈希见
 [IsolatedResults-2026-11-06.json](IsolatedResults-2026-11-06.json)。实际共同 wrapper 与客户端校验器保留为
 [BenchmarkWorker.source.txt](BenchmarkWorker.source.txt)、
-[BenchmarkVerifier.source.txt](BenchmarkVerifier.source.txt)。
+[BenchmarkVerifier.source.txt](BenchmarkVerifier.source.txt)。确定性夹具生成方法另存
+[FixtureGenerator.source.txt](FixtureGenerator.source.txt)，可在空目录用 Node 与指定 Kubo 版本再生相同源字节和根，不访问 Cloudflare。原始构建输入字节与 Git
+LF 规范化副本分别列 SHA-256，避免把 CRLF 差异误认成改实现。
 
 ## 环境与准确实现
 
@@ -96,6 +98,11 @@ manifest 行。这不是独立块索引的精确单行成本，也不是 R2 复�
 ## 当前执行状态
 
 实验测量和正确性证明完成，受控存储操作保守上界在清理前为 3383，包含先前失败试跑；没有超过约 25
-MiB 样本与 5000 次操作边界。D-S01、D-S02、D-AC01、D-AC02 可记录为代理工作完成。
-**D-S03 尚未完成：先同步本证据，再仅清理本次三项临时云资源及凭据并独立核对。**
-在清理完成、最终证据同步及准确 submitOuter 生效前，不请求或记录人类 acceptOuter。
+MiB 样本与 5000 次操作边界。D-S01、D-S02、D-AC01、D-AC02 可记录为代理工作完成。本证据先在 primary
+`c353e82101ce` 同步，之后才执行清理。 `2026-11-06T12:30:05.028Z`
+独立核对桶 165 个对象的 key/size 完整摘要，以及数据库 manifest/块索引内容摘要和表白名单，全部匹配本次创建收据。依次删除临时 Worker、准确的 165 个对象、确认空桶后删桶、确认名称后删临时 D1；
+`12:31:32.062Z`
+对三个准确资源独立 GET 均确认 404，未把 401/403 或网络异常算作不存在。临时凭据文件也已移除，不删除用户浏览器 profile、日常凭据或生产数据。
+
+[清理收据](CleanupReceipt-2026-11-06.json)保留各步 UTC、白名单摘要与独立删除复核。含清理的受控存储 API/读取调用保守预算上界为 3600，仍低于 5000；它不是精确平台计费请求/行数。_*D-S03 完成，全部当前 D-*
+已完成。_* 最终证据仍须同步并为准确修订记录 submitOuter，之后才按 CLI 请求人类决定；不自行 acceptOuter。

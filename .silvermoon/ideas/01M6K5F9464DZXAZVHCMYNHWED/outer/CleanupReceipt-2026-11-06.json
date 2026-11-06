@@ -1,0 +1,48 @@
+{
+  "name": "pinboard-car-verify-261106-6ee549",
+  "databaseId": "b9a5b4ef-f743-439c-b201-e3e9b801238b",
+  "evidenceSynchronizedBeforeDeletion": "c353e82101ceb0065db2317fe08132b125521386",
+  "preflight": {
+    "at": "2026-11-06T12:30:05.028Z",
+    "objects": 165,
+    "bytes": 17074379,
+    "bucketInventorySha256": "cfd8cbe3c2aef08512a2794c759c9c2d9b299464e0e2aac1fd494282d5e5dbe4",
+    "databaseContentSha256": "65c1d39b89dab3e2f39e150811d4d098f16be1d04c89f4e1bb2d8f83103683d2",
+    "manifests": 2,
+    "blockRows": 163,
+    "unknownTables": 0
+  },
+  "stage": "cleaned-and-independently-verified",
+  "startedAt": "2026-11-06T12:31:26.822Z",
+  "completed": [
+    {
+      "action": "delete-only-operation-owned-worker",
+      "at": "2026-11-06T12:31:28.301Z"
+    },
+    {
+      "action": "delete-exact-165-whitelisted-objects-and-confirm-empty",
+      "at": "2026-11-06T12:31:29.465Z"
+    },
+    {
+      "action": "delete-only-operation-owned-empty-bucket",
+      "at": "2026-11-06T12:31:30.162Z"
+    },
+    {
+      "action": "delete-only-operation-owned-temporary-database",
+      "at": "2026-11-06T12:31:31.193Z"
+    }
+  ],
+  "cleanupComplete": true,
+  "confirmedAbsent": {
+    "worker": true,
+    "bucket": true,
+    "database": true
+  },
+  "confirmationMethod": "Independent authenticated GET of each exact operation-owned resource returned HTTP 404; only 404 counted as absence",
+  "completedAt": "2026-11-06T12:31:32.062Z",
+  "productionWorkerOrStorageMutatedByCleanup": false,
+  "controlledStorageOperationConservativeUpperBoundIncludingCleanup": 3600,
+  "operationCap": 5000,
+  "localTemporaryCredentialRemoved": true,
+  "localCredentialRemovalAt": "2026-11-06T12:36:55.596Z"
+}
