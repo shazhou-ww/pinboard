@@ -321,13 +321,15 @@ selection and public-content acknowledgement before uploading.
 | `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
 | `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
 
-The same `/mcp` also accepts short-lived MCP OAuth credentials, restricted to
-that resource rather than `/api/*`. OAuth discovery uses `/.well-known/*`;
-public client registration and authorization-code/S256 endpoints use `/oauth/*`.
+The same `/mcp` also accepts MCP OAuth credentials, restricted to that resource
+rather than `/api/*`. OAuth discovery uses `/.well-known/*`; public client
+registration and authorization-code/S256 endpoints use `/oauth/*`.
 Browser-session-only `/api/oauth/grants` lists authorizations and
 `DELETE /api/oauth/grants/:id` revokes them. The homepage provides the same
-management UI. See
-[OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
+management UI. Consent defaults to one day, with seven-day, thirty-day and
+never-expiring options. Selectable lifetimes require migration
+`0008_oauth_lifetimes.sql`; existing credentials retain their original expiry.
+See [OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
 additions require migration `0004_mcp_oauth.sql` in an explicitly authorized
 environment; they are not a claim that the current production deployment
 supports OAuth.

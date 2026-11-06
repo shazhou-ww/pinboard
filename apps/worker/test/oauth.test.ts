@@ -4,7 +4,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import app from "../src/index.js";
 import type { Bindings } from "../src/env.js";
 import { accountForGoogle, hashToken } from "../src/identity.js";
-import { ACCESS_TTL, s256, validRedirect } from "../src/oauth.js";
+import { s256, validRedirect } from "../src/oauth.js";
+import {
+  oauthLifetimes,
+  oauthLifetimeOptions,
+  type OAuthGrant,
+  type OAuthLifetime,
+} from "@shazhou/pinboard-contracts";
 import { createToken } from "../src/tokens.js";
 import { migrate } from "./migrations.js";
 
@@ -16,7 +22,7 @@ const mf = new Miniflare(
     modules: true,
     script: "export default { fetch() { return new Response('ok'); } };",
     compatibilityDate: "2026-10-14",
-    d1Databases: ["DB"],
+    d1Databases: ["DB", "LEGACY_DB"],
     r2Buckets: ["BLOCKS"],
     serviceBindings: { ASSETS: () => new Response("test assets") },
   }),
@@ -92,17 +98,25 @@ async function decide(
   scope = ["pins:read"],
   session = aliceCookie,
   accountId = alice,
+  lifetime?: unknown,
 ) {
   return request(`/api/oauth/requests/${flow.id}`, {
     method: "POST",
     headers: sessionHeaders(`${session}; ${flow.browserCookie}`),
-    body: JSON.stringify({ approve, scopes: scope, accountId }),
+    body: JSON.stringify({ approve, scopes: scope, accountId, lifetime }),
   });
 }
-async function authorize(scope = ["pins:read"]) {
+async function authorize(scope = ["pins:read"], lifetime?: OAuthLifetime) {
   const flow = await start();
   expect((await preview(flow)).status).toBe(200);
-  const response = await decide(flow, true, scope);
+  const response = await decide(
+    flow,
+    true,
+    scope,
+    aliceCookie,
+    alice,
+    lifetime,
+  );
   expect(response.status).toBe(200);
   const redirect = new URL(
     (await response.json<{ redirect: string }>()).redirect,
@@ -133,8 +147,8 @@ async function exchange(
     }).toString(),
   });
 }
-async function credential(scope = ["pins:read"]) {
-  const flow = await authorize(scope);
+async function credential(scope = ["pins:read"], lifetime?: OAuthLifetime) {
+  const flow = await authorize(scope, lifetime);
   const response = await exchange(flow);
   expect(response.status).toBe(200);
   const token = (await response.json<{ access_token: string }>()).access_token;
@@ -577,7 +591,7 @@ describe("browser login, explicit consent and CSRF", () => {
 });
 
 describe("PKCE, resource binding and one-use code exchange", () => {
-  it("issues only a hashed, scoped one-hour Pinboard credential; no Google or refresh token", async () => {
+  it("defaults to a hashed, scoped one-day Pinboard credential; no Google or refresh token", async () => {
     const flow = await authorize();
     privateResponse(flow.consentResponse);
     const response = await exchange(flow);
@@ -589,7 +603,7 @@ describe("PKCE, resource binding and one-use code exchange", () => {
       token_type: string;
     }>();
     expect(data).toMatchObject({
-      expires_in: ACCESS_TTL,
+      expires_in: 86400,
       scope: "pins:read",
       token_type: "Bearer",
     });
@@ -611,6 +625,159 @@ describe("PKCE, resource binding and one-use code exchange", () => {
       .bind(`${origin}/other-resource`, flow.id)
       .run();
     expect((await rpc(data.access_token)).status).toBe(401);
+  });
+  it.each(oauthLifetimes)(
+    "persists and enforces the %s lifetime from consent",
+    async (lifetime) => {
+      const flow = await authorize(["pins:read"], lifetime);
+      const seconds = oauthLifetimeOptions[lifetime].seconds;
+      const before = Date.now();
+      const response = await exchange(flow);
+      expect(response.status).toBe(200);
+      const data = await response.json<{
+        access_token: string;
+        expires_in?: number;
+      }>();
+      const row = await env.DB.prepare(
+        "SELECT access_ttl, expires_at FROM oauth_grants WHERE id = ?",
+      )
+        .bind(flow.id)
+        .first<{ access_ttl: number | null; expires_at: number | null }>();
+      expect(row!.access_ttl).toBe(seconds);
+      if (seconds === null) {
+        expect(data).not.toHaveProperty("expires_in");
+        expect(row!.expires_at).toBeNull();
+      } else {
+        expect(data.expires_in).toBe(seconds);
+        expect(row!.expires_at).toBeGreaterThanOrEqual(before + seconds * 1000);
+        expect(row!.expires_at).toBeLessThanOrEqual(
+          Date.now() + seconds * 1000,
+        );
+      }
+      const grants = await (
+        await request("/api/oauth/grants", {
+          headers: sessionHeaders(),
+        })
+      ).json<{ grants: OAuthGrant[] }>();
+      expect(grants.grants.find((grant) => grant.id === flow.id)).toMatchObject(
+        {
+          tokenIssued: true,
+          expiresAt: row!.expires_at,
+        },
+      );
+      const now = vi.spyOn(Date, "now");
+      try {
+        now.mockReturnValue(
+          seconds === null ? before + 365 * 86400000 : row!.expires_at! - 1,
+        );
+        expect((await rpc(data.access_token)).status).toBe(200);
+        if (seconds !== null) {
+          now.mockReturnValue(row!.expires_at!);
+          expect((await rpc(data.access_token)).status).toBe(401);
+        }
+      } finally {
+        now.mockRestore();
+      }
+      expect((await exchange(flow)).status).toBe(400);
+      expect(
+        (
+          await request(`/api/oauth/grants/${flow.id}`, {
+            method: "DELETE",
+            headers: sessionHeaders(),
+          })
+        ).status,
+      ).toBe(204);
+      expect((await rpc(data.access_token)).status).toBe(401);
+    },
+  );
+  it.each(["1h", "forever", "", null, 0, 86400, {}, ["never"]])(
+    "rejects invalid consent lifetime %j without consuming the request",
+    async (lifetime) => {
+      const flow = await start();
+      expect(
+        (await decide(flow, true, ["pins:read"], aliceCookie, alice, lifetime))
+          .status,
+      ).toBe(400);
+      expect(
+        await env.DB.prepare("SELECT used_at FROM oauth_requests WHERE id = ?")
+          .bind(flow.id)
+          .first(),
+      ).toEqual({ used_at: null });
+      expect(
+        await env.DB.prepare("SELECT id FROM oauth_grants WHERE id = ?")
+          .bind(flow.id)
+          .first(),
+      ).toBeNull();
+      expect((await decide(flow)).status).toBe(200);
+    },
+  );
+  it("keeps permanent grants pending until code exchange and still expires their codes", async () => {
+    const flow = await authorize(["pins:read"], "never");
+    const grants = await (
+      await request("/api/oauth/grants", {
+        headers: sessionHeaders(),
+      })
+    ).json<{ grants: OAuthGrant[] }>();
+    expect(grants.grants.find((grant) => grant.id === flow.id)).toMatchObject({
+      tokenIssued: false,
+      expiresAt: null,
+    });
+    await env.DB.prepare(
+      "UPDATE oauth_grants SET code_expires_at = 0 WHERE id = ?",
+    )
+      .bind(flow.id)
+      .run();
+    expect((await exchange(flow)).status).toBe(400);
+  });
+  it("does not allow token exchange to override the consent lifetime", async () => {
+    const flow = await authorize(["pins:read"], "1d");
+    expect((await exchange(flow, { lifetime: "never" })).status).toBe(400);
+    const response = await exchange(flow);
+    expect(await response.json()).toMatchObject({ expires_in: 86400 });
+  });
+  it("preserves existing one-hour grants and pending codes when migrating", async () => {
+    const db = await mf.getD1Database("LEGACY_DB");
+    await migrate(db, { through: "0007_descriptions.sql" });
+    const expires = Date.now() + 3600000;
+    await db.batch([
+      db.prepare(
+        "INSERT INTO accounts (id, provider, subject) VALUES ('legacy', 'google', 'legacy')",
+      ),
+      db.prepare(
+        "INSERT INTO oauth_clients (id, name, redirect_uris, created_at) VALUES ('legacy', 'legacy', '[]', 0)",
+      ),
+      ...["issued", "pending", "revoked"].flatMap((id) => [
+        db
+          .prepare(
+            "INSERT INTO oauth_requests (id, client_id, redirect_uri, resource, scopes, challenge, browser_hash, expires_at) VALUES (?, 'legacy', ?, ?, 'pins:read', ?, 'browser', ?)",
+          )
+          .bind(id, callback, `${origin}/mcp`, "challenge", expires),
+        db
+          .prepare(
+            "INSERT INTO oauth_grants (id, client_id, account_id, redirect_uri, resource, scopes, challenge, code_expires_at, token_hash, expires_at, revoked_at, created_at) VALUES (?, 'legacy', 'legacy', ?, ?, 'pins:read', 'challenge', ?, ?, ?, ?, 0)",
+          )
+          .bind(
+            id,
+            callback,
+            `${origin}/mcp`,
+            expires,
+            id === "pending" ? null : id,
+            id === "pending" ? null : expires,
+            id === "revoked" ? 1 : null,
+          ),
+      ]),
+    ]);
+    await migrate(db, { after: "0007_descriptions.sql" });
+    const rows = await db
+      .prepare(
+        "SELECT id, access_ttl, expires_at, revoked_at FROM oauth_grants ORDER BY id",
+      )
+      .all();
+    expect(rows.results).toEqual([
+      { id: "issued", access_ttl: 3600, expires_at: expires, revoked_at: null },
+      { id: "pending", access_ttl: 3600, expires_at: null, revoked_at: null },
+      { id: "revoked", access_ttl: 3600, expires_at: expires, revoked_at: 1 },
+    ]);
   });
   it("rejects wrong verifier/client/callback/resource; failed attempts cannot redeem or consume a valid code", async () => {
     const flow = await authorize();

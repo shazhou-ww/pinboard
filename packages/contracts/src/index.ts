@@ -12,6 +12,31 @@ export const uploadLimits = {
 
 export type AuthProviderId = (typeof authProviderIds)[number];
 
+export const oauthLifetimes = ["1d", "7d", "30d", "never"] as const;
+export type OAuthLifetime = (typeof oauthLifetimes)[number];
+export const defaultOAuthLifetime: OAuthLifetime = "1d";
+export const oauthLifetimeOptions = {
+  "1d": { label: "After 1 day", seconds: 86400 },
+  "7d": { label: "After 7 days", seconds: 604800 },
+  "30d": { label: "After 30 days", seconds: 2592000 },
+  never: { label: "Never", seconds: null },
+} as const satisfies Record<
+  OAuthLifetime,
+  { readonly label: string; readonly seconds: number | null }
+>;
+
+export interface OAuthGrant {
+  readonly id: string;
+  readonly clientName: string;
+  readonly clientId: string;
+  readonly scopes: string;
+  readonly createdAt: number;
+  readonly codeExpiresAt: number;
+  readonly tokenIssued: boolean;
+  readonly expiresAt: number | null;
+  readonly revokedAt: number | null;
+}
+
 export interface AuthProviderDescriptor {
   readonly id: AuthProviderId;
   readonly label: string;

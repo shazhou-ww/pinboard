@@ -116,26 +116,31 @@ configuration, with **no Authorization header or pasted token**:
    authority, arbitrary HTTP hosts or `localhost` exception.
 3. Sign in through the existing CSRF-protected Google browser login. The return
    path is the local `/connect/mcp` consent page. **Sign-in alone never grants
-   access.** Review the unverified client name, client ID, exact callback,
-   resource, account and requested permissions. Select only required scopes.
-   With no requested scope the server defaults to `pins:read`; clients must
-   request write/delete scopes explicitly if needed.
-4. Choose **Allow selected permissions** or **Cancel connection**. Cancellation
-   returns `access_denied` with the original client state and creates no grant.
-   Closing the page also grants nothing. Requests are browser-cookie-bound,
-   account-bound when reviewed, single-use and expire after **10 minutes**.
-   Switching accounts requires restarting authorization. A signed browser
-   session whose account no longer exists in D1 is rejected by protected routes
-   and requires Google sign-in again, rather than failing consent with a server
-   error. If an older deployed release shows a server error immediately, sign
-   out of Pinboard, sign in again and start a new connection from the MCP
-   client.
+   access.** Review the unverified client name, client ID, resource, account and
+   requested permissions. The callback remains registered and validated exactly,
+   but is not displayed on the consent page. Select only required scopes. With
+   no requested scope the server defaults to `pins:read`; clients must request
+   write/delete scopes explicitly if needed.
+4. Choose an access lifetime: **1 day** (default), **7 days**, **30 days** or
+   **Never** (valid until revoked), then choose **Allow** or **Cancel**.
+   Cancellation returns `access_denied` with the original client state and
+   creates no grant. Closing the page also grants nothing. Requests are
+   browser-cookie-bound, account-bound when reviewed, single-use and expire
+   after **10 minutes**. Switching accounts requires restarting authorization. A
+   signed browser session whose account no longer exists in D1 is rejected by
+   protected routes and requires Google sign-in again, rather than failing
+   consent with a server error. If an older deployed release shows a server
+   error immediately, sign out of Pinboard, sign in again and start a new
+   connection from the MCP client.
 5. After approval, the client exchanges the **60-second**, one-use code at
    `POST /oauth/token` with the original client ID, exact callback, resource and
    verifier. One atomic database update prevents concurrent double redemption.
-   The response contains an opaque **one-hour** access token and selected scope.
-   Access credentials are only accepted in an Authorization header at `/mcp`,
-   never in a URL and never at private `/api/*` routes.
+   The response contains an opaque access token and selected scope. Its lifetime
+   starts at code exchange, using the choice persisted during consent. Finite
+   tokens include `expires_in` in seconds; permanent tokens omit `expires_in`
+   and remain valid until revoked. Access credentials are only accepted in an
+   Authorization header at `/mcp`, never in a URL and never at private `/api/*`
+   routes.
 
 **No refresh token is issued.** Reconnect and approve again after expiry. This
 keeps refresh rotation/reuse recovery out of scope. The homepage's **MCP client
@@ -146,6 +151,16 @@ unexchanged code and issued credential; every subsequent MCP request checks D1.
 An operation already authenticated/in flight may finish. Expired/revoked
 metadata remains visible; OAuth records currently have no automatic history
 purge. Only token/code/browser-binding hashes are persisted.
+
+Selectable lifetimes require migration `0008_oauth_lifetimes.sql`, applied only
+with explicit authorization. Existing issued tokens keep their original expiry;
+pre-migration pending codes still exchange for one-hour tokens. New consent
+submissions default to one day even if the `lifetime` field is omitted. The
+consent API accepts only `1d`, `7d`, `30d` or `never`; the token endpoint cannot
+override this choice. Permanent grants still require the same browser consent,
+PKCE, resource binding and per-request revocation checks. Before exchange, they
+are shown as pending, not active; their authorization codes still expire after
+60 seconds.
 
 Consent/API/code/token responses use `Cache-Control: no-store` and
 `Referrer-Policy: no-referrer`; the static consent page supplies these headers

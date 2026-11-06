@@ -125,7 +125,7 @@ async function authenticateOAuth(
     });
   const resource = `${new URL(c.env.AUTH_URL ?? c.env.PUBLIC_ORIGIN).origin}/mcp`;
   const grant = await c.env.DB.prepare(
-    "SELECT account_id, scopes FROM oauth_grants WHERE token_hash = ? AND resource = ? AND revoked_at IS NULL AND expires_at > ?",
+    "SELECT account_id, scopes FROM oauth_grants WHERE token_hash = ? AND resource = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)",
   )
     .bind(await hashToken(token), resource, Date.now())
     .first<{ account_id: string; scopes: string }>();

@@ -2,6 +2,12 @@ import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
+import {
+  defaultOAuthLifetime,
+  oauthLifetimes,
+  oauthLifetimeOptions,
+  type OAuthGrant,
+} from "@shazhou/pinboard-contracts";
 import { boundedBody } from "./content.js";
 import {
   authenticate,
@@ -14,7 +20,6 @@ import type { Bindings } from "./env.js";
 
 const REQUEST_TTL = 10 * 60 * 1000;
 const CODE_TTL = 60 * 1000;
-export const ACCESS_TTL = 60 * 60;
 
 export function oauthOrigin(env: Bindings): string {
   return new URL(env.AUTH_URL ?? env.PUBLIC_ORIGIN).origin;
@@ -309,6 +314,7 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
       accountId: z.string(),
       approve: z.boolean(),
       scopes: z.array(scopeSchema).max(scopes.length),
+      lifetime: z.enum(oauthLifetimes).default(defaultOAuthLifetime),
     }),
     await jsonBody(c.req.raw),
   );
@@ -329,12 +335,13 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
   // one D1 transaction, so concurrent consent submissions cannot issue two codes.
   const [inserted, consumed] = await c.env.DB.batch([
     c.env.DB.prepare(
-      "INSERT INTO oauth_grants (id, client_id, account_id, redirect_uri, resource, scopes, code_hash, challenge, code_expires_at, created_at) SELECT id, client_id, account_id, redirect_uri, resource, ?, ?, challenge, ?, ? FROM oauth_requests WHERE id = ? AND used_at IS NULL AND expires_at > ? AND ? = 1",
+      "INSERT INTO oauth_grants (id, client_id, account_id, redirect_uri, resource, scopes, code_hash, challenge, code_expires_at, created_at, access_ttl) SELECT id, client_id, account_id, redirect_uri, resource, ?, ?, challenge, ?, ?, ? FROM oauth_requests WHERE id = ? AND used_at IS NULL AND expires_at > ? AND ? = 1",
     ).bind(
       selected.join(" "),
       await hashToken(code),
       now + CODE_TTL,
       now,
+      oauthLifetimeOptions[input.lifetime].seconds,
       row.id,
       now,
       input.approve ? 1 : 0,
@@ -384,25 +391,26 @@ oauth.post("/oauth/token", async (c) => {
   );
   if (input.resource !== `${oauthOrigin(c.env)}/mcp`) fail("invalid_target");
   const token = `po_${randomSecret()}`;
+  const now = Date.now();
   const row = await c.env.DB.prepare(
-    "UPDATE oauth_grants SET token_hash = ?, expires_at = ?, code_hash = NULL WHERE code_hash = ? AND client_id = ? AND redirect_uri = ? AND resource = ? AND challenge = ? AND code_expires_at > ? AND revoked_at IS NULL AND token_hash IS NULL RETURNING scopes",
+    "UPDATE oauth_grants SET token_hash = ?, expires_at = CASE WHEN access_ttl IS NULL THEN NULL ELSE ? + access_ttl * 1000 END, code_hash = NULL WHERE code_hash = ? AND client_id = ? AND redirect_uri = ? AND resource = ? AND challenge = ? AND code_expires_at > ? AND revoked_at IS NULL AND token_hash IS NULL RETURNING scopes, access_ttl",
   )
     .bind(
       await hashToken(token),
-      Date.now() + ACCESS_TTL * 1000,
+      now,
       await hashToken(input.code),
       input.client_id,
       input.redirect_uri,
       input.resource,
       await s256(input.code_verifier),
-      Date.now(),
+      now,
     )
-    .first<{ scopes: string }>();
+    .first<{ scopes: string; access_ttl: number | null }>();
   if (!row) fail("invalid_grant");
   return c.json({
     access_token: token,
     token_type: "Bearer",
-    expires_in: ACCESS_TTL,
+    ...(row.access_ttl === null ? {} : { expires_in: row.access_ttl }),
     scope: row.scopes,
   });
 });
@@ -416,11 +424,16 @@ oauth.use("/api/oauth/grants", grantIdentity);
 oauth.use("/api/oauth/grants/*", grantIdentity);
 oauth.get("/api/oauth/grants", async (c) => {
   const grants = await c.env.DB.prepare(
-    "SELECT g.id, g.client_id AS clientId, c.name AS clientName, g.scopes, g.created_at AS createdAt, g.code_expires_at AS codeExpiresAt, g.expires_at AS expiresAt, g.revoked_at AS revokedAt FROM oauth_grants g JOIN oauth_clients c ON c.id = g.client_id WHERE g.account_id = ? ORDER BY g.created_at DESC",
+    "SELECT g.id, g.client_id AS clientId, c.name AS clientName, g.scopes, g.created_at AS createdAt, g.code_expires_at AS codeExpiresAt, g.token_hash IS NOT NULL AS tokenIssued, g.expires_at AS expiresAt, g.revoked_at AS revokedAt FROM oauth_grants g JOIN oauth_clients c ON c.id = g.client_id WHERE g.account_id = ? ORDER BY g.created_at DESC",
   )
     .bind(c.get("principal").accountId)
-    .all();
-  return c.json({ grants: grants.results });
+    .all<Omit<OAuthGrant, "tokenIssued"> & { tokenIssued: number }>();
+  return c.json({
+    grants: grants.results.map((grant) => ({
+      ...grant,
+      tokenIssued: Boolean(grant.tokenIssued),
+    })),
+  });
 });
 oauth.delete("/api/oauth/grants/:id", async (c) => {
   const result = await c.env.DB.prepare(
