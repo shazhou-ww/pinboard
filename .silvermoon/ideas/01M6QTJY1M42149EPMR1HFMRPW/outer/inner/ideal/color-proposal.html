@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="zh-CN" data-palette="mist">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pinboard 全局同调配色提案</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          "Instrument Sans Variable", "Segoe UI", "Microsoft YaHei", sans-serif;
+        --success: #286044;
+        --success-bg: #edf6ef;
+        --warning: #79500d;
+        --warning-bg: #fff4dc;
+        --error: #a13645;
+        --error-bg: #fceef0;
+        --on-accent: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--surface);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button,
+      a,
+      input {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button {
+        cursor: pointer;
+      }
+      button,
+      input {
+        accent-color: var(--accent);
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 4px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(26px, 4vw, 36px);
+        font-weight: 600;
+        letter-spacing: -1px;
+        line-height: 1.3;
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 600;
+      }
+      h3 {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      code {
+        font-family: Consolas, monospace;
+        font-size: 12px;
+      }
+      .page-header,
+      main,
+      footer {
+        width: min(1320px, calc(100% - 64px));
+        margin: auto;
+      }
+      .page-header {
+        padding: 32px 0 24px;
+      }
+      .heading-row,
+      .preview-header,
+      .section-heading,
+      .actions,
+      .palette-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .heading-row {
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .description {
+        max-width: 76ch;
+        margin-top: 12px;
+        color: var(--muted);
+      }
+      fieldset {
+        border: 0;
+        padding: 0;
+        margin: 0;
+        min-width: 0;
+      }
+      legend {
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .palette-controls {
+        margin-top: 24px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      .palette-options {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .palette-option {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid var(--control);
+        border-radius: 6px;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+      .palette-option:has(input:checked) {
+        background: var(--selected);
+        border-color: var(--accent);
+        box-shadow: inset 0 0 0 1px var(--accent);
+      }
+      .palette-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--dot);
+      }
+      .comparison {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        cursor: pointer;
+      }
+      .comparison input,
+      .palette-option input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+      .preview {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse at 12% 10%, var(--light), transparent 68%),
+          radial-gradient(ellipse at 90% 92%, var(--wash), transparent 66%),
+          linear-gradient(145deg, var(--start), var(--end));
+      }
+      .preview-header {
+        min-height: 64px;
+        padding: 12px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: -0.8px;
+      }
+      .brand svg {
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+      }
+      .badge,
+      .chip {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        border-radius: 5px;
+        background: var(--subtle);
+        padding: 5px 9px;
+        color: var(--accent);
+        font-size: 12px;
+      }
+      .preview-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        min-height: 570px;
+      }
+      .canvas {
+        padding: 24px;
+        position: relative;
+      }
+      .canvas-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+        align-items: center;
+      }
+      .canvas-title p {
+        font-size: 13px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        padding-bottom: 52px;
+      }
+      .pin-card {
+        position: relative;
+        min-width: 0;
+        aspect-ratio: 4 / 3;
+        background: var(--subtle);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .card-content {
+        padding: 20px;
+        height: 100%;
+        overflow: hidden;
+      }
+      .card-content p {
+        margin-top: 12px;
+        font-size: 13px;
+      }
+      .card-content pre {
+        margin: 14px 0 0;
+        white-space: pre-wrap;
+        color: var(--muted);
+        font:
+          12px/1.7 Consolas,
+          monospace;
+      }
+      .card-footer {
+        position: absolute;
+        inset: auto 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+      }
+      .card-footer strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+      .card-footer span {
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .folder {
+        list-style: none;
+        padding: 0 0 0 12px;
+        margin: 12px 0 0 6px;
+        border-left: 1px solid var(--control);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 2;
+      }
+      .file-placeholder {
+        height: calc(100% - 44px);
+        display: grid;
+        place-content: center;
+        text-align: center;
+        color: var(--muted);
+        gap: 8px;
+      }
+      .file-placeholder svg {
+        width: 42px;
+        height: 42px;
+        margin: auto;
+        color: var(--accent);
+      }
+      .fab {
+        position: absolute;
+        bottom: 20px;
+        right: 24px;
+        width: 48px;
+        height: 48px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 28px;
+        line-height: 1;
+        box-shadow: 0 4px 16px #23304424;
+      }
+      .fab:hover {
+        background: var(--accent-hover);
+      }
+      .fab:active {
+        background: var(--accent-pressed);
+      }
+      .inspector {
+        padding: 24px;
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+      }
+      .inspector > section + section {
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+      .inspector h3 {
+        margin-bottom: 8px;
+      }
+      .inspector .muted {
+        font-size: 13px;
+      }
+      .input-label {
+        display: grid;
+        gap: 7px;
+        margin: 14px 0;
+        font-size: 13px;
+      }
+      input[type="text"] {
+        width: 100%;
+        min-width: 0;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--control);
+        border-radius: 4px;
+        padding: 10px;
+      }
+      input::placeholder {
+        color: var(--muted);
+        opacity: 1;
+      }
+      .button {
+        border: 1px solid transparent;
+        border-radius: 5px;
+        min-height: 42px;
+        padding: 8px 14px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 7px;
+        background: var(--accent);
+        color: var(--on-accent);
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .button:hover {
+        background: var(--accent-hover);
+      }
+      .button:active {
+        background: var(--accent-pressed);
+      }
+      .button.secondary {
+        background: var(--subtle);
+        color: var(--accent);
+        border-color: var(--control);
+      }
+      .button.secondary:hover {
+        background: var(--hover);
+      }
+      .button.secondary:active {
+        background: var(--selected);
+      }
+      .button:disabled {
+        background: var(--subtle);
+        color: var(--muted);
+        border-color: var(--border);
+        cursor: not-allowed;
+      }
+      .actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .menu {
+        display: grid;
+        gap: 4px;
+        margin-top: 10px;
+      }
+      .menu button {
+        text-align: left;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        padding: 10px 12px;
+        color: var(--text);
+      }
+      .menu button:hover {
+        background: var(--hover);
+      }
+      .menu button[aria-pressed="true"] {
+        background: var(--selected);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .status {
+        padding: 10px 12px;
+        border-radius: 5px;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .status.success {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .status.warning {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .status.error {
+        background: var(--error-bg);
+        color: var(--error);
+      }
+      .preview-caption {
+        padding: 12px 4px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .proposal-section {
+        padding: 32px 0;
+        border-top: 1px solid var(--border);
+      }
+      .section-heading {
+        align-items: baseline;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      .section-heading p {
+        max-width: 76ch;
+        color: var(--muted);
+      }
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .swatch-color {
+        height: 64px;
+        background: var(--swatch);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        margin-bottom: 8px;
+      }
+      .swatch strong,
+      .swatch code {
+        display: block;
+      }
+      .swatch code {
+        color: var(--muted);
+      }
+      .state-samples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      .state-sample {
+        display: grid;
+        gap: 10px;
+        min-width: 110px;
+      }
+      .state-sample > span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .button.sample-hover {
+        background: var(--accent-hover);
+      }
+      .button.sample-pressed {
+        background: var(--accent-pressed);
+      }
+      .button.sample-focus {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        text-align: left;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 12px 14px 12px 0;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        font-weight: 600;
+      }
+      td code {
+        white-space: nowrap;
+      }
+      .table-color {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background: var(--swatch);
+        border: 1px solid var(--control);
+        vertical-align: -1px;
+        margin-right: 7px;
+        border-radius: 2px;
+      }
+      .contrast-result {
+        color: var(--success);
+      }
+      .contrast-result[data-pass="false"] {
+        color: var(--error);
+        font-weight: 700;
+      }
+      .rationale {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 28px;
+      }
+      .rationale p {
+        margin-top: 8px;
+        color: var(--muted);
+        max-width: 64ch;
+      }
+      footer {
+        padding: 8px 0 32px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      footer a {
+        display: inline-block;
+        margin-right: 20px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--text);
+        color: var(--surface);
+        border-radius: 8px;
+        padding: 12px 18px;
+        max-width: calc(100% - 32px);
+        z-index: 3;
+      }
+      .toast:empty {
+        display: none;
+      }
+      dialog {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        width: min(460px, calc(100% - 32px));
+        padding: 28px;
+      }
+      dialog::backdrop {
+        background: #202b3d66;
+      }
+      dialog .actions {
+        margin-top: 20px;
+      }
+      dialog p {
+        margin-top: 12px;
+      }
+      .legacy {
+        --accent: #294d38;
+        --accent-hover: #264834;
+        --accent-pressed: #203d2c;
+        --subtle: #edf2e8;
+        --surface: #fffefa;
+        --text: #23332d;
+        --muted: #64705f;
+        --border: #dce1d8;
+        --control: #b6c4b1;
+        --hover: #e9eee5;
+        --selected: #dce6d7;
+        --focus: #337758;
+      }
+      @media (max-width: 1000px) {
+        .preview-body {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          border-left: 0;
+          border-top: 1px solid var(--border);
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+        .inspector > section + section {
+          border: 0;
+          margin: 0;
+          padding: 0;
+        }
+        .inspector > section:last-child {
+          grid-column: 1 / -1;
+        }
+        .swatches {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 600px) {
+        .page-header,
+        main,
+        footer {
+          width: calc(100% - 32px);
+        }
+        .page-header {
+          padding-top: 24px;
+        }
+        .heading-row > .muted {
+          font-size: 12px;
+        }
+        .palette-options {
+          display: grid;
+          width: 100%;
+        }
+        .palette-controls fieldset {
+          width: 100%;
+        }
+        .palette-option {
+          padding: 10px 12px;
+        }
+        .preview-header,
+        .canvas,
+        .inspector {
+          padding: 16px;
+        }
+        .preview-header .badge {
+          display: none;
+        }
+        .cards {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .pin-card {
+          aspect-ratio: 4 / 3;
+        }
+        .inspector,
+        .rationale {
+          grid-template-columns: 1fr;
+        }
+        .inspector > section + section {
+          border-top: 1px solid var(--border);
+          padding-top: 20px;
+        }
+        .swatches {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .state-sample {
+          flex: 1 1 110px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="heading-row">
+        <h1>Pinboard 全局同调配色</h1>
+        <span class="muted">配色研究样稿 · 尚未应用到产品</span>
+      </div>
+      <p class="description">
+        保留已有的三套渐变背景。把旧绿色替换为与背景呼应的强调色，让卡片回到安静的近白色，而不是把整个界面涂成另一种颜色。
+      </p>
+      <div class="palette-controls">
+        <fieldset>
+          <legend>选择背景，观察整套界面</legend>
+          <div class="palette-options">
+            <label class="palette-option"
+              ><input type="radio" name="palette" value="mist" checked /><span
+                class="palette-dot"
+                style="--dot: #505c86"
+              ></span
+              >雾蓝紫 · 雾靛</label
+            >
+            <label class="palette-option"
+              ><input type="radio" name="palette" value="sand" /><span
+                class="palette-dot"
+                style="--dot: #794c62"
+              ></span
+              >沙色玫瑰 · 灰玫瑰</label
+            >
+            <label class="palette-option"
+              ><input type="radio" name="palette" value="ice" /><span
+                class="palette-dot"
+                style="--dot: #32677d"
+              ></span
+              >银灰冰蓝 · 深冰蓝</label
+            >
+          </div>
+        </fieldset>
+        <label class="comparison"
+          ><input type="checkbox" id="legacy" />在样稿中对照旧绿色</label
+        >
+      </div>
+    </header>
+    <main>
+      <section class="preview" aria-label="配色应用示意" id="preview">
+        <div class="preview-header">
+          <div class="brand">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              aria-hidden="true"
+            >
+              <path d="M8 3h8l-1 7 3 4H6l3-4-1-7ZM12 14v7" />
+            </svg>
+            Pinboard
+          </div>
+          <span class="badge" id="preview-label">雾蓝紫 · 雾靛</span>
+        </div>
+        <div class="preview-body">
+          <div class="canvas">
+            <div class="canvas-title">
+              <p>我的收藏</p>
+              <p class="muted">4 项内容</p>
+            </div>
+            <div class="cards">
+              <article class="pin-card">
+                <div class="card-content">
+                  <h3>值得留下的片段</h3>
+                  <p>
+                    收藏文字、文件和目录。让内容成为主角，界面只提供清楚而安静的秩序。
+                  </p>
+                  <p class="muted">
+                    背景决定气氛，卡片承载内容，强调色指出下一步。
+                  </p>
+                </div>
+                <div class="card-footer">
+                  <strong>阅读笔记.md</strong><span>2.4 KB</span>
+                </div>
+              </article>
+              <article class="pin-card">
+                <div class="card-content">
+                  <h3>项目资料</h3>
+                  <ul class="folder">
+                    <li>设计参考</li>
+                    <li>配色说明.md</li>
+                    <li>界面草图.svg</li>
+                    <li>使用记录.txt</li>
+                  </ul>
+                </div>
+                <div class="card-footer">
+                  <strong>参考资料</strong><span>目录 · 4 项</span>
+                </div>
+              </article>
+              <article class="pin-card">
+                <div class="card-content">
+                  <span class="chip">公开发布</span>
+                  <pre>
+const collection = {
+  name: "留存",
+  access: "public",
+  version: 3
+};</pre>
+                </div>
+                <div class="card-footer">
+                  <strong>collection.json</strong><span>版本 3</span>
+                </div>
+              </article>
+              <article class="pin-card">
+                <div class="card-content file-placeholder">
+                  <svg
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 5h16l9 9v29H12zM28 5v10h9M18 25h13M18 31h13" />
+                  </svg>
+                  <span>文件预览</span>
+                </div>
+                <div class="card-footer">
+                  <strong>研究资料.pdf</strong><span>1.8 MB</span>
+                </div>
+              </article>
+            </div>
+            <button
+              type="button"
+              class="fab"
+              aria-label="添加内容"
+              data-action="add"
+            >
+              +
+            </button>
+          </div>
+          <aside class="inspector" aria-label="弹窗与菜单颜色示意">
+            <section>
+              <h3>添加内容</h3>
+              <p class="muted">面板使用近白色；输入框保留清楚的边界。</p>
+              <label class="input-label"
+                >显示名称<input
+                  type="text"
+                  value="阅读笔记"
+                  placeholder="输入名称"
+              /></label>
+              <div class="actions">
+                <button type="button" class="button" data-action="save">
+                  保存</button
+                ><button
+                  type="button"
+                  class="button secondary"
+                  data-action="cancel"
+                >
+                  取消
+                </button>
+              </div>
+            </section>
+            <section>
+              <h3>菜单与选中状态</h3>
+              <div class="menu" aria-label="示意菜单">
+                <button type="button" aria-pressed="true" data-view="全部收藏">
+                  ✓ 全部收藏
+                </button>
+                <button type="button" aria-pressed="false" data-view="公开发布">
+                  公开发布
+                </button>
+                <button type="button" aria-pressed="false" data-action="oauth">
+                  查看授权面板
+                </button>
+              </div>
+            </section>
+            <section>
+              <h3>语义色保持稳定</h3>
+              <p class="muted">颜色之外，还用符号和文字表达状态。</p>
+              <p class="status success">✓ 已保存，内容可以访问。</p>
+              <p class="status warning">! 公开链接可被任何人访问。</p>
+              <p class="status error">× 保存失败，请检查连接后重试。</p>
+            </section>
+          </aside>
+        </div>
+      </section>
+      <p class="preview-caption" id="preview-note">
+        当前为新配色。布局为缩略示意，不代表产品布局改版；不重绘图片或内容自身的颜色。
+      </p>
+      <section class="proposal-section">
+        <div class="section-heading">
+          <h2>当前配色的六个基准</h2>
+          <p id="palette-description"></p>
+        </div>
+        <div class="swatches" id="swatches"></div>
+      </section>
+      <section class="proposal-section">
+        <div class="section-heading">
+          <h2>同一颜色，完整的交互层次</h2>
+          <p>
+            悬停、按下与焦点各有明确值，不使用全局变暗滤镜。也可用 Tab
+            检查真实焦点。
+          </p>
+        </div>
+        <div class="state-samples">
+          <div class="state-sample">
+            <span>默认</span
+            ><button type="button" class="button" data-action="sample">
+              添加内容
+            </button>
+          </div>
+          <div class="state-sample">
+            <span>悬停示意</span
+            ><button
+              type="button"
+              class="button sample-hover"
+              data-action="sample"
+            >
+              添加内容
+            </button>
+          </div>
+          <div class="state-sample">
+            <span>按下示意</span
+            ><button
+              type="button"
+              class="button sample-pressed"
+              data-action="sample"
+            >
+              添加内容
+            </button>
+          </div>
+          <div class="state-sample">
+            <span>键盘焦点示意</span
+            ><button
+              type="button"
+              class="button sample-focus"
+              data-action="sample"
+            >
+              添加内容
+            </button>
+          </div>
+          <div class="state-sample">
+            <span>禁用</span
+            ><button type="button" class="button" disabled>正在保存</button>
+          </div>
+          <div class="state-sample">
+            <span>次级操作</span
+            ><button
+              type="button"
+              class="button secondary"
+              data-action="sample"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </section>
+      <section class="proposal-section">
+        <div class="section-heading">
+          <h2>三套配色，共用一套角色</h2>
+          <p>背景值沿用产品现状；其余是待审阅的设计值，不需要引入配色依赖。</p>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption class="muted">
+              配色角色与建议色值
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">角色</th>
+                <th scope="col">雾蓝紫</th>
+                <th scope="col">沙色玫瑰</th>
+                <th scope="col">银灰冰蓝</th>
+              </tr>
+            </thead>
+            <tbody id="token-table"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="proposal-section">
+        <div class="section-heading">
+          <h2>对比度实测</h2>
+          <p>每套方案均计算原始比值后判定，不以四舍五入后的数字判定通过。</p>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption class="muted">
+              三套方案的关键前景／背景组合；不代表整个产品已通过无障碍审计
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">检查项</th>
+                <th scope="col">最低要求</th>
+                <th scope="col">雾蓝紫</th>
+                <th scope="col">沙色玫瑰</th>
+                <th scope="col">银灰冰蓝</th>
+              </tr>
+            </thead>
+            <tbody id="contrast-table"></tbody>
+          </table>
+        </div>
+        <p class="description">
+          背景采用已知不透明渐变，检查四个端点的最小比值。样稿文字面板不透明；生产中的半透明卡片信息层仍需按实际合成背景另测。装饰性分隔线不强求
+          3:1，输入框边界和焦点标记单独保证。
+        </p>
+      </section>
+      <section class="proposal-section rationale">
+        <div>
+          <h3>背景有气氛，内容不染色</h3>
+          <p>
+            近白面板配合轻染色预览底，替代旧浅绿。只让添加按钮、链接和选中状态承担强调，不修改照片、文件缩略图或代码内容。
+          </p>
+        </div>
+        <div>
+          <h3>三个预设，而非自动取色</h3>
+          <p>
+            现有背景都是已知组合。逐套配置可验证的颜色角色，比运行时从渐变猜测主色更稳定，也不增加设置负担。
+          </p>
+        </div>
+        <div>
+          <h3>同调不等于所有颜色相同</h3>
+          <p>
+            成功、警告和错误不跟着背景改色。中性令牌、强调令牌与状态令牌分开，避免玫瑰色背景下把普通操作误认成删除。
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>
+        依据一手资料整理；色值为针对 Pinboard
+        的设计提案，并非直接套用第三方主题。
+      </p>
+      <a href="https://m3.material.io/styles/color/roles">Material 色彩角色</a>
+      <a
+        href="https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale"
+        >Radix 状态色阶</a
+      >
+      <a
+        href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+        >WCAG 文本对比度</a
+      >
+      <a
+        href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
+        >WCAG 非文本对比度</a
+      >
+    </footer>
+    <dialog id="oauth-dialog" aria-labelledby="oauth-title">
+      <h2 id="oauth-title">允许连接 Pinboard？</h2>
+      <p class="muted">
+        授权面板沿用同一套颜色。这里只演示界面，不发起登录或授权。
+      </p>
+      <p class="status warning">! 此连接将获得你选择的内容访问权限。</p>
+      <label class="input-label"
+        ><span><input type="checkbox" checked /> 读取收藏列表</span></label
+      >
+      <div class="actions">
+        <button type="button" class="button" data-action="authorize">
+          允许连接（演示）</button
+        ><button type="button" class="button secondary" data-action="close">
+          取消
+        </button>
+      </div>
+    </dialog>
+    <div class="toast" role="status" aria-live="polite" id="toast"></div>
+    <script>
+      const palettes = {
+        mist: {
+          name: "雾蓝紫 · 雾靛",
+          description:
+            "用雾靛衔接蓝与紫；强调色低饱和，不把浅紫背景变成高饱和紫色界面。",
+          start: "#e6edf3",
+          end: "#e8e3ef",
+          light: "#f0f4f8",
+          wash: "#dcd9eb",
+          surface: "#fafbfe",
+          subtle: "#eef0f7",
+          hover: "#e3e7f2",
+          selected: "#d9e0f0",
+          border: "#cbd0df",
+          control: "#7a829c",
+          text: "#283044",
+          muted: "#515971",
+          accent: "#505c86",
+          "accent-hover": "#414d75",
+          "accent-pressed": "#354163",
+          focus: "#505c86",
+        },
+        sand: {
+          name: "沙色玫瑰 · 灰玫瑰",
+          description:
+            "从背景已有的玫瑰色延伸灰玫瑰强调色，不叠加橘棕；保留沙色背景的温度。",
+          start: "#f0e9e1",
+          end: "#eddfdf",
+          light: "#f7f1e9",
+          wash: "#e9d7d9",
+          surface: "#fdfafb",
+          subtle: "#f5edef",
+          hover: "#eee1e6",
+          selected: "#e8d5df",
+          border: "#dfccd5",
+          control: "#9b778a",
+          text: "#3d3038",
+          muted: "#69555f",
+          accent: "#794c62",
+          "accent-hover": "#70435a",
+          "accent-pressed": "#60364c",
+          focus: "#794c62",
+        },
+        ice: {
+          name: "银灰冰蓝 · 深冰蓝",
+          description:
+            "以深冰蓝提供清楚的行动锚点，配银灰和冷白，不使用高亮科技蓝。",
+          start: "#eceef0",
+          end: "#ddeaf0",
+          light: "#f4f6f7",
+          wash: "#d0e1eb",
+          surface: "#f8fbfd",
+          subtle: "#eaf2f6",
+          hover: "#dceaf1",
+          selected: "#cee2ec",
+          border: "#c5d6e0",
+          control: "#6d8899",
+          text: "#27353e",
+          muted: "#4b606e",
+          accent: "#32677d",
+          "accent-hover": "#27576c",
+          "accent-pressed": "#20495c",
+          focus: "#32677d",
+        },
+      };
+      const fixed = {
+        "on-accent": "#ffffff",
+        success: "#286044",
+        "success-bg": "#edf6ef",
+        warning: "#79500d",
+        "warning-bg": "#fff4dc",
+        error: "#a13645",
+        "error-bg": "#fceef0",
+      };
+      const roles = [
+        ["start", "背景起点"],
+        ["end", "背景终点"],
+        ["light", "背景亮部"],
+        ["wash", "背景色晕"],
+        ["surface", "面板与信息层"],
+        ["subtle", "预览底／次级底"],
+        ["hover", "轻量悬停底"],
+        ["selected", "选中底"],
+        ["border", "装饰边框"],
+        ["control", "输入框边界"],
+        ["text", "正文"],
+        ["muted", "次要文字"],
+        ["accent", "主操作／链接"],
+        ["accent-hover", "主操作悬停"],
+        ["accent-pressed", "主操作按下"],
+        ["focus", "焦点环"],
+      ];
+      const swatchRoles = [
+        "surface",
+        "subtle",
+        "accent",
+        "text",
+        "muted",
+        "control",
+      ];
+      const checks = [
+        {
+          label: "正文／面板",
+          foreground: "text",
+          backgrounds: ["surface"],
+          minimum: 4.5,
+        },
+        {
+          label: "次要文字／所有界面底",
+          foreground: "muted",
+          backgrounds: [
+            "surface",
+            "subtle",
+            "hover",
+            "selected",
+            "start",
+            "end",
+            "light",
+            "wash",
+          ],
+          minimum: 4.5,
+        },
+        {
+          label: "白字／主操作各状态",
+          foreground: "on-accent",
+          backgrounds: ["accent", "accent-hover", "accent-pressed"],
+          minimum: 4.5,
+        },
+        {
+          label: "强调文字／轻量底",
+          foreground: "accent",
+          backgrounds: ["surface", "subtle", "hover", "selected"],
+          minimum: 4.5,
+        },
+        {
+          label: "输入框边界／面板",
+          foreground: "control",
+          backgrounds: ["surface"],
+          minimum: 3,
+        },
+        {
+          label: "焦点环／各界面底",
+          foreground: "focus",
+          backgrounds: [
+            "surface",
+            "subtle",
+            "hover",
+            "selected",
+            "start",
+            "end",
+            "light",
+            "wash",
+          ],
+          minimum: 3,
+        },
+        {
+          label: "成功文字／成功底",
+          foreground: "success",
+          backgrounds: ["success-bg"],
+          minimum: 4.5,
+        },
+        {
+          label: "警告文字／警告底",
+          foreground: "warning",
+          backgrounds: ["warning-bg"],
+          minimum: 4.5,
+        },
+        {
+          label: "错误文字／错误底",
+          foreground: "error",
+          backgrounds: ["error-bg"],
+          minimum: 4.5,
+        },
+      ];
+      function luminance(hex) {
+        const values = hex
+          .slice(1)
+          .match(/../g)
+          .map((part) => {
+            const value = parseInt(part, 16) / 255;
+            return value <= 0.04045
+              ? value / 12.92
+              : ((value + 0.055) / 1.055) ** 2.4;
+          });
+        return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+      }
+      function contrast(first, second) {
+        const a = luminance(first),
+          b = luminance(second);
+        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      }
+      function minimumContrast(palette, check) {
+        const values = { ...palette, ...fixed };
+        return Math.min(
+          ...check.backgrounds.map((background) =>
+            contrast(values[check.foreground], values[background]),
+          ),
+        );
+      }
+      function colorCell(value) {
+        const cell = document.createElement("td");
+        const dot = document.createElement("span");
+        dot.className = "table-color";
+        dot.style.setProperty("--swatch", value);
+        const code = document.createElement("code");
+        code.textContent = value.toUpperCase();
+        cell.append(dot, code);
+        return cell;
+      }
+      for (const [key, label] of roles) {
+        const row = document.createElement("tr"),
+          heading = document.createElement("th");
+        heading.scope = "row";
+        heading.textContent = label;
+        row.append(
+          heading,
+          ...Object.values(palettes).map((palette) => colorCell(palette[key])),
+        );
+        document.querySelector("#token-table").append(row);
+      }
+      for (const check of checks) {
+        const row = document.createElement("tr"),
+          heading = document.createElement("th"),
+          threshold = document.createElement("td");
+        heading.scope = "row";
+        heading.textContent = check.label;
+        threshold.textContent = `${check.minimum}:1`;
+        row.append(heading, threshold);
+        for (const [id, palette] of Object.entries(palettes)) {
+          const ratio = minimumContrast(palette, check),
+            cell = document.createElement("td");
+          cell.className = "contrast-result";
+          cell.dataset.pass = String(ratio >= check.minimum);
+          cell.dataset.palette = id;
+          cell.dataset.ratio = String(ratio);
+          cell.textContent = `${ratio.toFixed(2)}:1 ${ratio >= check.minimum ? "通过" : "未通过"}`;
+          row.append(cell);
+        }
+        document.querySelector("#contrast-table").append(row);
+      }
+      function applyPalette(id) {
+        const palette = palettes[id];
+        document.documentElement.dataset.palette = id;
+        for (const [key, value] of Object.entries(palette)) {
+          if (value.startsWith("#"))
+            document.documentElement.style.setProperty(`--${key}`, value);
+        }
+        document.querySelector("#preview-label").textContent = palette.name;
+        document.querySelector("#palette-description").textContent =
+          palette.description;
+        const swatches = document.querySelector("#swatches");
+        swatches.replaceChildren();
+        for (const key of swatchRoles) {
+          const item = document.createElement("div"),
+            color = document.createElement("div");
+          const label = document.createElement("strong"),
+            value = document.createElement("code");
+          item.className = "swatch";
+          color.className = "swatch-color";
+          color.style.setProperty("--swatch", palette[key]);
+          label.textContent = roles.find(([role]) => role === key)[1];
+          value.textContent = palette[key].toUpperCase();
+          item.append(color, label, value);
+          swatches.append(item);
+        }
+      }
+      document.querySelectorAll('input[name="palette"]').forEach((input) => {
+        input.addEventListener("change", () => applyPalette(input.value));
+      });
+      document.querySelector("#legacy").addEventListener("change", (event) => {
+        document
+          .querySelector("#preview")
+          .classList.toggle("legacy", event.target.checked);
+        document.querySelector("#preview-note").textContent = event.target
+          .checked
+          ? "当前上方样稿使用旧绿色对照（缩略模拟，非生产截图）。下方色板与对比度表仍展示新方案。"
+          : "当前为新配色。布局为缩略示意，不代表产品布局改版；不重绘图片或内容自身的颜色。";
+      });
+      const dialog = document.querySelector("#oauth-dialog");
+      let toastTimer;
+      function notify(message) {
+        clearTimeout(toastTimer);
+        document.querySelector("#toast").textContent = message;
+        toastTimer = setTimeout(() => {
+          document.querySelector("#toast").textContent = "";
+        }, 4000);
+      }
+      document.querySelectorAll("[data-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const action = button.dataset.action;
+          if (action === "oauth") {
+            dialog.showModal();
+            return;
+          }
+          if (action === "close") {
+            dialog.close();
+            return;
+          }
+          if (action === "authorize") {
+            dialog.close();
+            notify("授权按钮配色演示，未发起实际授权。");
+            return;
+          }
+          if (action === "add") {
+            document.querySelector('.inspector input[type="text"]').focus();
+            notify("可在右侧（窄屏为下方）面板体验输入与保存。");
+            return;
+          }
+          notify(
+            action === "save"
+              ? "保存成功提示演示，未修改任何内容。"
+              : action === "cancel"
+                ? "取消操作演示。"
+                : "按钮状态演示，未修改任何内容。",
+          );
+        });
+      });
+      document.querySelectorAll("[data-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-view]").forEach((item) => {
+            const selected = item === button;
+            item.setAttribute("aria-pressed", String(selected));
+            item.textContent = `${selected ? "✓ " : ""}${item.dataset.view}`;
+          });
+          notify(
+            `已选中「${button.dataset.view}」，仅展示选中色，不筛选样稿内容。`,
+          );
+        });
+      });
+      applyPalette("mist");
+    </script>
+  </body>
+</html>
