@@ -39,6 +39,10 @@ it("keeps the clear action circular without clipping its keyboard focus", () => 
   expect(rule).toMatch(/border-radius:\s*50%;/u);
   expect(rule).toMatch(/place-items:\s*center;/u);
   expect(rule).toMatch(/outline-offset:\s*-4px;/u);
+  expect(rule).toMatch(/border:\s*0;/u);
+  expect(styles).toMatch(
+    /\.item-filter button:hover:not\(:disabled\)\s*\{[^}]*radial-gradient\(circle,\s*var\(--hover\) 0%,\s*transparent 70%\)/u,
+  );
 });
 
 const host = vi.hoisted(() => ({

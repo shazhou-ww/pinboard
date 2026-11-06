@@ -14,6 +14,7 @@ import { QuestionIcon } from "@phosphor-icons/react/dist/csr/Question";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { IconProps } from "@phosphor-icons/react";
 
 const icons = {
@@ -22,6 +23,7 @@ const icons = {
   brand: PushPinIcon,
   caretDown: CaretDownIcon,
   check: CheckIcon,
+  close: XIcon,
   copy: CopyIcon,
   download: ArrowDownIcon,
   externalLink: ArrowUpRightIcon,

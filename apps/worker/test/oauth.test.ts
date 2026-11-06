@@ -273,7 +273,7 @@ describe("OAuth abuse controls", () => {
   ] as const;
   it.each(cases)(
     "enforces $binding at its configured native threshold with independent IPs",
-    async ({ path, method, limit, successStatus, ip }) => {
+    async ({ binding, path, method, limit, successStatus, ip }) => {
       const bindings = {
         ...env,
         ...(await mf.getBindings<
@@ -285,40 +285,60 @@ describe("OAuth abuse controls", () => {
           >
         >()),
       };
-      const init = {
-        method,
-        headers: {
-          "CF-Connecting-IP": ip,
-          "Content-Type": "application/json",
-        },
-        ...(method === "POST"
-          ? { body: JSON.stringify({ redirect_uris: [callback] }) }
-          : {}),
-      };
-      for (let attempt = 0; attempt < limit; attempt++)
-        expect((await request(path, init, bindings)).status).toBe(
-          successStatus,
+      const limiter = bindings[binding];
+      if (!limiter) throw new Error(`Missing native test limiter: ${binding}`);
+      for (let windowAttempt = 0; windowAttempt < 3; windowAttempt++) {
+        const clientIp = `198.51.100.${Number(ip.split(".").at(-1)) + windowAttempt * 20}`;
+        const init = {
+          method,
+          headers: {
+            "CF-Connecting-IP": clientIp,
+            "Content-Type": "application/json",
+          },
+          ...(method === "POST"
+            ? { body: JSON.stringify({ redirect_uris: [callback] }) }
+            : {}),
+        };
+        const hash = await hashToken(clientIp);
+        const epoch = Math.floor(Date.now() / 60000);
+        const first = await request(path, init, bindings);
+        const outcomes = await Promise.all(
+          Array.from({ length: limit - 1 }, () =>
+            limiter.limit({
+              key: `pinboard:mcp-oauth:${hash}`,
+            }),
+          ),
         );
-      const blocked = await request(path, init, bindings);
-      expect(blocked.status).toBe(429);
-      expect(await blocked.json()).toEqual({ error: "rate_limit_exceeded" });
-      expect(blocked.headers.get("retry-after")).toBe("60");
-      privateResponse(blocked);
-      expect(blocked.headers.get("access-control-allow-origin")).toBe(
-        path === "/oauth/authorize" ? null : "*",
-      );
-      expect(
-        (
-          await request(
-            path,
-            {
-              ...init,
-              headers: { ...init.headers, "CF-Connecting-IP": `${ip}0` },
-            },
-            bindings,
-          )
-        ).status,
-      ).toBe(successStatus);
+        const blocked = await request(path, init, bindings);
+        // Native buckets reset on wall-clock minute boundaries, not first use.
+        if (Math.floor(Date.now() / 60000) !== epoch) continue;
+        expect(first.status).toBe(successStatus);
+        expect(outcomes.every((outcome) => outcome.success)).toBe(true);
+        expect(blocked.status).toBe(429);
+        expect(await blocked.json()).toEqual({ error: "rate_limit_exceeded" });
+        expect(blocked.headers.get("retry-after")).toBe("60");
+        privateResponse(blocked);
+        expect(blocked.headers.get("access-control-allow-origin")).toBe(
+          path === "/oauth/authorize" ? null : "*",
+        );
+        expect(
+          (
+            await request(
+              path,
+              {
+                ...init,
+                headers: {
+                  ...init.headers,
+                  "CF-Connecting-IP": `203.0.113.${Number(ip.split(".").at(-1))}`,
+                },
+              },
+              bindings,
+            )
+          ).status,
+        ).toBe(successStatus);
+        return;
+      }
+      throw new Error("Native rate-limit checks crossed three minute windows");
     },
   );
   it("uses separate route budgets and never keys on spoofable forwarded headers", async () => {

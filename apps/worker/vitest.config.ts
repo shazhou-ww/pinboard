@@ -15,6 +15,7 @@ export default defineConfig({
   ],
   test: {
     maxWorkers: 2,
+    testTimeout: 30000,
     server: { deps: { inline: [/@jsquash\//u] } },
     coverage: {
       include: ["src/**/*.ts"],

@@ -5,6 +5,7 @@ import {
   type Publication,
 } from "@shazhou/pinboard-contracts";
 import { apiFetch } from "./api.js";
+import { Icon } from "./icon.js";
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 type PublicationPage = {
@@ -161,7 +162,7 @@ export function useItemLists(accountId?: string) {
       />
       {input ? (
         <button type="button" aria-label="Clear filter" onClick={clear}>
-          ×
+          <Icon name="close" size={16} />
         </button>
       ) : null}
     </div>

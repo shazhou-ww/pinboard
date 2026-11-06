@@ -337,10 +337,10 @@ describe("global palette contract", () => {
     });
     expect(rule(".item-filter button").color).toBe("var(--accent)");
     expect(rule(".item-filter button:hover:not(:disabled)").background).toBe(
-      "var(--hover)",
+      "radial-gradient(circle, var(--hover) 0%, transparent 70%)",
     );
     expect(rule(".item-filter button:active:not(:disabled)").background).toBe(
-      "var(--selected)",
+      "radial-gradient(circle, var(--selected) 0%, transparent 70%)",
     );
   });
 
