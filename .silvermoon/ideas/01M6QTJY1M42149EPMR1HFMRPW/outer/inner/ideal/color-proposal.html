@@ -681,7 +681,7 @@
         <span class="muted">配色研究样稿 · 尚未应用到产品</span>
       </div>
       <p class="description">
-        保留已有的三套渐变背景。把旧绿色替换为与背景呼应的强调色，让卡片回到安静的近白色，而不是把整个界面涂成另一种颜色。
+        延续三套渐变背景，晴空冰海调整为低饱和正蓝，去掉偏青色感。把旧绿色替换为与背景呼应的强调色，让卡片回到安静的近白色，而不是把整个界面涂成另一种颜色。
       </p>
       <div class="palette-controls">
         <fieldset>
@@ -704,7 +704,7 @@
             <label class="palette-option"
               ><input type="radio" name="palette" value="ice" /><span
                 class="palette-dot"
-                style="--dot: #32677d"
+                style="--dot: #425e96"
               ></span
               >晴空冰海</label
             >
@@ -928,7 +928,9 @@ const collection = {
       <section class="proposal-section">
         <div class="section-heading">
           <h2>三套配色，共用一套角色</h2>
-          <p>背景值沿用产品现状；其余是待审阅的设计值，不需要引入配色依赖。</p>
+          <p>
+            晨光雾屿与玫瑰沙丘沿用原背景；晴空冰海的背景与界面统一转向低饱和正蓝。
+          </p>
         </div>
         <div class="table-scroll">
           <table>
@@ -1079,23 +1081,23 @@ const collection = {
         ice: {
           name: "晴空冰海",
           description:
-            "以深冰蓝提供清楚的行动锚点，配银灰和冷白，不使用高亮科技蓝。",
-          start: "#eceef0",
-          end: "#ddeaf0",
-          light: "#f4f6f7",
-          wash: "#d0e1eb",
-          surface: "#f8fbfd",
-          subtle: "#eaf2f6",
-          hover: "#dceaf1",
-          selected: "#cee2ec",
-          border: "#c5d6e0",
-          control: "#6d8899",
-          text: "#27353e",
-          muted: "#4b606e",
-          accent: "#32677d",
-          "accent-hover": "#27576c",
-          "accent-pressed": "#20495c",
-          focus: "#32677d",
+            "色相围绕正蓝（约 220°），不偏青、不偏紫；降低饱和度而不混入青绿，以淡蓝背景和近白卡片保持纯净感。",
+          start: "#e9eef8",
+          end: "#dce5f7",
+          light: "#f4f7fc",
+          wash: "#d0ddf3",
+          surface: "#f8faff",
+          subtle: "#edf1fa",
+          hover: "#e1e9f8",
+          selected: "#d2def5",
+          border: "#c7d4e8",
+          control: "#7385a8",
+          text: "#29344a",
+          muted: "#4e5e7d",
+          accent: "#425e96",
+          "accent-hover": "#3c5588",
+          "accent-pressed": "#314773",
+          focus: "#425e96",
         },
       };
       const fixed = {
