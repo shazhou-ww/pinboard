@@ -18,7 +18,7 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 验证可交付的本地安装
+- [x] **D-S01:** 验证可交付的本地安装
 - [ ] **D-S02:** 验证真实账户工作流
 
 ### Deployment acceptance criteria
