@@ -55,6 +55,17 @@ UTC 以已授权凭据核对生产数据库身份并取得迁移前 bookmark：
 
 ### D-AC02: 实际客户端访问符合发布约定
 
+反馈修正版已发布为 `release-261106-2`，tag 指向同步且四组 CI 全部通过的
+`b249d8bb2b7dc2b9f2e84eb60c06b567412971c9`，包含背景提交 `20e6095` 的合并历史。
+[修正版 CI](https://github.com/shazhou-ww/pinboard/actions/runs/42141142392) 和
+[修正版生产工作流](https://github.com/shazhou-ww/pinboard/actions/runs/42141816906)
+全部通过，01:11:04 UTC 部署版本 `2dde482f-8ac5-4ca1-8352-47ef0cee2988`。线上 JS
+`/assets/index-CCLOtKgm.js` 已包含上传创建及公开标题表单和背景设置，CSS
+`/assets/index-BoABbdyR.css` 引用
+`/assets/pinboard-pattern-5qimH7d_.svg`，图案资源实际返回 HTTP 200 /
+SVG。真实生产浏览器的根元素为默认 `mist` 配色，computed
+background 同时含该 SVG、两层径向渐变及线性渐变；健康检查为 200。本地真实组件浏览器验证了空账户的两种上传选项、公开标题必填、上传创建请求、背景配色保存及刷新持久化，网络写入仅使用本地 fixture。上线未再次迁移或写入生产测试内容。
+
 2026-11-06 生产应用发布证据：部署前先 fetch 并合并最新 main（无遗漏提交），在
 `9ae2d5252e39ba37863e8a0d30ba56d0b723e3ad` 完成四组 Windows/Linux、Node 22/24
 [CI](https://github.com/shazhou-ww/pinboard/actions/runs/42137815200)，本地完整检查也通过。一次 Windows
