@@ -1,5 +1,22 @@
 # MCP OAuth 生产验收证据
 
+## 限流候选已同步及 CI 结果
+
+源码修复提交 `c677e6c` 经非 force 整合并发更新后，同步 primary
+`081ce6111e7d`。[CI 42196140966](https://github.com/shazhou-ww/pinboard/actions/runs/42196140966)
+实际退出成功，Windows/Ubuntu × Node 22.13.0/24.11.1 四组全部通过。本地完整
+`pnpm check` 同样通过，Silvermoon worktree/staged 校验通过，工作区保持干净。
+
+只读核对发现其他独立会话已正常发布到 `release-261106-8`，应用提交
+`9002946291bb3ba0becd5276c106931671b4e738`，
+[发布流程 42196086287](https://github.com/shazhou-ww/pinboard/actions/runs/42196086287)
+成功。这是并发发生的既有发布，不是本 session 的部署动作；不再把初始交接的
+`release-261106-5`
+当作当前唯一生产版本。从该既有发布至本限流候选，Worker/限流部署文档相关源码差异仅本次修复。
+**限流候选尚未发布，生产阈值证据仍未取得。**
+发布继续等待单独授权与 namespace/并发生产版本核对；不复用、重推或移动既有 release
+tag，不因 CI 成功推断部署授权或 `acceptOuter`。
+
 ## 2026-11-06：三个剩余负向检查与限流修复候选
 
 依据已同步 primary `9d53fbd74622`、部署修订 `cbc6c3831a72`
