@@ -25,6 +25,23 @@
     "PROVIDER_ID": "12D3KooWCjfPiojcCUmv78Wd1NJzi4Mraj1moxigp7AfQVQvGLwH",
   },
   "r2_buckets": [{ "binding": "BLOCKS", "bucket_name": "pinboard-blocks" }],
+  "ratelimits": [
+    {
+      "name": "OAUTH_REGISTRATION_LIMITER",
+      "namespace_id": "26110601",
+      "simple": { "limit": 5, "period": 60 },
+    },
+    {
+      "name": "OAUTH_AUTHORIZATION_LIMITER",
+      "namespace_id": "26110602",
+      "simple": { "limit": 30, "period": 60 },
+    },
+    {
+      "name": "OAUTH_TOKEN_LIMITER",
+      "namespace_id": "26110603",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",

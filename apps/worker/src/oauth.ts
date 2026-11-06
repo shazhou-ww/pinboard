@@ -170,6 +170,44 @@ oauth.onError((error, c) => {
   return c.json({ error: "server_error" }, 500);
 });
 
+function rateLimit(
+  binding:
+    | "OAUTH_REGISTRATION_LIMITER"
+    | "OAUTH_AUTHORIZATION_LIMITER"
+    | "OAUTH_TOKEN_LIMITER",
+): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    const limiter = c.env[binding];
+    const ip = c.req.header("CF-Connecting-IP")?.trim();
+    const unavailable = (reason: string) => {
+      console.error(
+        JSON.stringify({
+          event: "oauth_rate_limit_unavailable",
+          endpoint: c.req.path,
+          reason,
+        }),
+      );
+      c.header("Retry-After", "60");
+      return c.json({ error: "temporarily_unavailable" }, 503);
+    };
+    if (!limiter) return unavailable("binding_missing");
+    if (!ip || ip.length > 64) return unavailable("client_ip_missing");
+    let outcome: RateLimitOutcome;
+    try {
+      outcome = await limiter.limit({
+        key: `pinboard:mcp-oauth:${await hashToken(ip)}`,
+      });
+    } catch {
+      return unavailable("limiter_failed");
+    }
+    if (!outcome.success) {
+      c.header("Retry-After", "60");
+      return c.json({ error: "rate_limit_exceeded" }, 429);
+    }
+    return next();
+  };
+}
+
 const resourceMetadata = (c: Context<AppEnv>) =>
   c.json({
     resource: `${oauthOrigin(c.env)}/mcp`,
@@ -196,96 +234,106 @@ oauth.get("/.well-known/oauth-authorization-server", (c) => {
   });
 });
 
-oauth.post("/oauth/register", async (c) => {
-  const input = parse(
-    z.object({
-      client_name: z.string().trim().min(1).max(100).default("MCP client"),
-      redirect_uris: z.array(z.string().refine(validRedirect)).min(1).max(10),
-      token_endpoint_auth_method: z.literal("none").default("none"),
-      grant_types: z
-        .array(z.string().max(100))
-        .min(1)
-        .max(5)
-        .refine((values) => values.includes("authorization_code"))
-        .default(["authorization_code"]),
-      response_types: z.array(z.literal("code")).length(1).default(["code"]),
-    }),
-    await jsonBody(c.req.raw),
-  );
-  const id = crypto.randomUUID();
-  await c.env.DB.prepare(
-    "INSERT INTO oauth_clients (id, name, redirect_uris, created_at) VALUES (?, ?, ?, ?)",
-  )
-    .bind(
-      id,
-      input.client_name,
-      JSON.stringify(input.redirect_uris),
-      Date.now(),
+oauth.post(
+  "/oauth/register",
+  rateLimit("OAUTH_REGISTRATION_LIMITER"),
+  async (c) => {
+    const input = parse(
+      z.object({
+        client_name: z.string().trim().min(1).max(100).default("MCP client"),
+        redirect_uris: z.array(z.string().refine(validRedirect)).min(1).max(10),
+        token_endpoint_auth_method: z.literal("none").default("none"),
+        grant_types: z
+          .array(z.string().max(100))
+          .min(1)
+          .max(5)
+          .refine((values) => values.includes("authorization_code"))
+          .default(["authorization_code"]),
+        response_types: z.array(z.literal("code")).length(1).default(["code"]),
+      }),
+      await jsonBody(c.req.raw),
+    );
+    const id = crypto.randomUUID();
+    await c.env.DB.prepare(
+      "INSERT INTO oauth_clients (id, name, redirect_uris, created_at) VALUES (?, ?, ?, ?)",
     )
-    .run();
-  return c.json(
-    {
-      ...input,
-      grant_types: ["authorization_code"],
-      client_id: id,
-      client_id_issued_at: Math.floor(Date.now() / 1000),
-    },
-    201,
-  );
-});
+      .bind(
+        id,
+        input.client_name,
+        JSON.stringify(input.redirect_uris),
+        Date.now(),
+      )
+      .run();
+    return c.json(
+      {
+        ...input,
+        grant_types: ["authorization_code"],
+        client_id: id,
+        client_id_issued_at: Math.floor(Date.now() / 1000),
+      },
+      201,
+    );
+  },
+);
 
-oauth.get("/oauth/authorize", async (c) => {
-  const input = parse(
-    z.object({
-      response_type: z.literal("code"),
-      client_id: z.string().min(1).max(100),
-      redirect_uri: z.string().max(2048),
-      resource: z.string().max(2048),
-      scope: z.string().max(100).default("pins:read"),
-      state: z.string().max(1024).optional(),
-      code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-      code_challenge_method: z.literal("S256"),
-    }),
-    singleParams(new URL(c.req.url).searchParams),
-  );
-  if (input.resource !== `${oauthOrigin(c.env)}/mcp`) fail("invalid_target");
-  const client = await c.env.DB.prepare(
-    "SELECT redirect_uris FROM oauth_clients WHERE id = ?",
-  )
-    .bind(input.client_id)
-    .first<{ redirect_uris: string }>();
-  if (
-    !client ||
-    !(JSON.parse(client.redirect_uris) as string[]).includes(input.redirect_uri)
-  )
-    fail();
-  const requested = parseScopes(input.scope);
-  const id = crypto.randomUUID();
-  const secret = randomSecret();
-  await c.env.DB.prepare(
-    "INSERT INTO oauth_requests (id, client_id, redirect_uri, resource, scopes, state, challenge, browser_hash, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  )
-    .bind(
-      id,
-      input.client_id,
-      input.redirect_uri,
-      input.resource,
-      requested.join(" "),
-      input.state ?? null,
-      input.code_challenge,
-      await hashToken(secret),
-      Date.now() + REQUEST_TTL,
+oauth.get(
+  "/oauth/authorize",
+  rateLimit("OAUTH_AUTHORIZATION_LIMITER"),
+  async (c) => {
+    const input = parse(
+      z.object({
+        response_type: z.literal("code"),
+        client_id: z.string().min(1).max(100),
+        redirect_uri: z.string().max(2048),
+        resource: z.string().max(2048),
+        scope: z.string().max(100).default("pins:read"),
+        state: z.string().max(1024).optional(),
+        code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+        code_challenge_method: z.literal("S256"),
+      }),
+      singleParams(new URL(c.req.url).searchParams),
+    );
+    if (input.resource !== `${oauthOrigin(c.env)}/mcp`) fail("invalid_target");
+    const client = await c.env.DB.prepare(
+      "SELECT redirect_uris FROM oauth_clients WHERE id = ?",
     )
-    .run();
-  setCookie(c, cookieName(c, id), secret, {
-    httpOnly: true,
-    secure: oauthOrigin(c.env).startsWith("https:"),
-    sameSite: "Lax",
-    path: "/",
-    maxAge: REQUEST_TTL / 1000,
-  });
-  return c.redirect(`/connect/mcp?request=${id}`, 302);
-});
+      .bind(input.client_id)
+      .first<{ redirect_uris: string }>();
+    if (
+      !client ||
+      !(JSON.parse(client.redirect_uris) as string[]).includes(
+        input.redirect_uri,
+      )
+    )
+      fail();
+    const requested = parseScopes(input.scope);
+    const id = crypto.randomUUID();
+    const secret = randomSecret();
+    await c.env.DB.prepare(
+      "INSERT INTO oauth_requests (id, client_id, redirect_uri, resource, scopes, state, challenge, browser_hash, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+      .bind(
+        id,
+        input.client_id,
+        input.redirect_uri,
+        input.resource,
+        requested.join(" "),
+        input.state ?? null,
+        input.code_challenge,
+        await hashToken(secret),
+        Date.now() + REQUEST_TTL,
+      )
+      .run();
+    setCookie(c, cookieName(c, id), secret, {
+      httpOnly: true,
+      secure: oauthOrigin(c.env).startsWith("https:"),
+      sameSite: "Lax",
+      path: "/",
+      maxAge: REQUEST_TTL / 1000,
+    });
+    return c.redirect(`/connect/mcp?request=${id}`, 302);
+  },
+);
 
 oauth.get("/api/oauth/requests/:id", async (c) => {
   checkOrigin(c);
@@ -367,7 +415,7 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
   return c.json({ redirect: redirect.href });
 });
 
-oauth.post("/oauth/token", async (c) => {
+oauth.post("/oauth/token", rateLimit("OAUTH_TOKEN_LIMITER"), async (c) => {
   if (
     !c.req
       .header("content-type")

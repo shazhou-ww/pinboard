@@ -342,6 +342,22 @@ The retention-aware release includes bounded automatic GC; see the rollout
 prerequisite below. Takedown workflows, quotas/rate limiting and abuse
 operations remain separate. Google login is authentication, not an abuse policy.
 
+## OAuth 限流发布前置检查
+
+OAuth 注册、授权发起与换码由 `OAUTH_REGISTRATION_LIMITER`、
+`OAUTH_AUTHORIZATION_LIMITER`、`OAUTH_TOKEN_LIMITER`
+三个 Worker 原生绑定保护。当前源码配置每个来源 IP、每个机房约每分钟 5 / 30 /
+60 次，namespace 分别为 `26110601` / `26110602` /
+`26110603`。它们不改变整个 zone 的其他子域，也不需要升级 zone 的 Free 计划。
+
+发布前核对这三个 namespace 在目标 Cloudflare
+account 中没有被其他 Worker 复用；相同 namespace 会共享同 key 的计数，不能把配置名不同当作隔离证明。如需变更 namespace，应同时核对部署与所有调用方，不能为了绕过现有额度随意轮换。源码构建和 dry-run 只能证明候选绑定有效，不能证明生产已启用。缺少绑定或来源 IP 时，三个 OAuth 入口会明确返回 503，不会静默绕过。
+
+本次修复不需要 schema 迁移、新 secret、Cloudflare 付费计划调整或发布触发规则变更。合入 primary 仍不部署；生产发布继续要求独立授权和既有 release
+tag 工作流。发布后先确认精确 Worker
+version 与三个绑定，再用专用客户端做有界、非压力式阈值检查：记录临界请求的 429、`Retry-After`、安全头与恢复后的成功结果，区分每机房近似计数和严格全球配额。已有凭据的 MCP
+list 与浏览器撤销必须仍可用。不要把本地 Miniflare 的精确计数或源码测试当成外部验收。
+
 ## Retention rollout prerequisite
 
 Before deploying the retention-aware Worker, separately authorize and verify
