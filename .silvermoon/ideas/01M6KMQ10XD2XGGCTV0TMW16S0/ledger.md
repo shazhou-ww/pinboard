@@ -18,7 +18,7 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 准备获授权的验证环境
+- [x] **D-S01:** 准备获授权的验证环境
 - [ ] **D-S02:** 完成真实客户端授权验证
 
 ### Deployment acceptance criteria
