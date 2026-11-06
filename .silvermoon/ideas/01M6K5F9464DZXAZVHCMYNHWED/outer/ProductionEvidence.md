@@ -1,6 +1,81 @@
 # CAR 生产发布与验收证据
 
-## 当前结论
+## 2026-11-06：当前生产只读复验
+
+先将环境修订同步到 primary `11f1c09a8e01`，重新观察 CAR
+`deploymentRevision=cb8c4b5cab86`
+后执行本节检查。仅复用已有公开合成内容，不新建 Pin、授权、Token 或 R2 对象，不改其他 idea、源代码或历史数据库。
+
+当前为 `release-261106-5`、应用提交 `2b109be68a8105bef2b1c51171e937c774f6b553`；
+[成功发布流程](https://github.com/shazhou-ww/pinboard/actions/runs/42176511205)。Cloudflare 控制面确认 Worker
+`418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7`、100% 流量。当前 D1 为
+`9f15fd50-e103-459f-9f3f-9db3036f91de`；下文旧 UUID 只属于历史，不执行任何旧库命令。
+
+`2026-11-06T07:17:58Z` 当前 D1 只读聚合：11 个 indexed root，manifest `size`
+合计 972,002 字节，72 个全局块位置，`byte_length` 合计 948,455 字节；数据库
+`size_after=544768`，外键检查为空，迁移账本 0001–0008。这些不是 R2 实际对象/计费字节，也不是本夹具的 D1 增量占用；共享块、旧位置改指向、重复 CAR、历史对象与页分配不能由这两个合计推导。查询均
+`rows_written=0` / `changed_db=false`。
+
+### 样本来源与完整性
+
+- legacy 根 `bafybeichdmdbzwsifxxipvqqykwdaiviqp3blxbwy5saryokhttifcadzu`
+  来自本文件及 `docs/retention-production.md`
+  的历史公开合成夹具。当前 D1 没有该根的 `car_dags`
+  行；保留为 legacy 兼容路径，不回填它。
+- indexed 根 `bafkreief73jih6zmdk5viz56xo33oittxvmnjmt5755nofguv37kd2cqoi`
+  来自预览 idea 已记录的公开高频黑白 PNG 合成夹具，见
+  [其生产证据](../../01M6N8A59MBK0BQNMNA259RSFS/outer/Production-verification.md)。当前 D1 直接确认
+  `car_dags.size=1055`、1 个块位置。不读取账户信息，不使用该 idea 的已验收状态代替本次内容校验。
+- 每次下载 raw 块均独立匹配其 CID 的 SHA2-256，CAR 经独立 `CarReader`
+  验证单根和全部块的 CID。legacy CAR 为 3,147,545 字节、18 块，SHA-256
+  `4daf3f74323481fb5f97309165cfcf5d5cba0ee1cf01fb231cb5951e79b0b28a`，与历史完全相同。
+- indexed CAR 为 1,055 字节、1 块，SHA-256
+  `f0e66bcf4519f952ac2be0f45f4c61202d46894d43d85bb7732a1108af49c453`；原文件 958 字节，SHA-256
+  `85fed283fb2c1abb5467bebbb7b72273bd58d4b27dff7ad714d4aefea1e85072`。
+- Kubo `0.43.1` 为每个根新建独立空 repo，以 `--offline` 导入下载的 CAR 并 `get`
+  重建，不启动 daemon、连接来源或改动日常 Kubo。随后 `block get`
+  根块与生产 raw 下载逐字节一致。legacy 重建出 `empty.txt`（0 字节）、
+  `nested/note.txt`（50 字节）和
+  `payload.bin`（3,145,865 字节）；indexed 重建出同一 958 字节 PNG。逐文件 SHA-256 保留于原始数据；legacy 的原始逐文件清单未重新取得，不能额外声称与未持有的源目录逐文件对比。
+
+### 当前测量与非同条件历史对照
+
+原始 UTC 窗口、每次状态/首字节/总耗时/字节数/ETag/缓存头、CID校验和离线文件清单见[只读原始测量](ReadOnlyMeasurements-2026-11-06.json)。每种表示首个带唯一查询参数的请求是“冷候选”，后续 5 次复用同 URL为“暖重复”；没有
+`cf-cache-status`
+或 Age，不能证明边缘或 R2 内部冷热。首字节由实际首个响应体 chunk 计时，同时保存收到 headers 的时间。
+
+| 路径            | 冷候选首字节 / 总耗时 ms | 暖重复首字节中位 ms | 暖重复总耗时中位 ms（范围） | 响应字节  |
+| --------------- | ------------------------ | ------------------- | --------------------------- | --------- |
+| legacy raw      | 789.48 / 789.77          | 719.09              | 719.28（666.79–761.92）     | 165       |
+| legacy CAR      | 5033.56 / 5531.41        | 5036.81             | 5175.58（5049.23–5421.70）  | 3,147,545 |
+| indexed PNG raw | 618.03 / 618.38          | 572.37              | 572.61（519.72–633.44）     | 958       |
+| indexed PNG CAR | 521.12 / 521.33          | 581.60              | 581.89（520.75–615.18）     | 1,055     |
+
+正式轮次 24 次下载均为 200；另每根 HEAD 200 空体、ETag 304 空体通过。整包接口
+`/api/public/{cid}/car` 返回标准CARv1；网关 `/ipfs/{cid}?format=car`
+按既有 raw-only 契约返回 406，不将其伪造为第二条 CAR 下载成功路径。
+
+必须保留的失败：第一次探索试跑的带查询参数 legacy
+CAR 请求实际返回 500，脚本因此中止；随即不带查询参数的同根请求为 200，之后正式六次同根 CAR 下载均成功。未取得该失败的请求级 trace，原因未定，不宣称已修复或整段验收无失败；没有据此改源码或重复发布。
+
+相对 2026-11-04 最初 legacy 生产基线，当前 raw 总耗时中位约 1.61 倍（慢约 61%），CAR 约 0.93 倍（快约 7%）。这是同一字节内容的不同日期/版本网络测量，
+**不是严格同条件改造前后性能因果对照**，不能用小 PNG 对比 3
+MiB 目录宣称 CAR 索引加速。没有 R2 请求级 GET/HEAD/Range 操作遥测，不从时延或本地 counted
+binding 推断生产操作数；没有取得实际 R2 对象字节与 D1 夹具增量空间。
+
+### 历史证据可复用范围与剩余门限
+
+- D-S01 保持已完成：历史 rollout、增量迁移及禁止回退旧 reader 的边界可复用，当前环境绑定已更新，不再执行历史发布/迁移。
+- D-S02 / D-AC01 仍缺至少 128 小文件（含空文件、嵌套目录）及至少 8
+  MiB 多块文件的指定规模、固定清单、Kubo 参数、原始 SHA-256 和新格式整包/块范围校验。当前 958 字节 indexed
+  PNG 和 3 MiB legacy 目录不能替代它们。
+- D-AC02 仍缺同条件旧/新格式的指定夹具对照、请求级真实 R2 操作数和明确空间取舍；现已切换生产，不为补基线回滚旧 reader，也不写 legacy 格式的生产测试后门。若原始基线无法恢复，应明确提请用户调整证据范围，不悄悄降低验收标准。
+- 用户已有正常浏览器会话的交接不等于本轮新生产写入授权。新建公开合成夹具、临时授权或 Token、清理仅本轮资源，先明确范围；不触碰其他 session 的 CLI
+  idea 或用户数据。
+- 尚不满足 outer 提交条件，ledger 不新增完成勾选，不记录 `submitOuter` /
+  `acceptOuter`。
+
+## 2026-11-04 历史结论（非当前生产状态）
 
 已通过既有 tag 流程发布并前向修复至 `release-261104-3`，Worker version
 `33314a24-76ba-4093-b6f7-810d8d35bc05`，流量 100%。D1 增量迁移与最终 19 项公开 smoke 通过，旧 CAR 查询放大已修复并复测。未认证上传新内容、未创建或撤销应用 token；没有更改永久凭证、鉴权配置或发布工作流。尚不满足完整 outer 验收，不追加
