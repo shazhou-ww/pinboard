@@ -4,28 +4,65 @@ export function Dialog({
   open,
   title,
   busy = false,
+  dismissOnOutsideClick = false,
   onClose,
   children,
 }: {
   open: boolean;
   title: string;
   busy?: boolean;
+  dismissOnOutsideClick?: boolean;
   onClose: () => void;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const outsidePress = useRef(false);
   useEffect(() => {
+    outsidePress.current = false;
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     else if (!open && dialog.open) dialog.close();
   }, [open]);
+  const isOutside = (event: {
+    currentTarget: HTMLDialogElement;
+    clientX: number;
+    clientY: number;
+  }) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return (
+      event.clientX < bounds.left ||
+      event.clientX > bounds.right ||
+      event.clientY < bounds.top ||
+      event.clientY > bounds.bottom
+    );
+  };
   return (
     <dialog
       ref={ref}
       className="canvas-dialog"
       aria-label={title}
       aria-busy={busy}
+      onPointerDown={(event) => {
+        outsidePress.current =
+          dismissOnOutsideClick &&
+          !busy &&
+          event.button === 0 &&
+          event.target === event.currentTarget &&
+          isOutside(event);
+      }}
+      onPointerCancel={() => {
+        outsidePress.current = false;
+      }}
+      onClick={(event) => {
+        const dismiss =
+          outsidePress.current &&
+          !busy &&
+          event.target === event.currentTarget &&
+          isOutside(event);
+        outsidePress.current = false;
+        if (dismiss) onClose();
+      }}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();

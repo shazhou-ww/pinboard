@@ -1,5 +1,65 @@
 # Agents and remote MCP
 
+## Conversion and user descriptions
+
+`publication_convert` accepts `{cid,title,public:true,requestId}` and atomically
+replaces an owned fixed Pin with a publication whose v1 retains the original
+content and descriptions. It requires existing `publications:write`, `pins:read`
+and `pins:delete` scopes; old pin-only tokens gain no authority. Retry an
+uncertain conversion with the same request ID and identical input.
+
+`description_get({rootCid,nodeCid})` reads scoped user text and system preview.
+`description_set({rootCid,nodeCid,text,expectedVersion})` sets bounded pure text
+or clears with `text:null`, using the actual version from a read (0 initially).
+`description_export({rootCid})` explicitly exports the root's metadata map.
+These use existing pin read/write scopes and require an active owned root and
+actual node reachability. Published metadata is immutable and available through
+`publication_get`/`publication_history` revision `descriptions` maps. A
+current-CID publish is NOP and does not apply draft metadata edits. Ordinary CAR
+exports omit all sidecars. See [publication semantics](publications.md).
+`publication_description({id,revision,nodeCid})` reads a fixed revision's
+root/child snapshot together with its system preview, including after the source
+Pin has expired.
+
+## Publications and recovery tools
+
+These tools use the same services, CAS and recovery lifecycle as Web, CLI and
+HTTP. Publication title and complete history are public; account identities and
+private pin labels are not included.
+
+| Tool                   | Input                                    | Permission                               |
+| ---------------------- | ---------------------------------------- | ---------------------------------------- |
+| `publication_create`   | `title,cid,public:true,requestId`        | `publications:write`, `pins:read`        |
+| `publication_list`     | optional `cursor`                        | `publications:read`                      |
+| `publication_get`      | `id`, optional fixed `revision`          | public metadata                          |
+| `publication_history`  | `id`                                     | public metadata                          |
+| `publication_publish`  | `id,cid,expectedSequence,requestId`      | `publications:write`, `pins:read`        |
+| `publication_rollback` | `id,revision,expectedSequence,requestId` | `publications:write`                     |
+| `publication_delete`   | `id`                                     | `publications:delete`                    |
+| `recently_deleted`     | optional `cursor`                        | corresponding pin/publication read scope |
+| `restore`              | `kind: "pin"` or `"publication"`, `id`   | corresponding delete scope               |
+
+`upload` additionally accepts `publicationId` and
+`publicationWrite:{expectedSequence,requestId}`. Upload runs first; publication
+failure returns the successful `pin`, `partialSuccess:true` and
+`publicationError`, never silently deleting the successful upload. It also
+requires publication-write and pin-read scopes. The existing inline upload limit
+and public acknowledgement still apply.
+
+Use the current **sequence**, not revision number, as `expectedSequence`.
+Current CID is NOP; republishing a noncurrent historical CID creates the next
+revision. Rollback creates none. Retry identical payloads with the same request
+ID to recover persisted results (including NOP); payload reuse or stale sequence
+returns a 409 tool error. Pin-write-only credentials gain no publication write
+capability. Existing OAuth resource, consent, expiry and revocation boundaries
+remain unchanged.
+
+Delete/Unpin removes an object from normal lists for a 30-day recovery window;
+restore reopens original links/history without a new revision. Repeat deletion
+does not extend expiry. Expiry releases only that object's references, and the
+last reference starts seven days of GC grace. See
+[publications and recovery](publications.md) for all public URLs and caching.
+
 ## Browser OAuth for interactive clients
 
 The OAuth implementation uses the authorization primitives in MCP's
@@ -43,7 +103,10 @@ configuration, with **no Authorization header or pasted token**:
 1. Start the server/connection in VS Code. Its first unauthenticated request
    receives a `401` challenge linking to
    `/.well-known/oauth-protected-resource/mcp`. Discovery points to the same
-   origin's `/.well-known/oauth-authorization-server`.
+   origin's `/.well-known/oauth-authorization-server`. This includes an initial
+   anonymous `POST /mcp` without an Origin header. MCP never authenticates
+   browser cookies; explicitly foreign origins are still rejected, and browser
+   API mutations still require a same-origin header.
 2. The client registers its callback at `POST /oauth/register` and opens
    `/oauth/authorize` with `resource` exactly equal to the canonical `/mcp` URL,
    `response_type=code`, a fresh verifier's S256 challenge, and client state.
@@ -53,26 +116,31 @@ configuration, with **no Authorization header or pasted token**:
    authority, arbitrary HTTP hosts or `localhost` exception.
 3. Sign in through the existing CSRF-protected Google browser login. The return
    path is the local `/connect/mcp` consent page. **Sign-in alone never grants
-   access.** Review the unverified client name, client ID, exact callback,
-   resource, account and requested permissions. Select only required scopes.
-   With no requested scope the server defaults to `pins:read`; clients must
-   request write/delete scopes explicitly if needed.
-4. Choose **Allow selected permissions** or **Cancel connection**. Cancellation
-   returns `access_denied` with the original client state and creates no grant.
-   Closing the page also grants nothing. Requests are browser-cookie-bound,
-   account-bound when reviewed, single-use and expire after **10 minutes**.
-   Switching accounts requires restarting authorization. A signed browser
-   session whose account no longer exists in D1 is rejected by protected routes
-   and requires Google sign-in again, rather than failing consent with a server
-   error. If an older deployed release shows a server error immediately, sign
-   out of Pinboard, sign in again and start a new connection from the MCP
-   client.
+   access.** Review the unverified client name, client ID, resource, account and
+   requested permissions. The callback remains registered and validated exactly,
+   but is not displayed on the consent page. Select only required scopes. With
+   no requested scope the server defaults to `pins:read`; clients must request
+   write/delete scopes explicitly if needed.
+4. Choose an access lifetime: **1 day** (default), **7 days**, **30 days** or
+   **Never** (valid until revoked), then choose **Allow** or **Cancel**.
+   Cancellation returns `access_denied` with the original client state and
+   creates no grant. Closing the page also grants nothing. Requests are
+   browser-cookie-bound, account-bound when reviewed, single-use and expire
+   after **10 minutes**. Switching accounts requires restarting authorization. A
+   signed browser session whose account no longer exists in D1 is rejected by
+   protected routes and requires Google sign-in again, rather than failing
+   consent with a server error. If an older deployed release shows a server
+   error immediately, sign out of Pinboard, sign in again and start a new
+   connection from the MCP client.
 5. After approval, the client exchanges the **60-second**, one-use code at
    `POST /oauth/token` with the original client ID, exact callback, resource and
    verifier. One atomic database update prevents concurrent double redemption.
-   The response contains an opaque **one-hour** access token and selected scope.
-   Access credentials are only accepted in an Authorization header at `/mcp`,
-   never in a URL and never at private `/api/*` routes.
+   The response contains an opaque access token and selected scope. Its lifetime
+   starts at code exchange, using the choice persisted during consent. Finite
+   tokens include `expires_in` in seconds; permanent tokens omit `expires_in`
+   and remain valid until revoked. Access credentials are only accepted in an
+   Authorization header at `/mcp`, never in a URL and never at private `/api/*`
+   routes.
 
 **No refresh token is issued.** Reconnect and approve again after expiry. This
 keeps refresh rotation/reuse recovery out of scope. The homepage's **MCP client
@@ -84,15 +152,34 @@ An operation already authenticated/in flight may finish. Expired/revoked
 metadata remains visible; OAuth records currently have no automatic history
 purge. Only token/code/browser-binding hashes are persisted.
 
+Selectable lifetimes require migration `0008_oauth_lifetimes.sql`, applied only
+with explicit authorization. Existing issued tokens keep their original expiry;
+pre-migration pending codes still exchange for one-hour tokens. New consent
+submissions default to one day even if the `lifetime` field is omitted. The
+consent API accepts only `1d`, `7d`, `30d` or `never`; the token endpoint cannot
+override this choice. Permanent grants still require the same browser consent,
+PKCE, resource binding and per-request revocation checks. Before exchange, they
+are shown as pending, not active; their authorization codes still expire after
+60 seconds.
+
 Consent/API/code/token responses use `Cache-Control: no-store` and
 `Referrer-Policy: no-referrer`; the static consent page supplies these headers
 too. Treat the browser history's short-lived OAuth authorization code as
 sensitive even though it cannot be exchanged without PKCE. No request URLs,
 credentials or verifier values should be captured in access logs or diagnostics.
 Public DCR permits self-selected, **unverified client labels**, not trusted
-software identities. Before exposing this flow publicly, configure appropriate
-edge rate limits/abuse controls for registration/authorization/token endpoints;
-registration and grant metadata consume D1 storage.
+software identities. Registration and grant metadata consume D1 storage.
+
+OAuth 公开入口使用 Worker 专属的三个原生限流 binding：按可信
+`CF-Connecting-IP`，每个 Cloudflare 机房约每分钟注册 5 次、授权发起 30 次、换码 60 次。各入口独立计数，使用散列 IP 作为 key，不采用可伪造的
+`X-Forwarded-For`。超限返回 JSON `rate_limit_exceeded`、HTTP 429 和
+`Retry-After: 60`，保留 `no-store` / `no-referrer`
+及原有 CORS。计数是近似且机房内的，不是全球硬配额；共享出口 IP 共同计数，也不是完整的分布式滥用防护。发现、OPTIONS、现有 MCP 调用与浏览器授权撤销不消耗这些额度。
+
+缺少 binding、可信来源 IP 或限流基础设施异常时，这三个入口返回 JSON
+`temporarily_unavailable`、503 和
+`Retry-After: 60`，不会静默放行，也不会写入新注册或授权记录。日志仅记录操作性故障类型和固定端点，不记录 IP、限流 key、请求体或 OAuth 凭据。本地直接调用 Worker 时也必须配置 binding 和测试来源 IP；Wrangler 本地环境使用原生模拟绑定。源码与本地测试通过不代表生产已经启用，发布前须按
+[部署前置检查](deployment.md#oauth-限流发布前置检查)核对绑定和 namespace，再独立授权发布与生产行为复验。
 
 ### External verification still pending
 
@@ -149,9 +236,9 @@ Tools:
 
 Inline MCP data is limited to 2 MiB decoded. `kind` is `file`, `car` or `block`.
 CAR requires a single root and all reachable blocks; `pin` only references
-content already in Pinboard. Unpin removes only the calling account's reference.
-Expected permission/validation errors are MCP tool results with `isError: true`,
-not success-shaped fallbacks.
+content already in Pinboard. Unpin moves only the calling account's pin to
+recently deleted for 30 days. Expected permission/validation errors are MCP tool
+results with `isError: true`, not success-shaped fallbacks.
 
 For a larger file/CAR (up to 32 MiB), use an API token on the HTTP route (MCP
 OAuth credentials are deliberately not accepted there), then use MCP to list or

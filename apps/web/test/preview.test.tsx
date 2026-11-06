@@ -10,6 +10,50 @@ const render = (preview: ContentPreview) =>
   );
 const base = { version: 1, status: "ready" as const, truncated: false };
 describe("typed, display-only content previews", () => {
+  it("extends previews behind the frosted information strip and centers image crops", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\s*\{[^}]*padding:\s*24px 24px 0;[^}]*overflow:\s*hidden;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\.has-image\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\);/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview img\s*\{[^}]*min-height:\s*0;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center;/u,
+    );
+  });
+  it("sizes Phosphor icons consistently without CSS-drawn shapes", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-icon\s*\{[^}]*width:\s*18px;[^}]*height:\s*18px;/u,
+    );
+    expect(styles).not.toMatch(/\.preview-entry-icon[^{}]*::(?:before|after)/u);
+    expect(styles).toMatch(
+      /\.pin-info\s*\{[^}]*backdrop-filter:\s*blur\(16px\)/u,
+    );
+  });
+  it("uses lighter, tighter frosting for sparse text and folders while preserving image frosting", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.pin-info\s*\{[^}]*background:\s*var\(--surface-glass\);[^}]*backdrop-filter:\s*blur\(16px\)/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*var\(--surface-glass-light\);[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
+    );
+    expect(styles).toMatch(/\.preview-directory li\s*\{[^}]*height:\s*28px;/u);
+  });
   it("scopes pin row layout to direct children and keeps directory list spacing compact", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
@@ -17,9 +61,58 @@ describe("typed, display-only content previews", () => {
     );
     expect(styles).toMatch(/\.pin-list\s*>\s*li\s*\{/u);
     expect(styles).not.toMatch(/\.pin-list\s+li\s*\{/u);
-    expect(styles).toMatch(/\.preview-directory ul\s*\{[^}]*margin:\s*0;/u);
     expect(styles).toMatch(
-      /\.preview-directory p\s*\{[^}]*margin:\s*0 0 8px;/u,
+      /\.preview-directory ul\s*\{[^}]*padding:\s*0 0 0 14\.5px;[^}]*margin:\s*0 0 0 8\.5px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-folder-heading\s*\{[^}]*margin-bottom:\s*10px;/u,
+    );
+  });
+  it("aligns guide axes with parent icon centers and leaves room before child icons", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li::before\s*\{[^}]*left:\s*-15\.5px;[^}]*top:\s*0;[^}]*width:\s*10\.5px;[^}]*height:\s*14px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]\s*\{[^}]*margin-left:\s*24px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-14px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid var\(--border\);/u,
+    );
+  });
+  it("starts each subfolder guide below its parent icon without interrupting sibling connections", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="0"\] \+ li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-3px;[^}]*height:\s*17px;/u,
+    );
+  });
+  it("uses the current pin name for folder headings and truncates long names", () => {
+    const markup = renderToStaticMarkup(
+      <PreviewContent
+        name={"<Project> " + "x".repeat(200)}
+        preview={{
+          ...base,
+          contentType: "application/vnd.pinboard.directory+json",
+          content: { entries: [], total: 0 },
+        }}
+      />,
+    );
+    expect(markup).toContain(
+      'class="preview-entry-name" title="&lt;Project&gt; ' + "x".repeat(200),
+    );
+    expect(markup).not.toContain("<span>Folder</span>");
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-name\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/u,
     );
   });
   it("uses only the separately cacheable thumbnail URL, not a CAR or data URL", () => {
@@ -83,7 +176,53 @@ describe("typed, display-only content previews", () => {
     });
     expect(markup).toContain("&lt;evil&gt;.txt");
     expect(markup).toContain("photos");
+    expect(markup).toContain('aria-label="Folder contents"');
+    expect(markup).toContain('data-depth="1"');
+    expect(markup).toContain('aria-label="File"');
+    expect(markup).toContain('aria-label="Folder"');
+    expect(markup.match(/<svg /gu)).toHaveLength(3);
+    expect(markup.match(/opacity="0.2"/gu)).toHaveLength(3);
+    expect(
+      markup.match(/<svg (?=[^>]*role="img")(?=[^>]*aria-hidden="false")/gu),
+    ).toHaveLength(2);
+    expect(markup).toMatch(
+      /<svg [^>]*aria-hidden="true"[^>]*data-kind="directory"/u,
+    );
+    expect(markup).toContain('class="preview-folder-heading"');
+    expect(markup).toContain(">my private pin</span>");
+    expect(markup).not.toContain("Excerpt / sampled overview");
+    expect(markup).not.toContain("preview-truncated");
     expect(markup).not.toMatch(/href=|<button|<a |total/iu);
+  });
+  it("only reports verified counts and distinguishes empty folders from sampled empty previews", () => {
+    const directory = {
+      ...base,
+      contentType: "application/vnd.pinboard.directory+json" as const,
+      content: { entries: [], total: 0 },
+    };
+    expect(render(directory)).toContain("Empty folder");
+    expect(render(directory)).toContain("0");
+    expect(
+      render({ ...directory, truncated: true, content: { entries: [] } }),
+    ).toContain("No entries in this preview");
+    expect(
+      render({ ...directory, content: { entries: [], total: 1 } }),
+    ).toContain("top-level");
+  });
+  it("keeps unknown folder entries honest and long names inert", () => {
+    const markup = render({
+      ...base,
+      contentType: "application/vnd.pinboard.directory+json",
+      content: {
+        entries: [
+          { name: "<script>" + "x".repeat(200), kind: "unknown", depth: 0 },
+        ],
+      },
+    });
+    expect(markup).toContain('aria-label="Unknown item"');
+    expect(markup).toContain('data-kind="unknown"');
+    expect(markup).toContain("&lt;script&gt;");
+    expect(markup).not.toMatch(/<script|href=|tabindex=|role="tree"/iu);
   });
   it.each(["pending", "failed", "unsupported"] as const)(
     "shows %s independently of content type and preserves reliable file metadata",

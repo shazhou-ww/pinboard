@@ -4,7 +4,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import app from "../src/index.js";
 import type { Bindings } from "../src/env.js";
 import { accountForGoogle, hashToken } from "../src/identity.js";
-import { ACCESS_TTL, s256, validRedirect } from "../src/oauth.js";
+import { s256, validRedirect } from "../src/oauth.js";
+import {
+  oauthLifetimes,
+  oauthLifetimeOptions,
+  type OAuthGrant,
+  type OAuthLifetime,
+} from "@shazhou/pinboard-contracts";
 import { createToken } from "../src/tokens.js";
 import { migrate } from "./migrations.js";
 
@@ -16,9 +22,23 @@ const mf = new Miniflare(
     modules: true,
     script: "export default { fetch() { return new Response('ok'); } };",
     compatibilityDate: "2026-10-14",
-    d1Databases: ["DB"],
+    d1Databases: ["DB", "LEGACY_DB"],
     r2Buckets: ["BLOCKS"],
     serviceBindings: { ASSETS: () => new Response("test assets") },
+    ratelimits: {
+      OAUTH_REGISTRATION_LIMITER: {
+        namespace_id: "26110601",
+        simple: { limit: 5, period: 60 },
+      },
+      OAUTH_AUTHORIZATION_LIMITER: {
+        namespace_id: "26110602",
+        simple: { limit: 30, period: 60 },
+      },
+      OAUTH_TOKEN_LIMITER: {
+        namespace_id: "26110603",
+        simple: { limit: 60, period: 60 },
+      },
+    },
   }),
 );
 let env: Bindings;
@@ -27,15 +47,30 @@ let bob: string;
 let aliceCookie: string;
 let bobCookie: string;
 let apiToken: string;
-const request = async (path: string, init?: RequestInit) => {
+const allowRateLimit = (options: RateLimitOptions) =>
+  Promise.resolve({ success: Boolean(options.key) });
+const rateLimiters = {
+  OAUTH_REGISTRATION_LIMITER: { limit: vi.fn(allowRateLimit) },
+  OAUTH_AUTHORIZATION_LIMITER: { limit: vi.fn(allowRateLimit) },
+  OAUTH_TOKEN_LIMITER: { limit: vi.fn(allowRateLimit) },
+};
+const request = async (path: string, init?: RequestInit, bindings = env) => {
   const pending: Promise<unknown>[] = [];
-  const response = await app.request(origin + path, init, env, {
-    waitUntil(work) {
-      pending.push(work);
+  const headers = new Headers(init?.headers);
+  if (!headers.has("CF-Connecting-IP"))
+    headers.set("CF-Connecting-IP", "192.0.2.1");
+  const response = await app.request(
+    origin + path,
+    { ...init, headers },
+    bindings,
+    {
+      waitUntil(work) {
+        pending.push(work);
+      },
+      passThroughOnException() {},
+      props: {},
     },
-    passThroughOnException() {},
-    props: {},
-  });
+  );
   await Promise.all(pending);
   return response;
 };
@@ -92,17 +127,25 @@ async function decide(
   scope = ["pins:read"],
   session = aliceCookie,
   accountId = alice,
+  lifetime?: unknown,
 ) {
   return request(`/api/oauth/requests/${flow.id}`, {
     method: "POST",
     headers: sessionHeaders(`${session}; ${flow.browserCookie}`),
-    body: JSON.stringify({ approve, scopes: scope, accountId }),
+    body: JSON.stringify({ approve, scopes: scope, accountId, lifetime }),
   });
 }
-async function authorize(scope = ["pins:read"]) {
+async function authorize(scope = ["pins:read"], lifetime?: OAuthLifetime) {
   const flow = await start();
   expect((await preview(flow)).status).toBe(200);
-  const response = await decide(flow, true, scope);
+  const response = await decide(
+    flow,
+    true,
+    scope,
+    aliceCookie,
+    alice,
+    lifetime,
+  );
   expect(response.status).toBe(200);
   const redirect = new URL(
     (await response.json<{ redirect: string }>()).redirect,
@@ -133,8 +176,8 @@ async function exchange(
     }).toString(),
   });
 }
-async function credential(scope = ["pins:read"]) {
-  const flow = await authorize(scope);
+async function credential(scope = ["pins:read"], lifetime?: OAuthLifetime) {
+  const flow = await authorize(scope, lifetime);
   const response = await exchange(flow);
   expect(response.status).toBe(200);
   const token = (await response.json<{ access_token: string }>()).access_token;
@@ -170,6 +213,7 @@ beforeAll(async () => {
   await migrate(db);
   env = {
     ...(await mf.getBindings<Pick<Bindings, "DB" | "BLOCKS" | "ASSETS">>()),
+    ...rateLimiters,
     APP_NAME: "Pinboard",
     PUBLIC_ORIGIN: origin,
     AUTH_URL: `${origin}/api/auth`,
@@ -200,7 +244,298 @@ beforeAll(async () => {
 }, 30000);
 afterAll(() => mf.dispose());
 
+describe("OAuth abuse controls", () => {
+  const cases = [
+    {
+      binding: "OAUTH_REGISTRATION_LIMITER",
+      path: "/oauth/register",
+      method: "POST",
+      limit: 5,
+      successStatus: 201,
+      ip: "198.51.100.11",
+    },
+    {
+      binding: "OAUTH_AUTHORIZATION_LIMITER",
+      path: "/oauth/authorize",
+      method: "GET",
+      limit: 30,
+      successStatus: 400,
+      ip: "198.51.100.12",
+    },
+    {
+      binding: "OAUTH_TOKEN_LIMITER",
+      path: "/oauth/token",
+      method: "POST",
+      limit: 60,
+      successStatus: 400,
+      ip: "198.51.100.13",
+    },
+  ] as const;
+  it.each(cases)(
+    "enforces $binding at its configured native threshold with independent IPs",
+    async ({ binding, path, method, limit, successStatus, ip }) => {
+      const bindings = {
+        ...env,
+        ...(await mf.getBindings<
+          Pick<
+            Bindings,
+            | "OAUTH_REGISTRATION_LIMITER"
+            | "OAUTH_AUTHORIZATION_LIMITER"
+            | "OAUTH_TOKEN_LIMITER"
+          >
+        >()),
+      };
+      const limiter = bindings[binding];
+      if (!limiter) throw new Error(`Missing native test limiter: ${binding}`);
+      for (let windowAttempt = 0; windowAttempt < 3; windowAttempt++) {
+        const clientIp = `198.51.100.${Number(ip.split(".").at(-1)) + windowAttempt * 20}`;
+        const init = {
+          method,
+          headers: {
+            "CF-Connecting-IP": clientIp,
+            "Content-Type": "application/json",
+          },
+          ...(method === "POST"
+            ? { body: JSON.stringify({ redirect_uris: [callback] }) }
+            : {}),
+        };
+        const hash = await hashToken(clientIp);
+        const epoch = Math.floor(Date.now() / 60000);
+        const first = await request(path, init, bindings);
+        const outcomes = await Promise.all(
+          Array.from({ length: limit - 1 }, () =>
+            limiter.limit({
+              key: `pinboard:mcp-oauth:${hash}`,
+            }),
+          ),
+        );
+        const blocked = await request(path, init, bindings);
+        // Native buckets reset on wall-clock minute boundaries, not first use.
+        if (Math.floor(Date.now() / 60000) !== epoch) continue;
+        expect(first.status).toBe(successStatus);
+        expect(outcomes.every((outcome) => outcome.success)).toBe(true);
+        expect(blocked.status).toBe(429);
+        expect(await blocked.json()).toEqual({ error: "rate_limit_exceeded" });
+        expect(blocked.headers.get("retry-after")).toBe("60");
+        privateResponse(blocked);
+        expect(blocked.headers.get("access-control-allow-origin")).toBe(
+          path === "/oauth/authorize" ? null : "*",
+        );
+        expect(
+          (
+            await request(
+              path,
+              {
+                ...init,
+                headers: {
+                  ...init.headers,
+                  "CF-Connecting-IP": `203.0.113.${Number(ip.split(".").at(-1))}`,
+                },
+              },
+              bindings,
+            )
+          ).status,
+        ).toBe(successStatus);
+        return;
+      }
+      throw new Error("Native rate-limit checks crossed three minute windows");
+    },
+  );
+  it("uses separate route budgets and never keys on spoofable forwarded headers", async () => {
+    const before = rateLimiters.OAUTH_TOKEN_LIMITER.limit.mock.calls.length;
+    rateLimiters.OAUTH_REGISTRATION_LIMITER.limit.mockResolvedValueOnce({
+      success: false,
+    });
+    expect(
+      (
+        await request("/oauth/register", {
+          method: "POST",
+          headers: { "CF-Connecting-IP": "198.51.100.20" },
+        })
+      ).status,
+    ).toBe(429);
+    expect(
+      (
+        await request("/oauth/token", {
+          method: "POST",
+          headers: {
+            "CF-Connecting-IP": "198.51.100.20",
+            "X-Forwarded-For": "203.0.113.1",
+          },
+        })
+      ).status,
+    ).toBe(400);
+    expect(rateLimiters.OAUTH_TOKEN_LIMITER.limit.mock.calls).toHaveLength(
+      before + 1,
+    );
+    expect(rateLimiters.OAUTH_TOKEN_LIMITER.limit).toHaveBeenLastCalledWith({
+      key: `pinboard:mcp-oauth:${await hashToken("198.51.100.20")}`,
+    });
+  });
+  it.each(cases)(
+    "fails closed for missing or unavailable $binding before database work",
+    async ({ binding, path, method }) => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const prepare = vi.spyOn(env.DB, "prepare");
+      try {
+        for (const limiter of [
+          undefined,
+          {
+            limit: () =>
+              Promise.reject(new Error("private infrastructure diagnostic")),
+          },
+        ]) {
+          prepare.mockClear();
+          const response = await request(
+            path,
+            { method },
+            { ...env, [binding]: limiter },
+          );
+          expect(response.status).toBe(503);
+          expect(await response.json()).toEqual({
+            error: "temporarily_unavailable",
+          });
+          expect(response.headers.get("retry-after")).toBe("60");
+          privateResponse(response);
+          expect(prepare).not.toHaveBeenCalled();
+        }
+        expect(error).toHaveBeenCalledWith(
+          expect.stringContaining("oauth_rate_limit_unavailable"),
+        );
+        expect(JSON.stringify(error.mock.calls)).not.toContain(
+          "private infrastructure diagnostic",
+        );
+      } finally {
+        prepare.mockRestore();
+        error.mockRestore();
+      }
+    },
+  );
+  it("rejects a missing trusted IP without accepting X-Forwarded-For", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const before =
+        rateLimiters.OAUTH_REGISTRATION_LIMITER.limit.mock.calls.length;
+      const response = await app.request(
+        origin + "/oauth/register",
+        { method: "POST", headers: { "X-Forwarded-For": "198.51.100.1" } },
+        env,
+      );
+      expect(response.status).toBe(503);
+      privateResponse(response);
+      expect(
+        rateLimiters.OAUTH_REGISTRATION_LIMITER.limit.mock.calls,
+      ).toHaveLength(before);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining("client_ip_missing"),
+      );
+    } finally {
+      error.mockRestore();
+    }
+  });
+  it("never rate limits discovery, preflight, grant revocation or existing MCP calls", async () => {
+    const flow = await credential();
+    const bindings = { ...env };
+    delete bindings.OAUTH_REGISTRATION_LIMITER;
+    delete bindings.OAUTH_AUTHORIZATION_LIMITER;
+    delete bindings.OAUTH_TOKEN_LIMITER;
+    expect(
+      (await request("/.well-known/oauth-authorization-server", {}, bindings))
+        .status,
+    ).toBe(200);
+    expect(
+      (await request("/oauth/register", { method: "OPTIONS" }, bindings))
+        .status,
+    ).toBe(204);
+    expect(
+      (
+        await request(
+          `/api/oauth/grants/${flow.id}`,
+          { method: "DELETE", headers: sessionHeaders() },
+          bindings,
+        )
+      ).status,
+    ).toBe(204);
+    const mcp = await request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${apiToken}`,
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "list", arguments: {} },
+        }),
+      },
+      bindings,
+    );
+    expect(mcp.status).toBe(200);
+    expect(await mcp.json()).toMatchObject({
+      result: { content: [{ type: "text" }] },
+    });
+  });
+});
+
 describe("OAuth discovery and public registration", () => {
+  it.each(["POST", "GET", "DELETE"])(
+    "challenges unauthenticated MCP %s requests without accepting browser cookies",
+    async (method) => {
+      for (const cookie of ["", aliceCookie]) {
+        const response = await request("/mcp", {
+          method,
+          headers: {
+            ...(cookie ? { cookie } : {}),
+            accept: "application/json, text/event-stream",
+            "content-type": "application/json",
+          },
+          ...(method === "POST"
+            ? {
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "initialize",
+                  params: {
+                    protocolVersion: "2025-11-25",
+                    capabilities: {},
+                    clientInfo: { name: "test-client", version: "1.0.0" },
+                  },
+                }),
+              }
+            : {}),
+        });
+        expect(response.status).toBe(401);
+        expect(response.headers.get("www-authenticate")).toContain(
+          `${origin}/.well-known/oauth-protected-resource/mcp`,
+        );
+        privateResponse(response);
+      }
+    },
+  );
+  it("still rejects foreign MCP origins and cookie mutations without a same-origin header", async () => {
+    const foreign = await request("/mcp", {
+      method: "POST",
+      headers: { origin: "https://evil.test" },
+    });
+    expect(foreign.status).toBe(403);
+    expect(await foreign.json()).toMatchObject({
+      error: "Origin not allowed",
+    });
+    for (const path of ["/api/pins", "/api/tokens"]) {
+      const response = await request(path, {
+        method: "POST",
+        headers: { cookie: aliceCookie },
+      });
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        error: "Same-origin browser request required",
+      });
+    }
+  });
   it("advertises resource metadata and S256 on the same origin; no cookie authentication for MCP", async () => {
     for (const token of ["", "unknown", "po_unknown"]) {
       const response = await request("/mcp", {
@@ -465,7 +800,7 @@ describe("browser login, explicit consent and CSRF", () => {
     flow.params.set("resource", "https://secure.test/mcp");
     const secure = await app.request(
       `https://secure.test/oauth/authorize?${flow.params}`,
-      {},
+      { headers: { "CF-Connecting-IP": "192.0.2.1" } },
       httpsEnv,
     );
     expect(secure.headers.get("set-cookie")).toContain("__Host-pb_oauth_");
@@ -523,7 +858,7 @@ describe("browser login, explicit consent and CSRF", () => {
 });
 
 describe("PKCE, resource binding and one-use code exchange", () => {
-  it("issues only a hashed, scoped one-hour Pinboard credential; no Google or refresh token", async () => {
+  it("defaults to a hashed, scoped one-day Pinboard credential; no Google or refresh token", async () => {
     const flow = await authorize();
     privateResponse(flow.consentResponse);
     const response = await exchange(flow);
@@ -535,7 +870,7 @@ describe("PKCE, resource binding and one-use code exchange", () => {
       token_type: string;
     }>();
     expect(data).toMatchObject({
-      expires_in: ACCESS_TTL,
+      expires_in: 86400,
       scope: "pins:read",
       token_type: "Bearer",
     });
@@ -557,6 +892,159 @@ describe("PKCE, resource binding and one-use code exchange", () => {
       .bind(`${origin}/other-resource`, flow.id)
       .run();
     expect((await rpc(data.access_token)).status).toBe(401);
+  });
+  it.each(oauthLifetimes)(
+    "persists and enforces the %s lifetime from consent",
+    async (lifetime) => {
+      const flow = await authorize(["pins:read"], lifetime);
+      const seconds = oauthLifetimeOptions[lifetime].seconds;
+      const before = Date.now();
+      const response = await exchange(flow);
+      expect(response.status).toBe(200);
+      const data = await response.json<{
+        access_token: string;
+        expires_in?: number;
+      }>();
+      const row = await env.DB.prepare(
+        "SELECT access_ttl, expires_at FROM oauth_grants WHERE id = ?",
+      )
+        .bind(flow.id)
+        .first<{ access_ttl: number | null; expires_at: number | null }>();
+      expect(row!.access_ttl).toBe(seconds);
+      if (seconds === null) {
+        expect(data).not.toHaveProperty("expires_in");
+        expect(row!.expires_at).toBeNull();
+      } else {
+        expect(data.expires_in).toBe(seconds);
+        expect(row!.expires_at).toBeGreaterThanOrEqual(before + seconds * 1000);
+        expect(row!.expires_at).toBeLessThanOrEqual(
+          Date.now() + seconds * 1000,
+        );
+      }
+      const grants = await (
+        await request("/api/oauth/grants", {
+          headers: sessionHeaders(),
+        })
+      ).json<{ grants: OAuthGrant[] }>();
+      expect(grants.grants.find((grant) => grant.id === flow.id)).toMatchObject(
+        {
+          tokenIssued: true,
+          expiresAt: row!.expires_at,
+        },
+      );
+      const now = vi.spyOn(Date, "now");
+      try {
+        now.mockReturnValue(
+          seconds === null ? before + 365 * 86400000 : row!.expires_at! - 1,
+        );
+        expect((await rpc(data.access_token)).status).toBe(200);
+        if (seconds !== null) {
+          now.mockReturnValue(row!.expires_at!);
+          expect((await rpc(data.access_token)).status).toBe(401);
+        }
+      } finally {
+        now.mockRestore();
+      }
+      expect((await exchange(flow)).status).toBe(400);
+      expect(
+        (
+          await request(`/api/oauth/grants/${flow.id}`, {
+            method: "DELETE",
+            headers: sessionHeaders(),
+          })
+        ).status,
+      ).toBe(204);
+      expect((await rpc(data.access_token)).status).toBe(401);
+    },
+  );
+  it.each(["1h", "forever", "", null, 0, 86400, {}, ["never"]])(
+    "rejects invalid consent lifetime %j without consuming the request",
+    async (lifetime) => {
+      const flow = await start();
+      expect(
+        (await decide(flow, true, ["pins:read"], aliceCookie, alice, lifetime))
+          .status,
+      ).toBe(400);
+      expect(
+        await env.DB.prepare("SELECT used_at FROM oauth_requests WHERE id = ?")
+          .bind(flow.id)
+          .first(),
+      ).toEqual({ used_at: null });
+      expect(
+        await env.DB.prepare("SELECT id FROM oauth_grants WHERE id = ?")
+          .bind(flow.id)
+          .first(),
+      ).toBeNull();
+      expect((await decide(flow)).status).toBe(200);
+    },
+  );
+  it("keeps permanent grants pending until code exchange and still expires their codes", async () => {
+    const flow = await authorize(["pins:read"], "never");
+    const grants = await (
+      await request("/api/oauth/grants", {
+        headers: sessionHeaders(),
+      })
+    ).json<{ grants: OAuthGrant[] }>();
+    expect(grants.grants.find((grant) => grant.id === flow.id)).toMatchObject({
+      tokenIssued: false,
+      expiresAt: null,
+    });
+    await env.DB.prepare(
+      "UPDATE oauth_grants SET code_expires_at = 0 WHERE id = ?",
+    )
+      .bind(flow.id)
+      .run();
+    expect((await exchange(flow)).status).toBe(400);
+  });
+  it("does not allow token exchange to override the consent lifetime", async () => {
+    const flow = await authorize(["pins:read"], "1d");
+    expect((await exchange(flow, { lifetime: "never" })).status).toBe(400);
+    const response = await exchange(flow);
+    expect(await response.json()).toMatchObject({ expires_in: 86400 });
+  });
+  it("preserves existing one-hour grants and pending codes when migrating", async () => {
+    const db = await mf.getD1Database("LEGACY_DB");
+    await migrate(db, { through: "0007_descriptions.sql" });
+    const expires = Date.now() + 3600000;
+    await db.batch([
+      db.prepare(
+        "INSERT INTO accounts (id, provider, subject) VALUES ('legacy', 'google', 'legacy')",
+      ),
+      db.prepare(
+        "INSERT INTO oauth_clients (id, name, redirect_uris, created_at) VALUES ('legacy', 'legacy', '[]', 0)",
+      ),
+      ...["issued", "pending", "revoked"].flatMap((id) => [
+        db
+          .prepare(
+            "INSERT INTO oauth_requests (id, client_id, redirect_uri, resource, scopes, challenge, browser_hash, expires_at) VALUES (?, 'legacy', ?, ?, 'pins:read', ?, 'browser', ?)",
+          )
+          .bind(id, callback, `${origin}/mcp`, "challenge", expires),
+        db
+          .prepare(
+            "INSERT INTO oauth_grants (id, client_id, account_id, redirect_uri, resource, scopes, challenge, code_expires_at, token_hash, expires_at, revoked_at, created_at) VALUES (?, 'legacy', 'legacy', ?, ?, 'pins:read', 'challenge', ?, ?, ?, ?, 0)",
+          )
+          .bind(
+            id,
+            callback,
+            `${origin}/mcp`,
+            expires,
+            id === "pending" ? null : id,
+            id === "pending" ? null : expires,
+            id === "revoked" ? 1 : null,
+          ),
+      ]),
+    ]);
+    await migrate(db, { after: "0007_descriptions.sql" });
+    const rows = await db
+      .prepare(
+        "SELECT id, access_ttl, expires_at, revoked_at FROM oauth_grants ORDER BY id",
+      )
+      .all();
+    expect(rows.results).toEqual([
+      { id: "issued", access_ttl: 3600, expires_at: expires, revoked_at: null },
+      { id: "pending", access_ttl: 3600, expires_at: null, revoked_at: null },
+      { id: "revoked", access_ttl: 3600, expires_at: expires, revoked_at: 1 },
+    ]);
   });
   it("rejects wrong verifier/client/callback/resource; failed attempts cannot redeem or consume a valid code", async () => {
     const flow = await authorize();
@@ -812,7 +1300,11 @@ describe("shared tool boundaries and session-only grant management", () => {
       };
       const response = await app.request(
         `${origin}/oauth/register`,
-        { method: "POST", body: JSON.stringify({ redirect_uris: [callback] }) },
+        {
+          method: "POST",
+          headers: { "CF-Connecting-IP": "192.0.2.1" },
+          body: JSON.stringify({ redirect_uris: [callback] }),
+        },
         failing,
       );
       expect(response.status).toBe(500);

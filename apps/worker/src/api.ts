@@ -10,25 +10,65 @@ import {
 } from "./identity.js";
 import { handleMcp } from "./mcp.js";
 import { PinService } from "./service.js";
-import { jsonBody, pinSchema, renamePinSchema, validate } from "./schemas.js";
+import {
+  itemFilterSchema,
+  jsonBody,
+  pinSchema,
+  renamePinSchema,
+  validate,
+} from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
 import { oauthOrigin } from "./oauth.js";
-import { getPreview, processPreview } from "./previews.js";
+import { getPreview, processPreview, processPreviewBatch } from "./previews.js";
+import { previewBatchLimit } from "@shazhou/pinboard-contracts";
+import { publicationApi } from "./publication-api.js";
+import { DescriptionService, descriptionWriteSchema } from "./descriptions.js";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
-  checkOrigin(c);
+  // MCP never accepts cookies; anonymous initialization must reach its 401 challenge.
+  checkOrigin(c, c.req.path !== "/mcp");
   await next();
 });
+api.route("/", publicationApi);
 api.use("/api/pins/*", requireIdentity);
 api.use("/api/pins", requireIdentity);
-api.get("/api/pins", async (c) =>
-  c.json(
+api.get("/api/pins", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  return c.json(
     await new PinService(c.env, c.get("principal")).list(
       validate(z.string().max(256).optional(), c.req.query("cursor")),
+      validate(itemFilterSchema, c.req.query("q")),
     ),
-  ),
-);
+  );
+});
+api.post("/api/pins/previews", async (c) => {
+  const input = validate(
+    z
+      .object({
+        cids: z.array(z.string().min(1).max(256)).min(1).max(previewBatchLimit),
+      })
+      .strict(),
+    await jsonBody(c.req.raw),
+  );
+  const result = await new PinService(c.env, c.get("principal")).previews(
+    input.cids,
+  );
+  const pending = result.previews.filter(
+    (item) =>
+      "preview" in item &&
+      (item.preview.status === "pending" || item.preview.status === "failed"),
+  );
+  if (pending.length)
+    c.executionCtx.waitUntil(
+      processPreviewBatch(
+        c.env,
+        pending.map((item) => item.cid),
+      ),
+    );
+  c.header("Cache-Control", "private, no-store");
+  return c.json(result);
+});
 api.post("/api/pins", async (c) => {
   const input = validate(pinSchema, await jsonBody(c.req.raw));
   return c.json(
@@ -60,6 +100,42 @@ api.get("/api/pins/:cid", async (c) =>
     await new PinService(c.env, c.get("principal")).detail(c.req.param("cid")),
   ),
 );
+api.get("/api/pins/:cid/descriptions", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  return c.json(
+    await new DescriptionService(c.env, c.get("principal")).export(
+      c.req.param("cid"),
+    ),
+  );
+});
+api.get("/api/pins/:cid/nodes/:node/description", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  const result = await new DescriptionService(c.env, c.get("principal")).read(
+    c.req.param("cid"),
+    c.req.param("node"),
+  );
+  if (
+    result.description.preview.status === "pending" ||
+    result.description.preview.status === "failed"
+  )
+    c.executionCtx.waitUntil(processPreview(c.env, result.nodeCid));
+  return c.json(result);
+});
+api.put("/api/pins/:cid/nodes/:node/description", async (c) => {
+  const input = validate(descriptionWriteSchema, await jsonBody(c.req.raw));
+  c.header("Cache-Control", "private, no-store");
+  const result = await new DescriptionService(c.env, c.get("principal")).write(
+    c.req.param("cid"),
+    c.req.param("node"),
+    input,
+  );
+  if (
+    result.description.preview.status === "pending" ||
+    result.description.preview.status === "failed"
+  )
+    c.executionCtx.waitUntil(processPreview(c.env, result.nodeCid));
+  return c.json(result);
+});
 api.get("/api/pins/:cid/preview", async (c) => {
   const pin = await new PinService(c.env, c.get("principal")).detail(
     c.req.param("cid"),

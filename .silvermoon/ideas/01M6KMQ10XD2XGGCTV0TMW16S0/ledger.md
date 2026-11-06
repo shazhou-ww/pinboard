@@ -18,10 +18,10 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 准备获授权的验证环境
+- [x] **D-S01:** 准备获授权的验证环境
 - [ ] **D-S02:** 完成真实客户端授权验证
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** 真实客户端无需手动 Token 即可连接
+- [x] **D-AC01:** 真实客户端无需手动 Token 即可连接
 - [ ] **D-AC02:** 实际权限与兼容性符合契约

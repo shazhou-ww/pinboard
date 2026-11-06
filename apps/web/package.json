@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@phosphor-icons/react": "catalog:",
     "@shazhou/pinboard-encoding": "workspace:*",
     "@ipld/car": "catalog:",
     "ipfs-unixfs-importer": "catalog:",

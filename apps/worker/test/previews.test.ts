@@ -23,6 +23,7 @@ import { thumbnail } from "../src/preview-image.js";
 import { migrate } from "./migrations.js";
 import app from "../src/index.js";
 import { createToken } from "../src/tokens.js";
+import { expireDeleted } from "../src/recently-deleted.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -88,8 +89,206 @@ async function count(sql: string, ...args: (string | number)[]) {
     .bind(...args)
     .first<{ n: number }>())!.n;
 }
+// Exercise physical preview-GC after recovery has expired. Real recovery
+// timing is covered separately in publications.test.ts.
+async function releasePin(service: PinService, cid: string) {
+  await service.unpin(cid);
+  await env.DB.prepare("UPDATE deleted_pins SET expires_at = ? WHERE cid = ?")
+    .bind(new Date().toISOString(), cid)
+    .run();
+  await expireDeleted(env, Date.now());
+}
 
 describe("bounded source-derived previews", () => {
+  it("batches only owned previews, deduplicates CIDs and reports denied items without leaking shared metadata", async () => {
+    const ownPin = await service.upload(
+      text("batch owned excerpt"),
+      "file",
+      "private batch name",
+    );
+    const foreign = await new PinService(env, other).upload(
+      text("foreign batch excerpt"),
+      "file",
+      "foreign private name",
+    );
+    await processPreview(env, ownPin.cid);
+    const missing = CID.createV1(
+      0x55,
+      await sha256.digest(text("batch missing")),
+    ).toString();
+    const token = (
+      await createToken(env, owner, {
+        name: "batch-read",
+        scopes: ["pins:read"],
+        expiresInDays: 1,
+      })
+    ).token;
+    const response = await app.request(
+      "https://preview.test/api/pins/previews",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          cids: [ownPin.cid, foreign.cid, missing, ownPin.cid],
+        }),
+      },
+      env,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const result: unknown = await response.json();
+    expect(result).toMatchObject({
+      previews: [
+        {
+          cid: ownPin.cid,
+          preview: {
+            status: "ready",
+            content: "batch owned excerpt",
+          },
+        },
+        {
+          cid: foreign.cid,
+          error: { status: 404, message: "Pin not found in your account" },
+        },
+        {
+          cid: missing,
+          error: { status: 404, message: "Pin not found in your account" },
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toMatch(
+      /private batch name|foreign batch excerpt|foreign private name|bytes|Base64/,
+    );
+    expect(
+      await count(
+        "SELECT attempts AS n FROM content_previews WHERE source_cid = ?",
+        foreign.cid,
+      ),
+    ).toBe(0);
+    expect(
+      await count(
+        "SELECT COUNT(*) AS n FROM content_previews WHERE source_cid = ?",
+        missing,
+      ),
+    ).toBe(0);
+    await releasePin(service, ownPin.cid);
+    await releasePin(new PinService(env, other), foreign.cid);
+  });
+
+  it("bounds batch input, enforces scope/origin and limits eager generation to two jobs", async () => {
+    const pins = await Promise.all(
+      [0, 1, 2].map((i) =>
+        service.upload(text(`batch queued ${i}`), "file", `batch ${i}`),
+      ),
+    );
+    const exhausted = await Promise.all(
+      [0, 1].map((i) =>
+        service.upload(text(`batch exhausted ${i}`), "file", `failed ${i}`),
+      ),
+    );
+    await env.DB.batch(
+      exhausted.map((pin) =>
+        env.DB.prepare(
+          "UPDATE content_previews SET status='failed', attempts=3, descriptor=json_set(descriptor, '$.status', 'failed') WHERE source_cid=?",
+        ).bind(pin.cid),
+      ),
+    );
+    const token = (
+      await createToken(env, owner, {
+        name: "batch scope",
+        scopes: ["pins:read"],
+        expiresInDays: 1,
+      })
+    ).token;
+    const writeOnly = (
+      await createToken(env, owner, {
+        name: "batch write only",
+        scopes: ["pins:write"],
+        expiresInDays: 1,
+      })
+    ).token;
+    const request = (body: unknown, credential = token, origin?: string) =>
+      app.request(
+        "https://preview.test/api/pins/previews",
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${credential}`,
+            "content-type": "application/json",
+            ...(origin ? { origin } : {}),
+          },
+          body: JSON.stringify(body),
+        },
+        env,
+      );
+    for (const body of [
+      { cids: [] },
+      { cids: Array(33).fill(pins[0]!.cid) },
+      { cids: ["not-a-cid"] },
+      { cids: [pins[0]!.cid], extra: true },
+    ])
+      expect((await request(body)).status).toBe(400);
+    expect((await request({ cids: ["x".repeat(20000)] })).status).toBe(413);
+    expect((await request({ cids: [pins[0]!.cid] }, writeOnly)).status).toBe(
+      403,
+    );
+    expect(
+      (await request({ cids: [pins[0]!.cid] }, token, "https://evil.test"))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await app.request(
+          "https://preview.test/api/pins/previews",
+          {
+            method: "POST",
+            headers: { origin: "https://preview.test" },
+            body: JSON.stringify({ cids: [pins[0]!.cid] }),
+          },
+          env,
+        )
+      ).status,
+    ).toBe(401);
+    const pending: Promise<unknown>[] = [];
+    const response = await app.request(
+      "https://preview.test/api/pins/previews",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          cids: [...exhausted, ...pins].map((pin) => pin.cid),
+        }),
+      },
+      env,
+      {
+        waitUntil(work) {
+          pending.push(work);
+        },
+        passThroughOnException() {},
+        props: {},
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty("previews.length", 5);
+    await Promise.all(pending);
+    const states = await Promise.all(
+      pins.map((pin) => getPreview(env, pin.cid)),
+    );
+    expect(states.filter((state) => state.status === "ready")).toHaveLength(2);
+    expect(states.filter((state) => state.status === "pending")).toHaveLength(
+      1,
+    );
+    await Promise.all(
+      [...pins, ...exhausted].map((pin) => releasePin(service, pin.cid)),
+    );
+  });
+
   it("authorizes the lazy endpoint before accessing shared metadata and returns a typed, private description", async () => {
     const pin = await service.upload(
       text("authorized endpoint excerpt"),
@@ -388,6 +587,58 @@ describe("bounded source-derived previews", () => {
 });
 
 describe("real images, CID delivery and retention references", () => {
+  it("generates and retains requested child previews through a parent DAG without creating a child Pin", async () => {
+    const original = await readFile(
+      new URL("fixtures/portrait.jpg", import.meta.url),
+    );
+    const source = Uint8Array.from([...original, 0x7e]);
+    const car = await buildDirectoryCar([
+      {
+        path: "child.jpg",
+        size: source.length,
+        content: (async function* () {
+          yield await Promise.resolve(source);
+        })(),
+      },
+    ]);
+    const parent = await service.upload(
+      car.bytes,
+      "car",
+      "Private parent name",
+    );
+    const child = [...(await readCar(car.bytes)).blocks.keys()].find(
+      (cid) => cid !== parent.cid,
+    )!;
+    expect(
+      await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
+    ).toBe(0);
+    expect((await getPreview(env, child)).status).toBe("pending");
+    await processPreview(env, child);
+    const value = await getPreview(env, child);
+    expect(value.status).toBe("ready");
+    if (value.contentType !== "image/webp")
+      throw new Error("not a child image");
+    await runPreviews(env, Date.now() + 8 * 86400000);
+    expect((await getPreview(env, child)).status).toBe("ready");
+    expect(await getBlock(env, value.content.cid)).not.toBeNull();
+    expect(
+      await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
+    ).toBe(0);
+    await releasePin(service, parent.cid);
+    await env.DB.prepare(
+      "UPDATE content_previews SET unreferenced_at = '2000-01-01' WHERE source_cid = ?",
+    )
+      .bind(child)
+      .run();
+    await runPreviews(env);
+    expect(
+      await count(
+        "SELECT count(*) AS n FROM content_previews WHERE source_cid = ?",
+        child,
+      ),
+    ).toBe(0);
+  });
+
   it("stores actual BLOB bytes under their raw CID and delivers cacheable images and verified raw blocks", async () => {
     const { pin, value } = await preview(
       await readFile(new URL("fixtures/photo.jpg", import.meta.url)),
@@ -446,9 +697,11 @@ describe("real images, CID delivery and retention references", () => {
   });
   it("allows distinct originals to share a thumbnail; protects accounts, direct pins, version swaps and racing repins", async () => {
     // Trailing JPEG bytes change source identity but not decoded pixels.
-    const source = await readFile(
+    const original = await readFile(
       new URL("fixtures/portrait.jpg", import.meta.url),
     );
+    // Other tests retain the unmodified original through directory DAGs.
+    const source = Uint8Array.from([...original, 0x7f]);
     const a = await preview(source);
     const altered = new Uint8Array(source.length + 1);
     altered.set(source);
@@ -463,17 +716,17 @@ describe("real images, CID delivery and retention references", () => {
     expect(b.value.content.cid).toBe(cid);
     const second = new PinService(env, other);
     await second.pin(a.pin.cid, "account two secret");
-    await service.unpin(a.pin.cid);
-    await service.unpin(b.pin.cid);
+    await releasePin(service, a.pin.cid);
+    await releasePin(service, b.pin.cid);
     const future = Date.now() + 8 * 86400000;
     await runPreviews(env, future);
     expect(await readBlock(env, cid)).toBeDefined();
     const direct = await second.pin(cid, "direct thumbnail");
     expect(direct.cid).toBe(cid);
-    await second.unpin(a.pin.cid);
+    await releasePin(second, a.pin.cid);
     await runPreviews(env, future + 8 * 86400000);
     expect(await readBlock(env, cid)).toBeDefined();
-    await second.unpin(cid);
+    await releasePin(second, cid);
     // Simulate an old generation retained in the same schema.
     await env.DB.prepare(
       "UPDATE content_previews SET version = ? WHERE source_cid = ?",
@@ -495,7 +748,7 @@ describe("real images, CID delivery and retention references", () => {
     const regenerated = await getPreview(env, a.pin.cid);
     expect(regenerated.status).toBe("ready");
     expect(await readBlock(env, cid)).toBeDefined();
-    await second.unpin(a.pin.cid);
+    await releasePin(second, a.pin.cid);
     await env.DB.prepare(
       "UPDATE preview_images SET unreferenced_at = ? WHERE cid = ?",
     )
@@ -524,7 +777,7 @@ describe("real images, CID delivery and retention references", () => {
       await readFile(new URL("fixtures/transparent.png", import.meta.url)),
     );
     if (value.contentType !== "image/webp") throw new Error("not image");
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     const cid = value.content.cid;
     const orphan = await env.DB.prepare(
       "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
@@ -555,7 +808,7 @@ describe("real images, CID delivery and retention references", () => {
     );
     if (value.contentType !== "image/webp") throw new Error("not image");
     const cid = value.content.cid;
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     await env.DB.prepare(
       "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
     )
@@ -635,7 +888,7 @@ describe("real images, CID delivery and retention references", () => {
       ]);
       const dag = await readCar(car.bytes);
       if (kind !== "car") await storeDag(env, dag);
-      await service.unpin(pin.cid);
+      await releasePin(service, pin.cid);
       await env.DB.prepare(
         "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
       )
@@ -711,7 +964,7 @@ describe("real images, CID delivery and retention references", () => {
       } finally {
         release();
         spy.mockRestore();
-        if (directoryCid) await second.unpin(directoryCid);
+        if (directoryCid) await releasePin(second, directoryCid);
       }
     },
   );
@@ -736,7 +989,7 @@ describe("real images, CID delivery and retention references", () => {
       "car",
       "folder containing image bytes",
     );
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     await runPreviews(env, Date.now() + 8 * 86400000);
     expect(
       await env.DB.prepare(
@@ -745,7 +998,7 @@ describe("real images, CID delivery and retention references", () => {
         .bind(cid)
         .first(),
     ).toMatchObject({ unreferenced_at: null });
-    await new PinService(env, other).unpin(folder.cid);
+    await releasePin(new PinService(env, other), folder.cid);
     const row = await env.DB.prepare(
       "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
     )
@@ -824,7 +1077,7 @@ describe("real images, CID delivery and retention references", () => {
     const oldCid = old.value.content.cid;
     const currentCid = current.value.content.cid;
     expect(oldCid).not.toBe(currentCid);
-    await service.unpin(old.pin.cid);
+    await releasePin(service, old.pin.cid);
     // Reference-only version-swap fixture using two genuinely encoded BLOBs;
     // source fidelity is tested by the actual decoder/encoder cases separately.
     await env.DB.prepare(

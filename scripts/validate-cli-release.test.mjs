@@ -66,6 +66,10 @@ test("npm publication matches the configured trusted publisher and isolated tag 
     /npm publish .*\.tgz" --access public --tag latest --provenance/u,
   );
   assert.match(workflow, /node --test scripts\/cli-package\.test\.mjs/u);
+  assert.match(
+    workflow,
+    /pnpm prepare:cli "\$RELEASE_VERSION"\s+pnpm --dir apps\/cli\/dist\/npm pack --pack-destination \.\./u,
+  );
   assert.doesNotMatch(
     workflow,
     /NODE_AUTH_TOKEN|NPM_TOKEN|wrangler|workflow_dispatch|branches:/u,

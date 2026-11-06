@@ -1,5 +1,70 @@
 # Pinboard CLI
 
+## Conversion and node descriptions
+
+```shell
+pinboard publication convert CID --title "Explicit public title" --request-id UNIQUE
+pinboard description get ROOT_CID NODE_CID
+pinboard description set ROOT_CID NODE_CID --text "Plain text" --version 0
+pinboard description clear ROOT_CID NODE_CID --version 1
+pinboard description export ROOT_CID --json
+pinboard publication description PUBLICATION_ID NODE_CID --revision 1
+```
+
+Conversion atomically replaces the fixed Pin with original-content v1; it is not
+a link or upload. Retry an uncertain conversion with the identical title, CID
+and request ID. Linking still uses `publication publish` and retains the source
+Pin unchanged. Descriptions are scoped to this account and active root,
+including reachable children. Read the actual CAS version before set/clear. CAR
+exports remain original bytes and omit sidecar metadata: explicitly save
+`description export` JSON separately. Publication JSON/history includes
+immutable description maps; publishing the current CID is a NOP and does not
+apply draft description changes. See [publication semantics](publications.md).
+
+## Publications and recovery
+
+Publication titles and the complete revision history are public. Private pin
+labels and account identity are not. Existing pin-write tokens do not gain
+publication authority: explicitly grant the appropriate `publications:read`,
+`publications:write` or `publications:delete` scopes. Publishing an existing pin
+also needs `pins:read`; uploading needs `pins:write`.
+
+```powershell
+pinboard publication create <CID> --title "Field notes" --request-id create-notes
+pinboard publication list
+pinboard publication get <ID>
+pinboard publication get <ID> --revision 3
+pinboard publication history <ID>
+pinboard publication download <ID> --revision 3 --output .\fixed-notes.txt
+pinboard publication export <ID> --output .\current.car
+pinboard publication publish <ID> <CID> --sequence 1 --request-id publish-notes-2
+pinboard publication rollback <ID> 1 --sequence 2 --request-id rollback-notes
+pinboard upload .\notes.txt --publication <ID> --sequence 3 --request-id upload-notes
+pinboard publication remove <ID>
+pinboard deleted
+pinboard publication restore <ID>
+pinboard remove <CID>
+pinboard restore <CID>
+```
+
+Public get/history/download/export commands send no token. Publication downloads
+resolve once and verify/download only that actual CID for the whole operation.
+Omit `--revision` to resolve current. `--sequence` is the current publication
+sequence, not a revision number. Retry an uncertain operation with the same
+`--request-id` and identical payload to get its persisted result. Outdated
+sequence or request-ID payload reuse yields 409. Current-CID publish is NOP;
+noncurrent historical CID creates a new revision. Rollback creates none.
+
+Upload/import with `--publication` preserves the successful pin if publication
+fails, emits `{pin,partialSuccess:true,publicationError}` (also with `--json`)
+and exits 1. Retry just `publication publish` using the reported CID, sequence
+and request ID. Removal moves a pin or publication to recently deleted for 30
+days. `deleted --cursor ...` paginates recovery items and their deadlines;
+restore retains original IDs and history. Only expiry releases references, then
+the last reference starts the existing seven-day GC grace. No permanent deletion
+or content recall is implied. See
+[the HTTP and lifecycle reference](publications.md).
+
 The CLI is a direct client of the existing Pinboard HTTP API. It needs Node.js
 22.13+ and pnpm 11.22+, **not Kubo, an IPFS executable, or a daemon**. It does
 not fetch remote CIDs to create pins.
@@ -286,7 +351,9 @@ filesystem, not mocked ACL results. Local synthetic credentials are
 implementation evidence, not proof of production account authorization. Kubo
 interoperability checks remain separate and optional.
 
-Windows CI places credential fixtures under the current user's profile rather
-than a potentially replaceable checkout directory. `PINBOARD_TEST_ROOT` can
-select a dedicated fixture parent for local tests; it does not change the CLI's
-configuration location or relax ownership, DACL, or ancestor checks.
+Credential tests create a unique temporary directory for each suite and remove
+it after the run. On Windows, these directories default to the current user's
+profile rather than a potentially replaceable checkout directory, both locally
+and in CI. Other platforms retain the checkout as the default parent.
+`PINBOARD_TEST_ROOT` can override the fixture parent; it does not change the
+CLI's configuration location or relax ownership, DACL, or ancestor checks.

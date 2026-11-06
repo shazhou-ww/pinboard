@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ContentPreview,
   Pin,
   PreviewImage,
 } from "@shazhou/pinboard-contracts";
+import { PreviewClient, PreviewRequestError } from "./preview-client.js";
+import { Icon } from "./icon.js";
 
 function Thumbnail({ image, name }: { image: PreviewImage; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -81,25 +83,61 @@ export function PreviewContent({
     case "application/vnd.pinboard.directory+json":
       return (
         <div className="preview-directory">
-          <p className="muted">
-            Folder overview
-            {preview.content.total === undefined
-              ? ""
-              : ` (${preview.content.total} top-level ${preview.content.total === 1 ? "entry" : "entries"})`}
-          </p>
-          <ul>
-            {preview.content.entries.map((entry, index) => (
-              <li
-                key={index}
-                style={{ paddingInlineStart: `${entry.depth}em` }}
-              >
-                <span aria-label={entry.kind}>
-                  {entry.kind === "directory" ? "▸ " : "· "}
-                </span>
-                {entry.name}
-              </li>
-            ))}
-          </ul>
+          <div className="preview-folder-heading">
+            <Icon
+              name="folder"
+              className="preview-entry-icon"
+              data-kind="directory"
+            />
+            <span className="preview-entry-name" title={name}>
+              {name}
+            </span>
+            {preview.content.total === undefined ? (
+              ""
+            ) : (
+              <span className="preview-folder-count">
+                {preview.content.total} top-level{" "}
+                {preview.content.total === 1 ? "entry" : "entries"}
+              </span>
+            )}
+          </div>
+          {preview.content.entries.length ? (
+            <ul aria-label="Folder contents">
+              {preview.content.entries.map((entry, index) => (
+                <li key={index} data-depth={entry.depth} data-kind={entry.kind}>
+                  <Icon
+                    name={
+                      entry.kind === "directory"
+                        ? "folder"
+                        : entry.kind === "file"
+                          ? "file"
+                          : "unknown"
+                    }
+                    className="preview-entry-icon"
+                    data-kind={entry.kind}
+                    role="img"
+                    aria-hidden={false}
+                    aria-label={
+                      entry.kind === "directory"
+                        ? "Folder"
+                        : entry.kind === "file"
+                          ? "File"
+                          : "Unknown item"
+                    }
+                  />
+                  <span className="preview-entry-name" title={entry.name}>
+                    {entry.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="preview-folder-empty">
+              {preview.content.total === 0 && !preview.truncated
+                ? "Empty folder"
+                : "No entries in this preview"}
+            </p>
+          )}
         </div>
       );
     case "application/vnd.pinboard.file+json":
@@ -111,7 +149,15 @@ export function PreviewContent({
   }
 }
 
-export function PinPreview({ pin }: { pin: Pin }) {
+export function PinPreview({
+  pin,
+  client,
+}: {
+  pin: Pin;
+  client?: PreviewClient | undefined;
+}) {
+  const previews = useMemo(() => client ?? new PreviewClient(), [client]);
+  useEffect(() => (client ? undefined : previews.attach()), [client, previews]);
   const ref = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<ContentPreview | null>(null);
   const [error, setError] = useState("");
@@ -124,31 +170,40 @@ export function PinPreview({ pin }: { pin: Pin }) {
     let requests = 0;
     const load = async () => {
       try {
-        const response = await fetch(
-          `/api/pins/${encodeURIComponent(pin.cid)}/preview`,
-          { signal: controller.signal },
-        );
-        if (!response.ok)
-          throw new Error(`Preview unavailable (HTTP ${response.status})`);
-        const next = (await response.json()) as ContentPreview;
+        const next = await previews.request(pin.cid);
         if (controller.signal.aborted) return;
         setPreview(next);
-        if (next.status === "pending" && ++requests < 8)
+        if (next.status === "pending" && ++requests < 24)
           timer = setTimeout(() => {
             void load();
           }, 2000);
       } catch (failure) {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          if (
+            failure instanceof PreviewRequestError &&
+            [401, 403, 404].includes(failure.status)
+          )
+            setPreview(null);
           setError(
             failure instanceof Error ? failure.message : String(failure),
           );
+        }
       }
+    };
+    const start = async () => {
+      const cached = await previews.cached(pin.cid);
+      if (controller.signal.aborted) return;
+      if (cached) {
+        setPreview(cached.preview);
+        if (cached.fresh) return;
+      }
+      await load();
     };
     const observer = new IntersectionObserver((entries) => {
       if (!started && entries.some((entry) => entry.isIntersecting)) {
         started = true;
         observer.disconnect();
-        void load();
+        void start();
       }
     });
     if (ref.current) observer.observe(ref.current);
@@ -157,7 +212,7 @@ export function PinPreview({ pin }: { pin: Pin }) {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [pin.cid]);
+  }, [pin.cid, previews]);
   return (
     <div
       ref={ref}
@@ -170,8 +225,10 @@ export function PinPreview({ pin }: { pin: Pin }) {
           {error || "Preview pending"}
         </p>
       )}
-      {preview?.truncated ? (
-        <span className="preview-truncated">Excerpt / sampled overview</span>
+      {preview && error ? (
+        <p className="muted" role="status">
+          {error}
+        </p>
       ) : null}
     </div>
   );

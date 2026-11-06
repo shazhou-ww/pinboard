@@ -91,7 +91,7 @@ export function dagStatements(
       .bind(now, members),
     db
       .prepare(
-        "UPDATE retained_blocks SET unreferenced_at = NULL WHERE cid IN (SELECT cid FROM dag_members WHERE root = ?) AND EXISTS (SELECT 1 FROM pins WHERE cid = ?)",
+        "UPDATE retained_blocks SET unreferenced_at = NULL WHERE cid IN (SELECT cid FROM dag_members WHERE root = ?) AND EXISTS (SELECT 1 FROM retained_roots WHERE cid = ?)",
       )
       .bind(root, root),
   ];
@@ -175,6 +175,7 @@ export async function getCar(
 ): Promise<{
   body: ReadableStream | Uint8Array<ArrayBuffer>;
   size: number;
+  etag: string;
 } | null> {
   const root = parseCid(cid);
   const manifest = await env.DB.prepare(
@@ -185,7 +186,11 @@ export async function getCar(
   if (manifest) {
     const object = await env.BLOCKS.get(manifest.object_key);
     if (!object || object.size !== manifest.size) unavailable();
-    return { body: object.body, size: manifest.size };
+    return {
+      body: object.body,
+      size: manifest.size,
+      etag: `car:${manifest.object_key}:${manifest.size}`,
+    };
   }
   if (!(await headBlock(env, key(root)))) return null;
   const dag = await completeDag(root, async (link) => {
@@ -195,5 +200,9 @@ export async function getCar(
       : readBlock(env, key(link));
   });
   const bytes = await encodeCar(dag);
-  return { body: bytes, size: bytes.length };
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  const etag = Array.from(digest, (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  return { body: bytes, size: bytes.length, etag };
 }

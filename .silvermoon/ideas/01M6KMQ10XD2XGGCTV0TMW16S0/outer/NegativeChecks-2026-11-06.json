@@ -1,0 +1,109 @@
+{
+  "recordedAt": "2026-11-06T09:24:29.686Z",
+  "contractCommitBeforeChecks": "9d53fbd74622a85e6e3857a11575e1f2ab46913a",
+  "deploymentRevisionBeforeChecks": "cbc6c3831a72",
+  "closedAndSwitched": {
+    "checks": [
+      {
+        "label": "closing-consent-page-without-approval",
+        "passed": true,
+        "closureSource": "User confirms closing the real consent page without Allow",
+        "callbackCount": 0,
+        "state": {
+          "at": "2026-11-06T08:42:18.672Z",
+          "requests": 1,
+          "reviewed": 1,
+          "consumed": 0,
+          "grants": 0,
+          "issued_tokens": 0,
+          "revoked": 0,
+          "code_expires_at": null,
+          "rowsWritten": 0
+        }
+      },
+      {
+        "label": "old-consent-reviewed-before-account-switch",
+        "state": {
+          "at": "2026-11-06T08:43:57.314Z",
+          "requests": 1,
+          "reviewed": 1,
+          "consumed": 0,
+          "grants": 0,
+          "issued_tokens": 0,
+          "revoked": 0,
+          "code_expires_at": null,
+          "rowsWritten": 0
+        }
+      },
+      {
+        "label": "old-consent-after-account-switch-denied",
+        "passed": true,
+        "httpStatus": 403,
+        "httpStatusSource": "User observes browser API response or UI Request failed (403) on the original unchanged consent page after switching Pinboard accounts",
+        "callbackCount": 0,
+        "state": {
+          "at": "2026-11-06T08:45:51.856Z",
+          "requests": 1,
+          "reviewed": 1,
+          "consumed": 0,
+          "grants": 0,
+          "issued_tokens": 0,
+          "revoked": 0,
+          "code_expires_at": null,
+          "rowsWritten": 0
+        }
+      }
+    ],
+    "failures": []
+  },
+  "revokedUnexchangedCode": {
+    "startedAt": "2026-11-06T09:00:14.461Z",
+    "stage": "passed",
+    "browser": "Chrome for Testing 157.0.8103.38 via user-enabled browser WebSocket on 127.0.0.1:9222",
+    "profileSource": "User explicitly selected their already-logged-in profile; no cookie copying",
+    "clientName": "Pinboard acceptance 20261106 - CFT AUTO REVOKE PENDING CODE",
+    "checks": [
+      {
+        "label": "normal-consent-review",
+        "clientNameMatches": true,
+        "lifetime": "1d",
+        "selectedScopes": 1
+      },
+      {
+        "label": "revoke-before-code-exchange",
+        "at": "2026-11-06T09:00:38.749Z",
+        "beforeExpiryAtRequestAndResponse": true,
+        "secondsAfterCallback": 6.443,
+        "browserPendingStateObserved": true,
+        "browserRevokedStateObserved": true,
+        "d1State": {
+          "grants": 1,
+          "revoked": 1,
+          "issued_tokens": 0,
+          "code_expires_at": 1793955691560,
+          "rowsWritten": 0
+        },
+        "status": 400,
+        "oauthError": "invalid_grant",
+        "tokenIssued": false,
+        "passed": true
+      }
+    ],
+    "credentials": "memory-only",
+    "completedAt": "2026-11-06T09:00:38.751Z"
+  },
+  "browserContinuation": {
+    "userAuthorizedSameProfileRestart": true,
+    "sameTestingVersion": "157.0.8103.38",
+    "currentDebugPort": 19302,
+    "bindAddress": "127.0.0.1",
+    "normalPinboardSessionStatusAfterRestart": 200,
+    "cookieOrCredentialCopying": false,
+    "googleInteraction": "Only the user performed required normal Google sign-in/account confirmation; automation was restricted to Pinboard"
+  },
+  "limitations": [
+    "One-day natural access-token expiry and reconnection remain pending",
+    "Source-only 5/30/60 per-IP per-colo limit fix is not a production deployment",
+    "Unused registrations/requests without grants are not deleted through unauthorized D1 cleanup"
+  ]
+}

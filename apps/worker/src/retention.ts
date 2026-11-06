@@ -1,6 +1,7 @@
 import { completeDag, key, parseCid } from "./content.js";
 import type { Bindings } from "./env.js";
 import { dagStatements, readBlock } from "./storage.js";
+import { expireDeleted } from "./recently-deleted.js";
 
 export const CONTENT_RETENTION_MS = 7 * 86400000;
 export const TOKEN_RETENTION_MS = 30 * 86400000;
@@ -11,7 +12,7 @@ const BACKFILL_BATCH = 1;
 const invalidAt =
   "CASE WHEN revoked_at IS NULL OR expires_at < revoked_at THEN expires_at ELSE revoked_at END";
 const knownPins =
-  "NOT EXISTS (SELECT 1 FROM pins p WHERE NOT EXISTS (SELECT 1 FROM dag_roots d WHERE d.root = p.cid))";
+  "NOT EXISTS (SELECT 1 FROM retained_roots p WHERE NOT EXISTS (SELECT 1 FROM dag_roots d WHERE d.root = p.cid))";
 const collectible = `
   unreferenced_at <= ? AND
   NOT EXISTS (
@@ -20,7 +21,7 @@ const collectible = `
     WHERE ob.object_key = storage_objects.object_key
       AND (b.cid IS NULL OR b.unreferenced_at IS NULL OR b.unreferenced_at > ?)
   ) AND
-  NOT EXISTS (SELECT 1 FROM car_dags d JOIN pins p ON p.cid = d.root
+  NOT EXISTS (SELECT 1 FROM car_dags d JOIN retained_roots p ON p.cid = d.root
               WHERE d.object_key = storage_objects.object_key) AND
   ${knownPins} AND (SELECT safe_after FROM retention_state WHERE id = 1) <= ?`;
 
@@ -41,7 +42,7 @@ async function backfill(
   report: RetentionReport,
 ): Promise<void> {
   const roots = await env.DB.prepare(
-    `SELECT DISTINCT p.cid FROM pins p
+    `SELECT DISTINCT p.cid FROM retained_roots p
      LEFT JOIN retention_backfill a ON a.root = p.cid
      WHERE NOT EXISTS (SELECT 1 FROM dag_roots d WHERE d.root = p.cid)
      ORDER BY coalesce(a.attempted_at, ''), p.cid LIMIT ?`,
@@ -77,7 +78,7 @@ async function backfill(
     }
   }
   report.blockedPins = (await env.DB.prepare(
-    "SELECT count(DISTINCT cid) AS count FROM pins WHERE NOT EXISTS (SELECT 1 FROM dag_roots WHERE root = pins.cid)",
+    "SELECT count(DISTINCT cid) AS count FROM retained_roots WHERE NOT EXISTS (SELECT 1 FROM dag_roots WHERE root = retained_roots.cid)",
   ).first<{ count: number }>())!.count;
 }
 
@@ -193,7 +194,7 @@ async function collect(
     env.DB.prepare(
       `DELETE FROM dag_roots WHERE root IN (
         SELECT root FROM dag_roots d WHERE
-        NOT EXISTS (SELECT 1 FROM pins p WHERE p.cid = d.root) AND
+        NOT EXISTS (SELECT 1 FROM retained_roots p WHERE p.cid = d.root) AND
         NOT EXISTS (SELECT 1 FROM car_dags c WHERE c.root = d.root) AND
         NOT EXISTS (SELECT 1 FROM object_blocks b WHERE b.cid = d.root)
         LIMIT 50)`,
@@ -206,7 +207,7 @@ async function collect(
         LIMIT 256)`,
     ),
     env.DB.prepare(
-      "DELETE FROM retention_backfill WHERE root IN (SELECT root FROM retention_backfill a WHERE NOT EXISTS (SELECT 1 FROM pins p WHERE p.cid = a.root) LIMIT 50)",
+      "DELETE FROM retention_backfill WHERE root IN (SELECT root FROM retention_backfill a WHERE NOT EXISTS (SELECT 1 FROM retained_roots p WHERE p.cid = a.root) LIMIT 50)",
     ),
   ]);
 }
@@ -227,6 +228,7 @@ export async function runRetention(
     blockedPins: 0,
   };
   try {
+    await expireDeleted(env, time);
     report.tokensDeleted = (
       await env.DB.prepare(
         `DELETE FROM agent_tokens WHERE id IN (SELECT id FROM agent_tokens

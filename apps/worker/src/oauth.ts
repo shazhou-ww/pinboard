@@ -2,6 +2,12 @@ import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
+import {
+  defaultOAuthLifetime,
+  oauthLifetimes,
+  oauthLifetimeOptions,
+  type OAuthGrant,
+} from "@shazhou/pinboard-contracts";
 import { boundedBody } from "./content.js";
 import {
   authenticate,
@@ -14,7 +20,6 @@ import type { Bindings } from "./env.js";
 
 const REQUEST_TTL = 10 * 60 * 1000;
 const CODE_TTL = 60 * 1000;
-export const ACCESS_TTL = 60 * 60;
 
 export function oauthOrigin(env: Bindings): string {
   return new URL(env.AUTH_URL ?? env.PUBLIC_ORIGIN).origin;
@@ -165,6 +170,44 @@ oauth.onError((error, c) => {
   return c.json({ error: "server_error" }, 500);
 });
 
+function rateLimit(
+  binding:
+    | "OAUTH_REGISTRATION_LIMITER"
+    | "OAUTH_AUTHORIZATION_LIMITER"
+    | "OAUTH_TOKEN_LIMITER",
+): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    const limiter = c.env[binding];
+    const ip = c.req.header("CF-Connecting-IP")?.trim();
+    const unavailable = (reason: string) => {
+      console.error(
+        JSON.stringify({
+          event: "oauth_rate_limit_unavailable",
+          endpoint: c.req.path,
+          reason,
+        }),
+      );
+      c.header("Retry-After", "60");
+      return c.json({ error: "temporarily_unavailable" }, 503);
+    };
+    if (!limiter) return unavailable("binding_missing");
+    if (!ip || ip.length > 64) return unavailable("client_ip_missing");
+    let outcome: RateLimitOutcome;
+    try {
+      outcome = await limiter.limit({
+        key: `pinboard:mcp-oauth:${await hashToken(ip)}`,
+      });
+    } catch {
+      return unavailable("limiter_failed");
+    }
+    if (!outcome.success) {
+      c.header("Retry-After", "60");
+      return c.json({ error: "rate_limit_exceeded" }, 429);
+    }
+    return next();
+  };
+}
+
 const resourceMetadata = (c: Context<AppEnv>) =>
   c.json({
     resource: `${oauthOrigin(c.env)}/mcp`,
@@ -191,96 +234,106 @@ oauth.get("/.well-known/oauth-authorization-server", (c) => {
   });
 });
 
-oauth.post("/oauth/register", async (c) => {
-  const input = parse(
-    z.object({
-      client_name: z.string().trim().min(1).max(100).default("MCP client"),
-      redirect_uris: z.array(z.string().refine(validRedirect)).min(1).max(10),
-      token_endpoint_auth_method: z.literal("none").default("none"),
-      grant_types: z
-        .array(z.string().max(100))
-        .min(1)
-        .max(5)
-        .refine((values) => values.includes("authorization_code"))
-        .default(["authorization_code"]),
-      response_types: z.array(z.literal("code")).length(1).default(["code"]),
-    }),
-    await jsonBody(c.req.raw),
-  );
-  const id = crypto.randomUUID();
-  await c.env.DB.prepare(
-    "INSERT INTO oauth_clients (id, name, redirect_uris, created_at) VALUES (?, ?, ?, ?)",
-  )
-    .bind(
-      id,
-      input.client_name,
-      JSON.stringify(input.redirect_uris),
-      Date.now(),
+oauth.post(
+  "/oauth/register",
+  rateLimit("OAUTH_REGISTRATION_LIMITER"),
+  async (c) => {
+    const input = parse(
+      z.object({
+        client_name: z.string().trim().min(1).max(100).default("MCP client"),
+        redirect_uris: z.array(z.string().refine(validRedirect)).min(1).max(10),
+        token_endpoint_auth_method: z.literal("none").default("none"),
+        grant_types: z
+          .array(z.string().max(100))
+          .min(1)
+          .max(5)
+          .refine((values) => values.includes("authorization_code"))
+          .default(["authorization_code"]),
+        response_types: z.array(z.literal("code")).length(1).default(["code"]),
+      }),
+      await jsonBody(c.req.raw),
+    );
+    const id = crypto.randomUUID();
+    await c.env.DB.prepare(
+      "INSERT INTO oauth_clients (id, name, redirect_uris, created_at) VALUES (?, ?, ?, ?)",
     )
-    .run();
-  return c.json(
-    {
-      ...input,
-      grant_types: ["authorization_code"],
-      client_id: id,
-      client_id_issued_at: Math.floor(Date.now() / 1000),
-    },
-    201,
-  );
-});
+      .bind(
+        id,
+        input.client_name,
+        JSON.stringify(input.redirect_uris),
+        Date.now(),
+      )
+      .run();
+    return c.json(
+      {
+        ...input,
+        grant_types: ["authorization_code"],
+        client_id: id,
+        client_id_issued_at: Math.floor(Date.now() / 1000),
+      },
+      201,
+    );
+  },
+);
 
-oauth.get("/oauth/authorize", async (c) => {
-  const input = parse(
-    z.object({
-      response_type: z.literal("code"),
-      client_id: z.string().min(1).max(100),
-      redirect_uri: z.string().max(2048),
-      resource: z.string().max(2048),
-      scope: z.string().max(100).default("pins:read"),
-      state: z.string().max(1024).optional(),
-      code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-      code_challenge_method: z.literal("S256"),
-    }),
-    singleParams(new URL(c.req.url).searchParams),
-  );
-  if (input.resource !== `${oauthOrigin(c.env)}/mcp`) fail("invalid_target");
-  const client = await c.env.DB.prepare(
-    "SELECT redirect_uris FROM oauth_clients WHERE id = ?",
-  )
-    .bind(input.client_id)
-    .first<{ redirect_uris: string }>();
-  if (
-    !client ||
-    !(JSON.parse(client.redirect_uris) as string[]).includes(input.redirect_uri)
-  )
-    fail();
-  const requested = parseScopes(input.scope);
-  const id = crypto.randomUUID();
-  const secret = randomSecret();
-  await c.env.DB.prepare(
-    "INSERT INTO oauth_requests (id, client_id, redirect_uri, resource, scopes, state, challenge, browser_hash, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  )
-    .bind(
-      id,
-      input.client_id,
-      input.redirect_uri,
-      input.resource,
-      requested.join(" "),
-      input.state ?? null,
-      input.code_challenge,
-      await hashToken(secret),
-      Date.now() + REQUEST_TTL,
+oauth.get(
+  "/oauth/authorize",
+  rateLimit("OAUTH_AUTHORIZATION_LIMITER"),
+  async (c) => {
+    const input = parse(
+      z.object({
+        response_type: z.literal("code"),
+        client_id: z.string().min(1).max(100),
+        redirect_uri: z.string().max(2048),
+        resource: z.string().max(2048),
+        scope: z.string().max(100).default("pins:read"),
+        state: z.string().max(1024).optional(),
+        code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+        code_challenge_method: z.literal("S256"),
+      }),
+      singleParams(new URL(c.req.url).searchParams),
+    );
+    if (input.resource !== `${oauthOrigin(c.env)}/mcp`) fail("invalid_target");
+    const client = await c.env.DB.prepare(
+      "SELECT redirect_uris FROM oauth_clients WHERE id = ?",
     )
-    .run();
-  setCookie(c, cookieName(c, id), secret, {
-    httpOnly: true,
-    secure: oauthOrigin(c.env).startsWith("https:"),
-    sameSite: "Lax",
-    path: "/",
-    maxAge: REQUEST_TTL / 1000,
-  });
-  return c.redirect(`/connect/mcp?request=${id}`, 302);
-});
+      .bind(input.client_id)
+      .first<{ redirect_uris: string }>();
+    if (
+      !client ||
+      !(JSON.parse(client.redirect_uris) as string[]).includes(
+        input.redirect_uri,
+      )
+    )
+      fail();
+    const requested = parseScopes(input.scope);
+    const id = crypto.randomUUID();
+    const secret = randomSecret();
+    await c.env.DB.prepare(
+      "INSERT INTO oauth_requests (id, client_id, redirect_uri, resource, scopes, state, challenge, browser_hash, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+      .bind(
+        id,
+        input.client_id,
+        input.redirect_uri,
+        input.resource,
+        requested.join(" "),
+        input.state ?? null,
+        input.code_challenge,
+        await hashToken(secret),
+        Date.now() + REQUEST_TTL,
+      )
+      .run();
+    setCookie(c, cookieName(c, id), secret, {
+      httpOnly: true,
+      secure: oauthOrigin(c.env).startsWith("https:"),
+      sameSite: "Lax",
+      path: "/",
+      maxAge: REQUEST_TTL / 1000,
+    });
+    return c.redirect(`/connect/mcp?request=${id}`, 302);
+  },
+);
 
 oauth.get("/api/oauth/requests/:id", async (c) => {
   checkOrigin(c);
@@ -308,7 +361,8 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
     z.object({
       accountId: z.string(),
       approve: z.boolean(),
-      scopes: z.array(scopeSchema).max(3),
+      scopes: z.array(scopeSchema).max(scopes.length),
+      lifetime: z.enum(oauthLifetimes).default(defaultOAuthLifetime),
     }),
     await jsonBody(c.req.raw),
   );
@@ -329,12 +383,13 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
   // one D1 transaction, so concurrent consent submissions cannot issue two codes.
   const [inserted, consumed] = await c.env.DB.batch([
     c.env.DB.prepare(
-      "INSERT INTO oauth_grants (id, client_id, account_id, redirect_uri, resource, scopes, code_hash, challenge, code_expires_at, created_at) SELECT id, client_id, account_id, redirect_uri, resource, ?, ?, challenge, ?, ? FROM oauth_requests WHERE id = ? AND used_at IS NULL AND expires_at > ? AND ? = 1",
+      "INSERT INTO oauth_grants (id, client_id, account_id, redirect_uri, resource, scopes, code_hash, challenge, code_expires_at, created_at, access_ttl) SELECT id, client_id, account_id, redirect_uri, resource, ?, ?, challenge, ?, ?, ? FROM oauth_requests WHERE id = ? AND used_at IS NULL AND expires_at > ? AND ? = 1",
     ).bind(
       selected.join(" "),
       await hashToken(code),
       now + CODE_TTL,
       now,
+      oauthLifetimeOptions[input.lifetime].seconds,
       row.id,
       now,
       input.approve ? 1 : 0,
@@ -360,7 +415,7 @@ oauth.post("/api/oauth/requests/:id", async (c) => {
   return c.json({ redirect: redirect.href });
 });
 
-oauth.post("/oauth/token", async (c) => {
+oauth.post("/oauth/token", rateLimit("OAUTH_TOKEN_LIMITER"), async (c) => {
   if (
     !c.req
       .header("content-type")
@@ -384,25 +439,26 @@ oauth.post("/oauth/token", async (c) => {
   );
   if (input.resource !== `${oauthOrigin(c.env)}/mcp`) fail("invalid_target");
   const token = `po_${randomSecret()}`;
+  const now = Date.now();
   const row = await c.env.DB.prepare(
-    "UPDATE oauth_grants SET token_hash = ?, expires_at = ?, code_hash = NULL WHERE code_hash = ? AND client_id = ? AND redirect_uri = ? AND resource = ? AND challenge = ? AND code_expires_at > ? AND revoked_at IS NULL AND token_hash IS NULL RETURNING scopes",
+    "UPDATE oauth_grants SET token_hash = ?, expires_at = CASE WHEN access_ttl IS NULL THEN NULL ELSE ? + access_ttl * 1000 END, code_hash = NULL WHERE code_hash = ? AND client_id = ? AND redirect_uri = ? AND resource = ? AND challenge = ? AND code_expires_at > ? AND revoked_at IS NULL AND token_hash IS NULL RETURNING scopes, access_ttl",
   )
     .bind(
       await hashToken(token),
-      Date.now() + ACCESS_TTL * 1000,
+      now,
       await hashToken(input.code),
       input.client_id,
       input.redirect_uri,
       input.resource,
       await s256(input.code_verifier),
-      Date.now(),
+      now,
     )
-    .first<{ scopes: string }>();
+    .first<{ scopes: string; access_ttl: number | null }>();
   if (!row) fail("invalid_grant");
   return c.json({
     access_token: token,
     token_type: "Bearer",
-    expires_in: ACCESS_TTL,
+    ...(row.access_ttl === null ? {} : { expires_in: row.access_ttl }),
     scope: row.scopes,
   });
 });
@@ -416,11 +472,16 @@ oauth.use("/api/oauth/grants", grantIdentity);
 oauth.use("/api/oauth/grants/*", grantIdentity);
 oauth.get("/api/oauth/grants", async (c) => {
   const grants = await c.env.DB.prepare(
-    "SELECT g.id, g.client_id AS clientId, c.name AS clientName, g.scopes, g.created_at AS createdAt, g.code_expires_at AS codeExpiresAt, g.expires_at AS expiresAt, g.revoked_at AS revokedAt FROM oauth_grants g JOIN oauth_clients c ON c.id = g.client_id WHERE g.account_id = ? ORDER BY g.created_at DESC",
+    "SELECT g.id, g.client_id AS clientId, c.name AS clientName, g.scopes, g.created_at AS createdAt, g.code_expires_at AS codeExpiresAt, g.token_hash IS NOT NULL AS tokenIssued, g.expires_at AS expiresAt, g.revoked_at AS revokedAt FROM oauth_grants g JOIN oauth_clients c ON c.id = g.client_id WHERE g.account_id = ? ORDER BY g.created_at DESC",
   )
     .bind(c.get("principal").accountId)
-    .all();
-  return c.json({ grants: grants.results });
+    .all<Omit<OAuthGrant, "tokenIssued"> & { tokenIssued: number }>();
+  return c.json({
+    grants: grants.results.map((grant) => ({
+      ...grant,
+      tokenIssued: Boolean(grant.tokenIssued),
+    })),
+  });
 });
 oauth.delete("/api/oauth/grants/:id", async (c) => {
   const result = await c.env.DB.prepare(
