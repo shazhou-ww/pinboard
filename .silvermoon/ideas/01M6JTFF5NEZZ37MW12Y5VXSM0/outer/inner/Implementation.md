@@ -2,7 +2,7 @@
 
 已实现独立 API CLI、共享目录编码与工作区测试；设计范围仍以接受的
 [CLI 设计](ideal/CLI-design.md) 为准。实现与检查记录见
-[实施证据](Evidence.md)。Ubuntu/Windows 与两个受支持 Node.js 版本的真实 CI 已通过，包含 Windows 异所有者拒绝测试；本契约不声称生产账户验收或现实阶段完成。
+[实施证据](Evidence.md)。Ubuntu/Windows 与两个受支持 Node.js 版本的真实 CI 已通过，包含 Windows 异所有者拒绝测试。2026-11-06 独立复核发现当前源码及已发布 0.2.0 的帮助缺少本契约要求的公开读取与移除引用说明；I-S03、I-AC02 重新打开，修复并定向验证前不提交 submitInner。本契约不声称生产账户验收或现实阶段完成。
 
 ## Steps
 

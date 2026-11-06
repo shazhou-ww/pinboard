@@ -217,11 +217,80 @@ HTTP 集成通过；合并 CAR 实现后 Worker 全套为 66 通过、1 项独�
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm exec turbo run build --filter=@workspace/cli --filter=@workspace/worker
+pnpm exec turbo run build --filter=@shazhou/pinboard --filter=@shazhou/pinboard-worker
 node .\apps\cli\dist\main.js --help
-pnpm --filter @workspace/worker exec vitest run test\cli.test.ts
-pnpm --filter @workspace/cli test
+pnpm --filter @shazhou/pinboard-worker exec vitest run test\cli.test.ts
+pnpm --filter @shazhou/pinboard test
 pnpm check
 ```
 
 完整用户步骤与权限修复边界见 [CLI 使用说明](../../../../../docs/cli.md)。
+
+## 2026-11-06 独立实现复核
+
+本节是独立会话对当前候选的重新核验，优先于前文历史性的“全部完成”结论。隔离工作区
+`D:\Code\pinboard.worktrees\pinboard-cli-session-verification` 从
+`2b109be68a8105bef2b1c51171e937c774f6b553` 快进至已刷新 primary
+`dccf2f77b3fb0976ad84412f74180643eef8379b`。观察到原 inner `468466acc199`
+尚未提交，控制权 downstream；未记录接受或放弃门禁。
+
+### 已复用并核验的实现证据
+
+- [CI 42175914624](https://github.com/shazhou-ww/pinboard/actions/runs/42175914624)
+  对 `2b109be68a8105bef2b1c51171e937c774f6b553` 的 Ubuntu/Windows × Node.js
+  22.13.0/24.11.1 四项全部成功，各项实际执行原生 CLI 权限测试及
+  `pnpm check`，包含发布包隔离安装测试。当前候选到该提交只增加其他 idea 文档，未改变 CLI 或测试源码。
+- 定向核对了命令解析、endpoint 规范化与优先级、HTTP
+  redirect 拒绝和不确定写入、endpoint 凭据原子保存、真实 Windows
+  DACL/POSIX 权限检查、目录适配，以及真实本地 Worker 集成。现有测试和 CI 可复用，不因新会话而重复全部测试；绿色 CI 只能证明已有断言通过，不能替代与接受合同的逐项比对。
+
+### 已发布包的独立安装核验
+
+- [npmx 包页](https://npmx.dev/package/@shazhou/pinboard)
+  能发现包；但页面显示的日期不是 0.2.0 发布成功的权威证据。npm metadata 返回包名
+  `@shazhou/pinboard`、
+  `version=0.2.0`、`latest=0.2.0`、`bin.pinboard=dist/main.js`、
+  `node>=22.13`、无 runtime dependencies，并声明 provenance attestation。
+- [发布运行 42163656358](https://github.com/shazhou-ww/pinboard/actions/runs/42163656358)
+  的准确提交为
+  `0e421899c24e63c8b1aab2e78d04eee72910ee03`；检查、准确 tarball 验证及 Trusted
+  Publishing 步骤全部成功，日志明确发布
+  `@shazhou/pinboard@0.2.0`。本次只读取已有结果，没有发包。
+- Windows / Node.js
+  24.11.1 下在新建的用户目录外部临时环境中下载该准确版本、核对完整 SHA-512、离线安装归档，并通过真正的
+  `pinboard.cmd` 启动。PATH 只有复制的
+  `node.exe`，没有 checkout、pnpm 或 Kubo；安装不运行 lifecycle
+  scripts。顶层 upload/import/list/inspect/remove 帮助、JSON 帮助、默认 endpoint 读取均成功；未知选项退出 2、stdout 为空且 stderr 为 JSON
+  error。
+- 下载字节的完整性值与 metadata 一致：
+  `sha512-2fUVNDJvNCTp6kAmbfcv+gWg4gpehy6MNkKwo3cSVgacmy75XVvNKQyHyjH3GXNZbhaq1emilTn50eskSXS1Vw==`。直接访问官方 registry 的首次尝试因 TLS
+  handshake 失败，未关闭 TLS 验证；改用本机已配置的 HTTPS 腾讯 npm 镜像获取归档并显式核对上述完整性值后成功。核验脚本的两个初始断言问题（global 安装不存在 lock 文件、帮助尾换行比较）修正后，完整 smoke 退出 0。
+- 未发送生产请求、读取真实 token 或创建生产资源；临时安装、缓存和工作目录已清理。此项不代表真实账户、远端撤销、生产公开语义或整个 D-AC01 已验收，D-* 均保持未勾选。
+
+### 未关闭的合同缺口与最小修复范围
+
+当前源码和准确已发布 0.2.0 的 `pinboard --help` 只以
+`Pinboard — public IPFS storage.`
+开头，没有说明知道 CID 即可读取，也没有说明移除引用不擦除公开内容，同样未解释隐藏文件和空目录规则。文档中的说明不能替代接受设计及 I-AC02 明确要求的命令帮助。
+
+定向 Git 追溯定位至 `1b9becf` 的简洁帮助改动；当前 `apps/cli/test/cli.test.ts`
+的帮助断言只限制不超过 30 行，并要求不出现旧的 `PUBLIC` / `NOT erased`
+字样，没有任何等价语义的正向断言。因此现有绿色 CI 没有保护该合同，不能据此签发实现完成声明。
+
+最小修复仅涉及 `apps/cli/src/cli.ts` 的简洁帮助文本及
+`apps/cli/test/cli.test.ts`
+的帮助回归断言：恢复公开读取、移除引用、隐藏文件和空目录说明，覆盖普通及 JSON 帮助；不增加确认交互，不改变 HTTP、token、OAuth、发布或删除协议。修复后先定向验证，再按仓库要求检查和同步；是否发布新 npm 版本需另行授权。本轮按用户限定先报告问题，未修改源码或重发 0.2.0。
+
+I-S03、I-AC02 已重新打开；在此缺口关闭前，不记录 submitInner，不展示实现接受 gate。安装成功和主应用部署成功均不能替代该实现合同或之后的人类接受。
+
+### 本轮候选检查
+
+首次 Silvermoon 检查因 primary 并发增加另一 idea 的事件而拒绝旧基线；普通快进至
+`11f1c09a8e01ec3bf229fab4f7f2df05abf40290` 后通过，未修改其他 idea 的文件。首次
+`pnpm check`
+被本证据及旧基线的另一 idea 格式问题拦截；仅格式化本 idea，并发 primary 已修复其自身格式。
+
+为遵守仓库提交前要求，本隔离工作区随后执行一次完整
+`pnpm check`，退出 0：发布约束 45 项通过，Turbo 20/20 任务成功；contracts
+2、encoding 14、Web 167、CLI 161 通过（2 项平台/权限能力跳过），Worker
+201 通过（1 项可选测试跳过）；独立归档安装测试 1 项通过。没有并行启动第二轮覆盖率任务。本机跳过项不由绿色总结果冒充已验证；跨平台与异 owner 的实证继续引用上述真实 CI。这些检查未覆盖缺失的帮助语义，因此不关闭 I-S03 或 I-AC02。
