@@ -168,9 +168,18 @@ too. Treat the browser history's short-lived OAuth authorization code as
 sensitive even though it cannot be exchanged without PKCE. No request URLs,
 credentials or verifier values should be captured in access logs or diagnostics.
 Public DCR permits self-selected, **unverified client labels**, not trusted
-software identities. Before exposing this flow publicly, configure appropriate
-edge rate limits/abuse controls for registration/authorization/token endpoints;
-registration and grant metadata consume D1 storage.
+software identities. Registration and grant metadata consume D1 storage.
+
+OAuth 公开入口使用 Worker 专属的三个原生限流 binding：按可信
+`CF-Connecting-IP`，每个 Cloudflare 机房约每分钟注册 5 次、授权发起 30 次、换码 60 次。各入口独立计数，使用散列 IP 作为 key，不采用可伪造的
+`X-Forwarded-For`。超限返回 JSON `rate_limit_exceeded`、HTTP 429 和
+`Retry-After: 60`，保留 `no-store` / `no-referrer`
+及原有 CORS。计数是近似且机房内的，不是全球硬配额；共享出口 IP 共同计数，也不是完整的分布式滥用防护。发现、OPTIONS、现有 MCP 调用与浏览器授权撤销不消耗这些额度。
+
+缺少 binding、可信来源 IP 或限流基础设施异常时，这三个入口返回 JSON
+`temporarily_unavailable`、503 和
+`Retry-After: 60`，不会静默放行，也不会写入新注册或授权记录。日志仅记录操作性故障类型和固定端点，不记录 IP、限流 key、请求体或 OAuth 凭据。本地直接调用 Worker 时也必须配置 binding 和测试来源 IP；Wrangler 本地环境使用原生模拟绑定。源码与本地测试通过不代表生产已经启用，发布前须按
+[部署前置检查](deployment.md#oauth-限流发布前置检查)核对绑定和 namespace，再独立授权发布与生产行为复验。
 
 ### External verification still pending
 

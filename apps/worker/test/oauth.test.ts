@@ -25,6 +25,20 @@ const mf = new Miniflare(
     d1Databases: ["DB", "LEGACY_DB"],
     r2Buckets: ["BLOCKS"],
     serviceBindings: { ASSETS: () => new Response("test assets") },
+    ratelimits: {
+      OAUTH_REGISTRATION_LIMITER: {
+        namespace_id: "26110601",
+        simple: { limit: 5, period: 60 },
+      },
+      OAUTH_AUTHORIZATION_LIMITER: {
+        namespace_id: "26110602",
+        simple: { limit: 30, period: 60 },
+      },
+      OAUTH_TOKEN_LIMITER: {
+        namespace_id: "26110603",
+        simple: { limit: 60, period: 60 },
+      },
+    },
   }),
 );
 let env: Bindings;
@@ -33,15 +47,30 @@ let bob: string;
 let aliceCookie: string;
 let bobCookie: string;
 let apiToken: string;
-const request = async (path: string, init?: RequestInit) => {
+const allowRateLimit = (options: RateLimitOptions) =>
+  Promise.resolve({ success: Boolean(options.key) });
+const rateLimiters = {
+  OAUTH_REGISTRATION_LIMITER: { limit: vi.fn(allowRateLimit) },
+  OAUTH_AUTHORIZATION_LIMITER: { limit: vi.fn(allowRateLimit) },
+  OAUTH_TOKEN_LIMITER: { limit: vi.fn(allowRateLimit) },
+};
+const request = async (path: string, init?: RequestInit, bindings = env) => {
   const pending: Promise<unknown>[] = [];
-  const response = await app.request(origin + path, init, env, {
-    waitUntil(work) {
-      pending.push(work);
+  const headers = new Headers(init?.headers);
+  if (!headers.has("CF-Connecting-IP"))
+    headers.set("CF-Connecting-IP", "192.0.2.1");
+  const response = await app.request(
+    origin + path,
+    { ...init, headers },
+    bindings,
+    {
+      waitUntil(work) {
+        pending.push(work);
+      },
+      passThroughOnException() {},
+      props: {},
     },
-    passThroughOnException() {},
-    props: {},
-  });
+  );
   await Promise.all(pending);
   return response;
 };
@@ -184,6 +213,7 @@ beforeAll(async () => {
   await migrate(db);
   env = {
     ...(await mf.getBindings<Pick<Bindings, "DB" | "BLOCKS" | "ASSETS">>()),
+    ...rateLimiters,
     APP_NAME: "Pinboard",
     PUBLIC_ORIGIN: origin,
     AUTH_URL: `${origin}/api/auth`,
@@ -213,6 +243,223 @@ beforeAll(async () => {
   ).token;
 }, 30000);
 afterAll(() => mf.dispose());
+
+describe("OAuth abuse controls", () => {
+  const cases = [
+    {
+      binding: "OAUTH_REGISTRATION_LIMITER",
+      path: "/oauth/register",
+      method: "POST",
+      limit: 5,
+      successStatus: 201,
+      ip: "198.51.100.11",
+    },
+    {
+      binding: "OAUTH_AUTHORIZATION_LIMITER",
+      path: "/oauth/authorize",
+      method: "GET",
+      limit: 30,
+      successStatus: 400,
+      ip: "198.51.100.12",
+    },
+    {
+      binding: "OAUTH_TOKEN_LIMITER",
+      path: "/oauth/token",
+      method: "POST",
+      limit: 60,
+      successStatus: 400,
+      ip: "198.51.100.13",
+    },
+  ] as const;
+  it.each(cases)(
+    "enforces $binding at its configured native threshold with independent IPs",
+    async ({ path, method, limit, successStatus, ip }) => {
+      const bindings = {
+        ...env,
+        ...(await mf.getBindings<
+          Pick<
+            Bindings,
+            | "OAUTH_REGISTRATION_LIMITER"
+            | "OAUTH_AUTHORIZATION_LIMITER"
+            | "OAUTH_TOKEN_LIMITER"
+          >
+        >()),
+      };
+      const init = {
+        method,
+        headers: {
+          "CF-Connecting-IP": ip,
+          "Content-Type": "application/json",
+        },
+        ...(method === "POST"
+          ? { body: JSON.stringify({ redirect_uris: [callback] }) }
+          : {}),
+      };
+      for (let attempt = 0; attempt < limit; attempt++)
+        expect((await request(path, init, bindings)).status).toBe(
+          successStatus,
+        );
+      const blocked = await request(path, init, bindings);
+      expect(blocked.status).toBe(429);
+      expect(await blocked.json()).toEqual({ error: "rate_limit_exceeded" });
+      expect(blocked.headers.get("retry-after")).toBe("60");
+      privateResponse(blocked);
+      expect(blocked.headers.get("access-control-allow-origin")).toBe(
+        path === "/oauth/authorize" ? null : "*",
+      );
+      expect(
+        (
+          await request(
+            path,
+            {
+              ...init,
+              headers: { ...init.headers, "CF-Connecting-IP": `${ip}0` },
+            },
+            bindings,
+          )
+        ).status,
+      ).toBe(successStatus);
+    },
+  );
+  it("uses separate route budgets and never keys on spoofable forwarded headers", async () => {
+    const before = rateLimiters.OAUTH_TOKEN_LIMITER.limit.mock.calls.length;
+    rateLimiters.OAUTH_REGISTRATION_LIMITER.limit.mockResolvedValueOnce({
+      success: false,
+    });
+    expect(
+      (
+        await request("/oauth/register", {
+          method: "POST",
+          headers: { "CF-Connecting-IP": "198.51.100.20" },
+        })
+      ).status,
+    ).toBe(429);
+    expect(
+      (
+        await request("/oauth/token", {
+          method: "POST",
+          headers: {
+            "CF-Connecting-IP": "198.51.100.20",
+            "X-Forwarded-For": "203.0.113.1",
+          },
+        })
+      ).status,
+    ).toBe(400);
+    expect(rateLimiters.OAUTH_TOKEN_LIMITER.limit.mock.calls).toHaveLength(
+      before + 1,
+    );
+    expect(rateLimiters.OAUTH_TOKEN_LIMITER.limit).toHaveBeenLastCalledWith({
+      key: `pinboard:mcp-oauth:${await hashToken("198.51.100.20")}`,
+    });
+  });
+  it.each(cases)(
+    "fails closed for missing or unavailable $binding before database work",
+    async ({ binding, path, method }) => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const prepare = vi.spyOn(env.DB, "prepare");
+      try {
+        for (const limiter of [
+          undefined,
+          {
+            limit: () =>
+              Promise.reject(new Error("private infrastructure diagnostic")),
+          },
+        ]) {
+          prepare.mockClear();
+          const response = await request(
+            path,
+            { method },
+            { ...env, [binding]: limiter },
+          );
+          expect(response.status).toBe(503);
+          expect(await response.json()).toEqual({
+            error: "temporarily_unavailable",
+          });
+          expect(response.headers.get("retry-after")).toBe("60");
+          privateResponse(response);
+          expect(prepare).not.toHaveBeenCalled();
+        }
+        expect(error).toHaveBeenCalledWith(
+          expect.stringContaining("oauth_rate_limit_unavailable"),
+        );
+        expect(JSON.stringify(error.mock.calls)).not.toContain(
+          "private infrastructure diagnostic",
+        );
+      } finally {
+        prepare.mockRestore();
+        error.mockRestore();
+      }
+    },
+  );
+  it("rejects a missing trusted IP without accepting X-Forwarded-For", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const before =
+        rateLimiters.OAUTH_REGISTRATION_LIMITER.limit.mock.calls.length;
+      const response = await app.request(
+        origin + "/oauth/register",
+        { method: "POST", headers: { "X-Forwarded-For": "198.51.100.1" } },
+        env,
+      );
+      expect(response.status).toBe(503);
+      privateResponse(response);
+      expect(
+        rateLimiters.OAUTH_REGISTRATION_LIMITER.limit.mock.calls,
+      ).toHaveLength(before);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining("client_ip_missing"),
+      );
+    } finally {
+      error.mockRestore();
+    }
+  });
+  it("never rate limits discovery, preflight, grant revocation or existing MCP calls", async () => {
+    const flow = await credential();
+    const bindings = { ...env };
+    delete bindings.OAUTH_REGISTRATION_LIMITER;
+    delete bindings.OAUTH_AUTHORIZATION_LIMITER;
+    delete bindings.OAUTH_TOKEN_LIMITER;
+    expect(
+      (await request("/.well-known/oauth-authorization-server", {}, bindings))
+        .status,
+    ).toBe(200);
+    expect(
+      (await request("/oauth/register", { method: "OPTIONS" }, bindings))
+        .status,
+    ).toBe(204);
+    expect(
+      (
+        await request(
+          `/api/oauth/grants/${flow.id}`,
+          { method: "DELETE", headers: sessionHeaders() },
+          bindings,
+        )
+      ).status,
+    ).toBe(204);
+    const mcp = await request(
+      "/mcp",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${apiToken}`,
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "list", arguments: {} },
+        }),
+      },
+      bindings,
+    );
+    expect(mcp.status).toBe(200);
+    expect(await mcp.json()).toMatchObject({
+      result: { content: [{ type: "text" }] },
+    });
+  });
+});
 
 describe("OAuth discovery and public registration", () => {
   it.each(["POST", "GET", "DELETE"])(
@@ -533,7 +780,7 @@ describe("browser login, explicit consent and CSRF", () => {
     flow.params.set("resource", "https://secure.test/mcp");
     const secure = await app.request(
       `https://secure.test/oauth/authorize?${flow.params}`,
-      {},
+      { headers: { "CF-Connecting-IP": "192.0.2.1" } },
       httpsEnv,
     );
     expect(secure.headers.get("set-cookie")).toContain("__Host-pb_oauth_");
@@ -1033,7 +1280,11 @@ describe("shared tool boundaries and session-only grant management", () => {
       };
       const response = await app.request(
         `${origin}/oauth/register`,
-        { method: "POST", body: JSON.stringify({ redirect_uris: [callback] }) },
+        {
+          method: "POST",
+          headers: { "CF-Connecting-IP": "192.0.2.1" },
+          body: JSON.stringify({ redirect_uris: [callback] }),
+        },
         failing,
       );
       expect(response.status).toBe(500);
