@@ -83,6 +83,11 @@ export function PublicationDialog({
   onChanged,
   convert = false,
   initialTarget = "",
+  onUploadFile,
+  onUploadFolder,
+  choicesLoading = false,
+  choicesError = "",
+  onRetryChoices,
 }: {
   publication: Publication | null;
   pin: Pin | null;
@@ -92,6 +97,11 @@ export function PublicationDialog({
   onChanged: () => Promise<void>;
   convert?: boolean;
   initialTarget?: string;
+  onUploadFile?: (publication: Publication) => void;
+  onUploadFolder?: (publication: Publication) => void;
+  choicesLoading?: boolean;
+  choicesError?: string;
+  onRetryChoices?: () => void;
 }) {
   const [history, setHistory] = useState<PublicationHistory | null>(null);
   const [title, setTitle] = useState("");
@@ -185,6 +195,15 @@ export function PublicationDialog({
         </p>
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
+      {choicesLoading ? <p role="status">Loading action choices...</p> : null}
+      {choicesError ? (
+        <div role="alert">
+          <p>{choicesError}</p>
+          <button type="button" onClick={onRetryChoices}>
+            Retry action choices
+          </button>
+        </div>
+      ) : null}
       {pin ? (
         <form
           onSubmit={(event) => {
@@ -193,6 +212,13 @@ export function PublicationDialog({
               const existing = convert
                 ? undefined
                 : publications.find((item) => item.id === target);
+              if (
+                !convert &&
+                (choicesLoading || choicesError || (target && !existing))
+              )
+                throw new Error(
+                  "Publication choices are unavailable. Retry loading before publishing.",
+                );
               const result = await mutate<PublicationResult>(
                 existing
                   ? `/api/publications/${existing.id}/publish`
@@ -236,7 +262,7 @@ export function PublicationDialog({
               <select
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
-                disabled={busy}
+                disabled={busy || choicesLoading || !!choicesError}
               >
                 <option value="">Create a publication</option>
                 {publications.map((item) => (
@@ -261,7 +287,11 @@ export function PublicationDialog({
           ) : null}
           <button
             className="primary"
-            disabled={busy || (!target && !title.trim())}
+            disabled={
+              busy ||
+              (!convert && (choicesLoading || !!choicesError)) ||
+              (!target && !title.trim())
+            }
           >
             {convert ? "Convert to publication" : "Publish"}
           </button>
@@ -280,6 +310,16 @@ export function PublicationDialog({
             {current.revisionCount} versions · Sequence {current.sequence}
           </p>
           <div className="actions">
+            {onUploadFile ? (
+              <button disabled={busy} onClick={() => onUploadFile(current)}>
+                Upload file to publication
+              </button>
+            ) : null}
+            {onUploadFolder ? (
+              <button disabled={busy} onClick={() => onUploadFolder(current)}>
+                Upload folder to publication
+              </button>
+            ) : null}
             <a href={`/p/${current.id}`}>
               Open public page <Icon name="externalLink" size={16} />
             </a>
@@ -353,7 +393,15 @@ export function PublicationDialog({
                 ))}
               </datalist>
             </label>
-            <button disabled={busy || !history || !cid.trim()}>
+            <button
+              disabled={
+                busy ||
+                !history ||
+                !cid.trim() ||
+                choicesLoading ||
+                !!choicesError
+              }
+            >
               Publish new version
             </button>
           </form>

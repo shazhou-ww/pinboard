@@ -65,19 +65,19 @@ Management endpoints use existing same-origin session or Agent-token checks.
 OAuth credentials remain restricted to `/mcp`. JSON writes use
 `Content-Type: application/json`.
 
-| Method | Route                              | Input / result                                              |
-| ------ | ---------------------------------- | ----------------------------------------------------------- |
-| POST   | `/api/publications`                | `{title,cid,public:true,requestId}`; first revision         |
-| POST   | `/api/pins/:cid/convert`           | `{title,public:true,requestId}`; atomic in-place conversion |
-| GET    | `/api/publications?cursor=...`     | owned active publications, `nextCursor`                     |
-| GET    | `/api/publications/:id`            | owned active publication                                    |
-| POST   | `/api/publications/:id/publish`    | `{cid,expectedSequence,requestId}`                          |
-| POST   | `/api/publications/:id/rollback`   | `{revision,expectedSequence,requestId}`                     |
-| DELETE | `/api/publications/:id`            | move entire publication to recently deleted                 |
-| POST   | `/api/publications/:id/restore`    | restore before expiry                                       |
-| GET    | `/api/recently-deleted?cursor=...` | owned recoverable `items`, `nextCursor`                     |
-| DELETE | `/api/pins/:cid`                   | move pin to recently deleted                                |
-| POST   | `/api/pins/:cid/restore`           | restore before expiry                                       |
+| Method | Route                                | Input / result                                              |
+| ------ | ------------------------------------ | ----------------------------------------------------------- |
+| POST   | `/api/publications`                  | `{title,cid,public:true,requestId}`; first revision         |
+| POST   | `/api/pins/:cid/convert`             | `{title,public:true,requestId}`; atomic in-place conversion |
+| GET    | `/api/publications?cursor=...&q=...` | owned active publications, `nextCursor`                     |
+| GET    | `/api/publications/:id`              | owned active publication                                    |
+| POST   | `/api/publications/:id/publish`      | `{cid,expectedSequence,requestId}`                          |
+| POST   | `/api/publications/:id/rollback`     | `{revision,expectedSequence,requestId}`                     |
+| DELETE | `/api/publications/:id`              | move entire publication to recently deleted                 |
+| POST   | `/api/publications/:id/restore`      | restore before expiry                                       |
+| GET    | `/api/recently-deleted?cursor=...`   | owned recoverable `items`, `nextCursor`                     |
+| DELETE | `/api/pins/:cid`                     | move pin to recently deleted                                |
+| POST   | `/api/pins/:cid/restore`             | restore before expiry                                       |
 
 `publications:read` permits private publication listing and recovery listing.
 `publications:write` permits creation, publish and rollback; an existing-pin
@@ -92,6 +92,32 @@ Targets must be active owned pins backed by a verified complete, ready DAG/CAR.
 No remote content fetching is performed. Sequence checks, publication activity,
 pin activity, storage fencing and retention insertion are rechecked in the D1
 commit transaction.
+
+### Homepage item filtering
+
+`GET /api/pins` and `GET /api/publications` accept optional `q` alongside
+`cursor`. The entire query is trimmed and matched as a Unicode-lowercased
+literal substring against the name/title **or** user-entered root description.
+Internal whitespace is preserved; `%` and `_` are literal. Pins use the
+account's current private root description; publications use only the current
+published revision's root description snapshot. CID, child descriptions, old
+versions, previews and content are excluded.
+
+Matching happens in the Worker before the unchanged 50-item result pagination
+and CID/ID ordering. Omitted or whitespace-only `q` retains ordinary browsing.
+Queries longer than 200 UTF-16 code units return 400. Each cursor must be used
+with the same query; changing the query starts a new first page. Responses
+remain the existing card contracts, without a total count or Pin descriptions.
+Both listing responses use `Cache-Control: private, no-store`.
+
+The authenticated homepage applies input after 200ms (or Enter), waits for IME
+confirmation, and clears with Escape or Clear filter. Mobile uses a second
+header row. Failed requests show retry rather than no-results. Metadata writes
+refresh the current condition without closing an open Pin detail dialog. No
+database migration or backfill is required: filtering reads authoritative
+metadata directly. Nonempty queries scan candidate metadata server-side, so
+large-account latency, D1 read volume and Worker memory should be assessed
+before deployment; no full-account payload is sent to the browser.
 
 ### Concurrency and retry
 

@@ -106,8 +106,8 @@ login bypass in the production Worker.
 ## Web uploads
 
 UI icons use [Phosphor](https://github.com/phosphor-icons/react) (MIT), with a
-regular action icons, duotone content/brand icons and the existing green
-palette. Import icons through `apps/web/src/icon.tsx` to keep sizing and
+regular action icons, duotone content/brand icons and shared semantic color
+roles. Import icons through `apps/web/src/icon.tsx` to keep sizing and
 accessibility defaults consistent; label meaningful icons and hide decorative
 icons from assistive technology.
 
@@ -141,10 +141,14 @@ actions directly, without an expansion arrow. The floating add actions are
 vertically arranged circular icon buttons with accessible names. A compact
 frosted-glass header keeps branding on the left and the signed-in account on the
 right, extending across the reserved scrollbar gutter even on short pages. The
-backdrop defaults to mist blue and lavender. **Settings → Browser preferences →
-Background palette** also offers sand and rose, or silver and ice blue. Changes
-apply immediately across the app and persist in this browser's `localStorage`,
-not the account. Clearing site data restores the default. Unavailable or invalid
+backdrop defaults to **晨光雾屿 · Mist blue & lavender**. **Settings → Browser
+preferences → Background palette** also offers **玫瑰沙丘 · Sand & rose** and
+**晴空冰海 · Clear sky blue** (low-saturation true blue, not cyan). Each
+selection updates the whole interface, including buttons, previews, dialogs,
+menus, focus and interaction states, not just the backdrop. Changes persist in
+this browser's `localStorage` under the existing `pinboard:background` key
+(`mist`, `sand`, `ice`), not the account, and also apply on public/share and
+OAuth pages. Clearing site data restores the default. Unavailable or invalid
 saved preferences are logged and leave the default background usable; failed
 saves show an error in Settings without changing the current palette. All
 palettes share the same bundled, low-contrast silver linework: an evenly
@@ -157,25 +161,27 @@ floating action. There is no visible wall title or explanatory footer. Drop
 instructions appear in the empty state, on drag-over and in the Add tooltip
 instead of occupying a permanent row above the pins.
 
-Right-click a pin card or use its **…** button to open **View details**, **Copy
-link** (the public share page), **Copy CID** and **Unpin**. Keyboard users can
-open the menu with Shift+F10, navigate with arrow keys, Home and End, and
-dismiss it with Escape. **Add to a publication** creates a public stable link or
-publishes to an existing one. Unpin moves only that pin to recently deleted;
-publication references remain independent.
+Click or tap a pin or publication card to open its details and management
+actions; keyboard users can activate the card's details button with Enter or
+Space. Cards have no custom right-click menu or overflow button, preserving the
+browser's native context menu. The bottom CID capsule remains a shortcut for
+copying the complete CID without opening details. Pin details include copying
+the share link, renaming, downloading, unpinning, adding to a publication,
+converting to a publication and converting with a file or folder upload.
+Publication details include links, history and file/folder version uploads.
+Unpin moves only that pin to recently deleted; publication references remain
+independent.
 
 The upload dialog's **After uploading** selector always offers **Create a
 publication**, including for an account with no existing publications. Enter a
 separate **Public title** to publish; **Keep as a pin only** remains the
 default.
 
-On desktop, the compact **…** button appears when hovering the preview or
-focusing the button with the keyboard. The bottom information strip expands only
-when hovered or focused itself, not when hovering the rest of the card. Touch
-devices keep the menu button and CID action visible. Operation feedback floats
-below the fixed header without moving the wall; success messages dismiss after
-five seconds. Errors remain visible for recovery, and progress remains until the
-operation completes.
+On desktop, the bottom information strip expands only when hovered or focused
+itself, not when hovering the rest of the card. Touch devices keep the CID
+action visible. Operation feedback floats below the fixed header without moving
+the wall; success messages dismiss after five seconds. Errors remain visible for
+recovery, and progress remains until the operation completes.
 
 Pin details open immediately with the listed metadata and refresh in the
 background without inserting a loading row or resizing the panel. Click or tap
@@ -229,14 +235,32 @@ UTF-8 excerpts contain at most 2,400 characters. Text and directory previews
 extend to the card's bottom edge behind the translucent, frosted information
 strip rather than stopping above it. Text and directory cards use a lighter tint
 and tighter blur so sparse glyphs remain visible as softened shapes beneath the
-strip. Images retain stronger frosting for their denser backgrounds. thumbnail
-images fill the card with a centered crop on the longer axis, without changing
-the original bytes, thumbnail CID or stored aspect ratio. Display Markdown
-escapes source punctuation; structured/code text uses literal code fences, not
-invented headings or AI summaries. Links, HTML and remote images remain inert
-text. Verified directories use the current Pin name as their folder-tab heading
-and a compact, read-only directory tree with folded-page file icons, folder tabs
-and hierarchy lines. They show at most 24 actual names across two entry levels,
+strip. Images retain stronger frosting for their denser backgrounds.
+Theme-tinted information strips retain the original visible frosting: 45%
+surface opacity for text/code/directories with 4px blur, and 72% for images with
+16px blur. The header uses a 66%-to-62% tint with 24px blur, and the search
+input uses 75%; menus, publication badges and floating feedback use 90%. Do not
+replace these distinct glass treatments with a near-opaque shared fill:
+preserving a blur declaration alone does not preserve the visible effect.
+Contrast over arbitrary image content is not guaranteed by these translucent
+information strips; check actual image/text underlays visually rather than
+claiming a worst-case guarantee from solid-color tests. The card's keyboard
+focus ring has a solid surface band so it remains identifiable over thumbnails.
+Success, warning and error/danger colors stay fixed independently of the
+selected palette. These color-pair checks are regression coverage, not a claim
+of whole-site WCAG conformance. Text placed directly on the patterned canvas
+uses a stronger derived secondary-text role; the bundled linework itself is
+unchanged. Keep interface colors in the shared roles in
+`apps/web/src/styles.css`; `apps/web/test/palette.test.ts` checks palette
+completeness, solid/glass/linework contrast and semantic-state independence.
+Thumbnail images fill the card with a centered crop on the longer axis, without
+changing the original bytes, thumbnail CID or stored aspect ratio. Display
+Markdown escapes source punctuation; structured/code text uses literal code
+fences, not invented headings or AI summaries. Links, HTML and remote images
+remain inert text. Verified directories use the current Pin name as their
+folder-tab heading and a compact, read-only directory tree with folded-page file
+icons, folder tabs and hierarchy lines aligned beneath parent icons without
+overlapping them. They show at most 24 actual names across two entry levels,
 without subfolder navigation. Cards omit sampling labels; sampled/truncated
 overviews never claim unverified totals. PDF, GIF, video, audio and unknown
 binary content use explicit unsupported placeholders with only reliably
@@ -319,13 +343,15 @@ selection and public-content acknowledgement before uploading.
 | `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
 | `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
 
-The same `/mcp` also accepts short-lived MCP OAuth credentials, restricted to
-that resource rather than `/api/*`. OAuth discovery uses `/.well-known/*`;
-public client registration and authorization-code/S256 endpoints use `/oauth/*`.
+The same `/mcp` also accepts MCP OAuth credentials, restricted to that resource
+rather than `/api/*`. OAuth discovery uses `/.well-known/*`; public client
+registration and authorization-code/S256 endpoints use `/oauth/*`.
 Browser-session-only `/api/oauth/grants` lists authorizations and
 `DELETE /api/oauth/grants/:id` revokes them. The homepage provides the same
-management UI. See
-[OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
+management UI. Consent defaults to one day, with seven-day, thirty-day and
+never-expiring options. Selectable lifetimes require migration
+`0008_oauth_lifetimes.sql`; existing credentials retain their original expiry.
+See [OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
 additions require migration `0004_mcp_oauth.sql` in an explicitly authorized
 environment; they are not a claim that the current production deployment
 supports OAuth.
@@ -411,6 +437,13 @@ $env:IPFS_BIN = 'C:\tools\kubo\ipfs.exe'
 $env:OPENSSL_BIN = 'C:\Program Files\Git\usr\bin\openssl.exe'
 pnpm test:kubo
 ```
+
+Worker integration tests allow 30 seconds per test for local D1/R2 and workerd
+I/O on both Linux and Windows; this is a test-runner budget, not a production
+latency target. Native OAuth limiter tests fill the configured bucket directly
+between HTTP boundary checks and verify that both checks share one wall-clock
+minute. Only a detected minute rollover repeats the check with a fresh IP;
+unexpected responses within a window still fail immediately.
 
 The Kubo PoC uses a **separate local-only Worker entry** and temporary storage;
 its unauthenticated uploader is never mounted by the production Worker. It

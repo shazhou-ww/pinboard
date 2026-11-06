@@ -1,0 +1,159 @@
+{
+  "recordedAt": "2026-11-06T09:24:29.692Z",
+  "observedAt": "2026-11-06T08:56:52.922Z",
+  "source": "Cloudflare Workers Observability telemetry/query, dry read-only queries",
+  "accountId": "92c3c4fdcc84a1590555bccf4f111de2",
+  "worker": "pinboard",
+  "workerVersion": "418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7",
+  "timeframe": {
+    "from": "2026-11-06T07:59:45Z",
+    "to": "2026-11-06T08:03:36Z"
+  },
+  "queryProcedure": {
+    "endpoint": "/accounts/{account_id}/workers/observability/telemetry/query",
+    "requestSelection": {
+      "view": "events",
+      "limit": 20,
+      "filters": [
+        "$metadata.service == pinboard",
+        "url.path == /api/public/bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4/car OR url.path == /api/public/bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi/car"
+      ]
+    },
+    "operationSelection": {
+      "view": "calculations",
+      "chartType": "aggregate",
+      "limit": 50,
+      "filters": [
+        "$metadata.service == pinboard",
+        "$metadata.traceId in exact request trace IDs",
+        "cloudflare.r2.operation exists"
+      ],
+      "calculation": "count",
+      "groupBys": ["$metadata.traceId", "cloudflare.r2.operation"]
+    },
+    "abrLevel": 1
+  },
+  "requests": [
+    {
+      "timestamp": 1793952147210,
+      "traceId": "060a6415cdd1370a2f15dbe4078ef19e",
+      "cid": "bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi",
+      "workerDurationMS": 386,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952146587,
+      "traceId": "0fb27ac780b4c7207d4b56bfa21d6bbc",
+      "cid": "bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi",
+      "workerDurationMS": 395,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952145926,
+      "traceId": "080d20d12e0908f73718cb827bc4c60e",
+      "cid": "bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi",
+      "workerDurationMS": 384,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952145213,
+      "traceId": "d8c56772d95ae60eb8b3b3545f6dde5a",
+      "cid": "bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi",
+      "workerDurationMS": 393,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952144538,
+      "traceId": "78ff9e141096f868da5b21a262f61c8c",
+      "cid": "bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi",
+      "workerDurationMS": 403,
+      "observedR2GetObjectSpans": null,
+      "sampleInterval": null,
+      "observation": "R2-child-not-observed-not-zero"
+    },
+    {
+      "timestamp": 1793952143276,
+      "traceId": "c2a53258d26c74bc3b60b82e36cf13be",
+      "cid": "bafybeig45d5ny6brve7wwudon3bp4uii3dqihbdygxqkbtxnabrtsy3jdi",
+      "workerDurationMS": 468,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952008081,
+      "traceId": "2665cfb871feac3ca8a2904e2fc51886",
+      "cid": "bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4",
+      "workerDurationMS": 292,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952007169,
+      "traceId": "99f7b295c00628db5f9cab303b4bfb73",
+      "cid": "bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4",
+      "workerDurationMS": 276,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952006602,
+      "traceId": "ec93ae14eed5c0958fa4be4e2b82497d",
+      "cid": "bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4",
+      "workerDurationMS": 276,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952005969,
+      "traceId": "e086c60c98a2020a04bc3597220f88ef",
+      "cid": "bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4",
+      "workerDurationMS": 272,
+      "observedR2GetObjectSpans": null,
+      "sampleInterval": null,
+      "observation": "R2-child-not-observed-not-zero"
+    },
+    {
+      "timestamp": 1793952005329,
+      "traceId": "9cff38fac03b1577fe9e4757aace94d5",
+      "cid": "bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4",
+      "workerDurationMS": 273,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    },
+    {
+      "timestamp": 1793952003921,
+      "traceId": "43bea125b67886917182add4562ffe8e",
+      "cid": "bafybeicvorq5iz5mn4xysco4iektnw6gweyzrizff3oky3pnan7zd5ckq4",
+      "workerDurationMS": 812,
+      "observedR2GetObjectSpans": 1,
+      "sampleInterval": 1,
+      "observation": "one-correlated-GetObject-span"
+    }
+  ],
+  "summary": {
+    "requestSpans": 12,
+    "requestsWithObservedR2GetObject": 10,
+    "observedGetObjectSpans": 10,
+    "requestsWithUnobservedR2Child": 2
+  },
+  "limitations": [
+    "Counts are observed platform spans, not inferred from latency or local counted bindings",
+    "Two missing child spans are unobserved, not zero R2 operations",
+    "No claim of complete span delivery or exact billed R2 operation counts",
+    "A subsequent read of the two incomplete traces was blocked by Cloudflare API reauthentication",
+    "No old-format same-fixture production baseline; original CAR contract remains unchanged"
+  ]
+}

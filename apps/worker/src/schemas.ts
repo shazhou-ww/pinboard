@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
 import { boundedBody } from "./content.js";
+import { itemFilterMaxLength } from "@shazhou/pinboard-contracts";
 
 export const nameSchema = z.string().trim().min(1).max(200);
+export const itemFilterSchema = z.string().max(itemFilterMaxLength).optional();
 export const scopes = [
   "pins:read",
   "pins:write",

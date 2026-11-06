@@ -8,8 +8,8 @@ import { canonicalCid, Client } from "./client.js";
 import { prepareInput } from "./input.js";
 import { pinFilename, saveContent } from "./retrieval.js";
 
-export const help = `Pinboard — public IPFS storage.
-
+export const help = `Pinboard — public IPFS storage. Anyone knowing the CID can read uploads/imports.
+Removing a pin does not erase public blocks, caches or other copies.
 pinboard upload <file|directory> [--name LABEL]
 pinboard import <archive.car> [--name LABEL]
 pinboard download <CID> [--output PATH]
@@ -35,7 +35,7 @@ pinboard config get [endpoint]
 pinboard config set endpoint <ORIGIN>
 pinboard config set-token [--endpoint ORIGIN] [--token-stdin]
 pinboard config remove-token [--endpoint ORIGIN]
-
+Directories include hidden and empty files; empty directories are ignored, all-empty rejected.
 Network options: --endpoint ORIGIN, --token-stdin, --timeout MS (default 60000).
 All commands: --json, --help.
 `;

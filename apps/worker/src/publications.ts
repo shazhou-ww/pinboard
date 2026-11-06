@@ -11,8 +11,9 @@ import type { Bindings } from "./env.js";
 import { requireScope, type Principal } from "./identity.js";
 import { key, parseCid, readCar } from "./content.js";
 import { PinService } from "./service.js";
-import { nameSchema, validate } from "./schemas.js";
+import { itemFilterSchema, nameSchema, validate } from "./schemas.js";
 import { getCar, storeDag } from "./storage.js";
+import { matchesItemFilter } from "./item-filter.js";
 
 const fields = `p.id, p.title, p.current_revision AS currentRevision,
   p.sequence, p.created_at AS createdAt, p.updated_at AS updatedAt,
@@ -177,20 +178,33 @@ export class PublicationService {
     private readonly principal: Principal,
   ) {}
 
-  async list(cursor = "") {
+  async list(cursor = "", query = "") {
     requireScope(this.principal, "publications:read");
+    validate(itemFilterSchema, query);
+    const filtered = query.trim().length > 0;
     const rows = await this.env.DB.prepare(
-      "SELECT id FROM publications WHERE account_id = ? AND deleted_at IS NULL AND id > ? ORDER BY id LIMIT 51",
+      filtered
+        ? `SELECT p.id, p.title,
+          (SELECT j.value FROM json_each(r.descriptions) j WHERE j.key = r.cid) AS rootDescription
+          FROM publications p JOIN publication_revisions r
+          ON r.publication_id = p.id AND r.revision = p.current_revision
+          WHERE p.account_id = ? AND p.deleted_at IS NULL AND p.id > ? ORDER BY p.id`
+        : "SELECT id FROM publications WHERE account_id = ? AND deleted_at IS NULL AND id > ? ORDER BY id LIMIT 51",
     )
       .bind(this.principal.accountId, cursor)
-      .all<{ id: string }>();
-    const page = rows.results.slice(0, 50);
+      .all<{ id: string; title: string; rootDescription: string | null }>();
+    const matches = filtered
+      ? rows.results.filter((row) =>
+          matchesItemFilter(query, row.title, row.rootDescription),
+        )
+      : rows.results;
+    const page = matches.slice(0, 50);
     const publications = await Promise.all(
       page.map(({ id }) => readPublication(this.env, id)),
     );
     return {
       publications,
-      nextCursor: rows.results.length > 50 ? page.at(-1)!.id : null,
+      nextCursor: matches.length > 50 ? page.at(-1)!.id : null,
     };
   }
 

@@ -7,10 +7,12 @@ export function NodeDescriptionEditor({
   rootCid,
   publicationId,
   revision,
+  onChanged,
 }: {
   rootCid: string;
   publicationId?: string;
   revision?: number;
+  onChanged?: () => Promise<void>;
 }) {
   const [node, setNode] = useState(rootCid);
   const [selectedNode, setSelectedNode] = useState(rootCid);
@@ -91,6 +93,7 @@ export function NodeDescriptionEditor({
       setNotice(
         "Saved privately for this root. Published version snapshots are unchanged.",
       );
+      await onChanged?.();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {

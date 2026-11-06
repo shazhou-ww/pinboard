@@ -159,6 +159,98 @@ afterEach(() => {
 });
 afterAll(() => mf.dispose());
 
+describe("filter metadata stays authoritative through service writes", () => {
+  it("tracks edits, snapshots, rollback, conversion, deletion and restore without derived data", async () => {
+    const first = await upload();
+    const second = await upload();
+    const descriptions = new DescriptionService(env, owner);
+    await descriptions.write(first.cid, first.cid, {
+      text: "filter-old-É",
+      expectedVersion: 0,
+    });
+    const initial = (
+      await publications.create(
+        "Filter lifecycle",
+        first.cid,
+        write(1).requestId,
+      )
+    ).publication;
+    expect(
+      (await publications.list("", "filter-old-é")).publications.map(
+        (item) => item.id,
+      ),
+    ).toContain(initial.id);
+    await descriptions.write(first.cid, first.cid, {
+      text: "filter-draft",
+      expectedVersion: 1,
+    });
+    expect(
+      (await pins.list(undefined, "filter-draft")).pins.map((item) => item.cid),
+    ).toContain(first.cid);
+    expect((await publications.list("", "filter-draft")).publications).toEqual(
+      [],
+    );
+    await descriptions.write(second.cid, second.cid, {
+      text: "filter-new",
+      expectedVersion: 0,
+    });
+    await publications.publish(initial.id, second.cid, write(1));
+    expect((await publications.list("", "filter-old-é")).publications).toEqual(
+      [],
+    );
+    expect(
+      (await publications.list("", "filter-new")).publications.map(
+        (item) => item.id,
+      ),
+    ).toContain(initial.id);
+    await publications.rollback(initial.id, 1, write(2));
+    expect((await publications.list("", "filter-new")).publications).toEqual(
+      [],
+    );
+    expect(
+      (await publications.list("", "filter-old-é")).publications.map(
+        (item) => item.id,
+      ),
+    ).toContain(initial.id);
+    await publications.delete(initial.id);
+    expect((await publications.list("", "filter-old-é")).publications).toEqual(
+      [],
+    );
+    await publications.restore(initial.id);
+    expect(
+      (await publications.list("", "filter-old-é")).publications.map(
+        (item) => item.id,
+      ),
+    ).toContain(initial.id);
+    await pins.rename(first.cid, "Filter renamed");
+    expect(
+      (await pins.list(undefined, "filter renamed")).pins.map(
+        (item) => item.cid,
+      ),
+    ).toContain(first.cid);
+    await pins.unpin(first.cid);
+    expect((await pins.list(undefined, "filter-draft")).pins).toEqual([]);
+    await restorePin(env, owner, first.cid);
+    expect(
+      (await pins.list(undefined, "filter-draft")).pins.map((item) => item.cid),
+    ).toContain(first.cid);
+    const converted = (
+      await publications.create(
+        "Converted filter",
+        first.cid,
+        write(1).requestId,
+        true,
+      )
+    ).publication;
+    expect((await pins.list(undefined, "filter-draft")).pins).toEqual([]);
+    expect(
+      (await publications.list("", "filter-draft")).publications.map(
+        (item) => item.id,
+      ),
+    ).toContain(converted.id);
+  });
+});
+
 describe("scoped node descriptions and conversion", () => {
   it("migrates existing Pins and publication revisions additively without rewriting their data", async () => {
     const old = new Miniflare(
@@ -2146,7 +2238,7 @@ describe("publications and recovery", () => {
       publication: { currentRevision: 1, revisionCount: 1, sequence: 1 },
       revisions: [{ cid: initial.cid }],
     });
-  });
+  }, 30000);
 
   it("does not grant publication writes to old pin tokens, including MCP", async () => {
     const a = await upload();

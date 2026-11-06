@@ -38,6 +38,54 @@ const publication: Publication = {
 const noop = () => {};
 afterEach(() => vi.unstubAllGlobals());
 describe("publication wall identity and management", () => {
+  it("keeps file and folder version uploads in publication details", () => {
+    const onUploadFile = vi.fn();
+    const onUploadFolder = vi.fn();
+    type ActionTree = { children?: ReactNode; onClick?: () => void };
+    let tree: ReactNode = null;
+    function Probe() {
+      tree = PublicationDialog({
+        publication,
+        pin: null,
+        pins: [pin],
+        publications: [publication],
+        onClose: noop,
+        onChanged: async () => {},
+        onUploadFile,
+        onUploadFolder,
+      });
+      return tree;
+    }
+    const find = (
+      node: ReactNode,
+      label: string,
+    ): ReactElement<ActionTree> | undefined => {
+      if (!isValidElement<ActionTree>(node)) return undefined;
+      if (
+        node.type === "button" &&
+        Children.toArray(node.props.children).includes(label)
+      )
+        return node;
+      for (const child of Children.toArray(node.props.children)) {
+        const found = find(child, label);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const html = renderToStaticMarkup(<Probe />);
+    expect(html).toContain("Copy follow link");
+    expect(html).toContain("Version history");
+    for (const label of [
+      "Upload file to publication",
+      "Upload folder to publication",
+    ]) {
+      const action = find(tree, label);
+      if (!action?.props.onClick) throw new Error(`Missing ${label} action.`);
+      action.props.onClick();
+    }
+    expect(onUploadFile).toHaveBeenCalledWith(publication);
+    expect(onUploadFolder).toHaveBeenCalledWith(publication);
+  });
   it("routes external and internal card events without bubbling into document upload handlers", () => {
     type EventProps = {
       children?: ReactNode;
@@ -49,9 +97,6 @@ describe("publication wall identity and management", () => {
     };
     let tree: ReactElement<EventProps>;
     const drop = vi.fn();
-    const convert = vi.fn();
-    const uploadFile = vi.fn();
-    const uploadFolder = vi.fn();
     function Probe({ publication: item }: { publication?: Publication }) {
       tree = PinCard({
         pin,
@@ -59,31 +104,10 @@ describe("publication wall identity and management", () => {
         busy: false,
         onOpen: noop,
         onCopyCid: noop,
-        onCopyLink: noop,
-        onUnpin: noop,
         onDrop: drop,
-        onConvert: convert,
-        onUploadFile: uploadFile,
-        onUploadFolder: uploadFolder,
       });
       return tree;
     }
-    const find = (
-      node: ReactNode,
-      text: string,
-    ): ReactElement<EventProps> | undefined => {
-      if (!isValidElement<EventProps>(node)) return undefined;
-      if (
-        node.type === "button" &&
-        Children.toArray(node.props.children).includes(text)
-      )
-        return node;
-      for (const child of Children.toArray(node.props.children)) {
-        const found = find(child, text);
-        if (found) return found;
-      }
-      return undefined;
-    };
     const fixed = renderToStaticMarkup(<Probe />);
     expect(fixed).toContain('draggable="true"');
     const dataTransfer = {
@@ -110,12 +134,6 @@ describe("publication wall identity and management", () => {
     expect(dataTransfer.dropEffect).toBe("copy");
     tree!.props.onDrop!(event);
     expect(drop).toHaveBeenCalledWith(event);
-    find(tree!, "Convert to publication")!.props.onClick!();
-    find(tree!, "Convert & upload file")!.props.onClick!();
-    find(tree!, "Convert & upload folder")!.props.onClick!();
-    expect(convert).toHaveBeenCalledOnce();
-    expect(uploadFile).toHaveBeenCalledOnce();
-    expect(uploadFolder).toHaveBeenCalledOnce();
     const published = renderToStaticMarkup(<Probe publication={publication} />);
     expect(published).toContain('draggable="false"');
     dataTransfer.types = ["application/x-pinboard-pin"];
@@ -230,8 +248,6 @@ describe("publication wall identity and management", () => {
           busy={false}
           onOpen={noop}
           onCopyCid={noop}
-          onCopyLink={noop}
-          onUnpin={noop}
         />,
       );
     const fixed = render();
@@ -246,8 +262,13 @@ describe("publication wall identity and management", () => {
     expect(published).toContain("Current v3 · 5 versions");
     expect(published).not.toContain("Current v5");
     expect(published).not.toContain("Private label");
-    expect(published).toContain("Copy follow link");
-    expect(published).toContain("Manage publication &amp; history");
+    expect(published).toContain(
+      'aria-label="View details for publication Public field notes"',
+    );
+    expect(published).toContain('aria-label="Copy CID for Public field notes"');
+    expect(published).not.toContain('role="menu');
+    expect(published).not.toContain("pin-menu-trigger");
+    expect(published.match(/<button/g)).toHaveLength(2);
     expect(
       render({ ...publication, currentRevision: 1, revisionCount: 1 }),
     ).toContain("Publication");

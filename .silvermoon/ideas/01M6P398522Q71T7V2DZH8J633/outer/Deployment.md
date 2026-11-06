@@ -1,8 +1,9 @@
 # Deployment
 
-本轮增量已实现并通过隔离环境验收，尚未部署生产。当前卡片拖放、已有 Pin
-link、原位转换及节点 description/preview 独立性的证据见下方增量验收项；本文已有 release 与 production
-migration 证据保留为首轮历史，不代表本轮上线。
+本轮增量已实现、通过隔离环境验收，并由协调发布 session 完成生产 `0007`
+迁移、`release-261106-3` 应用部署及 CLI `0.2.0` 发布。发布基准为
+`0e421899c24e63c8b1aab2e78d04eee72910ee03`；其后 main 的 `e80138e`
+卡片操作整合不包含在本次发布结果中，不以移动分支代表线上版本。当前证据已就绪，最终 outer 接受仍须用户明确决定。
 
 用户已委托主 Agent 自主处理本轮全部门禁。主 Agent 须实际审阅实现、检查及客户端闭环后再记录对应阶段决定，不能预先写入未来版本验收。本轮优先在隔离 D1/R2 与真实浏览器完成转换、引用、描述快照和恢复验证，再同步最新 primary；既有生产 release 记录不能充当本轮结果，普通 main
 push 不代表部署。
@@ -10,8 +11,7 @@ push 不代表部署。
 本轮应用增量的生产先决条件是经审阅的 `0007_descriptions.sql`，本地 SHA256 为
 `a3bb890899b3866dcf77d48618608574bc59e8e7b2bf0e053d8e1fa27971e790`。它新增一张独立用户描述表，并给版本表增加带
 `{}`
-默认值的快照列；旧行和旧应用仍可读取，真实本地迁移测试已覆盖原有数据。本轮没有执行生产 migration、创建 release 标签或发布应用；最新实现须待本轮明确生产发布授权后，先复核目标数据库、迁移范围和备份，再走既有标签驱动流程，不以此前
-`release-261106-2` 的线上结果冒充本轮上线。
+默认值的快照列；旧行和旧应用仍可读取，真实本地迁移测试已覆盖原有数据。该 SHA256 对应 CRLF 工作文件字节，不能与 Git 中 LF 字节的 hash 混用。生产操作由另一 session 在用户明确授权下执行，下方本轮证据替代此前待部署状态；本文旧 release 记录仅作历史背景。
 
 外部工作先完成隔离本地环境的功能与界面验证及生产 D1 的向后兼容 schema 准备，随后按 2026-11-06 的新增授权发布生产应用。用户于 2026-11-05 明确授权本功能所需的数据迁移，可使用 cfg 中的 Cloudflare
 token，无需再次审批；该授权不包括删除现有生产数据、重建数据库、修改线上时钟或执行生产清理测试，也不自动授权生产应用发布及 release 标签。
@@ -51,6 +51,36 @@ link、无上传原位转换、菜单/触屏/键盘等价入口及取消/部分�
 
 ### D-AC01: 发布遵循现有授权与上线流程
 
+#### 本轮生产及 CLI 发布证据（2026-11-06）
+
+发布协调方在隔离工作区 `D:\Code\pinboard.worktrees\release-261106-3-validated`
+完成集成和完整本地检查；[四组 CI](https://github.com/shazhou-ww/pinboard/actions/runs/42162632448)、[应用发布](https://github.com/shazhou-ww/pinboard/actions/runs/42163182996)
+和 [npm 发布](https://github.com/shazhou-ww/pinboard/actions/runs/42163656358)
+均成功。本 Agent 独立只读核对三个 workflow 的 `headSha` 均为
+`0e421899c24e63c8b1aab2e78d04eee72910ee03`，并核对 annotated tags
+`release-261106-3` 和 `@shazhou/pinboard@0.2.0`
+均指向该 commit；未重复执行任何外部发布操作。
+
+协调方报告并核验：使用本机已存在的 Wrangler OAuth，经原生
+`d1 migrations list/time-travel/apply` 仅应用
+`0007_descriptions.sql`，成功记录由 Wrangler 管理，不手工改写 migration
+ledger。生产目标沿用本契约数据库；迁移前 bookmark 为
+`00000079-00000000-0000511b-52676961c13e7dbec58008a4e76c0d6d`，迁移后为
+`00000079-00000004-0000511b-57b1d25c57f2deacf312809365bb0191`。迁移记录完整为
+`0001..0007`，新增表和版本描述列默认 `{}` 已读回，`PRAGMA foreign_key_check`
+无违规。原有 7 个 Pin 的数量、总 size `922230`、总 blocks `77` 前后一致。OAuth
+`0008` 未包含、未执行，生产 `oauth_grants` 没有
+`access_ttl`；后续 OAuth 变更须单独授权。
+
+协调方报告应用实际承载 100% 流量的 Worker version 为
+`beade787-ea39-432c-89c4-c4eaf01c1665`。CLI `0.2.0` 的 npmX metadata 已核验
+`latest=0.2.0`、provenance/trustedPublisher 为 true、stagedPublish 为 false，Sigstore
+`logIndex=3709302546`，实际发布包 SHA512 为
+`2fUVNDJvNCTp6kAmbfcv+gWg4gpehy6MNkKwo3cSVgacmy75XVvNKQyHyjH3GXNZbhaq1emilTn50eskSXS1Vw==`。本地模拟 tarball 烟测通过；发布后本机官方 npm
+TLS 失败且镜像滞后，协调方改从 UNPKG 不可变 `0.2.0`
+取得全部五个发布文件、逐项校验 SHA256，再以 native npm 离线安装，验证 Windows
+shim 及新增 publication/description 命令帮助。此替代验证不冒称本机官方 registry 在线安装成功，临时文件已清理。
+
 记录目标版本和本地验证环境，保留用户对本次生产迁移的授权依据、迁移前 bookmark、实际应用的迁移名及迁移后 schema、迁移记录和线上只读健康检查结果。只允许本功能经审阅的向后兼容迁移，不夹带其他待应用迁移；如另获生产应用发布授权，仍须提供符合标签驱动流程的发布证据，不以 schema 准备冒充功能已上线。
 
 实现版本为
@@ -72,6 +102,15 @@ UTC 以已授权凭据核对生产数据库身份并取得迁移前 bookmark：
 记录了启用新引用后不可退回旧保留逻辑的边界。
 
 ### D-AC02: 实际客户端访问符合发布约定
+
+本轮协调方的真实生产冒烟：主页/bootstrap HTTP
+200，匿名 pins/publications/node-description HTTP
+401；使用现有授权 MCP 上传 32 字节合成文本，创建 publication
+v1，再上传并发布 v2。公共 current 和两个固定版本的 raw
+bytes 精确匹配，CAR 经 CLI `verifyCar` 验证 root CID 和块完整性，版本
+`descriptions:{}` 可读。线上 `/assets/index-BcHgIBG5.js`
+不含旧 Excerpt 标签，`/assets/index-JMtw9kJv.css`
+包含二级目录连接线修复。此生产证据验证空描述快照和真实发布链路；根/子节点非空描述、转换和预览独立性的完整证明仍来自下方真实隔离集成验收，不将未执行的线上动作写为已验证。
 
 本轮主 Agent 使用生产 Web 构建和编译 Worker 接入独立 Miniflare
 D1/R2：Web 根与子节点描述写入/读回、已有 Pin 内部拖放 link、外部文件到两类卡片、取消零写入、无上传键盘菜单转换、发布失败后的真实上传保留均验证通过。转换得到原内容 v1、新上传内容 v2；普通 link 保留来源卡片/名字，发布目标名字不变。390
@@ -119,6 +158,8 @@ Unpin 与恢复全部成功；身份仅在隔离本地测试网关合成，不�
 为只读外观预览，修改操作明确拒绝；不把该 fixture 当作持久写入或生产功能证明。
 
 ### D-AC03: 已发布内容不因普通 Unpin 丢失
+
+协调方将本轮两个合成测试 Pin 和一个 publication 通过标准 MCP/API 移入最近删除，随后该 publication 全部公开链接返回 404；未硬删用户数据，未绕过 30 天恢复窗口，未以生产时钟或 GC 破坏性测试清理内容。
 
 本轮实际转换 publication 删除时，即使附旧条件请求仍返回 404；恢复原 ID 后子节点描述快照和预览重新可读，源固定卡片不重复复活。真实存储回归还覆盖转换事务失败完整回滚/安全重试、源描述修改与到期不改历史、其他账户/根隔离、预览重建/清理不碰用户文字。隔离 runtime 验证后已关闭，仅保留既有只读外观预览，无生产内容变更。
 

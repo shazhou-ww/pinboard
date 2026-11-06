@@ -47,10 +47,10 @@ describe("typed, display-only content previews", () => {
       "utf8",
     );
     expect(styles).toMatch(
-      /\.pin-info\s*\{[^}]*background:\s*#fffefab8;[^}]*backdrop-filter:\s*blur\(16px\)/u,
+      /\.pin-info\s*\{[^}]*background:\s*var\(--surface-glass\);[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
     expect(styles).toMatch(
-      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*#fffefa73;[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
+      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*var\(--surface-glass-light\);[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
     );
     expect(styles).toMatch(/\.preview-directory li\s*\{[^}]*height:\s*28px;/u);
   });
@@ -61,18 +61,35 @@ describe("typed, display-only content previews", () => {
     );
     expect(styles).toMatch(/\.pin-list\s*>\s*li\s*\{/u);
     expect(styles).not.toMatch(/\.pin-list\s+li\s*\{/u);
-    expect(styles).toMatch(/\.preview-directory ul\s*\{[^}]*margin:\s*0;/u);
+    expect(styles).toMatch(
+      /\.preview-directory ul\s*\{[^}]*padding:\s*0 0 0 14\.5px;[^}]*margin:\s*0 0 0 8\.5px;/u,
+    );
     expect(styles).toMatch(
       /\.preview-folder-heading\s*\{[^}]*margin-bottom:\s*10px;/u,
     );
   });
-  it("connects nested rows from the preceding row's center to their own center", () => {
+  it("aligns guide axes with parent icon centers and leaves room before child icons", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
       "utf8",
     );
     expect(styles).toMatch(
-      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*left:\s*-15px;[^}]*top:\s*-14px;[^}]*width:\s*10px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid #bdcbb7;/u,
+      /\.preview-directory li::before\s*\{[^}]*left:\s*-15\.5px;[^}]*top:\s*0;[^}]*width:\s*10\.5px;[^}]*height:\s*14px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]\s*\{[^}]*margin-left:\s*24px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-14px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid var\(--border\);/u,
+    );
+  });
+  it("starts each subfolder guide below its parent icon without interrupting sibling connections", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="0"\] \+ li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-3px;[^}]*height:\s*17px;/u,
     );
   });
   it("uses the current pin name for folder headings and truncates long names", () => {

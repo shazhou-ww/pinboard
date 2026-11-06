@@ -1,0 +1,2 @@
+ALTER TABLE oauth_grants ADD COLUMN access_ttl INTEGER DEFAULT 3600
+  CHECK (access_ttl IS NULL OR access_ttl IN (3600, 86400, 604800, 2592000));
