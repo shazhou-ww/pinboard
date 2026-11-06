@@ -83,6 +83,8 @@ export function PublicationDialog({
   onChanged,
   convert = false,
   initialTarget = "",
+  onUploadFile,
+  onUploadFolder,
 }: {
   publication: Publication | null;
   pin: Pin | null;
@@ -92,6 +94,8 @@ export function PublicationDialog({
   onChanged: () => Promise<void>;
   convert?: boolean;
   initialTarget?: string;
+  onUploadFile?: (publication: Publication) => void;
+  onUploadFolder?: (publication: Publication) => void;
 }) {
   const [history, setHistory] = useState<PublicationHistory | null>(null);
   const [title, setTitle] = useState("");
@@ -280,6 +284,16 @@ export function PublicationDialog({
             {current.revisionCount} versions · Sequence {current.sequence}
           </p>
           <div className="actions">
+            {onUploadFile ? (
+              <button disabled={busy} onClick={() => onUploadFile(current)}>
+                Upload file to publication
+              </button>
+            ) : null}
+            {onUploadFolder ? (
+              <button disabled={busy} onClick={() => onUploadFolder(current)}>
+                Upload folder to publication
+              </button>
+            ) : null}
             <a href={`/p/${current.id}`}>
               Open public page <Icon name="externalLink" size={16} />
             </a>

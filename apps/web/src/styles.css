@@ -520,8 +520,7 @@ footer {
   width: 18px;
   height: 18px;
 }
-.account-popover,
-.pin-context-menu {
+.account-popover {
   position: fixed;
   inset: 72px 40px auto auto;
   width: 280px;
@@ -566,52 +565,6 @@ footer {
 }
 .account-popover > button:hover {
   background: #e9eee5;
-}
-.pin-menu-trigger {
-  position: absolute;
-  inset: 8px 8px auto auto;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 7px;
-  border: 1px solid #23332d14;
-  border-radius: 50%;
-  background: #fffefae6;
-}
-.pin-menu-trigger svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-}
-.pin-menu-trigger:hover,
-.pin-context-menu > button:hover,
-.pin-context-menu > button:focus-visible {
-  background: #e9eee5;
-}
-.pin-context-menu {
-  inset: auto;
-  width: 208px;
-  max-height: calc(100dvh - 16px);
-}
-.pin-context-menu:popover-open {
-  display: grid;
-}
-.pin-context-menu > button {
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-.pin-context-menu > button:focus-visible {
-  outline-offset: -2px;
-}
-.pin-context-menu > .danger {
-  margin-left: 0;
-  margin-top: 4px;
-  border-top: 1px solid #dce1d8;
-  border-radius: 0 0 6px 6px;
 }
 .canvas {
   min-height: calc(100dvh - 64px);
@@ -769,17 +722,6 @@ footer {
   transition-delay: 0s;
 }
 @media (hover: hover) and (pointer: fine) {
-  .pin-menu-trigger {
-    opacity: 0;
-    pointer-events: none;
-  }
-  .pin-card:has(.pin-open:hover) .pin-menu-trigger,
-  .pin-menu-trigger:hover,
-  .pin-menu-trigger:focus-visible,
-  .pin-menu-trigger[aria-expanded="true"] {
-    opacity: 1;
-    pointer-events: auto;
-  }
   .pin-info:hover {
     grid-template-rows: auto 1fr;
   }
@@ -791,11 +733,6 @@ footer {
   }
 }
 @media (hover: none), (pointer: coarse) {
-  .pin-menu-trigger {
-    width: 44px;
-    height: 44px;
-    padding: 13px;
-  }
   .pin-info {
     grid-template-rows: auto 1fr;
   }

@@ -157,25 +157,27 @@ floating action. There is no visible wall title or explanatory footer. Drop
 instructions appear in the empty state, on drag-over and in the Add tooltip
 instead of occupying a permanent row above the pins.
 
-Right-click a pin card or use its **…** button to open **View details**, **Copy
-link** (the public share page), **Copy CID** and **Unpin**. Keyboard users can
-open the menu with Shift+F10, navigate with arrow keys, Home and End, and
-dismiss it with Escape. **Add to a publication** creates a public stable link or
-publishes to an existing one. Unpin moves only that pin to recently deleted;
-publication references remain independent.
+Click or tap a pin or publication card to open its details and management
+actions; keyboard users can activate the card's details button with Enter or
+Space. Cards have no custom right-click menu or overflow button, preserving the
+browser's native context menu. The bottom CID capsule remains a shortcut for
+copying the complete CID without opening details. Pin details include copying
+the share link, renaming, downloading, unpinning, adding to a publication,
+converting to a publication and converting with a file or folder upload.
+Publication details include links, history and file/folder version uploads.
+Unpin moves only that pin to recently deleted; publication references remain
+independent.
 
 The upload dialog's **After uploading** selector always offers **Create a
 publication**, including for an account with no existing publications. Enter a
 separate **Public title** to publish; **Keep as a pin only** remains the
 default.
 
-On desktop, the compact **…** button appears when hovering the preview or
-focusing the button with the keyboard. The bottom information strip expands only
-when hovered or focused itself, not when hovering the rest of the card. Touch
-devices keep the menu button and CID action visible. Operation feedback floats
-below the fixed header without moving the wall; success messages dismiss after
-five seconds. Errors remain visible for recovery, and progress remains until the
-operation completes.
+On desktop, the bottom information strip expands only when hovered or focused
+itself, not when hovering the rest of the card. Touch devices keep the CID
+action visible. Operation feedback floats below the fixed header without moving
+the wall; success messages dismiss after five seconds. Errors remain visible for
+recovery, and progress remains until the operation completes.
 
 Pin details open immediately with the listed metadata and refresh in the
 background without inserting a loading row or resizing the panel. Click or tap
