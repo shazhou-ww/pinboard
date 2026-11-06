@@ -23,5 +23,5 @@
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** 用户能按文档启动
+- [x] **D-AC01:** 用户能按文档启动
 - [ ] **D-AC02:** 真实权限与公开语义一致
