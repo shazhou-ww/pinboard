@@ -294,3 +294,25 @@ I-S03、I-AC02 已重新打开；在此缺口关闭前，不记录 submitInner�
 `pnpm check`，退出 0：发布约束 45 项通过，Turbo 20/20 任务成功；contracts
 2、encoding 14、Web 167、CLI 161 通过（2 项平台/权限能力跳过），Worker
 201 通过（1 项可选测试跳过）；独立归档安装测试 1 项通过。没有并行启动第二轮覆盖率任务。本机跳过项不由绿色总结果冒充已验证；跨平台与异 owner 的实证继续引用上述真实 CI。这些检查未覆盖缺失的帮助语义，因此不关闭 I-S03 或 I-AC02。
+
+### 用户授权后的最小修复与缺口关闭
+
+用户随后明确授权“上述最小修复并继续验证、同步和 submitInner”；该授权不是acceptInner、acceptOuter、npm 发包或生产部署授权。
+
+仅修改 `apps/cli/src/cli.ts` 的三行帮助文案及 `apps/cli/test/cli.test.ts`
+的三项语义断言。帮助明确说明知道 CID 可读取上传/导入内容、移除引用不擦除公开 blocks/缓存/其他副本，以及隐藏文件、空文件与空目录规则。用已有空行承载说明，保持不超过 30 行；不增加交互、参数或确认步骤，不改变任何网络或授权逻辑。代码内帮助沿用现有英文界面，验收材料和会话说明继续使用 zh-CN。
+
+定向命令
+`pnpm --filter @shazhou/pinboard exec vitest run test\cli.test.ts -t 'shows concise command help' --coverage.enabled false`
+退出 0：无参数、`--help`、`--help --json`
+三种入口全部通过；85 项未选中测试不作为本次新增通过数。
+
+修复后的首次 `pnpm check` 中，CLI 161 项通过，但既有 Worker
+`publication HTTP boundaries > paginates independent same-CID publications and scoped recovery without leaking another account`
+在创建 publication 时返回 500 而不是 201（`test/publications.test.ts:1242`），整轮退出 1。该失败没有被隐藏或通过改动无关代码规避；单独定向重跑该用例退出 0。随后再次执行完整
+`pnpm check` 退出 0：20/20 Turbo 任务成功（19 项有效缓存复用，Worker
+201 通过、1 项跳过），准确构建归档的独立安装测试 1 项通过。之前成功的 CLI 测试、类型检查、lint 和构建缓存基于相同修复后的源码，没有复用修复前的 CLI 结果。
+
+I-S03、I-AC02 至此重新完成。准确 inner
+revision 需同步 primary 后由 submitInner 声明，再按 fresh
+report 请求人类接受。已发布 0.2.0 没有被修改，仍存在上述帮助缺口；本次源码修复及本地新归档验证不能冒充已发布包更新。D-* 保持未完成，真实账户、远端撤销和生产公开内容验证等待实现接受后的单独授权与安全前置条件。

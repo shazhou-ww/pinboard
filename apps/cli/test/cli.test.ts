@@ -346,6 +346,15 @@ describe("top-level command and output contracts", () => {
       expect(text).toContain("pinboard rename <CID> <NAME>");
       expect(text).toContain("--endpoint ORIGIN");
       expect(text).toContain("All commands: --json, --help.");
+      expect(text).toContain(
+        "Anyone knowing the CID can read uploads/imports.",
+      );
+      expect(text).toContain(
+        "Removing a pin does not erase public blocks, caches or other copies.",
+      );
+      expect(text).toContain(
+        "Directories include hidden and empty files; empty directories are ignored, all-empty rejected.",
+      );
       expect(text.trim().split("\n").length).toBeLessThanOrEqual(30);
       expect(text).not.toContain("pinboard pins");
       expect(text).not.toContain("PUBLIC");
