@@ -879,8 +879,8 @@ footer {
 }
 .preview-directory ul {
   list-style: none;
-  padding: 0 0 0 12px;
-  margin: 0;
+  padding: 0 0 0 14.5px;
+  margin: 0 0 0 8.5px;
   border-left: 1px solid #bdcbb7;
 }
 .preview-folder-heading {
@@ -916,21 +916,23 @@ footer {
 .preview-directory li::before {
   content: "";
   position: absolute;
-  left: -12px;
+  left: -15.5px;
   top: 0;
-  width: 7px;
-  height: 12px;
+  width: 10.5px;
+  height: 14px;
   border-bottom: 1px solid #bdcbb7;
 }
 .preview-directory li[data-depth="1"] {
   margin-left: 24px;
 }
 .preview-directory li[data-depth="1"]::before {
-  left: -15px;
   top: -14px;
-  width: 10px;
   height: 28px;
   border-left: 1px solid #bdcbb7;
+}
+.preview-directory li[data-depth="0"] + li[data-depth="1"]::before {
+  top: -3px;
+  height: 17px;
 }
 .preview-directory li[data-kind="directory"] .preview-entry-name {
   font-weight: 600;
