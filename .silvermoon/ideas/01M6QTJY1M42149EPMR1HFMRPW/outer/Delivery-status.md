@@ -6,8 +6,10 @@
 
 - 实现提交：`acd185ace168e839569bc8649c202d5f47ce4147`。
 - 包含并发主分支的集成提交：`c43fdc6f689afa237006df67ce48c8a4e8ee0f98`。
-- 已提交并通过协调方受托验收的实现版本：`implementationRevision=5d9bc1cc2942475572a55c08debf1b14b2c32257`。
-- 验收事件同步提交：`d2c4e2439f71b09f68ce6757f8462a4eb20dd0c5`。
+- 初次验收的配色版本后收到磨砂效果退化反馈，已恢复原有分层透明度并完成真实渲染验证；发布候选必须包含修复集成提交
+  `a7b72936d399bfdbaa56de8e844d1465e8296aa2`。
+- 当前已提交并通过协调方受托验收的实现版本：`implementationRevision=22023bf77becac7d3f8679e37b1b7e27d7e92607`。
+- 当前验收事件同步提交：`edb1054ed2a3d9687eff647dc084186a0b695669`。
 - 实施与本地浏览器证据见[实施记录](./inner/Implementation-evidence.md)。这些是候选验证，不是生产部署证据。
 
 ## 发布边界
