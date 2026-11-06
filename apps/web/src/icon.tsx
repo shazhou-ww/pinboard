@@ -12,6 +12,9 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { PushPinIcon } from "@phosphor-icons/react/dist/csr/PushPin";
 import { QuestionIcon } from "@phosphor-icons/react/dist/csr/Question";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { IconProps } from "@phosphor-icons/react";
 
 const icons = {
@@ -20,6 +23,7 @@ const icons = {
   brand: PushPinIcon,
   caretDown: CaretDownIcon,
   check: CheckIcon,
+  close: XIcon,
   copy: CopyIcon,
   download: ArrowDownIcon,
   externalLink: ArrowUpRightIcon,
@@ -29,6 +33,8 @@ const icons = {
   settings: GearIcon,
   signOut: SignOutIcon,
   unknown: QuestionIcon,
+  publication: StackIcon,
+  warning: WarningIcon,
 };
 
 export function Icon({
@@ -39,7 +45,14 @@ export function Icon({
   return (
     <Glyph
       size={20}
-      weight="duotone"
+      weight={
+        name === "file" ||
+        name === "folder" ||
+        name === "unknown" ||
+        name === "brand"
+          ? "duotone"
+          : "regular"
+      }
       aria-hidden="true"
       focusable="false"
       {...props}

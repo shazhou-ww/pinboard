@@ -3,7 +3,7 @@ import type {
   SessionResponse,
   SessionUser,
 } from "@shazhou/pinboard-contracts";
-import { useRef, type MouseEventHandler } from "react";
+import { useRef, type MouseEventHandler, type ReactNode } from "react";
 import { AccountManager } from "./manager.js";
 import { Icon } from "./icon.js";
 
@@ -22,19 +22,21 @@ export function HomeHeader({
   onSignOut,
   signingOut = false,
   disabled = false,
+  filter,
 }: {
   user: SessionUser | null;
   onSettings?: () => void;
   onSignOut?: MouseEventHandler<HTMLButtonElement> | undefined;
   signingOut?: boolean;
   disabled?: boolean;
+  filter?: ReactNode;
 }) {
   const menu = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const name = user?.name?.trim() || user?.email || "Google account";
   return (
     <header
-      className="home-header"
+      className={`home-header${filter ? " has-filter" : ""}`}
       onKeyDown={(event) => {
         if (event.key === "Escape" && menu.current?.matches(":popover-open")) {
           event.preventDefault();
@@ -47,6 +49,7 @@ export function HomeHeader({
         <Icon name="brand" className="brand-mark" />
         Pinboard
       </a>
+      {user ? filter : null}
       {user ? (
         <>
           <button
@@ -157,13 +160,14 @@ export function Dashboard({
         <AccountManager
           key={user.id}
           accountId={user.id}
-          renderHeader={(onSettings, disabled) => (
+          renderHeader={(onSettings, disabled, filter) => (
             <HomeHeader
               user={user}
               onSettings={onSettings}
               disabled={disabled}
               onSignOut={onSignOut}
               signingOut={signingOut}
+              filter={filter}
             />
           )}
         />

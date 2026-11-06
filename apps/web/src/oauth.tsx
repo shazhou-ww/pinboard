@@ -1,6 +1,14 @@
 import { signIn } from "@hono/auth-js/react";
 import { useEffect, useState } from "react";
+import {
+  defaultOAuthLifetime,
+  oauthLifetimes,
+  oauthLifetimeOptions,
+  type OAuthGrant,
+  type OAuthLifetime,
+} from "@shazhou/pinboard-contracts";
 import { apiFetch } from "./api.js";
+import { Icon } from "./icon.js";
 
 type Consent = {
   accountId: string;
@@ -11,20 +19,28 @@ type Consent = {
   scopes: string[];
   expiresAt: number;
 };
-type Grant = {
-  id: string;
-  clientName: string;
-  clientId: string;
-  scopes: string;
-  createdAt: number;
-  codeExpiresAt: number;
-  expiresAt: number | null;
-  revokedAt: number | null;
-};
-const labels: Record<string, string> = {
-  "pins:read": "Read your pins",
-  "pins:write": "Upload public content and create or rename pins",
-  "pins:delete": "Remove your pin references",
+const permissions: Record<string, { name: string; description: string }> = {
+  "pins:read": { name: "Read pins", description: "View your pins." },
+  "pins:write": {
+    name: "Write pins",
+    description: "Upload public content, create or rename pins.",
+  },
+  "pins:delete": {
+    name: "Delete pins",
+    description: "Move pins to trash or restore them.",
+  },
+  "publications:read": {
+    name: "Read publications",
+    description: "List active and deleted publications.",
+  },
+  "publications:write": {
+    name: "Write publications",
+    description: "Create, publish versions or change follow links.",
+  },
+  "publications:delete": {
+    name: "Delete publications",
+    description: "Close public links or restore publications.",
+  },
 };
 
 async function oauthJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -48,7 +64,7 @@ export function OAuthSignIn({
   return (
     <section className="panel signin oauth-panel">
       <h1>Sign in to connect MCP</h1>
-      <p>Sign-in does not grant access. You will review permissions next.</p>
+      <p>Review permissions after signing in. No access granted yet.</p>
       <div className="actions" role="group" aria-label="Sign-in options">
         <button
           type="button"
@@ -60,7 +76,7 @@ export function OAuthSignIn({
           {busy ? "Connecting to Google..." : "Continue with Google"}
         </button>
         <a className="secondary" href="/">
-          Leave without authorizing
+          Cancel
         </a>
       </div>
     </section>
@@ -70,58 +86,91 @@ export function OAuthSignIn({
 export function ConsentDetails({
   consent,
   selected,
+  lifetime,
   busy,
   onToggle,
+  onLifetimeChange,
   onDecide,
 }: {
   consent: Consent;
   selected: string[];
+  lifetime: OAuthLifetime;
   busy: boolean;
   onToggle: (scope: string) => void;
+  onLifetimeChange: (lifetime: OAuthLifetime) => void;
   onDecide: (approve: boolean) => void;
 }) {
   return (
     <section className="panel oauth-panel">
       <h1>Connect MCP client?</h1>
-      <p>
-        <strong>{consent.clientName}</strong> requests access to your Pinboard
-        account.
+      <p className="oauth-request">
+        <strong>{consent.clientName}</strong> wants access to Pinboard.
       </p>
-      <p>
-        Client names are self-registered, not verified by Pinboard. Only
-        continue if you initiated this connection.
-      </p>
-      <dl>
-        <dt>Client ID</dt>
-        <dd>
-          <code>{consent.clientId}</code>
-        </dd>
-        <dt>Return address</dt>
-        <dd className="cid">{consent.redirectUri}</dd>
-        <dt>Resource</dt>
-        <dd className="cid">{consent.resource}</dd>
-        <dt>Pinboard account</dt>
-        <dd>
-          <code>{consent.accountId}</code>
-        </dd>
-      </dl>
-      <fieldset disabled={busy}>
-        <legend>Choose permissions</legend>
-        {consent.scopes.map((scope) => (
-          <label key={scope}>
-            <input
-              type="checkbox"
-              checked={selected.includes(scope)}
-              onChange={() => onToggle(scope)}
-            />
-            {labels[scope] ?? scope}
-          </label>
-        ))}
+      <div className="oauth-warning">
+        <Icon name="warning" size={17} />
+        <p>Unverified client. Continue only if you started this connection.</p>
+      </div>
+      <section className="oauth-connection" aria-labelledby="connection-title">
+        <h2 id="connection-title">Connection details</h2>
+        <dl>
+          <dt>Account</dt>
+          <dd>
+            <code>{consent.accountId}</code>
+          </dd>
+          <dt>Client ID</dt>
+          <dd>
+            <code>{consent.clientId}</code>
+          </dd>
+          <dt>Resource</dt>
+          <dd>{consent.resource}</dd>
+        </dl>
+      </section>
+      <fieldset className="oauth-permissions" disabled={busy}>
+        <legend>Permissions</legend>
+        <div>
+          {consent.scopes.map((scope) => (
+            <label className="oauth-permission" key={scope}>
+              <input
+                type="checkbox"
+                checked={selected.includes(scope)}
+                onChange={() => onToggle(scope)}
+              />
+              <span>
+                <strong>{permissions[scope]?.name ?? scope}</strong>
+                {permissions[scope] && `: ${permissions[scope].description}`}
+              </span>
+            </label>
+          ))}
+        </div>
       </fieldset>
-      <p>
-        Access expires after one hour. Reconnect to authorize again. Revoke at
-        any time on the homepage. Uploaded content is public. Google credentials
-        are never shared with this client.
+      <div className="oauth-lifetime">
+        <label htmlFor="oauth-lifetime">Access expires</label>
+        <select
+          id="oauth-lifetime"
+          value={lifetime}
+          disabled={busy}
+          aria-describedby="oauth-lifetime-help"
+          onChange={(event) => {
+            const value = event.currentTarget.value;
+            const next = oauthLifetimes.find((option) => option === value);
+            if (!next) throw new Error("Invalid authorization lifetime");
+            onLifetimeChange(next);
+          }}
+        >
+          {oauthLifetimes.map((value) => (
+            <option key={value} value={value}>
+              {oauthLifetimeOptions[value].label}
+            </option>
+          ))}
+        </select>
+        <p id="oauth-lifetime-help" role="status">
+          {lifetime === "never"
+            ? "No expiry. Access lasts until you revoke it."
+            : "Revoke anytime from the homepage."}
+        </p>
+      </div>
+      <p className="oauth-terms">
+        Uploads are public. Google credentials aren&apos;t shared.
       </p>
       <div className="actions">
         <button
@@ -130,7 +179,7 @@ export function ConsentDetails({
           disabled={busy || !selected.length}
           onClick={() => onDecide(true)}
         >
-          Allow selected permissions
+          Allow
         </button>
         <button
           type="button"
@@ -138,9 +187,14 @@ export function ConsentDetails({
           disabled={busy}
           onClick={() => onDecide(false)}
         >
-          Cancel connection
+          Cancel
         </button>
       </div>
+      {!selected.length && (
+        <p className="oauth-selection-note" role="status">
+          Select at least one permission.
+        </p>
+      )}
     </section>
   );
 }
@@ -149,6 +203,7 @@ export function OAuthConsent() {
   const id = new URLSearchParams(location.search).get("request");
   const [consent, setConsent] = useState<Consent | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [lifetime, setLifetime] = useState<OAuthLifetime>(defaultOAuthLifetime);
   const [login, setLogin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -202,6 +257,7 @@ export function OAuthConsent() {
         accountId: consent.accountId,
         approve,
         scopes: selected,
+        lifetime,
       }),
     })
       .then(({ redirect }) => {
@@ -221,8 +277,9 @@ export function OAuthConsent() {
       });
   }
   return (
-    <main className="shell">
+    <main className="shell oauth-shell">
       <a className="brand" href="/">
+        <Icon name="brand" className="brand-mark" />
         Pinboard
       </a>
       {error ? (
@@ -233,6 +290,7 @@ export function OAuthConsent() {
         <ConsentDetails
           consent={consent}
           selected={selected}
+          lifetime={lifetime}
           busy={busy}
           onToggle={(scope) =>
             setSelected((values) =>
@@ -242,6 +300,7 @@ export function OAuthConsent() {
             )
           }
           onDecide={decide}
+          onLifetimeChange={setLifetime}
         />
       ) : (
         <p role="status">Loading authorization request...</p>
@@ -255,22 +314,23 @@ export function GrantList({
   busy,
   onRevoke,
 }: {
-  grants: Grant[];
+  grants: OAuthGrant[];
   busy: boolean;
   onRevoke: (id: string) => void;
 }) {
   return (
     <ul>
       {grants.map((grant) => {
-        const status = grant.revokedAt
-          ? "Revoked"
-          : !grant.expiresAt
-            ? grant.codeExpiresAt <= Date.now()
-              ? "Expired"
-              : "Awaiting code exchange"
-            : grant.expiresAt <= Date.now()
-              ? "Expired"
-              : "Active";
+        const status =
+          grant.revokedAt !== null
+            ? "Revoked"
+            : !grant.tokenIssued
+              ? grant.codeExpiresAt <= Date.now()
+                ? "Expired"
+                : "Awaiting code exchange"
+              : grant.expiresAt !== null && grant.expiresAt <= Date.now()
+                ? "Expired"
+                : "Active";
         return (
           <li key={grant.id}>
             <strong>{grant.clientName}</strong> — {status}
@@ -279,11 +339,13 @@ export function GrantList({
             </p>
             <p>
               Created {new Date(grant.createdAt).toLocaleString()}
-              {grant.expiresAt
+              {grant.expiresAt !== null
                 ? ` · Expires ${new Date(grant.expiresAt).toLocaleString()}`
-                : ""}
+                : grant.tokenIssued
+                  ? " · Never expires"
+                  : ""}
             </p>
-            {!grant.revokedAt && (
+            {grant.revokedAt === null && (
               <button
                 type="button"
                 disabled={busy}
@@ -300,12 +362,12 @@ export function GrantList({
 }
 
 export function OAuthGrants() {
-  const [grants, setGrants] = useState<Grant[]>([]);
+  const [grants, setGrants] = useState<OAuthGrant[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   function load() {
-    return oauthJson<{ grants: Grant[] }>("/api/oauth/grants").then((data) =>
-      setGrants(data.grants),
+    return oauthJson<{ grants: OAuthGrant[] }>("/api/oauth/grants").then(
+      (data) => setGrants(data.grants),
     );
   }
   useEffect(() => {
@@ -325,8 +387,8 @@ export function OAuthGrants() {
     <section className="panel">
       <h2>MCP client authorizations</h2>
       <p>
-        Separate from API tokens. Access lasts one hour; revocation blocks
-        subsequent requests, not operations already in flight.
+        Separate from API tokens. Revoke access anytime. Operations already in
+        flight may finish.
       </p>
       {error && <p role="alert">{error}</p>}
       {grants.length ? (

@@ -89,7 +89,9 @@ export function PreviewContent({
               className="preview-entry-icon"
               data-kind="directory"
             />
-            <span>Folder</span>
+            <span className="preview-entry-name" title={name}>
+              {name}
+            </span>
             {preview.content.total === undefined ? (
               ""
             ) : (
@@ -223,9 +225,6 @@ export function PinPreview({
           {error || "Preview pending"}
         </p>
       )}
-      {preview?.truncated ? (
-        <span className="preview-truncated">Excerpt / sampled overview</span>
-      ) : null}
       {preview && error ? (
         <p className="muted" role="status">
           {error}

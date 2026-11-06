@@ -38,9 +38,6 @@ describe("typed, display-only content previews", () => {
     );
     expect(styles).not.toMatch(/\.preview-entry-icon[^{}]*::(?:before|after)/u);
     expect(styles).toMatch(
-      /\.preview-truncated\s*\{[^}]*position:\s*absolute;[^}]*top:\s*5px;/u,
-    );
-    expect(styles).toMatch(
       /\.pin-info\s*\{[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
   });
@@ -50,10 +47,10 @@ describe("typed, display-only content previews", () => {
       "utf8",
     );
     expect(styles).toMatch(
-      /\.pin-info\s*\{[^}]*background:\s*#fffefab8;[^}]*backdrop-filter:\s*blur\(16px\)/u,
+      /\.pin-info\s*\{[^}]*background:\s*var\(--surface-glass\);[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
     expect(styles).toMatch(
-      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*#fffefa73;[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
+      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*var\(--surface-glass-light\);[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
     );
     expect(styles).toMatch(/\.preview-directory li\s*\{[^}]*height:\s*28px;/u);
   });
@@ -64,9 +61,58 @@ describe("typed, display-only content previews", () => {
     );
     expect(styles).toMatch(/\.pin-list\s*>\s*li\s*\{/u);
     expect(styles).not.toMatch(/\.pin-list\s+li\s*\{/u);
-    expect(styles).toMatch(/\.preview-directory ul\s*\{[^}]*margin:\s*0;/u);
+    expect(styles).toMatch(
+      /\.preview-directory ul\s*\{[^}]*padding:\s*0 0 0 14\.5px;[^}]*margin:\s*0 0 0 8\.5px;/u,
+    );
     expect(styles).toMatch(
       /\.preview-folder-heading\s*\{[^}]*margin-bottom:\s*10px;/u,
+    );
+  });
+  it("aligns guide axes with parent icon centers and leaves room before child icons", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li::before\s*\{[^}]*left:\s*-15\.5px;[^}]*top:\s*0;[^}]*width:\s*10\.5px;[^}]*height:\s*14px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]\s*\{[^}]*margin-left:\s*24px;/u,
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-14px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid var\(--border\);/u,
+    );
+  });
+  it("starts each subfolder guide below its parent icon without interrupting sibling connections", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="0"\] \+ li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-3px;[^}]*height:\s*17px;/u,
+    );
+  });
+  it("uses the current pin name for folder headings and truncates long names", () => {
+    const markup = renderToStaticMarkup(
+      <PreviewContent
+        name={"<Project> " + "x".repeat(200)}
+        preview={{
+          ...base,
+          contentType: "application/vnd.pinboard.directory+json",
+          content: { entries: [], total: 0 },
+        }}
+      />,
+    );
+    expect(markup).toContain(
+      'class="preview-entry-name" title="&lt;Project&gt; ' + "x".repeat(200),
+    );
+    expect(markup).not.toContain("<span>Folder</span>");
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-name\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/u,
     );
   });
   it("uses only the separately cacheable thumbnail URL, not a CAR or data URL", () => {
@@ -143,6 +189,9 @@ describe("typed, display-only content previews", () => {
       /<svg [^>]*aria-hidden="true"[^>]*data-kind="directory"/u,
     );
     expect(markup).toContain('class="preview-folder-heading"');
+    expect(markup).toContain(">my private pin</span>");
+    expect(markup).not.toContain("Excerpt / sampled overview");
+    expect(markup).not.toContain("preview-truncated");
     expect(markup).not.toMatch(/href=|<button|<a |total/iu);
   });
   it("only reports verified counts and distinguishes empty folders from sampled empty previews", () => {

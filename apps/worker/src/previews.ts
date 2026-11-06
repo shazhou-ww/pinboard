@@ -78,8 +78,15 @@ function enqueueStatement(env: Bindings, cid: string, time: number) {
   const descriptor = placeholder("pending");
   return env.DB.prepare(
     `INSERT OR IGNORE INTO content_previews (source_cid, version, status, descriptor, retry_at)
-     SELECT ?, ?, 'pending', ?, ? WHERE EXISTS (SELECT 1 FROM pins WHERE cid = ?)`,
-  ).bind(cid, PREVIEW_VERSION, JSON.stringify(descriptor), nowIso(time), cid);
+     SELECT ?, ?, 'pending', ?, ? WHERE ${retainedPreviewSource("?")}`,
+  ).bind(
+    cid,
+    PREVIEW_VERSION,
+    JSON.stringify(descriptor),
+    nowIso(time),
+    cid,
+    cid,
+  );
 }
 
 export async function getPreviews(
@@ -352,12 +359,19 @@ async function generate(env: Bindings, cid: string): Promise<Generated> {
   };
 }
 
-// This predicate is always rechecked inside the transaction performing GC.
+function retainedPreviewSource(source: string) {
+  return `(EXISTS (SELECT 1 FROM retained_roots WHERE cid = ${source})
+    OR EXISTS (SELECT 1 FROM dag_members dm JOIN retained_roots r ON r.cid = dm.root WHERE dm.cid = ${source}))`;
+}
+
+export const previewSourceLive = retainedPreviewSource("source_cid");
+
+// These predicates are always rechecked inside the transaction performing GC.
 const imageLive = `(EXISTS (
-  SELECT 1 FROM content_previews cp JOIN pins p ON p.cid = cp.source_cid
-  WHERE cp.thumbnail_cid = preview_images.cid AND cp.active = 1 AND cp.status = 'ready'
-) OR EXISTS (SELECT 1 FROM pins WHERE pins.cid = preview_images.cid)
- OR EXISTS (SELECT 1 FROM dag_members dm JOIN pins p ON p.cid = dm.root WHERE dm.cid = preview_images.cid))`;
+  SELECT 1 FROM content_previews cp
+  WHERE cp.thumbnail_cid = preview_images.cid AND cp.active = 1 AND cp.status = 'ready' AND ${retainedPreviewSource("cp.source_cid")}
+) OR EXISTS (SELECT 1 FROM retained_roots WHERE retained_roots.cid = preview_images.cid)
+ OR EXISTS (SELECT 1 FROM dag_members dm JOIN retained_roots p ON p.cid = dm.root WHERE dm.cid = preview_images.cid))`;
 
 export function refreshPreviewReferences(
   db: D1Database,
@@ -387,7 +401,7 @@ export async function processPreview(
      WHERE source_cid = ? AND version = ? AND attempts < ?
      AND status IN ('pending', 'failed') AND retry_at <= ?
      AND (lease_until IS NULL OR lease_until <= ?)
-     AND EXISTS (SELECT 1 FROM pins WHERE cid = source_cid)
+     AND ${previewSourceLive}
      RETURNING descriptor, status, attempts`,
   )
     .bind(
@@ -478,7 +492,7 @@ async function duePreviews(
   return env.DB.prepare(
     `SELECT source_cid FROM content_previews WHERE version = ? AND status IN ('pending', 'failed')
      AND attempts < ? AND retry_at <= ? AND (lease_until IS NULL OR lease_until <= ?)
-     AND EXISTS (SELECT 1 FROM pins WHERE cid = source_cid)
+     AND ${previewSourceLive}
      ${cids ? `AND source_cid IN (${cids.map(() => "?").join(",")})` : ""}
      ORDER BY retry_at LIMIT 2`,
   )
@@ -525,7 +539,7 @@ export async function runPreviews(env: Bindings, time = Date.now()) {
       }),
     );
   const missing = await env.DB.prepare(
-    "SELECT DISTINCT cid FROM pins WHERE NOT EXISTS (SELECT 1 FROM content_previews WHERE source_cid = pins.cid AND version = ?) LIMIT 2",
+    "SELECT DISTINCT cid FROM retained_roots WHERE NOT EXISTS (SELECT 1 FROM content_previews WHERE source_cid = retained_roots.cid AND version = ?) LIMIT 2",
   )
     .bind(PREVIEW_VERSION)
     .all<{ cid: string }>();
@@ -537,19 +551,19 @@ export async function runPreviews(env: Bindings, time = Date.now()) {
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE content_previews SET unreferenced_at =
-       CASE WHEN (active = 1 OR version >= ?) AND EXISTS (SELECT 1 FROM pins WHERE cid = source_cid)
+       CASE WHEN (active = 1 OR version >= ?) AND ${previewSourceLive}
        THEN NULL ELSE coalesce(unreferenced_at, ?) END
        WHERE (source_cid, version) IN (
          SELECT source_cid, version FROM content_previews
-         WHERE ((active = 1 OR version >= ?) AND EXISTS (SELECT 1 FROM pins WHERE cid = source_cid) AND unreferenced_at IS NOT NULL)
-         OR (((active = 0 AND version < ?) OR NOT EXISTS (SELECT 1 FROM pins WHERE cid = source_cid)) AND unreferenced_at IS NULL)
+         WHERE ((active = 1 OR version >= ?) AND ${previewSourceLive} AND unreferenced_at IS NOT NULL)
+         OR (((active = 0 AND version < ?) OR NOT ${previewSourceLive}) AND unreferenced_at IS NULL)
          LIMIT 50)`,
     ).bind(PREVIEW_VERSION, nowIso(time), PREVIEW_VERSION, PREVIEW_VERSION),
     refreshPreviewReferences(env.DB, time),
     env.DB.prepare(
       `DELETE FROM content_previews WHERE (source_cid, version) IN (
         SELECT source_cid, version FROM content_previews
-        WHERE unreferenced_at <= ? AND ((active = 0 AND version < ?) OR NOT EXISTS (SELECT 1 FROM pins WHERE cid = source_cid))
+        WHERE unreferenced_at <= ? AND ((active = 0 AND version < ?) OR NOT ${previewSourceLive})
         AND (lease_until IS NULL OR lease_until <= ?) LIMIT 50)`,
     ).bind(cutoff, PREVIEW_VERSION, nowIso(time)),
     env.DB.prepare(

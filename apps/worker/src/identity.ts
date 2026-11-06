@@ -125,7 +125,7 @@ async function authenticateOAuth(
     });
   const resource = `${new URL(c.env.AUTH_URL ?? c.env.PUBLIC_ORIGIN).origin}/mcp`;
   const grant = await c.env.DB.prepare(
-    "SELECT account_id, scopes FROM oauth_grants WHERE token_hash = ? AND resource = ? AND revoked_at IS NULL AND expires_at > ?",
+    "SELECT account_id, scopes FROM oauth_grants WHERE token_hash = ? AND resource = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)",
   )
     .bind(await hashToken(token), resource, Date.now())
     .first<{ account_id: string; scopes: string }>();
@@ -145,12 +145,16 @@ export function requireScope(principal: Principal, scope: Scope): void {
     throw new HTTPException(403, { message: `Missing permission: ${scope}` });
 }
 
-export function checkOrigin(c: Pick<IdentityContext, "env" | "req">): void {
+export function checkOrigin(
+  c: Pick<IdentityContext, "env" | "req">,
+  requireBrowserOrigin = true,
+): void {
   const origin = c.req.header("origin");
   const allowed = new URL(c.env.AUTH_URL ?? c.env.PUBLIC_ORIGIN).origin;
   if (origin && origin !== allowed)
     throw new HTTPException(403, { message: "Origin not allowed" });
   if (
+    requireBrowserOrigin &&
     !["GET", "HEAD", "OPTIONS"].includes(c.req.method) &&
     !c.req.header("authorization") &&
     origin !== allowed

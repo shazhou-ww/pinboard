@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./app.js";
 import { previewEnabled } from "./api.js";
+import { initializeBackground } from "./background.js";
 import "./styles.css";
 
 const root = document.querySelector("#root");
@@ -25,6 +26,7 @@ function showStartupError(error: unknown) {
   );
 }
 async function start() {
+  initializeBackground();
   if (import.meta.env.DEV && previewEnabled) {
     const { initializePreview } = await import("./dev-preview.js");
     const dispose = initializePreview(showStartupError);

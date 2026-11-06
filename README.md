@@ -25,6 +25,14 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 - Sign in with Google to list, inspect and unpin your own content.
 - Rename an account's pin from Web, CLI or `PATCH /api/pins/:cid`, without
   changing its CID or re-uploading public content.
+- [Publish evolving content](docs/publications.md) behind a stable public link,
+  with immutable numbered revisions, public history and explicit rollback.
+- Recover deleted pins and publications for 30 days through Web, CLI, HTTP or
+  MCP.
+- Explicitly convert a fixed Pin in place, or drop files/folders onto a card to
+  confirm targeted publishing. Linking keeps its source Pin unchanged.
+- Edit optional account/root-scoped descriptions for root and reachable child
+  nodes; publications snapshot them immutably beside system previews.
 - Give an agent a scoped, expiring, revocable token for HTTP and remote MCP.
 - Connect an interactive MCP client through browser Google sign-in and explicit
   OAuth consent, without copying an API token (after the OAuth
@@ -32,14 +40,16 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
 - Use explicitly configured Kubo clients as readers, without a server-side Kubo.
 
 All uploaded bytes are **public**, including bytes in failed partial writes.
-Account lists, labels, and tokens are private. Unpinning deletes **only your
-account reference** and immediately removes the pin from your list. Content is
-eligible for scheduled cleanup 7 days after its last account or DAG reference
-disappears. Shared CARs may remain longer; CDN, other nodes and downloaded
-copies are not erased. There is no recycle bin, restore or permanent-delete
-action. Revoked/expired Agent tokens stop authenticating immediately; their
-management records are kept for 30 days from the earlier invalidation time. The
-Web token list defaults to active entries, with a separate history view.
+Account lists, labels, and tokens are private. Publication titles and their
+complete revision histories are public. Unpin and publication deletion remove
+the object from normal lists and retain its references for a 30-day recovery
+window in **Recently deleted**. Expiry releases only that object's references;
+the last account, DAG or publication reference then starts seven days of cleanup
+grace. Shared CARs may remain longer; CDN, other nodes and downloaded copies are
+not erased. There is no permanent-delete action. Revoked/expired Agent tokens
+stop authenticating immediately; their management records are kept for 30 days
+from the earlier invalidation time. The Web token list defaults to active
+entries, with a separate history view.
 
 New uploads use one CAR object and a CID-to-object/offset/length index, with
 legacy independent-block fallback. Complete indexed CAR downloads stream one
@@ -96,9 +106,10 @@ login bypass in the production Worker.
 ## Web uploads
 
 UI icons use [Phosphor](https://github.com/phosphor-icons/react) (MIT), with a
-shared duotone style and the existing green palette. Import icons through
-`apps/web/src/icon.tsx` to keep sizing and accessibility defaults consistent;
-label meaningful icons and hide decorative icons from assistive technology.
+regular action icons, duotone content/brand icons and shared semantic color
+roles. Import icons through `apps/web/src/icon.tsx` to keep sizing and
+accessibility defaults consistent; label meaningful icons and hide decorative
+icons from assistive technology.
 
 ### Local UI preview
 
@@ -115,10 +126,11 @@ OAuth session. Closing the tab ends its preview session.
 
 Preview requires Vite development mode, the explicit flag and a loopback host.
 Production builds exclude the demo modules and continue using real
-authorization. The demo has synthetic images and pins; uploads, edits, token
-changes and other API writes are rejected. It does not validate real
-upload/download or OAuth flows. No test-account credentials or production
-authentication bypass exist.
+authorization. The demo has synthetic images, pins, publications (including a
+v3-of-5 rollback) and recently deleted items; uploads, edits, token changes and
+other API writes are rejected. It does not validate real upload/download or
+OAuth flows. No test-account credentials or production authentication bypass
+exist.
 
 ### Choosing content
 
@@ -128,24 +140,48 @@ reveals **Choose folder**. Mobile and touch devices show the file and folder
 actions directly, without an expansion arrow. The floating add actions are
 vertically arranged circular icon buttons with accessible names. A compact
 frosted-glass header keeps branding on the left and the signed-in account on the
-right. The account dropdown contains **Settings** and **Sign out**; Settings is
-no longer a floating action. There is no visible wall title or explanatory
-footer. Drop instructions appear in the empty state, on drag-over and in the Add
-tooltip instead of occupying a permanent row above the pins.
+right, extending across the reserved scrollbar gutter even on short pages. The
+backdrop defaults to **晨光雾屿 · Mist blue & lavender**. **Settings → Browser
+preferences → Background palette** also offers **玫瑰沙丘 · Sand & rose** and
+**晴空冰海 · Clear sky blue** (low-saturation true blue, not cyan). Each
+selection updates the whole interface, including buttons, previews, dialogs,
+menus, focus and interaction states, not just the backdrop. Changes persist in
+this browser's `localStorage` under the existing `pinboard:background` key
+(`mist`, `sand`, `ice`), not the account, and also apply on public/share and
+OAuth pages. Clearing site data restores the default. Unavailable or invalid
+saved preferences are logged and leave the default background usable; failed
+saves show an error in Settings without changing the current palette. All
+palettes share the same bundled, low-contrast silver linework: an evenly
+staggered 480 × 960 px SVG tile with varied icon sizes and seamless wrapping on
+both axes. Its fixed CSS size prevents stretching on larger screens; only the
+gradient fills the viewport. There is no runtime layout or collision
+calculation, and the background adds no interactive or accessibility nodes. The
+account dropdown contains **Settings** and **Sign out**; Settings is no longer a
+floating action. There is no visible wall title or explanatory footer. Drop
+instructions appear in the empty state, on drag-over and in the Add tooltip
+instead of occupying a permanent row above the pins.
 
-Right-click a pin card or use its **…** button to open **View details**, **Copy
-link** (the public share page), **Copy CID** and **Unpin**. Keyboard users can
-open the menu with Shift+F10, navigate with arrow keys, Home and End, and
-dismiss it with Escape. Unpin keeps the existing confirmation and removes only
-the account reference.
+Click or tap a pin or publication card to open its details and management
+actions; keyboard users can activate the card's details button with Enter or
+Space. Cards have no custom right-click menu or overflow button, preserving the
+browser's native context menu. The bottom CID capsule remains a shortcut for
+copying the complete CID without opening details. Pin details include copying
+the share link, renaming, downloading, unpinning, adding to a publication,
+converting to a publication and converting with a file or folder upload.
+Publication details include links, history and file/folder version uploads.
+Unpin moves only that pin to recently deleted; publication references remain
+independent.
 
-On desktop, the compact **…** button appears when hovering the preview or
-focusing the button with the keyboard. The bottom information strip expands only
-when hovered or focused itself, not when hovering the rest of the card. Touch
-devices keep the menu button and CID action visible. Operation feedback floats
-below the fixed header without moving the wall; success messages dismiss after
-five seconds. Errors remain visible for recovery, and progress remains until the
-operation completes.
+The upload dialog's **After uploading** selector always offers **Create a
+publication**, including for an account with no existing publications. Enter a
+separate **Public title** to publish; **Keep as a pin only** remains the
+default.
+
+On desktop, the bottom information strip expands only when hovered or focused
+itself, not when hovering the rest of the card. Touch devices keep the CID
+action visible. Operation feedback floats below the fixed header without moving
+the wall; success messages dismiss after five seconds. Errors remain visible for
+recovery, and progress remains until the operation completes.
 
 Pin details open immediately with the listed metadata and refresh in the
 background without inserting a loading row or resizing the panel. Click or tap
@@ -197,21 +233,39 @@ for an authorized Pin list or server-side access checks.
 
 UTF-8 excerpts contain at most 2,400 characters. Text and directory previews
 extend to the card's bottom edge behind the translucent, frosted information
-strip rather than stopping above it. Sampling labels stay above the content;
-text and directory cards use a lighter tint and tighter blur so sparse glyphs
-remain visible as softened shapes beneath the strip. Images retain stronger
-frosting for their denser backgrounds. thumbnail images fill the card with a
-centered crop on the longer axis, without changing the original bytes, thumbnail
-CID or stored aspect ratio. Display Markdown escapes source punctuation;
-structured/code text uses literal code fences, not invented headings or AI
-summaries. Links, HTML and remote images remain inert text. Verified directories
-use a folder-tab heading and a compact, read-only directory tree with
-folded-page file icons, folder tabs and hierarchy lines. They show at most 24
-actual names across two entry levels, without subfolder navigation.
-Sampled/truncated overviews are labelled and never claim unverified totals. PDF,
-GIF, video, audio and unknown binary content use explicit unsupported
-placeholders with only reliably identified metadata. Invalid or oversized images
-fail explicitly instead of downloading originals.
+strip rather than stopping above it. Text and directory cards use a lighter tint
+and tighter blur so sparse glyphs remain visible as softened shapes beneath the
+strip. Images retain stronger frosting for their denser backgrounds.
+Theme-tinted information strips retain the original visible frosting: 45%
+surface opacity for text/code/directories with 4px blur, and 72% for images with
+16px blur. The header uses a 66%-to-62% tint with 24px blur, and the search
+input uses 75%; menus, publication badges and floating feedback use 90%. Do not
+replace these distinct glass treatments with a near-opaque shared fill:
+preserving a blur declaration alone does not preserve the visible effect.
+Contrast over arbitrary image content is not guaranteed by these translucent
+information strips; check actual image/text underlays visually rather than
+claiming a worst-case guarantee from solid-color tests. The card's keyboard
+focus ring has a solid surface band so it remains identifiable over thumbnails.
+Success, warning and error/danger colors stay fixed independently of the
+selected palette. These color-pair checks are regression coverage, not a claim
+of whole-site WCAG conformance. Text placed directly on the patterned canvas
+uses a stronger derived secondary-text role; the bundled linework itself is
+unchanged. Keep interface colors in the shared roles in
+`apps/web/src/styles.css`; `apps/web/test/palette.test.ts` checks palette
+completeness, solid/glass/linework contrast and semantic-state independence.
+Thumbnail images fill the card with a centered crop on the longer axis, without
+changing the original bytes, thumbnail CID or stored aspect ratio. Display
+Markdown escapes source punctuation; structured/code text uses literal code
+fences, not invented headings or AI summaries. Links, HTML and remote images
+remain inert text. Verified directories use the current Pin name as their
+folder-tab heading and a compact, read-only directory tree with folded-page file
+icons, folder tabs and hierarchy lines aligned beneath parent icons without
+overlapping them. They show at most 24 actual names across two entry levels,
+without subfolder navigation. Cards omit sampling labels; sampled/truncated
+overviews never claim unverified totals. PDF, GIF, video, audio and unknown
+binary content use explicit unsupported placeholders with only reliably
+identified metadata. Invalid or oversized images fail explicitly instead of
+downloading originals.
 
 Previews are shared by source CID and generation version, without account names.
 `pending`, `ready`, `unsupported` and `failed` are distinct from their
@@ -289,13 +343,15 @@ selection and public-content acknowledgement before uploading.
 | `/api/tokens` and `/api/tokens/:id`               | Browser session only   | Issue, list active (`?view=history` for invalid) or revoke account tokens |
 | `/mcp`                                            | Agent Bearer token     | Stateless MCP Streamable HTTP (POST)                                      |
 
-The same `/mcp` also accepts short-lived MCP OAuth credentials, restricted to
-that resource rather than `/api/*`. OAuth discovery uses `/.well-known/*`;
-public client registration and authorization-code/S256 endpoints use `/oauth/*`.
+The same `/mcp` also accepts MCP OAuth credentials, restricted to that resource
+rather than `/api/*`. OAuth discovery uses `/.well-known/*`; public client
+registration and authorization-code/S256 endpoints use `/oauth/*`.
 Browser-session-only `/api/oauth/grants` lists authorizations and
 `DELETE /api/oauth/grants/:id` revokes them. The homepage provides the same
-management UI. See
-[OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
+management UI. Consent defaults to one day, with seven-day, thirty-day and
+never-expiring options. Selectable lifetimes require migration
+`0008_oauth_lifetimes.sql`; existing credentials retain their original expiry.
+See [OAuth setup, lifecycle and pending real-client checks](docs/mcp.md). These
 additions require migration `0004_mcp_oauth.sql` in an explicitly authorized
 environment; they are not a claim that the current production deployment
 supports OAuth.
@@ -362,8 +418,9 @@ Clients must still verify retrieved CIDs.
 - MCP inline upload: 2 MiB decoded. Larger content uses the same token on the
   HTTP upload route, not a base64-encoded 32 MiB JSON message.
 - Tokens expire in 1-365 days (default 30); scopes are `pins:read`,
-  `pins:write`, `pins:delete`. Secrets are shown once and only SHA-256 hashes
-  are stored.
+  `pins:write`, `pins:delete`, `publications:read`, `publications:write`,
+  `publications:delete`. Old pin-write tokens gain no publication authority.
+  Secrets are shown once and only SHA-256 hashes are stored.
 
 Inputs outside these limits fail explicitly. Additional Worker CPU, memory,
 subrequest and account-plan limits still apply; large-load testing is not a
@@ -380,6 +437,13 @@ $env:IPFS_BIN = 'C:\tools\kubo\ipfs.exe'
 $env:OPENSSL_BIN = 'C:\Program Files\Git\usr\bin\openssl.exe'
 pnpm test:kubo
 ```
+
+Worker integration tests allow 30 seconds per test for local D1/R2 and workerd
+I/O on both Linux and Windows; this is a test-runner budget, not a production
+latency target. Native OAuth limiter tests fill the configured bucket directly
+between HTTP boundary checks and verify that both checks share one wall-clock
+minute. Only a detected minute rollover repeats the check with a fresh IP;
+unexpected responses within a window still fail immediately.
 
 The Kubo PoC uses a **separate local-only Worker entry** and temporary storage;
 its unauthenticated uploader is never mounted by the production Worker. It

@@ -1,11 +1,11 @@
 import { CarReader } from "@ipld/car";
 import * as dagPb from "@ipld/dag-pb";
 import { run } from "@shazhou/pinboard";
-import type { Pin } from "@shazhou/pinboard-contracts";
+import type { Pin, PublicationResult } from "@shazhou/pinboard-contracts";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createServer } from "node:http";
 import { readFile, readdir, mkdir, writeFile, rm } from "node:fs/promises";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -19,11 +19,9 @@ import { buildDirectoryCar } from "../../web/src/directory.js";
 import { selectionForDirectory } from "../../web/src/uploads.js";
 import { encodeCar } from "../src/car.js";
 import { migrate } from "./migrations.js";
+import { fixtureDirectory } from "../../cli/test/fixture-directory.js";
 
-const directory = resolve(
-  process.env.PINBOARD_TEST_ROOT ?? ".",
-  ".worker-cli-tests",
-);
+let directory: string;
 let mf: Miniflare;
 let env: Bindings;
 let origin: string;
@@ -79,7 +77,7 @@ const server = createServer((request, response) => {
 });
 
 beforeAll(async () => {
-  await mkdir(directory, { recursive: true });
+  directory = await fixtureDirectory(".worker-cli-tests-");
   await new Promise<void>((ready) => {
     server.listen(0, "127.0.0.1", ready);
   });
@@ -199,6 +197,304 @@ async function raw(cid: string) {
 }
 
 describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)", () => {
+  it("runs compiled CLI child/root descriptions, explicit sidecar export and atomic conversion through real HTTP storage", async () => {
+    const owner: Principal = {
+      ...principal,
+      accountId: await accountForGoogle(env.DB, "compiled-conversion-account"),
+      scopes: [
+        "pins:read",
+        "pins:write",
+        "pins:delete",
+        "publications:read",
+        "publications:write",
+        "publications:delete",
+      ],
+    };
+    const credential = (
+      await createToken(env, owner, {
+        name: "compiled-convert",
+        scopes: owner.scopes,
+        expiresInDays: 1,
+      })
+    ).token;
+    const executable = fileURLToPath(
+      new URL("../../cli/dist/main.js", import.meta.url),
+    );
+    const execute = async (args: string[]) => {
+      const { stdout } = await promisify(execFile)(
+        process.execPath,
+        [executable, ...args, "--endpoint", runtimeOrigin, "--json"],
+        {
+          cwd: directory,
+          env: {
+            ...process.env,
+            PINBOARD_AGENT_TOKEN: credential,
+            LOCALAPPDATA: directory,
+            XDG_CONFIG_HOME: directory,
+          },
+          timeout: 15000,
+        },
+      );
+      return JSON.parse(stdout) as Record<string, unknown>;
+    };
+    const archive = await buildDirectoryCar(
+      selectionForDirectory([
+        {
+          path: "description-folder/child.txt",
+          file: new File(["Compiled child bytes"], "child.txt"),
+        },
+      ]),
+    );
+    const uploaded = await fetch(
+      `${runtimeOrigin}/api/pins/upload?kind=car&name=Never%20public%20private%20name`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${credential}`,
+          "x-pinboard-public": "true",
+        },
+        body: archive,
+      },
+    );
+    expect(uploaded.status).toBe(201);
+    const pin = await uploaded.json<Pin>();
+    const reader = await CarReader.fromBytes(
+      new Uint8Array(
+        await (
+          await fetch(`${runtimeOrigin}/api/public/${pin.cid}/car`)
+        ).arrayBuffer(),
+      ),
+    );
+    const rootBlock = await reader.get((await reader.getRoots())[0]!);
+    const child = dagPb.decode(rootBlock!.bytes).Links[0]!.Hash.toString();
+    expect(await execute(["description", "get", pin.cid, child])).toMatchObject(
+      { description: { user: { text: null, version: 0 } } },
+    );
+    expect(
+      await execute([
+        "description",
+        "set",
+        pin.cid,
+        child,
+        "--text",
+        "CLI child sidecar",
+        "--version",
+        "0",
+      ]),
+    ).toMatchObject({
+      description: { user: { text: "CLI child sidecar", version: 1 } },
+    });
+    await execute([
+      "description",
+      "set",
+      pin.cid,
+      pin.cid,
+      "--text",
+      "CLI root sidecar",
+      "--version",
+      "0",
+    ]);
+    await execute(["description", "clear", pin.cid, pin.cid, "--version", "1"]);
+    expect(await execute(["description", "export", pin.cid])).toEqual({
+      rootCid: pin.cid,
+      descriptions: { [child]: "CLI child sidecar" },
+    });
+    const args = [
+      "publication",
+      "convert",
+      pin.cid,
+      "--title",
+      "Explicit compiled public title",
+      "--request-id",
+      "compiled-conversion",
+    ];
+    const converted = (await execute(args)) as unknown as PublicationResult;
+    expect(converted.status).toBe("converted");
+    expect(converted.publication.current.descriptions).toEqual({
+      [child]: "CLI child sidecar",
+    });
+    expect(await execute(args)).toEqual(converted);
+    expect((await execute(["list"])).pins).toEqual([]);
+    expect(
+      await execute([
+        "publication",
+        "get",
+        converted.publication.id,
+        "--revision",
+        "1",
+      ]),
+    ).toMatchObject({
+      revision: { descriptions: { [child]: "CLI child sidecar" } },
+    });
+    expect(
+      await execute([
+        "publication",
+        "description",
+        converted.publication.id,
+        child,
+        "--revision",
+        "1",
+      ]),
+    ).toMatchObject({
+      description: { user: { text: "CLI child sidecar", version: 1 } },
+    });
+    expect(await raw(child)).toEqual(
+      new TextEncoder().encode("Compiled child bytes"),
+    );
+    expect(
+      await execute([
+        "publication",
+        "publish",
+        converted.publication.id,
+        pin.cid,
+        "--sequence",
+        "1",
+        "--request-id",
+        "compiled-nop",
+      ]),
+    ).toMatchObject({ status: "nop" });
+    await execute(["publication", "remove", converted.publication.id]);
+    await execute(["publication", "restore", converted.publication.id]);
+    expect((await execute(["list"])).pins).toEqual([]);
+  }, 60000);
+
+  it("runs publication creation, NOP retry, upload/publish, rollback, fixed export and both recovery lifecycles against real storage", async () => {
+    const owner: Principal = {
+      ...principal,
+      accountId: await accountForGoogle(env.DB, "publication-cli-account"),
+    };
+    const credential = (
+      await createToken(env, owner, {
+        name: "publication-cli",
+        scopes: [
+          "pins:read",
+          "pins:write",
+          "pins:delete",
+          "publications:read",
+          "publications:write",
+          "publications:delete",
+        ],
+        expiresInDays: 1,
+      })
+    ).token;
+    const upload = async (value: string) => {
+      const response = await fetch(
+        runtimeOrigin + "/api/pins/upload?kind=file&name=Private-cli-label",
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${credential}`,
+            "x-pinboard-public": "true",
+          },
+          body: new TextEncoder().encode(value),
+        },
+      );
+      expect(response.status).toBe(201);
+      return response.json<Pin>();
+    };
+    const invoke = async (args: string[]) => {
+      const response = await cli(args, credential);
+      expect(response.code, response.err).toBe(0);
+      return JSON.parse(response.out) as unknown;
+    };
+    const a = await upload("publication CLI original");
+    const b = await upload("publication CLI next");
+    const created = (await invoke([
+      "publication",
+      "create",
+      a.cid,
+      "--title",
+      "CLI public title",
+      "--request-id",
+      "cli-create",
+    ])) as PublicationResult;
+    const id = created.publication.id;
+    expect(
+      await invoke([
+        "publication",
+        "publish",
+        id,
+        a.cid,
+        "--sequence",
+        "1",
+        "--request-id",
+        "cli-nop",
+      ]),
+    ).toMatchObject({ status: "nop" });
+    expect(
+      await invoke([
+        "publication",
+        "publish",
+        id,
+        b.cid,
+        "--sequence",
+        "1",
+        "--request-id",
+        "cli-next",
+      ]),
+    ).toMatchObject({ publication: { currentRevision: 2, sequence: 2 } });
+    expect(
+      await invoke([
+        "publication",
+        "publish",
+        id,
+        a.cid,
+        "--sequence",
+        "1",
+        "--request-id",
+        "cli-nop",
+      ]),
+    ).toMatchObject({ status: "nop", publication: { currentRevision: 1 } });
+    await invoke([
+      "publication",
+      "rollback",
+      id,
+      "1",
+      "--sequence",
+      "2",
+      "--request-id",
+      "cli-rollback",
+    ]);
+    expect(await invoke(["publication", "get", id])).toMatchObject({
+      currentRevision: 1,
+      revisionCount: 2,
+    });
+    expect(
+      await invoke(["publication", "get", id, "--revision", "2"]),
+    ).toMatchObject({ revision: { cid: b.cid } });
+    const output = join(directory, "publication-fixed.car");
+    await invoke([
+      "publication",
+      "export",
+      id,
+      "--revision",
+      "2",
+      "--output",
+      output,
+    ]);
+    expect(
+      (await (await CarReader.fromBytes(await readFile(output))).getRoots())[0]!
+        .toV1()
+        .toString(),
+    ).toBe(b.cid);
+    await invoke(["remove", a.cid]);
+    expect(await invoke(["deleted"])).toMatchObject({
+      items: [{ id: a.cid, kind: "pin" }],
+    });
+    expect(await invoke(["publication", "get", id])).toMatchObject({
+      current: { cid: a.cid },
+    });
+    await invoke(["restore", a.cid]);
+    await invoke(["publication", "remove", id]);
+    const unavailable = await cli(["publication", "history", id], credential);
+    expect(unavailable.code).toBe(1);
+    expect(JSON.parse(unavailable.err)).toHaveProperty("error.status", 404);
+    await invoke(["publication", "restore", id]);
+    expect(await invoke(["publication", "get", id])).toMatchObject({
+      currentRevision: 1,
+      revisionCount: 2,
+    });
+  });
   it("serializes real independent credential writers without losing endpoint entries", async () => {
     const path = fileURLToPath(
       new URL("../../cli/dist/main.js", import.meta.url),

@@ -9,6 +9,7 @@ describe("shared Phosphor icons", () => {
     "brand",
     "caretDown",
     "check",
+    "close",
     "copy",
     "download",
     "externalLink",
@@ -35,6 +36,23 @@ describe("shared Phosphor icons", () => {
         'opacity="0.2"',
       );
     }
+  });
+
+  it.each([
+    "add",
+    "addFolder",
+    "caretDown",
+    "check",
+    "close",
+    "copy",
+    "download",
+    "externalLink",
+    "more",
+    "settings",
+    "signOut",
+  ] as const)("renders %s without translucent background shapes", (name) => {
+    const markup = renderToStaticMarkup(<Icon name={name} />);
+    expect(markup).not.toContain('opacity="0.2"');
   });
 
   it("preserves explicit labels, sizes and styles for meaningful icons", () => {

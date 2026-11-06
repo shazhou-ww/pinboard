@@ -4,6 +4,11 @@ export const authProviderIds = [
   "microsoft-entra-id",
 ] as const;
 
+export const itemFilterMaxLength = 200;
+export function normalizeItemFilter(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 export const uploadLimits = {
   maxBytes: 32 * 1024 * 1024,
   maxBlockBytes: 2 * 1024 * 1024,
@@ -11,6 +16,31 @@ export const uploadLimits = {
 } as const;
 
 export type AuthProviderId = (typeof authProviderIds)[number];
+
+export const oauthLifetimes = ["1d", "7d", "30d", "never"] as const;
+export type OAuthLifetime = (typeof oauthLifetimes)[number];
+export const defaultOAuthLifetime: OAuthLifetime = "1d";
+export const oauthLifetimeOptions = {
+  "1d": { label: "After 1 day", seconds: 86400 },
+  "7d": { label: "After 7 days", seconds: 604800 },
+  "30d": { label: "After 30 days", seconds: 2592000 },
+  never: { label: "Never", seconds: null },
+} as const satisfies Record<
+  OAuthLifetime,
+  { readonly label: string; readonly seconds: number | null }
+>;
+
+export interface OAuthGrant {
+  readonly id: string;
+  readonly clientName: string;
+  readonly clientId: string;
+  readonly scopes: string;
+  readonly createdAt: number;
+  readonly codeExpiresAt: number;
+  readonly tokenIssued: boolean;
+  readonly expiresAt: number | null;
+  readonly revokedAt: number | null;
+}
 
 export interface AuthProviderDescriptor {
   readonly id: AuthProviderId;
@@ -41,6 +71,67 @@ export interface Pin {
   readonly blocks: number;
   readonly createdAt: string;
 }
+
+export interface PublicationRevision {
+  readonly revision: number;
+  readonly cid: string;
+  readonly size: number;
+  readonly blocks: number;
+  readonly createdAt: string;
+  readonly descriptions?: Readonly<Record<string, string>>;
+}
+
+export interface Publication {
+  readonly id: string;
+  readonly title: string;
+  readonly currentRevision: number;
+  readonly revisionCount: number;
+  readonly sequence: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly current: PublicationRevision;
+}
+
+export interface PublicationWrite {
+  readonly expectedSequence: number;
+  readonly requestId: string;
+}
+
+export interface PublicationResult {
+  readonly status:
+    "created" | "converted" | "published" | "rolled-back" | "nop";
+  readonly publication: Publication;
+}
+
+export interface PublicationHistory {
+  readonly publication: Publication;
+  readonly revisions: readonly PublicationRevision[];
+  readonly operations: readonly {
+    sequence: number;
+    revision: number;
+    kind: string;
+    createdAt: string;
+  }[];
+}
+
+export interface DeletedItem {
+  readonly kind: "pin" | "publication";
+  readonly id: string;
+  readonly title: string;
+  readonly deletedAt: string;
+  readonly expiresAt: string;
+}
+
+export type UploadPublicationResult =
+  | { readonly pin: Pin; readonly publication: PublicationResult }
+  | {
+      readonly pin: Pin;
+      readonly partialSuccess: true;
+      readonly publicationError: {
+        readonly status: number;
+        readonly message: string;
+      };
+    };
 
 export interface PreviewImage {
   readonly cid: string;
@@ -77,6 +168,15 @@ export type ContentPreview = PreviewPayload & {
   readonly truncated: boolean;
   readonly reason?: string;
 };
+
+export interface NodeDescription {
+  readonly rootCid: string;
+  readonly nodeCid: string;
+  readonly description: {
+    readonly user: { readonly text: string | null; readonly version: number };
+    readonly preview: ContentPreview;
+  };
+}
 
 export const previewBatchLimit = 32;
 

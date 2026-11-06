@@ -8,9 +8,20 @@ import { useEffect, useState, type MouseEvent } from "react";
 import { Dashboard, SharePage, type DashboardState } from "./ui.js";
 import { OAuthConsent } from "./oauth.js";
 import { apiFetch, leavePreviewMode } from "./api.js";
+import { PublicationPage } from "./publications.js";
 
 export function App() {
   if (location.pathname === "/connect/mcp") return <OAuthConsent />;
+  const publication = /^\/p\/([^/]+)(?:\/v\/([1-9]\d*)|\/history)?$/.exec(
+    location.pathname,
+  );
+  if (publication?.[1])
+    return (
+      <PublicationPage
+        id={publication[1]}
+        {...(publication[2] ? { revision: Number(publication[2]) } : {})}
+      />
+    );
   const shared = /^\/share\/([^/]+)$/.exec(location.pathname);
   return shared?.[1] ? <SharePage cid={shared[1]} /> : <Home />;
 }

@@ -50,6 +50,40 @@ export class Client {
     private readonly fetcher: typeof fetch = fetch,
   ) {}
 
+  async convert(cid: string, title: string, requestId: string) {
+    return this.request(
+      `/api/pins/${canonicalCid(cid)}/convert`,
+      "POST",
+      JSON.stringify({ title, requestId, public: true }),
+      `Retry conversion with the same CID, public title and request ID ${requestId}.`,
+    );
+  }
+
+  async description(
+    root: string,
+    node: string,
+    input?: { text: string | null; expectedVersion: number },
+  ) {
+    return this.request(
+      `/api/pins/${canonicalCid(root)}/nodes/${canonicalCid(node)}/description`,
+      input ? "PUT" : "GET",
+      input ? JSON.stringify(input) : undefined,
+      input
+        ? "Read the current description and version before retrying."
+        : undefined,
+    );
+  }
+
+  async descriptions(root: string) {
+    return this.request(`/api/pins/${canonicalCid(root)}/descriptions`);
+  }
+
+  async publishedDescription(id: string, revision: number, node: string) {
+    return this.request(
+      `/api/public/publications/${encodeURIComponent(id)}/versions/${revision}/nodes/${canonicalCid(node)}/description`,
+    );
+  }
+
   private async request(
     path: string,
     method = "GET",
@@ -314,5 +348,79 @@ export class Client {
       `Inspect ${cid} before retrying; removal may already have completed.`,
     );
     return { removed: true, cid };
+  }
+
+  async publication(
+    action: string,
+    id?: string,
+    input?: Record<string, unknown>,
+  ): Promise<unknown> {
+    const encoded = encodeURIComponent(id ?? "");
+    const publicPath = `/api/public/publications/${encoded}`;
+    const revision = input?.revision;
+    const cursor = input?.cursor;
+    if (action === "get") {
+      if (revision !== undefined && typeof revision !== "number")
+        return usage("Revision must be a number.");
+      return this.request(
+        revision === undefined
+          ? publicPath
+          : `${publicPath}/versions/${revision}`,
+      );
+    }
+    if (action === "history") return this.request(`${publicPath}/history`);
+    if (action === "list")
+      return this.request(
+        `/api/publications${typeof cursor === "string" ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+      );
+    if (action === "create")
+      return this.request("/api/publications", "POST", JSON.stringify(input));
+    if (action === "remove") {
+      await this.request(`/api/publications/${encoded}`, "DELETE");
+      return { deleted: true, id };
+    }
+    return this.request(
+      `/api/publications/${encoded}/${action}`,
+      "POST",
+      JSON.stringify(input ?? {}),
+      "Retry the same publication request ID and payload to retrieve its original result.",
+    );
+  }
+
+  async deleted(cursor?: string): Promise<unknown> {
+    return this.request(
+      `/api/recently-deleted${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+    );
+  }
+
+  async publicationCid(id: string, revision?: number): Promise<string> {
+    const value = await this.publication(
+      "get",
+      id,
+      revision === undefined ? undefined : { revision },
+    );
+    const resolved =
+      value && typeof value === "object"
+        ? revision === undefined && "current" in value
+          ? value.current
+          : "revision" in value
+            ? value.revision
+            : null
+        : null;
+    if (
+      !resolved ||
+      typeof resolved !== "object" ||
+      !("cid" in resolved) ||
+      typeof resolved.cid !== "string"
+    )
+      throw new CliError(
+        "INVALID_RESPONSE",
+        "Server returned an invalid publication resolution.",
+      );
+    return canonicalCid(resolved.cid);
+  }
+
+  async restore(cid: string): Promise<unknown> {
+    return this.request(`/api/pins/${canonicalCid(cid)}/restore`, "POST", "{}");
   }
 }

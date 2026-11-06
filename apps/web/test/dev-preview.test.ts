@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ContentPreview } from "@shazhou/pinboard-contracts";
+import type {
+  ContentPreview,
+  NodeDescription,
+  PublicationHistory,
+} from "@shazhou/pinboard-contracts";
 
 const demo = vi.hoisted(() => {
   const pin = {
@@ -101,6 +105,174 @@ afterEach(() => {
 });
 
 describe("one-shot local UI preview", () => {
+  it("serves deterministic private root descriptions alongside the existing system preview and explicit sidecar export", async () => {
+    stored.set(key, "read-only");
+    const { apiFetch } = await import("../src/api.js");
+    const path = `/api/pins/${demo.pin.cid}/nodes/${demo.pin.cid}/description`;
+    const first = (await (await apiFetch(path)).json()) as NodeDescription;
+    expect(first).toEqual({
+      rootCid: demo.pin.cid,
+      nodeCid: demo.pin.cid,
+      description: {
+        user: {
+          text: "Optional user description in this read-only preview.",
+          version: 1,
+        },
+        preview: demo.preview,
+      },
+    });
+    expect(await (await apiFetch(path)).json()).toEqual(first);
+    expect(
+      await (await apiFetch(`/api/pins/${demo.pin.cid}/descriptions`)).json(),
+    ).toEqual({
+      rootCid: demo.pin.cid,
+      descriptions: { [demo.pin.cid]: first.description.user.text },
+    });
+    expect(
+      await (await apiFetch(`/api/pins/${demo.pin.cid}/preview`)).json(),
+    ).toEqual(demo.preview);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps each publication revision snapshot and root node response consistent and separate from private drafts and other publications", async () => {
+    stored.set(key, "read-only");
+    const { apiFetch } = await import("../src/api.js");
+    const root = "/api/public/publications/preview-publication-rollback";
+    const history = (await (
+      await apiFetch(`${root}/history`)
+    ).json()) as PublicationHistory;
+    expect(history.publication.current.descriptions).toEqual(
+      history.revisions.find(
+        (revision) => revision.revision === history.publication.currentRevision,
+      )!.descriptions,
+    );
+    for (const revision of history.revisions) {
+      const fixed = (await (
+        await apiFetch(`${root}/versions/${revision.revision}`)
+      ).json()) as { revision: PublicationHistory["revisions"][number] };
+      expect(fixed.revision).toEqual(revision);
+      const node = (await (
+        await apiFetch(
+          `${root}/versions/${revision.revision}/nodes/${revision.cid}/description`,
+        )
+      ).json()) as NodeDescription;
+      expect(node).toEqual({
+        rootCid: revision.cid,
+        nodeCid: revision.cid,
+        description: {
+          user: {
+            text: revision.descriptions![revision.cid],
+            version: revision.revision,
+          },
+          preview: demo.preview,
+        },
+      });
+    }
+    const currentText = history.publication.current.descriptions![demo.pin.cid];
+    expect(currentText).not.toBe(
+      history.revisions[0]!.descriptions![demo.pin.cid],
+    );
+    const shared = (await (
+      await apiFetch(
+        "/api/public/publications/preview-publication-shared/versions/2/nodes/" +
+          demo.pin.cid +
+          "/description",
+      )
+    ).json()) as NodeDescription;
+    expect(shared.description.user.text).not.toBe(currentText);
+    const privateNode = (await (
+      await apiFetch(
+        `/api/pins/${demo.pin.cid}/nodes/${demo.pin.cid}/description`,
+      )
+    ).json()) as NodeDescription;
+    expect(privateNode.description.user.text).not.toBe(currentText);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown roots, unreachable nodes and unknown publication versions without falling through to the real API", async () => {
+    stored.set(key, "read-only");
+    const otherPin = {
+      ...demo.pin,
+      cid: "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+    };
+    demo.createPreviewAssets.mockResolvedValueOnce([
+      { pin: demo.pin, preview: demo.preview, car: new Uint8Array([1, 2, 3]) },
+      { pin: otherPin, preview: demo.preview, car: new Uint8Array([4]) },
+    ]);
+    const { apiFetch } = await import("../src/api.js");
+    for (const path of [
+      `/api/pins/missing/nodes/${demo.pin.cid}/description`,
+      `/api/pins/${demo.pin.cid}/nodes/missing/description`,
+      `/api/pins/${demo.pin.cid}/nodes/${otherPin.cid}/description`,
+      "/api/pins/missing/descriptions",
+      `/api/public/publications/missing/versions/1/nodes/${demo.pin.cid}/description`,
+      `/api/public/publications/preview-publication-first/versions/2/nodes/${demo.pin.cid}/description`,
+      `/api/public/publications/preview-publication-first/versions/0/nodes/${demo.pin.cid}/description`,
+      `/api/public/publications/preview-publication-first/versions/1/nodes/${otherPin.cid}/description`,
+      `/api/public/publications/preview-publication-first/versions/1/nodes/missing/description`,
+      "/api/public/publications/preview-publication-first/versions/99",
+    ])
+      expect((await apiFetch(path)).status, path).toBe(404);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects description writes, conversion and uploads with 405 and leaves every fixture snapshot unchanged", async () => {
+    stored.set(key, "read-only");
+    const { apiFetch } = await import("../src/api.js");
+    const nodePath = `/api/pins/${demo.pin.cid}/nodes/${demo.pin.cid}/description`;
+    const publicPath = `/api/public/publications/preview-publication-first/versions/1/nodes/${demo.pin.cid}/description`;
+    const before = (await (await apiFetch(nodePath)).json()) as NodeDescription;
+    const publishedBefore = (await (
+      await apiFetch(publicPath)
+    ).json()) as NodeDescription;
+    for (const [path, method] of [
+      [nodePath, "PUT"],
+      [publicPath, "PUT"],
+      [`/api/pins/${demo.pin.cid}/convert`, "POST"],
+      ["/api/pins/upload?kind=file&name=ignored", "POST"],
+      ["/api/publications/preview-publication-first/upload?kind=car", "POST"],
+    ] as const) {
+      const response = await apiFetch(path, { method, body: "{}" });
+      expect(response.status, path).toBe(405);
+      expect(await response.json()).toMatchObject({
+        error:
+          "This is a read-only UI preview. Real uploads and account changes are disabled.",
+      });
+    }
+    expect(await (await apiFetch(nodePath)).json()).toEqual(before);
+    expect(await (await apiFetch(publicPath)).json()).toEqual(publishedBefore);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("includes independent publication cards, rollback history and recovery fixtures without enabling writes", async () => {
+    stored.set(key, "read-only");
+    const { apiFetch } = await import("../src/api.js");
+    const page = (await (await apiFetch("/api/publications")).json()) as {
+      publications: {
+        id: string;
+        currentRevision: number;
+        revisionCount: number;
+      }[];
+    };
+    expect(page.publications).toHaveLength(3);
+    const rollback = page.publications.find(
+      (item) => item.currentRevision === 3,
+    )!;
+    expect(rollback.revisionCount).toBe(5);
+    expect(
+      (await apiFetch(`/api/public/publications/${rollback.id}/history`))
+        .status,
+    ).toBe(200);
+    expect((await apiFetch("/api/recently-deleted")).status).toBe(200);
+    for (const path of [
+      "/api/publications",
+      `/api/publications/${rollback.id}/publish`,
+      `/api/publications/${rollback.id}/restore`,
+    ]) {
+      expect((await apiFetch(path, { method: "POST" })).status).toBe(405);
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("consumes the hash before returning to the same route and query", async () => {
     url = new URL("http://127.0.0.1:5178/share/example?sort=recent#preview");
     const { initializePreview } = await import("../src/dev-preview.js");

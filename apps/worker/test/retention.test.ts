@@ -26,6 +26,7 @@ import { PinService } from "../src/service.js";
 import { getCar, readBlock, storeDag, writeGuard } from "../src/storage.js";
 import { createToken, listTokens, revokeToken } from "../src/tokens.js";
 import { migrate } from "./migrations.js";
+import { expireDeleted } from "../src/recently-deleted.js";
 
 const BASE = Date.parse("2030-01-01T00:00:00.000Z");
 const DAY = 86400000;
@@ -55,6 +56,15 @@ const objectKey = async (cid: string) =>
     .bind(cid)
     .first<{ object_key: string }>())!.object_key;
 const objects = async () => (await env.BLOCKS.list()).objects;
+// These tests isolate the seven-day physical-GC phase. Recovery-window timing
+// and its races are covered with real clocks in publications.test.ts.
+async function releasePin(service: PinService, cid: string) {
+  await service.unpin(cid);
+  await env.DB.prepare("UPDATE deleted_pins SET expires_at = ? WHERE cid = ?")
+    .bind(new Date().toISOString(), cid)
+    .run();
+  await expireDeleted(env, Date.now());
+}
 async function parent(child: Dag, label: string) {
   const bytes = dagPb.encode({
     Data: text(label),
@@ -194,11 +204,11 @@ describe("content retention", () => {
     const other = new PinService(env, bob);
     await other.pin(pin.cid, "Bob");
     at(BASE + 20 * DAY);
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     expect((await service.list()).pins).toEqual([]);
     expect((await sweep(BASE + 40 * DAY)).objectsDeleted).toBe(0);
     expect(await readBlock(env, pin.cid)).toEqual(text("accounts"));
-    await other.unpin(pin.cid);
+    await releasePin(other, pin.cid);
     expect((await sweep(BASE + 47 * DAY - 1)).objectsDeleted).toBe(0);
     expect(await getCar(env, pin.cid)).not.toBeNull();
     expect((await sweep(BASE + 47 * DAY)).objectsDeleted).toBe(2);
@@ -232,22 +242,22 @@ describe("content retention", () => {
     expect((await sweep(BASE + 20 * DAY)).objectsDeleted).toBe(0);
     expect(await env.BLOCKS.head(firstKey)).not.toBeNull();
     expect(await env.BLOCKS.head(secondKey)).not.toBeNull();
-    await other.unpin(key(second.root));
+    await releasePin(other, key(second.root));
     await sweep(BASE + 27 * DAY);
     expect(await readBlock(env, key(leaf.root))).toEqual(text("shared-leaf"));
     expect(await getCar(env, key(second.root))).not.toBeNull();
-    await service.unpin(key(leaf.root));
+    await releasePin(service, key(leaf.root));
     await sweep(BASE + 34 * DAY);
     expect(await objects()).toEqual([]);
   });
 
   it("resets the grace period after repinning", async () => {
     const pin = await service.upload(text("repin"), "file", "first");
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     at(BASE + WEEK - 1);
     await service.pin(pin.cid, "again");
     expect((await sweep(BASE + 2 * WEEK)).objectsDeleted).toBe(0);
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     expect((await sweep(BASE + 3 * WEEK - 1)).objectsDeleted).toBe(0);
     expect((await sweep(BASE + 3 * WEEK)).objectsDeleted).toBe(2);
   });
@@ -255,7 +265,7 @@ describe("content retention", () => {
   it("lets a concurrent repin publish fresh bytes after GC claims the old archive", async () => {
     const pin = await service.upload(text("concurrent-repin"), "file", "first");
     const oldKey = await objectKey(pin.cid);
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     at(BASE + WEEK);
     let started!: () => void;
     let resume!: () => void;
@@ -312,7 +322,7 @@ describe("content retention", () => {
   it("rechecks liveness after selection and rolls back a pin publication on a claimed object", async () => {
     const pin = await service.upload(text("claim-race"), "file", "first");
     const archive = await objectKey(pin.cid);
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     at(BASE + WEEK);
     const batch = env.DB.batch.bind(env.DB);
     let protectedOnce = false;
@@ -333,7 +343,7 @@ describe("content retention", () => {
     });
     expect((await runRetention(env)).objectsDeleted).toBe(0);
     expect(protectedOnce).toBe(true);
-    await new PinService(env, bob).unpin(pin.cid);
+    await releasePin(new PinService(env, bob), pin.cid);
     at(BASE + 2 * WEEK);
     const remove = vi
       .spyOn(env.BLOCKS, "delete")
@@ -387,9 +397,9 @@ describe("content retention", () => {
     expect(blocked.objectsDeleted).toBe(0);
     expect(await env.BLOCKS.head("cars/old-orphan.car")).not.toBeNull();
     expect(await readBlock(env, key(leaf.root))).toEqual(text("legacy-child"));
-    await new PinService(env, bob).unpin(key(missing.root));
+    await releasePin(new PinService(env, bob), key(missing.root));
     expect((await runRetention(env)).objectsDeleted).toBe(0);
-    await service.unpin(key(dag.root));
+    await releasePin(service, key(dag.root));
     expect((await sweep(BASE + 3 * WEEK - 1)).objectsDeleted).toBe(0);
     expect((await sweep(BASE + 3 * WEEK)).objectsDeleted).toBe(3);
   });
@@ -409,7 +419,7 @@ describe("content retention", () => {
   it("rolls back a failed claim and retries a lost metadata-finalization response after R2 deletion", async () => {
     const pin = await service.upload(text("gc-sql-failure"), "file", "first");
     const archive = await objectKey(pin.cid);
-    await service.unpin(pin.cid);
+    await releasePin(service, pin.cid);
     at(BASE + WEEK);
     const batch = env.DB.batch.bind(env.DB);
     let injected = false;

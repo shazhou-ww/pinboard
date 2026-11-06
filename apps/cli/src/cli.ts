@@ -8,8 +8,8 @@ import { canonicalCid, Client } from "./client.js";
 import { prepareInput } from "./input.js";
 import { pinFilename, saveContent } from "./retrieval.js";
 
-export const help = `Pinboard — public IPFS storage.
-
+export const help = `Pinboard — public IPFS storage. Anyone knowing the CID can read uploads/imports.
+Removing a pin does not erase public blocks, caches or other copies.
 pinboard upload <file|directory> [--name LABEL]
 pinboard import <archive.car> [--name LABEL]
 pinboard download <CID> [--output PATH]
@@ -17,12 +17,25 @@ pinboard export <CID> [--output PATH]
 pinboard list [--cursor CURSOR] [--all]
 pinboard inspect <CID>
 pinboard rename <CID> <NAME>
-pinboard remove <CID>
+pinboard remove|restore <CID>
+pinboard deleted [--cursor CURSOR]
+pinboard publication create|convert <CID> --title TITLE --request-id KEY
+pinboard description get|set|clear <ROOT_CID> <NODE_CID> [--text TEXT --version N]
+pinboard description export <ROOT_CID>
+pinboard publication list [--cursor CURSOR]
+pinboard publication get|history <ID> [--revision N (get only)]
+pinboard publication description <ID> <NODE_CID> --revision N
+pinboard publication download|export <ID> [--revision N] [--output PATH]
+pinboard publication publish <ID> <CID> --sequence N --request-id KEY
+pinboard publication rollback <ID> <REVISION> --sequence N --request-id KEY
+pinboard publication remove|restore <ID>
+Upload/import options: --publication ID --sequence N --request-id KEY
+Current-CID publish is NOP; draft description changes are not applied.
 pinboard config get [endpoint]
 pinboard config set endpoint <ORIGIN>
 pinboard config set-token [--endpoint ORIGIN] [--token-stdin]
 pinboard config remove-token [--endpoint ORIGIN]
-
+Directories include hidden and empty files; empty directories are ignored, all-empty rejected.
 Network options: --endpoint ORIGIN, --token-stdin, --timeout MS (default 60000).
 All commands: --json, --help.
 `;
@@ -36,7 +49,20 @@ function parse(args: string[]): Options {
   const words: string[] = [];
   const flags = new Map<string, string | true>();
   const booleans = new Set(["json", "help", "all", "token-stdin"]);
-  const values = new Set(["name", "endpoint", "cursor", "timeout", "output"]);
+  const values = new Set([
+    "name",
+    "endpoint",
+    "cursor",
+    "timeout",
+    "output",
+    "publication",
+    "sequence",
+    "request-id",
+    "title",
+    "revision",
+    "text",
+    "version",
+  ]);
   let literal = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
@@ -105,7 +131,13 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
     }
     const command = words[0]!;
     const configAction = command === "config" ? words[1] : undefined;
-    const publicRead = command === "download" || command === "export";
+    const publicRead =
+      command === "download" ||
+      command === "export" ||
+      (command === "publication" &&
+        ["get", "history", "download", "export", "description"].includes(
+          words[1] ?? "",
+        ));
     const network = [
       "upload",
       "import",
@@ -115,6 +147,10 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       "rename",
       "download",
       "export",
+      "publication",
+      "deleted",
+      "restore",
+      "description",
     ].includes(command);
     const allowed = new Set(["json", "help"]);
     if (
@@ -127,11 +163,61 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       if (!publicRead) allowed.add("token-stdin");
       allowed.add("timeout");
     }
-    if (publicRead) allowed.add("output");
-    if (command === "upload" || command === "import") allowed.add("name");
-    if (command === "list") {
+    if (command === "download" || command === "export") allowed.add("output");
+    if (command === "upload" || command === "import") {
+      for (const flag of ["name", "publication", "sequence", "request-id"])
+        allowed.add(flag);
+    }
+    if (command === "publication") {
+      const action = words[1];
+      const lengths: Record<string, number> = {
+        create: 3,
+        convert: 3,
+        list: 2,
+        get: 3,
+        history: 3,
+        publish: 4,
+        rollback: 4,
+        remove: 3,
+        restore: 3,
+        download: 3,
+        export: 3,
+        description: 4,
+      };
+      if (!action || words.length !== lengths[action])
+        return usage("Invalid publication command. See --help.");
+      if (action === "create" || action === "convert") {
+        allowed.add("title");
+        allowed.add("request-id");
+      }
+      if (action === "list") allowed.add("cursor");
+      if (
+        action === "get" ||
+        action === "download" ||
+        action === "export" ||
+        action === "description"
+      )
+        allowed.add("revision");
+      if (action === "download" || action === "export") allowed.add("output");
+      if (action === "publish" || action === "rollback") {
+        allowed.add("sequence");
+        allowed.add("request-id");
+      }
+    }
+    if (command === "description") {
+      const action = words[1];
+      if (
+        !action ||
+        !["get", "set", "clear", "export"].includes(action) ||
+        words.length !== (action === "export" ? 3 : 4)
+      )
+        return usage("Invalid description command. See --help.");
+      if (action === "set") allowed.add("text");
+      if (action === "set" || action === "clear") allowed.add("version");
+    }
+    if (command === "list" || command === "deleted") {
       allowed.add("cursor");
-      allowed.add("all");
+      if (command === "list") allowed.add("all");
     }
     for (const flag of flags.keys())
       if (!allowed.has(flag))
@@ -139,13 +225,32 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
     if (
       (!network && command !== "config") ||
       (network &&
+        command !== "publication" &&
+        command !== "description" &&
         words.length !==
-          (command === "list" ? 1 : command === "rename" ? 3 : 2))
+          (command === "list" || command === "deleted"
+            ? 1
+            : command === "rename"
+              ? 3
+              : 2))
     )
       return usage("Invalid command or arguments. See --help.");
     if (publicRead && value("output") === "")
       return usage("--output requires a non-empty path.");
     const timeout = Number(value("timeout") ?? 60000);
+    const sequence = () => {
+      const expectedSequence = Number(value("sequence"));
+      if (!Number.isSafeInteger(expectedSequence) || expectedSequence < 1)
+        return usage(
+          "--sequence must be a positive integer from the publication's current sequence.",
+        );
+      const requestId = value("request-id");
+      if (!requestId || requestId.length > 128)
+        return usage(
+          "--request-id requires 1-128 characters; reuse it only for identical retries.",
+        );
+      return { expectedSequence, requestId };
+    };
     if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 3600000)
       return usage(
         "--timeout must be an integer from 1 to 3600000 milliseconds.",
@@ -200,6 +305,117 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
           );
       const client = new Client(origin, token, signal, runtime.fetcher);
       switch (command) {
+        case "description": {
+          const action = words[1];
+          if (action === "export")
+            result = await client.descriptions(words[2]!);
+          else if (action === "get")
+            result = await client.description(words[2]!, words[3]!);
+          else {
+            const expectedVersion = Number(value("version"));
+            const text = action === "clear" ? null : value("text");
+            if (
+              value("version") === undefined ||
+              !Number.isSafeInteger(expectedVersion) ||
+              expectedVersion < 0 ||
+              text === undefined ||
+              (text !== null && text.length > 8000)
+            )
+              return usage(
+                "Provide --version (nonnegative integer) and --text (at most 8000 characters) for set.",
+              );
+            result = await client.description(words[2]!, words[3]!, {
+              text,
+              expectedVersion,
+            });
+          }
+          break;
+        }
+        case "deleted":
+          result = await client.deleted(value("cursor"));
+          break;
+        case "restore":
+          result = await client.restore(words[1]!);
+          break;
+        case "publication": {
+          const action = words[1]!;
+          if (action === "create" || action === "convert") {
+            const title = value("title")?.trim();
+            const requestId = value("request-id");
+            if (
+              !title ||
+              title.length > 200 ||
+              !requestId ||
+              requestId.length > 128
+            )
+              return usage(
+                "Create requires --title (1-200 characters) and --request-id (1-128 characters). Title and complete history are public.",
+              );
+            result =
+              action === "convert"
+                ? await client.convert(words[2]!, title, requestId)
+                : await client.publication(action, undefined, {
+                    cid: canonicalCid(words[2]!),
+                    title,
+                    requestId,
+                    public: true,
+                  });
+          } else if (action === "publish") {
+            result = await client.publication(action, words[2], {
+              cid: canonicalCid(words[3]!),
+              ...sequence(),
+            });
+          } else if (action === "rollback") {
+            const revision = Number(words[3]);
+            if (!Number.isSafeInteger(revision) || revision < 1)
+              return usage("Revision must be a positive integer.");
+            result = await client.publication(action, words[2], {
+              revision,
+              ...sequence(),
+            });
+          } else {
+            const revision =
+              value("revision") === undefined
+                ? undefined
+                : Number(value("revision"));
+            if (
+              revision !== undefined &&
+              (!Number.isSafeInteger(revision) || revision < 1)
+            )
+              return usage("--revision must be a positive integer.");
+            if (action === "description") {
+              if (revision === undefined)
+                return usage("Publication description requires --revision N.");
+              result = await client.publishedDescription(
+                words[2]!,
+                revision,
+                words[3]!,
+              );
+              break;
+            }
+            if (action === "download" || action === "export") {
+              const cid = await client.publicationCid(words[2]!, revision);
+              await progress(
+                `Resolved publication to ${cid}; downloading this fixed CID...`,
+              );
+              result = await saveContent(
+                await client.car(cid),
+                cid,
+                value("output"),
+                action === "export",
+                signal,
+              );
+              break;
+            }
+            result = await client.publication(action, words[2], {
+              ...(revision === undefined ? {} : { revision }),
+              ...(value("cursor") === undefined
+                ? {}
+                : { cursor: value("cursor") }),
+            });
+          }
+          break;
+        }
         case "download":
         case "export": {
           const cid = canonicalCid(words[1]!);
@@ -262,6 +478,13 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         }
         case "upload":
         case "import": {
+          const publicationId = value("publication");
+          const publicationWrite = publicationId ? sequence() : undefined;
+          if (
+            !publicationId &&
+            (flags.has("sequence") || flags.has("request-id"))
+          )
+            return usage("--sequence and --request-id require --publication.");
           await progress("Preparing upload...");
           const input = await prepareInput(
             words[1]!,
@@ -270,12 +493,39 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
             signal,
           );
           await progress("Uploading...");
-          result = await client.upload(
+          const pin = await client.upload(
             input.bytes,
             input.kind,
             input.name,
             input.root,
           );
+          result = pin;
+          if (publicationId && publicationWrite) {
+            try {
+              result = {
+                pin,
+                publication: await client.publication(
+                  "publish",
+                  publicationId,
+                  { cid: pin.cid, ...publicationWrite },
+                ),
+              };
+            } catch (error) {
+              if (!(error instanceof CliError)) throw error;
+              result = {
+                pin,
+                partialSuccess: true,
+                publicationError: {
+                  code: error.code,
+                  status: error.status,
+                  message:
+                    "Upload succeeded; publication failed. The pin is preserved. Retry publication with the same request ID and payload if the outcome is uncertain.",
+                  requestId: publicationWrite.requestId,
+                  expectedSequence: publicationWrite.expectedSequence,
+                },
+              };
+            }
+          }
           break;
         }
         case "list":
@@ -292,7 +542,9 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
           break;
       }
     }
-    signal.throwIfAborted();
+    const partialSuccess =
+      !!result && typeof result === "object" && "partialSuccess" in result;
+    if (!partialSuccess) signal.throwIfAborted();
     if (json) runtime.out.write(JSON.stringify(result) + "\n");
     else
       runtime.out.write(
@@ -302,7 +554,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
           human(result, origin, tty) +
           "\n",
       );
-    return 0;
+    return partialSuccess ? (runtime.signal.aborted ? 130 : 1) : 0;
   } catch (error) {
     const filesystemCode =
       error instanceof Error &&

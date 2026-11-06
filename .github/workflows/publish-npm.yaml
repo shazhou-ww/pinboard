@@ -63,7 +63,8 @@ jobs:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
           PINBOARD_CLI_EXPECTED_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          pnpm package:cli "$RELEASE_VERSION"
+          pnpm prepare:cli "$RELEASE_VERSION"
+          pnpm --dir apps/cli/dist/npm pack --pack-destination ..
           node --test scripts/cli-package.test.mjs
 
       - name: Publish using npm Trusted Publishing

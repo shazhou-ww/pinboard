@@ -1,5 +1,4 @@
 import { build } from "esbuild";
-import { execFileSync } from "node:child_process";
 import { isBuiltin } from "node:module";
 import {
   chmod,
@@ -10,7 +9,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   cliPackageName,
@@ -22,10 +21,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const source = join(root, "apps", "cli");
 const output = join(source, "dist", "npm");
 const requestedVersion = process.argv[2];
-if (process.argv.length > 3) throw new Error("Usage: pnpm package:cli [x.y.z]");
-const packageManager = process.env.npm_execpath;
-if (!packageManager || !/^pnpm(?:\.|$)/u.test(basename(packageManager)))
-  throw new Error("Build the npm artifact through pnpm package:cli.");
+if (process.argv.length > 3) throw new Error("Usage: pnpm prepare:cli [x.y.z]");
 const version =
   requestedVersion === undefined
     ? developmentVersion
@@ -214,15 +210,3 @@ await writeFile(
   ) + "\n",
 );
 console.log(`Prepared ${cliPackageName}@${version} in ${output}`);
-execFileSync(
-  process.execPath,
-  [
-    packageManager,
-    "--dir",
-    output,
-    "pack",
-    "--pack-destination",
-    dirname(output),
-  ],
-  { stdio: "inherit" },
-);

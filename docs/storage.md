@@ -1,5 +1,24 @@
 # CAR-indexed storage
 
+## Scoped user metadata
+
+Migration `0007_descriptions.sql` adds owner/root/node-keyed `node_descriptions`
+and an additive default-empty JSON `publication_revisions.descriptions` column.
+Pin metadata has an `(account_id, root_cid)` foreign key to `pins` with
+cascading expiry cleanup; clearing keeps a versioned tombstone for CAS.
+Publication revisions snapshot metadata in their guarded D1 commit and never
+reference mutable Pin annotations. Preview tables, generation and GC remain
+separate. On-demand previews also support reachable DAG members: generation and
+thumbnail cleanup recheck retention through their root without adding standalone
+Pins or coupling user metadata to cache rows. Conversion retains v1 and its
+snapshot before atomically deleting the fixed Pin row; it creates no recoverable
+duplicate. Publication deletion/restore and expiry continue to control its own
+retained roots. No schema migration runs automatically in production.
+
+Descriptions do not change original DAG blocks, CIDs, CARs or ordinary content
+exports. Metadata requires explicit API/CLI sidecar export; see
+[publications](publications.md#user-descriptions-and-system-previews).
+
 New file, raw-block and CAR uploads share one validated storage path. The Worker
 checks hashes, supported codecs and complete DAG closure first, then normalizes
 the reachable blocks into a single-root CARv1. CARv2 imports and CIDv0 links are
@@ -64,15 +83,22 @@ detected by metadata alone.
 
 ## Retention and automatic cleanup
 
-Unpin removes only the account reference, not the public content immediately.
-`dag_members` stores each verified root's complete reachable closure. The pin
-mutation and each affected `retained_blocks.unreferenced_at` update are atomic:
-the timestamp starts only when the last account pin or pinned DAG stops
-referencing that block. A new pin clears it. Archive creation time is never used
-as proof of the last reference loss.
+Unpin moves an account pin to recently deleted for 30 days, without releasing
+its content reference. Publication delete closes all its public resolution
+routes and retains all revisions for the same recovery window. Expiry releases
+only that object's references, atomically with last-unreferenced timestamps.
+`retained_roots` unifies pins (including recoverable deleted pins) and
+independent publication references; `dag_members` stores each verified root's
+complete reachable closure. A timestamp starts only when the last pin, retained
+DAG or publication stops referencing a block. A new reference clears it. Archive
+creation time is never proof of the last reference loss. See
+[publications and recovery](publications.md).
 
 The hourly UTC cron (`17 * * * *`) performs bounded, retryable work:
 
+- Release at most 50 expired pins and 50 expired publications' references.
+  Restore and expiry serialize on the same D1 rows. Restore is denied at the
+  deadline even if cron has not run. Repeated deletion never extends recovery.
 - Delete at most 100 token records whose earlier revocation/expiry is at least
   30 days old. Repeated revocations never move the original revocation time.
   Authentication always checks revocation and expiry, regardless of cleanup.
@@ -103,8 +129,9 @@ rediscovered as an orphan, with a new conservative grace period.
 
 Seven days and 30 days are eligibility boundaries, not exact deletion deadlines.
 The hourly schedule, backlog, backfill, shared CARs and failures can extend
-retention. Neither unpin nor token history provides a restore/permanent-delete
-action. CDN caches, other IPFS nodes and downloaded copies are outside this
+retention. Pins and publications can be restored only during their 30-day
+recovery window; token history has no restore action. There is no permanent
+delete. CDN caches, other IPFS nodes and downloaded copies are outside this
 cleanup's scope.
 
 ### Observability and recovery
@@ -123,7 +150,7 @@ failures, blocked roots, unknown keys and backlog, for example:
 ```sql
 SELECT state, count(*) FROM storage_objects GROUP BY state;
 SELECT object_key, attempts, retry_at FROM storage_objects WHERE attempts > 0;
-SELECT DISTINCT p.cid FROM pins p
+SELECT DISTINCT p.cid FROM retained_roots p
 WHERE NOT EXISTS (SELECT 1 FROM dag_roots d WHERE d.root = p.cid);
 ```
 
