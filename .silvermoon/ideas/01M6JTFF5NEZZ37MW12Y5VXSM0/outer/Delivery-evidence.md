@@ -3,7 +3,9 @@
 ## 当前状态
 
 最新真实账户结果见
-[生产定向核验](Production-verification.md)：文件、目录和 CAR、独立下载、列表游标、引用移除及本地 token 移除均通过。当前仅等待用户撤销专用 token 后验证服务端拒绝并最终清理本地凭据；下文“等待准备”均为该次执行前的历史观察，不代表仍缺上传授权。
+[生产定向核验](Production-verification.md)：文件、目录和 CAR、独立下载、列表游标、引用移除及本地 token 移除均通过。用户随后已撤销专用 token，同一真实凭据返回 HTTP
+401，本地专用凭据已最终清理；全部 D-* 工作完成，等待准确 outer
+revision 的 submitOuter 与交付接受 gate。下文“等待准备”均为该次执行前的历史观察，不代表仍缺上传授权。
 
 2026-11-06，按用户“你替我验收就行”的委托，基于独立核验结果接受
 `implementationRevision=9e4b5edb9c73`；acceptInner 已同步 primary，idea 进入 deploying。这不是 acceptOuter，也不是 npm 发包、生产部署、迁移或真实账户写入授权。
