@@ -29,6 +29,15 @@ describe("browser background preferences", () => {
     vi.unstubAllGlobals();
   });
 
+  it("preserves storage identifiers and exposes the approved names with English descriptions", () => {
+    expect(backgroundStorageKey).toBe("pinboard:background");
+    expect(backgroundPalettes).toEqual([
+      { id: "mist", label: "晨光雾屿 · Mist blue & lavender" },
+      { id: "sand", label: "玫瑰沙丘 · Sand & rose" },
+      { id: "ice", label: "晴空冰海 · Clear sky blue" },
+    ]);
+  });
+
   it("defaults to mist blue and lavender before rendering", () => {
     expect(readBackground()).toBe("mist");
     initializeBackground();

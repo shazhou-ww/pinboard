@@ -181,9 +181,9 @@ describe("Pinboard interface", () => {
     expect(html).not.toContain('class="intro"');
     expect(html).toContain("Create Agent token");
     expect(html).toContain("Background palette");
-    expect(html).toContain("Mist blue &amp; lavender");
-    expect(html).toContain("Sand &amp; rose");
-    expect(html).toContain("Silver &amp; ice blue");
+    expect(html).toContain("晨光雾屿 · Mist blue &amp; lavender");
+    expect(html).toContain("玫瑰沙丘 · Sand &amp; rose");
+    expect(html).toContain("晴空冰海 · Clear sky blue");
     expect(html).toContain("Choose file");
     expect(html).toContain("Choose folder");
     expect(html).toContain("drop one file or folder anywhere.");

@@ -47,10 +47,10 @@ describe("typed, display-only content previews", () => {
       "utf8",
     );
     expect(styles).toMatch(
-      /\.pin-info\s*\{[^}]*background:\s*#fffefab8;[^}]*backdrop-filter:\s*blur\(16px\)/u,
+      /\.pin-info\s*\{[^}]*background:\s*var\(--surface-glass\);[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
     expect(styles).toMatch(
-      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*#fffefa73;[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
+      /\.pin-card:has\(\.preview-text, \.preview-code, \.preview-directory\) \.pin-info\s*\{[^}]*background:\s*var\(--surface-glass-light\);[^}]*-webkit-backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);[^}]*backdrop-filter:\s*blur\(4px\) saturate\(1\.15\);/u,
     );
     expect(styles).toMatch(/\.preview-directory li\s*\{[^}]*height:\s*28px;/u);
   });
@@ -80,7 +80,7 @@ describe("typed, display-only content previews", () => {
       /\.preview-directory li\[data-depth="1"\]\s*\{[^}]*margin-left:\s*24px;/u,
     );
     expect(styles).toMatch(
-      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-14px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid #bdcbb7;/u,
+      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*top:\s*-14px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid var\(--border\);/u,
     );
   });
   it("starts each subfolder guide below its parent icon without interrupting sibling connections", () => {

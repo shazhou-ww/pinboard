@@ -2,9 +2,9 @@ import { useId, useState } from "react";
 
 export const backgroundStorageKey = "pinboard:background";
 export const backgroundPalettes = [
-  { id: "mist", label: "Mist blue & lavender" },
-  { id: "sand", label: "Sand & rose" },
-  { id: "ice", label: "Silver & ice blue" },
+  { id: "mist", label: "晨光雾屿 · Mist blue & lavender" },
+  { id: "sand", label: "玫瑰沙丘 · Sand & rose" },
+  { id: "ice", label: "晴空冰海 · Clear sky blue" },
 ] as const;
 export type BackgroundPalette = (typeof backgroundPalettes)[number]["id"];
 
@@ -32,7 +32,7 @@ export function initializeBackground() {
     applyBackground(readBackground());
   } catch (failure) {
     console.warn(
-      "Could not restore the background preference. Using Mist blue & lavender.",
+      "Could not restore the background preference. Using 晨光雾屿 (Mist blue & lavender).",
       failure,
     );
     applyBackground("mist");

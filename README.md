@@ -106,8 +106,8 @@ login bypass in the production Worker.
 ## Web uploads
 
 UI icons use [Phosphor](https://github.com/phosphor-icons/react) (MIT), with a
-regular action icons, duotone content/brand icons and the existing green
-palette. Import icons through `apps/web/src/icon.tsx` to keep sizing and
+regular action icons, duotone content/brand icons and shared semantic color
+roles. Import icons through `apps/web/src/icon.tsx` to keep sizing and
 accessibility defaults consistent; label meaningful icons and hide decorative
 icons from assistive technology.
 
@@ -141,10 +141,14 @@ actions directly, without an expansion arrow. The floating add actions are
 vertically arranged circular icon buttons with accessible names. A compact
 frosted-glass header keeps branding on the left and the signed-in account on the
 right, extending across the reserved scrollbar gutter even on short pages. The
-backdrop defaults to mist blue and lavender. **Settings → Browser preferences →
-Background palette** also offers sand and rose, or silver and ice blue. Changes
-apply immediately across the app and persist in this browser's `localStorage`,
-not the account. Clearing site data restores the default. Unavailable or invalid
+backdrop defaults to **晨光雾屿 · Mist blue & lavender**. **Settings → Browser
+preferences → Background palette** also offers **玫瑰沙丘 · Sand & rose** and
+**晴空冰海 · Clear sky blue** (low-saturation true blue, not cyan). Each
+selection updates the whole interface, including buttons, previews, dialogs,
+menus, focus and interaction states, not just the backdrop. Changes persist in
+this browser's `localStorage` under the existing `pinboard:background` key
+(`mist`, `sand`, `ice`), not the account, and also apply on public/share and
+OAuth pages. Clearing site data restores the default. Unavailable or invalid
 saved preferences are logged and leave the default background usable; failed
 saves show an error in Settings without changing the current palette. All
 palettes share the same bundled, low-contrast silver linework: an evenly
@@ -231,19 +235,32 @@ UTF-8 excerpts contain at most 2,400 characters. Text and directory previews
 extend to the card's bottom edge behind the translucent, frosted information
 strip rather than stopping above it. Text and directory cards use a lighter tint
 and tighter blur so sparse glyphs remain visible as softened shapes beneath the
-strip. Images retain stronger frosting for their denser backgrounds. thumbnail
-images fill the card with a centered crop on the longer axis, without changing
-the original bytes, thumbnail CID or stored aspect ratio. Display Markdown
-escapes source punctuation; structured/code text uses literal code fences, not
-invented headings or AI summaries. Links, HTML and remote images remain inert
-text. Verified directories use the current Pin name as their folder-tab heading
-and a compact, read-only directory tree with folded-page file icons, folder tabs
-and hierarchy lines aligned beneath parent icons without overlapping them. They
-show at most 24 actual names across two entry levels, without subfolder
-navigation. Cards omit sampling labels; sampled/truncated overviews never claim
-unverified totals. PDF, GIF, video, audio and unknown binary content use
-explicit unsupported placeholders with only reliably identified metadata.
-Invalid or oversized images fail explicitly instead of downloading originals.
+strip. Images retain stronger frosting for their denser backgrounds.
+Theme-tinted information strips use 90% surface opacity for
+text/code/directories and 94% for images; headers, menus and floating feedback
+also use 94%. These bounded scrims keep text readable over arbitrary light/dark
+content without removing blur or tinting the image itself. The card's keyboard
+focus ring has a solid surface band so it remains identifiable over thumbnails.
+Success, warning and error/danger colors stay fixed independently of the
+selected palette. These color-pair checks are regression coverage, not a claim
+of whole-site WCAG conformance. Text placed directly on the patterned canvas
+uses a stronger derived secondary-text role; the bundled linework itself is
+unchanged. Keep interface colors in the shared roles in
+`apps/web/src/styles.css`; `apps/web/test/palette.test.ts` checks palette
+completeness, solid/glass/linework contrast and semantic-state independence.
+Thumbnail images fill the card with a centered crop on the longer axis, without
+changing the original bytes, thumbnail CID or stored aspect ratio. Display
+Markdown escapes source punctuation; structured/code text uses literal code
+fences, not invented headings or AI summaries. Links, HTML and remote images
+remain inert text. Verified directories use the current Pin name as their
+folder-tab heading and a compact, read-only directory tree with folded-page file
+icons, folder tabs and hierarchy lines aligned beneath parent icons without
+overlapping them. They show at most 24 actual names across two entry levels,
+without subfolder navigation. Cards omit sampling labels; sampled/truncated
+overviews never claim unverified totals. PDF, GIF, video, audio and unknown
+binary content use explicit unsupported placeholders with only reliably
+identified metadata. Invalid or oversized images fail explicitly instead of
+downloading originals.
 
 Previews are shared by source CID and generation version, without account names.
 `pending`, `ready`, `unsupported` and `failed` are distinct from their
