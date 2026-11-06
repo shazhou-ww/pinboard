@@ -1,0 +1,35 @@
+import { CarReader } from "@ipld/car";
+
+type Expected = { cid: string; size: number; sha256: string };
+export async function hash(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
+}
+export async function verifyCar(
+  bytes: Uint8Array<ArrayBuffer>,
+  root: string,
+  expected: Expected[],
+): Promise<number> {
+  const reader = await CarReader.fromBytes(bytes);
+  const roots = await reader.getRoots();
+  if (roots.length !== 1 || roots[0]!.toString() !== root)
+    throw new Error("Downloaded CAR root differs");
+  const byCid = new Map(expected.map(block => [block.cid, block]));
+  const seen = new Set<string>();
+  for await (const block of reader.blocks()) {
+    const cid = block.cid.toString();
+    const source = byCid.get(cid);
+    if (!source || seen.has(cid) || source.size !== block.bytes.length)
+      throw new Error("Downloaded CAR block set differs");
+    const digest = await hash(new Uint8Array(block.bytes));
+    const declared = Array.from(block.cid.multihash.digest, byte =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    if (block.cid.multihash.code !== 18 || digest !== declared || digest !== source.sha256)
+      throw new Error("Downloaded CAR payload/CID differs");
+    seen.add(cid);
+  }
+  if (seen.size !== expected.length)
+    throw new Error("Downloaded CAR closure differs");
+  return seen.size;
+}
