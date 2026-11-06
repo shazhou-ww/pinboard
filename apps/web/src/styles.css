@@ -747,13 +747,15 @@ footer {
   outline-offset: -4px;
   background: transparent;
   color: var(--accent);
-  font-size: 24px;
+}
+.item-filter button svg {
+  display: block;
 }
 .item-filter button:hover:not(:disabled) {
-  background: var(--hover);
+  background: radial-gradient(circle, var(--hover) 0%, transparent 70%);
 }
 .item-filter button:active:not(:disabled) {
-  background: var(--selected);
+  background: radial-gradient(circle, var(--selected) 0%, transparent 70%);
 }
 @media (max-width: 959px) {
   .home-header.has-filter {
