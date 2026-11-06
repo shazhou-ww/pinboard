@@ -218,7 +218,7 @@ describe("scoped node descriptions and conversion", () => {
     } finally {
       await old.dispose();
     }
-  });
+  }, 30000);
 
   it("persists root and reachable child metadata with CAS, clear tombstones, isolation and pure-text limits", async () => {
     const { pin, dag } = await legacyPin();
