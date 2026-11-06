@@ -12,7 +12,8 @@ import {
   verifyBlock,
 } from "./content.js";
 import { readBlock, storeDag, writeGuard } from "./storage.js";
-import { nameSchema, validate } from "./schemas.js";
+import { itemFilterSchema, nameSchema, validate } from "./schemas.js";
+import { matchesItemFilter } from "./item-filter.js";
 import {
   previewBatchLimit,
   type Pin,
@@ -41,17 +42,31 @@ export class PinService {
 
   async list(
     cursor?: string,
+    query = "",
   ): Promise<{ pins: Pin[]; nextCursor: string | null }> {
     requireScope(this.principal, "pins:read");
+    validate(itemFilterSchema, query);
+    const filtered = query.trim().length > 0;
     const result = await this.env.DB.prepare(
-      "SELECT cid, name, size, blocks, created_at AS createdAt FROM pins WHERE account_id = ? AND cid > ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) ORDER BY cid LIMIT 51",
+      `SELECT cid, name, size, blocks, created_at AS createdAt${filtered ? ", (SELECT text FROM node_descriptions n WHERE n.account_id = pins.account_id AND n.root_cid = pins.cid AND n.node_cid = pins.cid) AS rootDescription" : ""} FROM pins WHERE account_id = ? AND cid > ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) ORDER BY cid${filtered ? "" : " LIMIT 51"}`,
     )
       .bind(this.principal.accountId, cursor ?? "")
-      .all<Pin>();
-    const pins = result.results.slice(0, 50);
+      .all<Pin & { rootDescription?: string | null }>();
+    const matches = filtered
+      ? result.results.filter((pin) =>
+          matchesItemFilter(query, pin.name, pin.rootDescription ?? null),
+        )
+      : result.results;
+    const pins = matches.slice(0, 50).map((pin) => ({
+      cid: pin.cid,
+      name: pin.name,
+      size: pin.size,
+      blocks: pin.blocks,
+      createdAt: pin.createdAt,
+    }));
     return {
       pins,
-      nextCursor: result.results.length > 50 ? pins.at(-1)!.cid : null,
+      nextCursor: matches.length > 50 ? pins.at(-1)!.cid : null,
     };
   }
 

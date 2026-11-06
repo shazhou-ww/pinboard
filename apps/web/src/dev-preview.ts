@@ -1,6 +1,7 @@
 import type { PreviewAsset } from "./dev-preview-data.js";
 import {
   previewBatchLimit,
+  normalizeItemFilter,
   type NodeDescription,
   type PublicationHistory,
 } from "@shazhou/pinboard-contracts";
@@ -130,9 +131,20 @@ export async function previewRequest(
   const data = await assets;
   init?.signal?.throwIfAborted();
   const histories = publicationFixtures(data);
+  const query = normalizeItemFilter(
+    new URL(path, location.origin).searchParams.get("q") ?? "",
+  );
+  const matches = (name: string, description = "") =>
+    !query ||
+    name.toLowerCase().includes(query) ||
+    description.toLowerCase().includes(query);
   if (pathname === "/api/publications")
     return json({
-      publications: histories.map((item) => item.publication),
+      publications: histories
+        .map((item) => item.publication)
+        .filter((item) =>
+          matches(item.title, item.current.descriptions?.[item.current.cid]),
+        ),
       nextCursor: null,
     });
   if (pathname === "/api/recently-deleted")
@@ -214,7 +226,12 @@ export async function previewRequest(
       }),
     });
   if (pathname === "/api/pins")
-    return json({ pins: data.map((asset) => asset.pin), nextCursor: null });
+    return json({
+      pins: data
+        .map((asset) => asset.pin)
+        .filter((pin) => matches(pin.name, privateRootDescription)),
+      nextCursor: null,
+    });
   for (const asset of data) {
     if (
       pathname ===

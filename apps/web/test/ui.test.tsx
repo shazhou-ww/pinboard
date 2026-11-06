@@ -149,7 +149,9 @@ describe("Pinboard interface", () => {
     expect(html).toContain("Uploaded content will be public");
     expect(html).toContain("Do not remind me in this browser");
     expect(html).toContain('class="shell home-shell canvas-shell"');
-    expect(html).toContain('class="home-header"');
+    expect(html).toContain('class="home-header has-filter"');
+    expect(html).toContain('aria-label="Filter items by name or description"');
+    expect(html).toContain('placeholder="Filter items..."');
     expect(html).toMatch(/popovertarget="account-menu"/i);
     expect(html).toContain('popover="auto"');
     expect(html).toContain('aria-label="Account actions"');

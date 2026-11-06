@@ -4,6 +4,11 @@ export const authProviderIds = [
   "microsoft-entra-id",
 ] as const;
 
+export const itemFilterMaxLength = 200;
+export function normalizeItemFilter(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 export const uploadLimits = {
   maxBytes: 32 * 1024 * 1024,
   maxBlockBytes: 2 * 1024 * 1024,

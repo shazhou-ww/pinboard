@@ -15,6 +15,7 @@ import { publishedDescription } from "./descriptions.js";
 import { getCar } from "./storage.js";
 import { getPreview, processPreview } from "./previews.js";
 import {
+  itemFilterSchema,
   jsonBody,
   publicationCreateSchema,
   publicationPublishSchema,
@@ -185,6 +186,7 @@ publicationApi.get("/api/publications", async (c) => {
   return c.json(
     await new PublicationService(c.env, c.get("principal")).list(
       validate(z.string().max(256).optional(), c.req.query("cursor")),
+      validate(itemFilterSchema, c.req.query("q")),
     ),
   );
 });

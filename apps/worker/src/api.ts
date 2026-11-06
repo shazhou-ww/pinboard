@@ -10,7 +10,13 @@ import {
 } from "./identity.js";
 import { handleMcp } from "./mcp.js";
 import { PinService } from "./service.js";
-import { jsonBody, pinSchema, renamePinSchema, validate } from "./schemas.js";
+import {
+  itemFilterSchema,
+  jsonBody,
+  pinSchema,
+  renamePinSchema,
+  validate,
+} from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
 import { oauthOrigin } from "./oauth.js";
 import { getPreview, processPreview, processPreviewBatch } from "./previews.js";
@@ -27,13 +33,15 @@ api.use("*", async (c, next) => {
 api.route("/", publicationApi);
 api.use("/api/pins/*", requireIdentity);
 api.use("/api/pins", requireIdentity);
-api.get("/api/pins", async (c) =>
-  c.json(
+api.get("/api/pins", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  return c.json(
     await new PinService(c.env, c.get("principal")).list(
       validate(z.string().max(256).optional(), c.req.query("cursor")),
+      validate(itemFilterSchema, c.req.query("q")),
     ),
-  ),
-);
+  );
+});
 api.post("/api/pins/previews", async (c) => {
   const input = validate(
     z

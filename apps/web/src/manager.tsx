@@ -32,11 +32,12 @@ import {
 } from "./publications.js";
 import { BackgroundSettings } from "./background.js";
 import { NodeDescriptionEditor } from "./node-description.js";
+import { useItemLists } from "./item-filter.js";
+import { useActionItems } from "./action-items.js";
 
 const pinDragType = "application/x-pinboard-pin";
 type UploadTarget = Pin | Publication;
 
-type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
 export async function requestJson<T>(
   path: string,
@@ -95,15 +96,16 @@ export function AccountManager({
   renderHeader,
 }: {
   accountId?: string | undefined;
-  renderHeader: (onSettings: () => void, disabled: boolean) => ReactNode;
+  renderHeader: (
+    onSettings: () => void,
+    disabled: boolean,
+    filter: ReactNode,
+  ) => ReactNode;
 }) {
   const previews = useMemo(() => new PreviewClient(accountId), [accountId]);
   useEffect(() => previews.attach(), [previews]);
-  const [pins, setPins] = useState<Pin[]>([]);
-  const [publications, setPublications] = useState<Publication[]>([]);
-  const [publicationCursor, setPublicationCursor] = useState<string | null>(
-    null,
-  );
+  const lists = useItemLists(accountId);
+  const { pins, publications, cursor, publicationCursor, loaded } = lists;
   const [selectedPublication, setSelectedPublication] =
     useState<Publication | null>(null);
   const [publishingPin, setPublishingPin] = useState<Pin | null>(null);
@@ -120,7 +122,6 @@ export function AccountManager({
   const [uploadPublicTitle, setUploadPublicTitle] = useState("");
   const [tokens, setTokens] = useState<AgentToken[]>([]);
   const [tokenView, setTokenView] = useState<"active" | "history">("active");
-  const [cursor, setCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<Pin | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [renaming, setRenaming] = useState<{
@@ -130,7 +131,6 @@ export function AccountManager({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [uploadSelection, setUploadSelection] =
     useState<UploadSelection | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -147,6 +147,18 @@ export function AccountManager({
   const [newToken, setNewToken] = useState("");
   const publicationDialogOpen =
     !!selectedPublication || !!publishingPin || deletedOpen;
+  const actionItems = useActionItems(
+    uploadSelection
+      ? "upload"
+      : selectedPublication
+        ? `publication:${selectedPublication.id}`
+        : publishingPin
+          ? `pin:${publishingPin.cid}`
+          : "",
+    !!selectedPublication && !uploadSelection,
+    (!!uploadSelection && uploadPublication !== "convert") ||
+      (!!publishingPin && !converting),
+  );
 
   const selectedCid = selected?.cid;
   useEffect(() => {
@@ -193,19 +205,11 @@ export function AccountManager({
     }
   }, []);
   const refresh = async () => {
-    const [page, list, publicationPage] = await Promise.all([
-      requestJson<PinPage>("/api/pins"),
+    const [, list] = await Promise.all([
+      lists.refresh(),
       requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
-      requestJson<{ publications: Publication[]; nextCursor: string | null }>(
-        "/api/publications",
-      ),
     ]);
-    setPins(page.pins);
-    setCursor(page.nextCursor);
     setTokens(list.tokens);
-    setPublications(publicationPage.publications);
-    setPublicationCursor(publicationPage.nextCursor);
-    setLoaded(true);
   };
   const perform = async (operation: () => Promise<void>) => {
     setBusy(true);
@@ -223,21 +227,10 @@ export function AccountManager({
   };
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      requestJson<PinPage>("/api/pins"),
-      requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
-      requestJson<{ publications: Publication[]; nextCursor: string | null }>(
-        "/api/publications",
-      ),
-    ])
-      .then(([page, list, publicationPage]) => {
+    void requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`)
+      .then((list) => {
         if (active) {
-          setPins(page.pins);
-          setCursor(page.nextCursor);
           setTokens(list.tokens);
-          setPublications(publicationPage.publications);
-          setPublicationCursor(publicationPage.nextCursor);
-          setLoaded(true);
         }
       })
       .catch((failure: unknown) => {
@@ -368,6 +361,20 @@ export function AccountManager({
   }, [busy, settingsOpen, uploadSelection, selected, publicationDialogOpen]);
   const upload = (event: FormEvent) => {
     event.preventDefault();
+    const publicationTarget = actionItems.publications.find(
+      (item) => item.id === uploadPublication,
+    );
+    if (
+      uploadPublication &&
+      uploadPublication !== "create" &&
+      uploadPublication !== "convert" &&
+      (actionItems.loading || actionItems.error || !publicationTarget)
+    ) {
+      setError(
+        "Publication choices are unavailable. Retry loading before uploading.",
+      );
+      return;
+    }
     if (
       !uploadSelection ||
       !uploadName.trim() ||
@@ -422,13 +429,7 @@ export function AccountManager({
           );
         }
         converted = result.publication;
-        setPins((previous) =>
-          previous.filter((pin) => pin.cid !== uploadTarget.cid),
-        );
-        setPublications((previous) => [
-          result.publication,
-          ...previous.filter((item) => item.id !== result.publication.id),
-        ]);
+        await lists.refresh();
       }
       try {
         if (!skipReminder && rememberReminder) {
@@ -470,35 +471,36 @@ export function AccountManager({
           body,
         });
         setUploadSelection(null);
-        setPins((previous) => [
-          pin,
-          ...previous.filter((entry) => entry.cid !== pin.cid),
-        ]);
         if (uploadPublication) {
           const target =
             converted ??
             (uploadPublication === "create"
               ? { title: uploadPublicTitle }
-              : publications.find((item) => item.id === uploadPublication));
+              : publicationTarget);
           if (!target)
             throw new Error(
               `Upload succeeded (${pin.cid}); publication no longer selected. Pin preserved.`,
             );
           const result = await publishUploadedPin(pin, target);
           setNotice(
-            result.status === "nop"
+            (result.status === "nop"
               ? "Uploaded. Already current; no version was created and draft description changes were not applied."
-              : "Uploaded and published.",
+              : "Uploaded and published.") +
+              (lists.filtered ? " Clear the filter to see all items." : ""),
           );
           await refresh();
           return;
         }
         await refresh();
-        setNotice("Pinned. These bytes are now public.");
+        setNotice(
+          lists.filtered
+            ? "Pinned. These bytes are now public. Clear the filter to see all items."
+            : "Pinned. These bytes are now public.",
+        );
       } catch (failure) {
+        await lists.refresh();
         if (converted) {
           setUploadSelection(null);
-          await refresh();
           throw new Error(
             `Conversion succeeded: publication ${converted.id} retains original content as v1. Upload/publish did not complete; refresh before retrying. ${failure instanceof Error ? failure.message : String(failure)}`,
           );
@@ -575,10 +577,8 @@ export function AccountManager({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: name.trim() }),
       });
-      setPins((previous) =>
-        previous.map((entry) => (entry.cid === pin.cid ? pin : entry)),
-      );
       setSelected((previous) => (previous?.cid === pin.cid ? pin : previous));
+      await lists.refresh();
       setRenaming(null);
       setNotice("Pin renamed. CID and public content are unchanged.");
     });
@@ -600,7 +600,6 @@ export function AccountManager({
       return;
     void perform(async () => {
       await requestJson(`/api/pins/${pin.cid}`, { method: "DELETE" });
-      setPins((previous) => previous.filter((item) => item.cid !== pin.cid));
       setSelected(null);
       setRenaming(null);
       await refresh();
@@ -627,6 +626,7 @@ export function AccountManager({
           !!uploadSelection ||
           !!selected ||
           publicationDialogOpen,
+        lists.filter,
       )}
       {dragging ? (
         <div className="canvas-drop" aria-hidden="true">
@@ -702,8 +702,11 @@ export function AccountManager({
       <PublicationDialog
         publication={selectedPublication}
         pin={publishingPin}
-        pins={pins}
-        publications={publications}
+        pins={actionItems.pins}
+        publications={actionItems.publications}
+        choicesLoading={actionItems.loading}
+        choicesError={actionItems.error}
+        onRetryChoices={actionItems.retry}
         convert={converting}
         initialTarget={linkTarget}
         onClose={() => {
@@ -761,6 +764,17 @@ export function AccountManager({
           </p>
         ) : null}
         {progress ? <p role="status">{progress}</p> : null}
+        {actionItems.loading ? (
+          <p role="status">Loading publication choices...</p>
+        ) : null}
+        {actionItems.error ? (
+          <div role="alert">
+            <p>{actionItems.error}</p>
+            <button type="button" onClick={actionItems.retry}>
+              Retry publication choices
+            </button>
+          </div>
+        ) : null}
         <form onSubmit={upload}>
           {uploadTarget ? (
             <p>
@@ -792,7 +806,12 @@ export function AccountManager({
             After uploading
             <select
               value={uploadPublication}
-              disabled={busy || !!uploadTarget}
+              disabled={
+                busy ||
+                !!uploadTarget ||
+                actionItems.loading ||
+                !!actionItems.error
+              }
               onChange={(event) => setUploadPublication(event.target.value)}
             >
               <option value="">Keep as a pin only</option>
@@ -800,7 +819,7 @@ export function AccountManager({
               {uploadPublication === "convert" ? (
                 <option value="convert">Convert target, then publish v2</option>
               ) : null}
-              {publications.map((item) => (
+              {actionItems.publications.map((item) => (
                 <option key={item.id} value={item.id}>
                   Publish to {item.title} (current v{item.currentRevision})
                 </option>
@@ -874,6 +893,14 @@ export function AccountManager({
                 busy ||
                 !uploadSelection ||
                 !uploadName.trim() ||
+                (!!uploadPublication &&
+                  uploadPublication !== "create" &&
+                  uploadPublication !== "convert" &&
+                  (actionItems.loading ||
+                    !!actionItems.error ||
+                    !actionItems.publications.some(
+                      (item) => item.id === uploadPublication,
+                    ))) ||
                 ((uploadPublication === "create" ||
                   uploadPublication === "convert") &&
                   !uploadPublicTitle.trim())
@@ -884,17 +911,44 @@ export function AccountManager({
           </div>
         </form>
       </Dialog>
-      <section className="pin-wall" aria-label="Your pins">
+      <section
+        className="pin-wall"
+        aria-label="Your pins"
+        aria-busy={lists.loading}
+      >
         <h1 className="visually-hidden">Your pins</h1>
-        {!loaded ? (
-          <p role="status">Loading your pins...</p>
-        ) : !pins.length && !publications.length ? (
-          <div className="canvas-empty">
-            <h3>Keep something here.</h3>
-            <p className="muted">
-              Drop one file or folder here to make your first pin.
-            </p>
+        <div role="status" aria-live="polite" aria-atomic="true">
+          {lists.loading
+            ? lists.filtered
+              ? "Filtering..."
+              : "Loading your pins..."
+            : ""}
+        </div>
+        {lists.error ? (
+          <div role="alert">
+            <p>{lists.error}</p>
+            <button type="button" onClick={() => void lists.refresh()}>
+              Try again
+            </button>
           </div>
+        ) : !loaded ? (
+          <p role="status">Loading your pins...</p>
+        ) : !pins.length && !publications.length && !lists.loading ? (
+          lists.filtered ? (
+            <div className="canvas-empty">
+              <p>No items match this filter.</p>
+              <button type="button" onClick={lists.clear}>
+                Clear filter
+              </button>
+            </div>
+          ) : (
+            <div className="canvas-empty">
+              <h3>Keep something here.</h3>
+              <p className="muted">
+                Drop one file or folder here to make your first pin.
+              </p>
+            </div>
+          )
         ) : (
           <ul className="pin-list">
             {pins.map((pin) => (
@@ -935,15 +989,9 @@ export function AccountManager({
         )}
         {cursor ? (
           <button
-            disabled={busy}
+            disabled={busy || lists.loading || !!lists.error}
             onClick={() => {
-              void perform(async () => {
-                const page = await requestJson<PinPage>(
-                  `/api/pins?cursor=${encodeURIComponent(cursor)}`,
-                );
-                setPins((previous) => [...previous, ...page.pins]);
-                setCursor(page.nextCursor);
-              });
+              void lists.loadMore("pins");
             }}
           >
             Load more
@@ -951,21 +999,9 @@ export function AccountManager({
         ) : null}
         {publicationCursor ? (
           <button
-            disabled={busy}
+            disabled={busy || lists.loading || !!lists.error}
             onClick={() => {
-              void perform(async () => {
-                const page = await requestJson<{
-                  publications: Publication[];
-                  nextCursor: string | null;
-                }>(
-                  `/api/publications?cursor=${encodeURIComponent(publicationCursor)}`,
-                );
-                setPublications((previous) => [
-                  ...previous,
-                  ...page.publications,
-                ]);
-                setPublicationCursor(page.nextCursor);
-              });
+              void lists.loadMore("publications");
             }}
           >
             Load more publications
@@ -986,7 +1022,11 @@ export function AccountManager({
         {selected ? (
           <div className="pin-detail" aria-busy={busy || detailsLoading}>
             <h3>{selected.name}</h3>
-            <NodeDescriptionEditor key={selected.cid} rootCid={selected.cid} />
+            <NodeDescriptionEditor
+              key={selected.cid}
+              rootCid={selected.cid}
+              onChanged={lists.refresh}
+            />
             <button
               className="detail-cid"
               title="Copy full CID"

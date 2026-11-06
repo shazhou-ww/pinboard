@@ -625,6 +625,68 @@ footer {
 .home-header :focus-visible {
   outline-color: #23332d;
 }
+.item-filter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 600px));
+}
+.item-filter input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 44px 8px 14px;
+  border: 1px solid #294d3833;
+  border-radius: 12px;
+  background: #fffefabf;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.item-filter input::-webkit-search-cancel-button {
+  display: none;
+}
+.item-filter button {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 44px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+}
+@media (max-width: 959px) {
+  .home-header.has-filter {
+    height: 120px;
+    flex-wrap: wrap;
+    align-content: space-between;
+    padding: 8px 16px;
+  }
+  .has-filter .item-filter {
+    position: relative;
+    order: 3;
+    left: auto;
+    transform: none;
+    width: 100%;
+  }
+  .has-filter .item-filter input,
+  .has-filter .item-filter button {
+    height: 44px;
+  }
+  .home-shell:has(.has-filter) {
+    padding-top: 120px;
+  }
+  .home-shell:has(.has-filter) [id] {
+    scroll-margin-top: 136px;
+  }
+  .has-filter .account-trigger {
+    max-width: calc(100vw - 180px);
+  }
+  .has-filter .account-popover {
+    top: 128px;
+  }
+}
 .header-signin {
   font-size: 13px;
 }
