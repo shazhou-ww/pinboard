@@ -438,6 +438,13 @@ $env:OPENSSL_BIN = 'C:\Program Files\Git\usr\bin\openssl.exe'
 pnpm test:kubo
 ```
 
+Worker integration tests allow 30 seconds per test for local D1/R2 and workerd
+I/O on both Linux and Windows; this is a test-runner budget, not a production
+latency target. Native OAuth limiter tests fill the configured bucket directly
+between HTTP boundary checks and verify that both checks share one wall-clock
+minute. Only a detected minute rollover repeats the check with a fresh IP;
+unexpected responses within a window still fail immediately.
+
 The Kubo PoC uses a **separate local-only Worker entry** and temporary storage;
 its unauthenticated uploader is never mounted by the production Worker. It
 starts and stops an offline source daemon, then validates two independent cold
