@@ -304,7 +304,7 @@ describe("global palette contract", () => {
   });
 
   it("themes the integrated filter input and clear action with shared roles", () => {
-    expect(rule(".item-filter input")).toMatchObject({
+    expect(rule('.item-filter input[type="search"]')).toMatchObject({
       border: "1px solid var(--control)",
       background: "var(--surface)",
       color: "var(--text)",
