@@ -18,11 +18,17 @@ tag 工作流，不把迁移或权限扩展加入发布流水线。新数据写�
 
 ## 授权环境与可复现实测协议
 
-用户已明确授权本次生产发布、必要的增量 D1 迁移与真实 smoke；这不构成 outer 验收。目标为
+历史 rollout 的生产发布、增量迁移与 smoke 已获授权并执行，不能据此重复发布或推定本次新写入授权；这不构成 outer 验收。本次目标为
 `https://pinboard.shazhou.work`、Worker `pinboard`、account
-`92c3c4fdcc84a1590555bccf4f111de2`、D1 `625b568d-106b-4fe1-af33-3eac4fe0a354`
-和私有 R2 `pinboard-blocks`。仅在隔离分支 `delivery/car-indexed-storage`
-工作，不修改已验收的 inner/ideal 或源代码。
+`92c3c4fdcc84a1590555bccf4f111de2`、D1 `9f15fd50-e103-459f-9f3f-9db3036f91de`
+和私有 R2 `pinboard-blocks`。旧 D1
+UUID 仅属于历史记录，禁止对其操作。仅在本次独立 session 的隔离工作区工作，不修改已验收的 inner/ideal、源代码或其他 idea。
+
+截至 2026-11-06 的交接生产为 `release-261106-5`，应用提交
+`2b109be68a8105bef2b1c51171e937c774f6b553`，
+[发布流程](https://github.com/shazhou-ww/pinboard/actions/runs/42176511205)
+成功；Worker version
+`418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7`，100% 流量，迁移账本 0001–0008。不重复执行历史 rollout 操作。当前仅执行公开只读下载及获授权控制面只读核对；新建/清理夹具或令牌先确认生产写入授权。
 
 发布前置条件：确认控制面身份及 D1 查询/写入权限、既有 release 工作流所需部署凭证。发布由 release
 tag 触发 GitHub Actions，使用 production
@@ -43,7 +49,7 @@ binding 推算成真实 R2 操作数。存储证据区分实际 R2 对象字节�
 
 发布只用下一未占用 `release-YYMMDD-INDEX` tag，记录准确 commit、Actions
 URL、全部检查结果、Worker
-version 与流量分配。出现核心源代码缺陷先回报父任务，不在本阶段修改。CAR-only 写入后禁止回滚旧 reader；保留 CAR 读取能力并前向修复。不清除 legacy 数据；只撤销本次创建的短期 smoke
+version 与流量分配。出现核心源代码缺陷在本独立 session 向用户呈报并确认修复范围，不在本阶段修改。CAR-only 写入后禁止回滚旧 reader；保留 CAR 读取能力并前向修复。不清除 legacy 数据；只撤销本次创建的短期 smoke
 token 和自有 pin，并记录公共内容仍可能保留。原始测量与结论保存在本 outer 的同世界证据文件；只有实际完成的条目才勾选 ledger。
 
 ## Acceptance criteria
