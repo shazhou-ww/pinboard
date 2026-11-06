@@ -48,6 +48,7 @@ export interface PublicationRevision {
   readonly size: number;
   readonly blocks: number;
   readonly createdAt: string;
+  readonly descriptions?: Readonly<Record<string, string>>;
 }
 
 export interface Publication {
@@ -67,7 +68,8 @@ export interface PublicationWrite {
 }
 
 export interface PublicationResult {
-  readonly status: "created" | "published" | "rolled-back" | "nop";
+  readonly status:
+    "created" | "converted" | "published" | "rolled-back" | "nop";
   readonly publication: Publication;
 }
 
@@ -136,6 +138,15 @@ export type ContentPreview = PreviewPayload & {
   readonly truncated: boolean;
   readonly reason?: string;
 };
+
+export interface NodeDescription {
+  readonly rootCid: string;
+  readonly nodeCid: string;
+  readonly description: {
+    readonly user: { readonly text: string | null; readonly version: number };
+    readonly preview: ContentPreview;
+  };
+}
 
 export const previewBatchLimit = 32;
 

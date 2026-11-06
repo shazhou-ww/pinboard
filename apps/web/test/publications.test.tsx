@@ -4,6 +4,13 @@ import type { Publication } from "@shazhou/pinboard-contracts";
 import { AccountManager, PinCard, publishUploadedPin } from "../src/manager.js";
 import { PublicationDialog, DeletedDialog } from "../src/publications.js";
 import { Icon } from "../src/icon.js";
+import {
+  Children,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { NodeDescriptionEditor } from "../src/node-description.js";
 
 const pin = {
   cid: "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
@@ -31,6 +38,127 @@ const publication: Publication = {
 const noop = () => {};
 afterEach(() => vi.unstubAllGlobals());
 describe("publication wall identity and management", () => {
+  it("routes external and internal card events without bubbling into document upload handlers", () => {
+    type EventProps = {
+      children?: ReactNode;
+      onDragStart?: (event: unknown) => void;
+      onDragEnter?: (event: unknown) => void;
+      onDragOver?: (event: unknown) => void;
+      onDrop?: (event: unknown) => void;
+      onClick?: () => void;
+    };
+    let tree: ReactElement<EventProps>;
+    const drop = vi.fn();
+    const convert = vi.fn();
+    const uploadFile = vi.fn();
+    const uploadFolder = vi.fn();
+    function Probe({ publication: item }: { publication?: Publication }) {
+      tree = PinCard({
+        pin,
+        ...(item ? { publication: item } : {}),
+        busy: false,
+        onOpen: noop,
+        onCopyCid: noop,
+        onCopyLink: noop,
+        onUnpin: noop,
+        onDrop: drop,
+        onConvert: convert,
+        onUploadFile: uploadFile,
+        onUploadFolder: uploadFolder,
+      });
+      return tree;
+    }
+    const find = (
+      node: ReactNode,
+      text: string,
+    ): ReactElement<EventProps> | undefined => {
+      if (!isValidElement<EventProps>(node)) return undefined;
+      if (
+        node.type === "button" &&
+        Children.toArray(node.props.children).includes(text)
+      )
+        return node;
+      for (const child of Children.toArray(node.props.children)) {
+        const found = find(child, text);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const fixed = renderToStaticMarkup(<Probe />);
+    expect(fixed).toContain('draggable="true"');
+    const dataTransfer = {
+      types: ["Files"],
+      setData: vi.fn(),
+      effectAllowed: "",
+      dropEffect: "",
+    };
+    const event = {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      dataTransfer,
+    };
+    tree!.props.onDragStart!(event);
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      "application/x-pinboard-pin",
+      pin.cid,
+    );
+    expect(dataTransfer.effectAllowed).toBe("link");
+    tree!.props.onDragEnter!(event);
+    tree!.props.onDragOver!(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(dataTransfer.dropEffect).toBe("copy");
+    tree!.props.onDrop!(event);
+    expect(drop).toHaveBeenCalledWith(event);
+    find(tree!, "Convert to publication")!.props.onClick!();
+    find(tree!, "Convert & upload file")!.props.onClick!();
+    find(tree!, "Convert & upload folder")!.props.onClick!();
+    expect(convert).toHaveBeenCalledOnce();
+    expect(uploadFile).toHaveBeenCalledOnce();
+    expect(uploadFolder).toHaveBeenCalledOnce();
+    const published = renderToStaticMarkup(<Probe publication={publication} />);
+    expect(published).toContain('draggable="false"');
+    dataTransfer.types = ["application/x-pinboard-pin"];
+    tree!.props.onDragOver!(event);
+    expect(dataTransfer.dropEffect).toBe("link");
+    dataTransfer.types = ["text/plain"];
+    event.preventDefault.mockClear();
+    tree!.props.onDragOver!(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("offers explicit conversion with a blank public title, and separate read-only public root/child lookup", () => {
+    const html = renderToStaticMarkup(
+      <PublicationDialog
+        publication={null}
+        pin={pin}
+        pins={[pin]}
+        publications={[publication]}
+        convert
+        onClose={noop}
+        onChanged={async () => {}}
+      />,
+    );
+    expect(html).toContain("original content becomes v1");
+    expect(html).toContain("Public title");
+    expect(html).not.toContain('value="Private label"');
+    expect(html).not.toContain("Create a publication</option>");
+    expect(html).toContain("draft description changes");
+    const editor = renderToStaticMarkup(
+      <NodeDescriptionEditor rootCid={pin.cid} />,
+    );
+    expect(editor).toContain("Node CID (root or reachable child)");
+    expect(editor).toContain("Read node");
+    const readOnly = renderToStaticMarkup(
+      <NodeDescriptionEditor
+        rootCid={pin.cid}
+        publicationId={publication.id}
+        revision={1}
+      />,
+    );
+    expect(readOnly).toContain("Published node description");
+    expect(readOnly).not.toContain("Save description");
+  });
   it("offers upload-time creation even when the account has no publications", () => {
     const html = renderToStaticMarkup(
       <AccountManager renderHeader={() => null} />,

@@ -199,6 +199,167 @@ async function raw(cid: string) {
 }
 
 describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)", () => {
+  it("runs compiled CLI child/root descriptions, explicit sidecar export and atomic conversion through real HTTP storage", async () => {
+    const owner: Principal = {
+      ...principal,
+      accountId: await accountForGoogle(env.DB, "compiled-conversion-account"),
+      scopes: [
+        "pins:read",
+        "pins:write",
+        "pins:delete",
+        "publications:read",
+        "publications:write",
+        "publications:delete",
+      ],
+    };
+    const credential = (
+      await createToken(env, owner, {
+        name: "compiled-convert",
+        scopes: owner.scopes,
+        expiresInDays: 1,
+      })
+    ).token;
+    const executable = fileURLToPath(
+      new URL("../../cli/dist/main.js", import.meta.url),
+    );
+    const execute = async (args: string[]) => {
+      const { stdout } = await promisify(execFile)(
+        process.execPath,
+        [executable, ...args, "--endpoint", runtimeOrigin, "--json"],
+        {
+          cwd: directory,
+          env: {
+            ...process.env,
+            PINBOARD_AGENT_TOKEN: credential,
+            LOCALAPPDATA: directory,
+            XDG_CONFIG_HOME: directory,
+          },
+          timeout: 15000,
+        },
+      );
+      return JSON.parse(stdout) as Record<string, unknown>;
+    };
+    const archive = await buildDirectoryCar(
+      selectionForDirectory([
+        {
+          path: "description-folder/child.txt",
+          file: new File(["Compiled child bytes"], "child.txt"),
+        },
+      ]),
+    );
+    const uploaded = await fetch(
+      `${runtimeOrigin}/api/pins/upload?kind=car&name=Never%20public%20private%20name`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${credential}`,
+          "x-pinboard-public": "true",
+        },
+        body: archive,
+      },
+    );
+    expect(uploaded.status).toBe(201);
+    const pin = await uploaded.json<Pin>();
+    const reader = await CarReader.fromBytes(
+      new Uint8Array(
+        await (
+          await fetch(`${runtimeOrigin}/api/public/${pin.cid}/car`)
+        ).arrayBuffer(),
+      ),
+    );
+    const rootBlock = await reader.get((await reader.getRoots())[0]!);
+    const child = dagPb.decode(rootBlock!.bytes).Links[0]!.Hash.toString();
+    expect(await execute(["description", "get", pin.cid, child])).toMatchObject(
+      { description: { user: { text: null, version: 0 } } },
+    );
+    expect(
+      await execute([
+        "description",
+        "set",
+        pin.cid,
+        child,
+        "--text",
+        "CLI child sidecar",
+        "--version",
+        "0",
+      ]),
+    ).toMatchObject({
+      description: { user: { text: "CLI child sidecar", version: 1 } },
+    });
+    await execute([
+      "description",
+      "set",
+      pin.cid,
+      pin.cid,
+      "--text",
+      "CLI root sidecar",
+      "--version",
+      "0",
+    ]);
+    await execute(["description", "clear", pin.cid, pin.cid, "--version", "1"]);
+    expect(await execute(["description", "export", pin.cid])).toEqual({
+      rootCid: pin.cid,
+      descriptions: { [child]: "CLI child sidecar" },
+    });
+    const args = [
+      "publication",
+      "convert",
+      pin.cid,
+      "--title",
+      "Explicit compiled public title",
+      "--request-id",
+      "compiled-conversion",
+    ];
+    const converted = (await execute(args)) as unknown as PublicationResult;
+    expect(converted.status).toBe("converted");
+    expect(converted.publication.current.descriptions).toEqual({
+      [child]: "CLI child sidecar",
+    });
+    expect(await execute(args)).toEqual(converted);
+    expect((await execute(["list"])).pins).toEqual([]);
+    expect(
+      await execute([
+        "publication",
+        "get",
+        converted.publication.id,
+        "--revision",
+        "1",
+      ]),
+    ).toMatchObject({
+      revision: { descriptions: { [child]: "CLI child sidecar" } },
+    });
+    expect(
+      await execute([
+        "publication",
+        "description",
+        converted.publication.id,
+        child,
+        "--revision",
+        "1",
+      ]),
+    ).toMatchObject({
+      description: { user: { text: "CLI child sidecar", version: 1 } },
+    });
+    expect(await raw(child)).toEqual(
+      new TextEncoder().encode("Compiled child bytes"),
+    );
+    expect(
+      await execute([
+        "publication",
+        "publish",
+        converted.publication.id,
+        pin.cid,
+        "--sequence",
+        "1",
+        "--request-id",
+        "compiled-nop",
+      ]),
+    ).toMatchObject({ status: "nop" });
+    await execute(["publication", "remove", converted.publication.id]);
+    await execute(["publication", "restore", converted.publication.id]);
+    expect((await execute(["list"])).pins).toEqual([]);
+  }, 60000);
+
   it("runs publication creation, NOP retry, upload/publish, rollback, fixed export and both recovery lifecycles against real storage", async () => {
     const owner: Principal = {
       ...principal,

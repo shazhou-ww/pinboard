@@ -1,6 +1,7 @@
 import type { PreviewAsset } from "./dev-preview-data.js";
 import {
   previewBatchLimit,
+  type NodeDescription,
   type PublicationHistory,
 } from "@shazhou/pinboard-contracts";
 
@@ -48,6 +49,21 @@ export function leavePreview(): boolean {
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status });
+}
+
+const privateRootDescription =
+  "Optional user description in this read-only preview.";
+
+function rootDescription(
+  asset: PreviewAsset,
+  text: string | null,
+  version: number,
+): NodeDescription {
+  return {
+    rootCid: asset.pin.cid,
+    nodeCid: asset.pin.cid,
+    description: { user: { text, version }, preview: asset.preview },
+  };
 }
 
 export async function previewRequest(
@@ -157,6 +173,24 @@ export async function previewRequest(
         ? json(asset.preview)
         : json({ error: "Revision not found" }, 404);
     }
+    const node = new RegExp(
+      `^${root}/versions/([1-9]\\d*)/nodes/([^/]+)/description$`,
+    ).exec(pathname);
+    if (node) {
+      const revision = history.revisions.find(
+        (item) => item.revision === Number(node[1]),
+      );
+      const asset = data.find((item) => item.pin.cid === revision?.cid);
+      return revision && asset && node[2] === revision.cid
+        ? json(
+            rootDescription(
+              asset,
+              revision.descriptions?.[revision.cid] ?? null,
+              revision.revision,
+            ),
+          )
+        : json({ error: "Revision or reachable node not found" }, 404);
+    }
     const version = new RegExp(`^${root}/versions/([1-9]\\d*)$`).exec(pathname);
     if (version) {
       const revision = history.revisions.find(
@@ -182,6 +216,16 @@ export async function previewRequest(
   if (pathname === "/api/pins")
     return json({ pins: data.map((asset) => asset.pin), nextCursor: null });
   for (const asset of data) {
+    if (
+      pathname ===
+      `/api/pins/${asset.pin.cid}/nodes/${asset.pin.cid}/description`
+    )
+      return json(rootDescription(asset, privateRootDescription, 1));
+    if (pathname === `/api/pins/${asset.pin.cid}/descriptions`)
+      return json({
+        rootCid: asset.pin.cid,
+        descriptions: { [asset.pin.cid]: privateRootDescription },
+      });
     if (pathname === `/api/pins/${asset.pin.cid}/preview`)
       return json(asset.preview);
     if (pathname === `/api/pins/${asset.pin.cid}`) return json(asset.pin);
@@ -224,6 +268,10 @@ export async function previewRequest(
         size: source.pin.size,
         blocks: source.pin.blocks,
         createdAt: `2026-11-0${index + 1}T10:00:00Z`,
+        descriptions: {
+          [source.pin.cid]:
+            `Published description for ${fixture.title}, v${index + 1}.`,
+        },
       }));
       return {
         publication: {

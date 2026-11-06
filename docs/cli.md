@@ -1,5 +1,26 @@
 # Pinboard CLI
 
+## Conversion and node descriptions
+
+```shell
+pinboard publication convert CID --title "Explicit public title" --request-id UNIQUE
+pinboard description get ROOT_CID NODE_CID
+pinboard description set ROOT_CID NODE_CID --text "Plain text" --version 0
+pinboard description clear ROOT_CID NODE_CID --version 1
+pinboard description export ROOT_CID --json
+pinboard publication description PUBLICATION_ID NODE_CID --revision 1
+```
+
+Conversion atomically replaces the fixed Pin with original-content v1; it is not
+a link or upload. Retry an uncertain conversion with the identical title, CID
+and request ID. Linking still uses `publication publish` and retains the source
+Pin unchanged. Descriptions are scoped to this account and active root,
+including reachable children. Read the actual CAS version before set/clear. CAR
+exports remain original bytes and omit sidecar metadata: explicitly save
+`description export` JSON separately. Publication JSON/history includes
+immutable description maps; publishing the current CID is a NOP and does not
+apply draft description changes. See [publication semantics](publications.md).
+
 ## Publications and recovery
 
 Publication titles and the complete revision history are public. Private pin

@@ -37,6 +37,7 @@ import { CarReader } from "@ipld/car";
 import { completeDag, importFile, key } from "../src/content.js";
 import * as dagCbor from "@ipld/dag-cbor";
 import { sha256 } from "multiformats/hashes/sha2";
+import { DescriptionService } from "../src/descriptions.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -157,6 +158,722 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 afterAll(() => mf.dispose());
+
+describe("scoped node descriptions and conversion", () => {
+  it("migrates existing Pins and publication revisions additively without rewriting their data", async () => {
+    const old = new Miniflare(
+      convertV4MiniflareOptions({
+        modules: true,
+        script: "export default { fetch() { return new Response('ok'); } };",
+        compatibilityDate: "2026-10-14",
+        d1Databases: ["DB"],
+        r2Buckets: ["BLOCKS"],
+      }),
+    );
+    try {
+      const bindings = await old.getBindings<Bindings>();
+      const local = { ...env, DB: bindings.DB, BLOCKS: bindings.BLOCKS };
+      await migrate(local.DB, { through: "0006_publications.sql" });
+      const principal = {
+        ...owner,
+        accountId: await accountForGoogle(local.DB, "old-migration-account"),
+      };
+      const pin = await new PinService(local, principal).upload(
+        new TextEncoder().encode("Legacy bytes stay fixed"),
+        "file",
+        "Old private name",
+      );
+      const now = new Date().toISOString();
+      await local.DB.batch([
+        local.DB.prepare(
+          "INSERT INTO publications (id, account_id, title, current_revision, sequence, created_at, updated_at) VALUES ('old-publication', ?, 'Old public title', 1, 1, ?, ?)",
+        ).bind(principal.accountId, now, now),
+        local.DB.prepare(
+          "INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at) VALUES ('old-publication', 1, ?, ?, ?, ?)",
+        ).bind(pin.cid, pin.size, pin.blocks, now),
+        local.DB.prepare(
+          "INSERT INTO publication_retention (publication_id, cid) VALUES ('old-publication', ?)",
+        ).bind(pin.cid),
+      ]);
+      await migrate(local.DB, { after: "0006_publications.sql" });
+      expect(
+        (await publicationHistory(local, "old-publication")).revisions[0]!
+          .descriptions,
+      ).toEqual({});
+      expect(await new PinService(local, principal).detail(pin.cid)).toEqual(
+        pin,
+      );
+      const descriptions = new DescriptionService(local, principal);
+      await descriptions.write(pin.cid, pin.cid, {
+        text: "New private sidecar",
+        expectedVersion: 0,
+      });
+      expect(
+        (await publicationHistory(local, "old-publication")).revisions[0]!
+          .descriptions,
+      ).toEqual({});
+      expect(await readBlock(local, pin.cid)).toEqual(
+        new TextEncoder().encode("Legacy bytes stay fixed"),
+      );
+    } finally {
+      await old.dispose();
+    }
+  });
+
+  it("persists root and reachable child metadata with CAS, clear tombstones, isolation and pure-text limits", async () => {
+    const { pin, dag } = await legacyPin();
+    const node = [...dag.blocks.keys()].find((cid) => cid !== pin.cid)!;
+    const service = new DescriptionService(env, owner);
+    expect((await service.read(pin.cid, node)).description.user).toEqual({
+      text: null,
+      version: 0,
+    });
+    expect(
+      (
+        await service.write(pin.cid, node, {
+          text: "<b>plain text</b>\nchild",
+          expectedVersion: 0,
+        })
+      ).description.user.version,
+    ).toBe(1);
+    await processPreview(env, node);
+    const generatedChild = await service.read(pin.cid, node);
+    expect(generatedChild.description.preview.status).toBe("ready");
+    expect(generatedChild.description.user.text).toBe(
+      "<b>plain text</b>\nchild",
+    );
+    await service.write(pin.cid, pin.cid, { text: "root", expectedVersion: 0 });
+    expect((await service.export(pin.cid)).descriptions).toEqual({
+      [node]: "<b>plain text</b>\nchild",
+      [pin.cid]: "root",
+    });
+    await expect(
+      service.write(pin.cid, node, { text: "lost update", expectedVersion: 0 }),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      service.write(pin.cid, node, { text: "lost update", expectedVersion: 8 }),
+    ).rejects.toMatchObject({ status: 409 });
+    const results = await Promise.allSettled([
+      service.write(pin.cid, node, { text: "winner A", expectedVersion: 1 }),
+      service.write(pin.cid, node, { text: "winner B", expectedVersion: 1 }),
+    ]);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const cleared = await service.write(pin.cid, node, {
+      text: null,
+      expectedVersion: 2,
+    });
+    expect(cleared.description.user).toEqual({ text: null, version: 3 });
+    expect((await service.export(pin.cid)).descriptions).toEqual({
+      [pin.cid]: "root",
+    });
+    await service.write(pin.cid, node, { text: "", expectedVersion: 3 });
+    expect((await service.export(pin.cid)).descriptions[node]).toBe("");
+    await expect(
+      service.write(pin.cid, node, {
+        text: "x".repeat(8001),
+        expectedVersion: 4,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      service.write(pin.cid, node, { text: "\0", expectedVersion: 4 }),
+    ).rejects.toMatchObject({ status: 400 });
+    const otherPin = await upload();
+    await expect(service.read(otherPin.cid, node)).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(
+      service.write(otherPin.cid, node, {
+        text: "unreachable",
+        expectedVersion: 0,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+    const other: Principal = {
+      ...owner,
+      accountId: await accountForGoogle(env.DB, "description-other"),
+    };
+    const otherService = new DescriptionService(env, other);
+    await expect(otherService.read(pin.cid, node)).rejects.toMatchObject({
+      status: 404,
+    });
+    await new PinService(env, other).pin(pin.cid, "Different private label");
+    expect(
+      (await otherService.read(pin.cid, node)).description.user.text,
+    ).toBeNull();
+    await otherService.write(pin.cid, node, {
+      text: "other account",
+      expectedVersion: 0,
+    });
+    expect((await service.read(pin.cid, node)).description.user.text).toBe("");
+    const childPin = await pins.pin(node, "Shared child as root");
+    await service.write(childPin.cid, node, {
+      text: "other root",
+      expectedVersion: 0,
+    });
+    expect((await service.read(pin.cid, node)).description.user.text).toBe("");
+    const limited = new DescriptionService(env, {
+      ...owner,
+      scopes: ["pins:read"],
+    });
+    await expect(
+      limited.write(pin.cid, node, { text: "forbidden", expectedVersion: 4 }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      new DescriptionService(env, { ...owner, scopes: [] }).read(pin.cid, node),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("publishes immutable per-revision maps, leaves names and bytes untouched, and keeps same-CID NOP honest", async () => {
+    const first = await upload();
+    const second = await upload();
+    const service = new DescriptionService(env, owner);
+    await service.write(first.cid, first.cid, {
+      text: "original",
+      expectedVersion: 0,
+    });
+    const before = await getCar(env, first.cid);
+    const bytes = new Uint8Array(
+      await new Response(before!.body).arrayBuffer(),
+    );
+    const created = await publications.create(
+      "Explicit public title",
+      first.cid,
+      write(1).requestId,
+    );
+    expect(created.publication.current.descriptions).toEqual({
+      [first.cid]: "original",
+    });
+    expect((await pins.detail(first.cid)).name).toBe("Private label");
+    await service.write(first.cid, first.cid, {
+      text: "draft only",
+      expectedVersion: 1,
+    });
+    const nop = await publications.publish(
+      created.publication.id,
+      first.cid,
+      write(1),
+    );
+    expect(nop.status).toBe("nop");
+    expect(nop.publication.current.descriptions).toEqual({
+      [first.cid]: "original",
+    });
+    const next = await publications.publish(
+      created.publication.id,
+      second.cid,
+      write(1),
+    );
+    const republished = await publications.publish(
+      created.publication.id,
+      first.cid,
+      write(next.publication.sequence),
+    );
+    expect(republished.publication.current.descriptions).toEqual({
+      [first.cid]: "draft only",
+    });
+    const independent = await publications.create(
+      "Different publication",
+      first.cid,
+      write(1).requestId,
+    );
+    await service.write(first.cid, first.cid, {
+      text: "future",
+      expectedVersion: 2,
+    });
+    expect(independent.publication.current.descriptions).toEqual({
+      [first.cid]: "draft only",
+    });
+    const history = await publicationHistory(env, created.publication.id);
+    expect(history.revisions.at(-1)!.descriptions).toEqual({
+      [first.cid]: "original",
+    });
+    expect(
+      new Uint8Array(
+        await new Response((await getCar(env, first.cid))!.body).arrayBuffer(),
+      ),
+    ).toEqual(bytes);
+    await pins.unpin(first.cid);
+    await expect(service.read(first.cid, first.cid)).rejects.toMatchObject({
+      status: 404,
+    });
+    await restorePin(env, owner, first.cid);
+    expect(
+      (await service.read(first.cid, first.cid)).description.user.text,
+    ).toBe("future");
+    const otherOwner: Principal = {
+      ...owner,
+      accountId: await accountForGoogle(env.DB, "expiry-isolated-owner"),
+    };
+    await new PinService(env, otherOwner).pin(
+      first.cid,
+      "Another owner retains this root",
+    );
+    const otherDescriptions = new DescriptionService(env, otherOwner);
+    await otherDescriptions.write(first.cid, first.cid, {
+      text: "Independent retained text",
+      expectedVersion: 0,
+    });
+    await pins.unpin(first.cid);
+    await env.DB.prepare(
+      "UPDATE deleted_pins SET expires_at = ? WHERE account_id = ? AND cid = ?",
+    )
+      .bind("2000-01-01", owner.accountId, first.cid)
+      .run();
+    await expireDeleted(env, Date.now());
+    expect(
+      await env.DB.prepare(
+        "SELECT 1 FROM node_descriptions WHERE account_id = ? AND root_cid = ?",
+      )
+        .bind(owner.accountId, first.cid)
+        .first(),
+    ).toBeNull();
+    expect(
+      (await publicationHistory(env, created.publication.id)).revisions.at(-1)!
+        .descriptions,
+    ).toEqual({ [first.cid]: "original" });
+    expect(
+      (await otherDescriptions.read(first.cid, first.cid)).description.user
+        .text,
+    ).toBe("Independent retained text");
+    expect(await readBlock(env, first.cid)).toBeDefined();
+  });
+
+  it("converts atomically and idempotently without trash, duplicate cards, lost CID retention or metadata", async () => {
+    const pin = await upload();
+    const descriptions = new DescriptionService(env, owner);
+    await descriptions.write(pin.cid, pin.cid, {
+      text: "v1 text",
+      expectedVersion: 0,
+    });
+    const requestId = write(1).requestId;
+    const attempts = await Promise.all([
+      publications.create("Public conversion", pin.cid, requestId, true),
+      publications.create("Public conversion", pin.cid, requestId, true),
+    ]);
+    expect(attempts[0]).toEqual(attempts[1]);
+    const result = attempts[0];
+    expect(result.status).toBe("converted");
+    expect(result.publication.id).not.toBe(pin.cid);
+    expect(result.publication.current.descriptions).toEqual({
+      [pin.cid]: "v1 text",
+    });
+    expect(
+      (await publications.publish(result.publication.id, pin.cid, write(1)))
+        .status,
+    ).toBe("nop");
+    expect((await pins.list()).pins.some((item) => item.cid === pin.cid)).toBe(
+      false,
+    );
+    await expect(pins.detail(pin.cid)).rejects.toMatchObject({ status: 404 });
+    await expect(descriptions.read(pin.cid, pin.cid)).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(
+      (await listDeleted(env, owner)).items.some((item) => item.id === pin.cid),
+    ).toBe(false);
+    await expect(
+      publications.create("Different", pin.cid, requestId, true),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      publications.create("Different", pin.cid, write(1).requestId, true),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(restorePin(env, owner, pin.cid)).rejects.toMatchObject({
+      status: 404,
+    });
+    const id = result.publication.id;
+    await publications.delete(id);
+    await runRetention(env);
+    expect(await readBlock(env, pin.cid)).toBeDefined();
+    await publications.restore(id);
+    expect((await pins.list()).pins.some((item) => item.cid === pin.cid)).toBe(
+      false,
+    );
+    expect(
+      (await publicationHistory(env, id)).revisions[0]!.descriptions,
+    ).toEqual({ [pin.cid]: "v1 text" });
+    await publications.delete(id);
+    await env.DB.prepare("UPDATE publications SET expires_at = ? WHERE id = ?")
+      .bind("2000-01-01", id)
+      .run();
+    await expireDeleted(env, Date.now());
+    await expect(publicationHistory(env, id)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it("lets only one of competing conversion identities win and checks existing scopes", async () => {
+    const pin = await upload();
+    const results = await Promise.allSettled([
+      publications.create("A", pin.cid, write(1).requestId, true),
+      publications.create("B", pin.cid, write(1).requestId, true),
+    ]);
+    expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(
+      1,
+    );
+    const remaining = await upload();
+    await expect(
+      new PublicationService(env, {
+        ...owner,
+        scopes: ["pins:read", "publications:write"],
+      }).create("No delete scope", remaining.cid, write(1).requestId, true),
+    ).rejects.toMatchObject({ status: 403 });
+    expect((await pins.detail(remaining.cid)).cid).toBe(remaining.cid);
+  });
+
+  it("rolls back the complete conversion handoff on source-removal failure and retries the same identity safely", async () => {
+    const pin = await upload();
+    const service = new DescriptionService(env, owner);
+    await service.write(pin.cid, pin.cid, {
+      text: "Must not lose",
+      expectedVersion: 0,
+    });
+    const requestId = write(1).requestId;
+    await env.DB.prepare(
+      `CREATE TRIGGER reject_conversion BEFORE DELETE ON pins WHEN OLD.cid = '${pin.cid}' BEGIN SELECT RAISE(ABORT, 'conversion failure fixture'); END`,
+    ).run();
+    try {
+      await expect(
+        publications.create("Atomic conversion", pin.cid, requestId, true),
+      ).rejects.toThrow();
+      expect(await pins.detail(pin.cid)).toEqual(pin);
+      expect((await service.read(pin.cid, pin.cid)).description.user.text).toBe(
+        "Must not lose",
+      );
+      expect(
+        await env.DB.prepare(
+          "SELECT 1 FROM publication_requests WHERE account_id = ? AND request_id = ?",
+        )
+          .bind(owner.accountId, requestId)
+          .first(),
+      ).toBeNull();
+      expect(
+        await env.DB.prepare(
+          "SELECT 1 FROM publications WHERE account_id = ? AND title = ?",
+        )
+          .bind(owner.accountId, "Atomic conversion")
+          .first(),
+      ).toBeNull();
+    } finally {
+      await env.DB.prepare("DROP TRIGGER reject_conversion").run();
+    }
+    expect(
+      (await publications.create("Atomic conversion", pin.cid, requestId, true))
+        .publication.current.descriptions,
+    ).toEqual({ [pin.cid]: "Must not lose" });
+  });
+
+  it("snapshots the actual transaction-time description map, not a stale client pre-read", async () => {
+    const pin = await upload();
+    const service = new DescriptionService(env, owner);
+    await service.write(pin.cid, pin.cid, {
+      text: "Before race",
+      expectedVersion: 0,
+    });
+    const batch = env.DB.batch.bind(env.DB);
+    let updated = false;
+    vi.spyOn(env.DB, "batch").mockImplementation(async (statements) => {
+      if (!updated && statements.length === 8) {
+        updated = true;
+        await service.write(pin.cid, pin.cid, {
+          text: "Commit-time snapshot",
+          expectedVersion: 1,
+        });
+      }
+      return batch(statements);
+    });
+    const result = await publications.create(
+      "Snapshot race",
+      pin.cid,
+      write(1).requestId,
+    );
+    expect(updated).toBe(true);
+    expect(result.publication.current.descriptions).toEqual({
+      [pin.cid]: "Commit-time snapshot",
+    });
+    expect(
+      (await publicationHistory(env, result.publication.id)).revisions[0]!
+        .descriptions,
+    ).toEqual({ [pin.cid]: "Commit-time snapshot" });
+  });
+
+  it("keeps descriptions independent of preview retries and cleanup", async () => {
+    const pin = await upload();
+    const service = new DescriptionService(env, owner);
+    await service.write(pin.cid, pin.cid, {
+      text: "Do not replace",
+      expectedVersion: 0,
+    });
+    await processPreview(env, pin.cid);
+    await env.DB.prepare(
+      "UPDATE content_previews SET status = 'failed' WHERE source_cid = ?",
+    )
+      .bind(pin.cid)
+      .run();
+    await processPreview(env, pin.cid);
+    await runPreviews(env);
+    await env.DB.prepare("DELETE FROM content_previews WHERE source_cid = ?")
+      .bind(pin.cid)
+      .run();
+    expect((await service.read(pin.cid, pin.cid)).description.user).toEqual({
+      text: "Do not replace",
+      version: 1,
+    });
+  });
+
+  it("uses MCP tools for scoped reads, CAS writes, explicit export and conversion, without extending old token permissions", async () => {
+    const call = await client();
+    const invoke = async (
+      name: string,
+      args: Record<string, unknown>,
+      request = call,
+    ) => {
+      const response = await request("/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      });
+      expect(response.status).toBe(200);
+      return (
+        await response.json<{
+          result: { content: { text: string }[]; isError?: boolean };
+        }>()
+      ).result;
+    };
+    const pin = await upload();
+    const context = { rootCid: pin.cid, nodeCid: pin.cid };
+    const saved = await invoke("description_set", {
+      ...context,
+      text: "MCP user text",
+      expectedVersion: 0,
+    });
+    expect(saved.isError).not.toBe(true);
+    expect(JSON.parse(saved.content[0]!.text)).toMatchObject({
+      description: { user: { text: "MCP user text", version: 1 } },
+    });
+    const read = await invoke("description_get", context);
+    expect(JSON.parse(read.content[0]!.text)).toMatchObject({
+      description: { user: { text: "MCP user text" } },
+    });
+    const exported = await invoke("description_export", { rootCid: pin.cid });
+    expect(JSON.parse(exported.content[0]!.text)).toEqual({
+      rootCid: pin.cid,
+      descriptions: { [pin.cid]: "MCP user text" },
+    });
+    expect(
+      (
+        await invoke("description_set", {
+          ...context,
+          text: "stale",
+          expectedVersion: 0,
+        })
+      ).isError,
+    ).toBe(true);
+    expect(
+      (await invoke("description_set", { ...context, text: "missing version" }))
+        .isError,
+    ).toBe(true);
+    const old = await client(owner, ["pins:read", "pins:write", "pins:delete"]);
+    expect(
+      (
+        await invoke(
+          "publication_convert",
+          {
+            cid: pin.cid,
+            title: "Not allowed",
+            public: true,
+            requestId: write(1).requestId,
+          },
+          old,
+        )
+      ).isError,
+    ).toBe(true);
+    const converted = await invoke("publication_convert", {
+      cid: pin.cid,
+      title: "MCP convert",
+      public: true,
+      requestId: write(1).requestId,
+    });
+    expect(converted.isError).not.toBe(true);
+    const result = JSON.parse(converted.content[0]!.text) as PublicationResult;
+    expect(result.status).toBe("converted");
+    const fixed = await invoke("publication_get", {
+      id: result.publication.id,
+      revision: 1,
+    });
+    expect(JSON.parse(fixed.content[0]!.text)).toMatchObject({
+      revision: { descriptions: { [pin.cid]: "MCP user text" } },
+    });
+    const nodeRead = await invoke("publication_description", {
+      id: result.publication.id,
+      revision: 1,
+      nodeCid: pin.cid,
+    });
+    expect(JSON.parse(nodeRead.content[0]!.text)).toMatchObject({
+      description: { user: { text: "MCP user text", version: 1 } },
+    });
+    expect((await invoke("description_get", context)).isError).toBe(true);
+  });
+
+  it("serves real HTTP node metadata and public snapshots with reachability, ETags, deleted-before-304 and strict writes", async () => {
+    const call = await client();
+    const { pin, dag } = await legacyPin();
+    await pins.pin(pin.cid, pin.name);
+    const node = [...dag.blocks.keys()].find((cid) => cid !== pin.cid)!;
+    const path = `/api/pins/${pin.cid}/nodes/${node}/description`;
+    const saved = await call(
+      path,
+      json({ text: "HTTP child", expectedVersion: 0 }, "PUT"),
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.headers.get("cache-control")).toBe("private, no-store");
+    expect(
+      (
+        await saved.json<{
+          description: { user: { text: string }; preview: unknown };
+        }>()
+      ).description,
+    ).toMatchObject({
+      user: { text: "HTTP child" },
+      preview: { status: expect.any(String) as unknown },
+    });
+    expect((await call(path)).status).toBe(200);
+    const failPreview = async () => {
+      const preview = await getPreview(env, node);
+      await env.DB.prepare(
+        "UPDATE content_previews SET status = 'failed', descriptor = ?, retry_at = ?, lease_until = NULL WHERE source_cid = ?",
+      )
+        .bind(
+          JSON.stringify({ ...preview, status: "failed" }),
+          new Date(0).toISOString(),
+          node,
+        )
+        .run();
+    };
+    await failPreview();
+    expect((await call(path)).status).toBe(200);
+    await failPreview();
+    expect(
+      (
+        await call(
+          path,
+          json({ text: "HTTP child", expectedVersion: 1 }, "PUT"),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await call(
+          path,
+          json({ text: "HTTP child", expectedVersion: 2 }, "PUT"),
+        )
+      ).status,
+    ).toBe(200);
+    await env.DB.prepare("DELETE FROM content_previews WHERE source_cid = ?")
+      .bind(node)
+      .run();
+    expect((await call(path)).status).toBe(200);
+    expect(
+      (await new DescriptionService(env, owner).read(pin.cid, node)).description
+        .user.text,
+    ).toBe("HTTP child");
+    expect((await call(`/api/pins/${pin.cid}/descriptions`)).status).toBe(200);
+    expect(
+      (
+        await call(
+          path,
+          json({ text: "x", expectedVersion: 1, extra: true }, "PUT"),
+        )
+      ).status,
+    ).toBe(400);
+    expect((await call(path, json({ text: "x" }, "PUT"))).status).toBe(400);
+    const converted = await call(
+      `/api/pins/${pin.cid}/convert`,
+      json({
+        title: "HTTP convert",
+        public: true,
+        requestId: write(1).requestId,
+      }),
+    );
+    expect(converted.status).toBe(201);
+    const { publication } = await converted.json<PublicationResult>();
+    const publicRoot = await httpRequest(
+      `/api/public/publications/${publication.id}/versions/1/nodes/${pin.cid}/description`,
+    );
+    expect(
+      (
+        await publicRoot.json<{
+          description: { user: { text: string | null } };
+        }>()
+      ).description.user.text,
+    ).toBeNull();
+    const publicPath = `/api/public/publications/${publication.id}/versions/1/nodes/${node}/description`;
+    const response = await httpRequest(publicPath);
+    expect(response.status).toBe(200);
+    const publishedNode = await response.json<{
+      description: { user: { text: string }; preview: { status: string } };
+    }>();
+    expect(publishedNode.description.user.text).toBe("HTTP child");
+    expect(publishedNode.description.preview.status).toBe("ready");
+    const etag = response.headers.get("etag")!;
+    expect(
+      (
+        await httpRequest(publicPath, {
+          headers: { "if-none-match": `W/${etag}` },
+        })
+      ).status,
+    ).toBe(304);
+    const unrelated = await upload();
+    expect(
+      (await httpRequest(publicPath.replace(node, unrelated.cid))).status,
+    ).toBe(404);
+    expect((await call(path)).status).toBe(404);
+    await publications.delete(publication.id);
+    expect(
+      (await httpRequest(publicPath, { headers: { "if-none-match": etag } }))
+        .status,
+    ).toBe(404);
+    await publications.restore(publication.id);
+    expect(
+      (await httpRequest(publicPath, { headers: { "if-none-match": "*" } }))
+        .status,
+    ).toBe(304);
+    expect(
+      (
+        await httpRequest(
+          `/api/pins/${unrelated.cid}/convert`,
+          json({
+            title: "Anonymous",
+            public: true,
+            requestId: write(1).requestId,
+          }),
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await call(`/api/pins/${unrelated.cid}/convert`, {
+          ...json({
+            title: "Cross origin",
+            public: true,
+            requestId: write(1).requestId,
+          }),
+          headers: {
+            "content-type": "application/json",
+            Origin: "https://evil.example",
+          },
+        })
+      ).status,
+    ).toBe(403);
+  });
+});
 
 describe("publication HTTP boundaries", () => {
   it("uses authenticated management routes for publish, owned reads, rollback, delete and original-ID restore", async () => {
@@ -652,7 +1369,7 @@ describe("publication HTTP boundaries", () => {
     for (const failure of failures) reject.mockRejectedValueOnce(failure);
     let injected = 0;
     vi.spyOn(env.DB, "batch").mockImplementation((statements) => {
-      if (statements.length === 7 && injected < failures.length) {
+      if (statements.length === 8 && injected < failures.length) {
         injected++;
         return reject();
       }
@@ -1396,7 +2113,7 @@ describe("publications and recovery", () => {
     const batch = env.DB.batch.bind(env.DB);
     let intercepted = false;
     vi.spyOn(env.DB, "batch").mockImplementation(async (statements) => {
-      if (!intercepted && statements.length === 7) {
+      if (!intercepted && statements.length === 8) {
         intercepted = true;
         const archive = await env.DB.prepare(
           "SELECT cd.object_key, so.state FROM car_dags cd JOIN storage_objects so ON so.object_key = cd.object_key WHERE cd.root = ?",

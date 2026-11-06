@@ -50,6 +50,40 @@ export class Client {
     private readonly fetcher: typeof fetch = fetch,
   ) {}
 
+  async convert(cid: string, title: string, requestId: string) {
+    return this.request(
+      `/api/pins/${canonicalCid(cid)}/convert`,
+      "POST",
+      JSON.stringify({ title, requestId, public: true }),
+      `Retry conversion with the same CID, public title and request ID ${requestId}.`,
+    );
+  }
+
+  async description(
+    root: string,
+    node: string,
+    input?: { text: string | null; expectedVersion: number },
+  ) {
+    return this.request(
+      `/api/pins/${canonicalCid(root)}/nodes/${canonicalCid(node)}/description`,
+      input ? "PUT" : "GET",
+      input ? JSON.stringify(input) : undefined,
+      input
+        ? "Read the current description and version before retrying."
+        : undefined,
+    );
+  }
+
+  async descriptions(root: string) {
+    return this.request(`/api/pins/${canonicalCid(root)}/descriptions`);
+  }
+
+  async publishedDescription(id: string, revision: number, node: string) {
+    return this.request(
+      `/api/public/publications/${encodeURIComponent(id)}/versions/${revision}/nodes/${canonicalCid(node)}/description`,
+    );
+  }
+
   private async request(
     path: string,
     method = "GET",

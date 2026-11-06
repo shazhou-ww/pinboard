@@ -11,6 +11,7 @@ import {
 } from "./publications.js";
 import { listDeleted, restorePin } from "./recently-deleted.js";
 import { boundedBody } from "./content.js";
+import { publishedDescription } from "./descriptions.js";
 import { getCar } from "./storage.js";
 import { getPreview, processPreview } from "./previews.js";
 import {
@@ -27,6 +28,35 @@ publicationApi.use("/api/public/publications/*", async (c, next) => {
   c.header("Cache-Control", "public, no-cache");
   await next();
 });
+publicationApi.get(
+  "/api/public/publications/:id/versions/:revision/nodes/:node/description",
+  async (c) => {
+    const result = await publishedDescription(
+      c.env,
+      c.req.param("id"),
+      Number(c.req.param("revision")),
+      c.req.param("node"),
+    );
+    const preview = result.description.preview;
+    if (preview.status === "pending" || preview.status === "failed")
+      c.executionCtx.waitUntil(processPreview(c.env, result.nodeCid));
+    const body = JSON.stringify(result);
+    const etag = `"${await hashToken("publication-node-v1:" + body)}"`;
+    c.header("ETag", etag);
+    c.header("Content-Type", "application/json; charset=UTF-8");
+    if (
+      c.req
+        .header("if-none-match")
+        ?.split(",")
+        .some(
+          (value) =>
+            value.trim() === "*" || value.trim().replace(/^W\//, "") === etag,
+        )
+    )
+      return c.body(null, 304);
+    return c.body(body);
+  },
+);
 publicationApi.get(
   "/api/public/publications/:id/preview/:revision",
   async (c) => {
@@ -165,6 +195,21 @@ publicationApi.post("/api/publications", async (c) => {
       input.title,
       input.cid,
       input.requestId,
+    ),
+    201,
+  );
+});
+publicationApi.post("/api/pins/:cid/convert", requireIdentity, async (c) => {
+  const input = validate(
+    publicationCreateSchema.omit({ cid: true }),
+    await jsonBody(c.req.raw),
+  );
+  return c.json(
+    await new PublicationService(c.env, c.get("principal")).create(
+      input.title,
+      c.req.param("cid"),
+      input.requestId,
+      true,
     ),
     201,
   );

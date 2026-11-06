@@ -29,6 +29,10 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
   with immutable numbered revisions, public history and explicit rollback.
 - Recover deleted pins and publications for 30 days through Web, CLI, HTTP or
   MCP.
+- Explicitly convert a fixed Pin in place, or drop files/folders onto a card to
+  confirm targeted publishing. Linking keeps its source Pin unchanged.
+- Edit optional account/root-scoped descriptions for root and reachable child
+  nodes; publications snapshot them immutably beside system previews.
 - Give an agent a scoped, expiring, revocable token for HTTP and remote MCP.
 - Connect an interactive MCP client through browser Google sign-in and explicit
   OAuth consent, without copying an API token (after the OAuth

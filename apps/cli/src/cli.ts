@@ -17,20 +17,20 @@ pinboard export <CID> [--output PATH]
 pinboard list [--cursor CURSOR] [--all]
 pinboard inspect <CID>
 pinboard rename <CID> <NAME>
-pinboard remove <CID>
-pinboard restore <CID>
+pinboard remove|restore <CID>
 pinboard deleted [--cursor CURSOR]
-pinboard publication create <CID> --title TITLE --request-id KEY
+pinboard publication create|convert <CID> --title TITLE --request-id KEY
+pinboard description get|set|clear <ROOT_CID> <NODE_CID> [--text TEXT --version N]
+pinboard description export <ROOT_CID>
 pinboard publication list [--cursor CURSOR]
-pinboard publication get <ID> [--revision N]
-pinboard publication history <ID>
-pinboard publication download <ID> [--revision N] [--output PATH]
-pinboard publication export <ID> [--revision N] [--output PATH]
+pinboard publication get|history <ID> [--revision N (get only)]
+pinboard publication description <ID> <NODE_CID> --revision N
+pinboard publication download|export <ID> [--revision N] [--output PATH]
 pinboard publication publish <ID> <CID> --sequence N --request-id KEY
 pinboard publication rollback <ID> <REVISION> --sequence N --request-id KEY
-pinboard publication remove <ID>
-pinboard publication restore <ID>
+pinboard publication remove|restore <ID>
 Upload/import options: --publication ID --sequence N --request-id KEY
+Current-CID publish is NOP; draft description changes are not applied.
 pinboard config get [endpoint]
 pinboard config set endpoint <ORIGIN>
 pinboard config set-token [--endpoint ORIGIN] [--token-stdin]
@@ -60,6 +60,8 @@ function parse(args: string[]): Options {
     "request-id",
     "title",
     "revision",
+    "text",
+    "version",
   ]);
   let literal = false;
   for (let index = 0; index < args.length; index++) {
@@ -133,7 +135,9 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       command === "download" ||
       command === "export" ||
       (command === "publication" &&
-        ["get", "history", "download", "export"].includes(words[1] ?? ""));
+        ["get", "history", "download", "export", "description"].includes(
+          words[1] ?? "",
+        ));
     const network = [
       "upload",
       "import",
@@ -146,6 +150,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       "publication",
       "deleted",
       "restore",
+      "description",
     ].includes(command);
     const allowed = new Set(["json", "help"]);
     if (
@@ -167,6 +172,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       const action = words[1];
       const lengths: Record<string, number> = {
         create: 3,
+        convert: 3,
         list: 2,
         get: 3,
         history: 3,
@@ -176,21 +182,38 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         restore: 3,
         download: 3,
         export: 3,
+        description: 4,
       };
       if (!action || words.length !== lengths[action])
         return usage("Invalid publication command. See --help.");
-      if (action === "create") {
+      if (action === "create" || action === "convert") {
         allowed.add("title");
         allowed.add("request-id");
       }
       if (action === "list") allowed.add("cursor");
-      if (action === "get" || action === "download" || action === "export")
+      if (
+        action === "get" ||
+        action === "download" ||
+        action === "export" ||
+        action === "description"
+      )
         allowed.add("revision");
       if (action === "download" || action === "export") allowed.add("output");
       if (action === "publish" || action === "rollback") {
         allowed.add("sequence");
         allowed.add("request-id");
       }
+    }
+    if (command === "description") {
+      const action = words[1];
+      if (
+        !action ||
+        !["get", "set", "clear", "export"].includes(action) ||
+        words.length !== (action === "export" ? 3 : 4)
+      )
+        return usage("Invalid description command. See --help.");
+      if (action === "set") allowed.add("text");
+      if (action === "set" || action === "clear") allowed.add("version");
     }
     if (command === "list" || command === "deleted") {
       allowed.add("cursor");
@@ -203,6 +226,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       (!network && command !== "config") ||
       (network &&
         command !== "publication" &&
+        command !== "description" &&
         words.length !==
           (command === "list" || command === "deleted"
             ? 1
@@ -281,6 +305,32 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
           );
       const client = new Client(origin, token, signal, runtime.fetcher);
       switch (command) {
+        case "description": {
+          const action = words[1];
+          if (action === "export")
+            result = await client.descriptions(words[2]!);
+          else if (action === "get")
+            result = await client.description(words[2]!, words[3]!);
+          else {
+            const expectedVersion = Number(value("version"));
+            const text = action === "clear" ? null : value("text");
+            if (
+              value("version") === undefined ||
+              !Number.isSafeInteger(expectedVersion) ||
+              expectedVersion < 0 ||
+              text === undefined ||
+              (text !== null && text.length > 8000)
+            )
+              return usage(
+                "Provide --version (nonnegative integer) and --text (at most 8000 characters) for set.",
+              );
+            result = await client.description(words[2]!, words[3]!, {
+              text,
+              expectedVersion,
+            });
+          }
+          break;
+        }
         case "deleted":
           result = await client.deleted(value("cursor"));
           break;
@@ -289,7 +339,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
           break;
         case "publication": {
           const action = words[1]!;
-          if (action === "create") {
+          if (action === "create" || action === "convert") {
             const title = value("title")?.trim();
             const requestId = value("request-id");
             if (
@@ -301,12 +351,15 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
               return usage(
                 "Create requires --title (1-200 characters) and --request-id (1-128 characters). Title and complete history are public.",
               );
-            result = await client.publication(action, undefined, {
-              cid: canonicalCid(words[2]!),
-              title,
-              requestId,
-              public: true,
-            });
+            result =
+              action === "convert"
+                ? await client.convert(words[2]!, title, requestId)
+                : await client.publication(action, undefined, {
+                    cid: canonicalCid(words[2]!),
+                    title,
+                    requestId,
+                    public: true,
+                  });
           } else if (action === "publish") {
             result = await client.publication(action, words[2], {
               cid: canonicalCid(words[3]!),
@@ -330,6 +383,16 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
               (!Number.isSafeInteger(revision) || revision < 1)
             )
               return usage("--revision must be a positive integer.");
+            if (action === "description") {
+              if (revision === undefined)
+                return usage("Publication description requires --revision N.");
+              result = await client.publishedDescription(
+                words[2]!,
+                revision,
+                words[3]!,
+              );
+              break;
+            }
             if (action === "download" || action === "export") {
               const cid = await client.publicationCid(words[2]!, revision);
               await progress(

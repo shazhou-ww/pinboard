@@ -12,6 +12,7 @@ import {
   useState,
   type FormEvent,
   type ReactNode,
+  type DragEvent as ReactDragEvent,
 } from "react";
 import {
   selectionForDirectory,
@@ -31,6 +32,10 @@ import {
   PublicationPreview,
 } from "./publications.js";
 import { BackgroundSettings } from "./background.js";
+import { NodeDescriptionEditor } from "./node-description.js";
+
+const pinDragType = "application/x-pinboard-pin";
+type UploadTarget = Pin | Publication;
 
 type PinPage = { pins: Pin[]; nextCursor: string | null };
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
@@ -103,6 +108,14 @@ export function AccountManager({
   const [selectedPublication, setSelectedPublication] =
     useState<Publication | null>(null);
   const [publishingPin, setPublishingPin] = useState<Pin | null>(null);
+  const [converting, setConverting] = useState(false);
+  const [linkTarget, setLinkTarget] = useState("");
+  const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null);
+  const pickerTarget = useRef<UploadTarget | null>(null);
+  const conversionRequest = useRef<{
+    payload: string;
+    requestId: string;
+  } | null>(null);
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [uploadPublication, setUploadPublication] = useState("");
   const [uploadPublicTitle, setUploadPublicTitle] = useState("");
@@ -247,6 +260,7 @@ export function AccountManager({
     });
   const choose = (
     prepare: () => UploadSelection | Promise<UploadSelection>,
+    target: UploadTarget | null = null,
   ) => {
     if (busy) {
       setError(
@@ -260,7 +274,11 @@ export function AccountManager({
       setProgress("Reading selection...");
       const selection = await prepare();
       setUploadName(selection.name);
-      setUploadPublication("");
+      conversionRequest.current = null;
+      setUploadTarget(target);
+      setUploadPublication(
+        target && "id" in target ? target.id : target ? "convert" : "",
+      );
       setUploadPublicTitle("");
       setUploadSelection(selection);
     });
@@ -268,6 +286,8 @@ export function AccountManager({
   useEffect(() => {
     let depth = 0;
     const enter = (event: DragEvent) => {
+      if (event.target instanceof Element && event.target.closest(".pin-card"))
+        return;
       if (!event.dataTransfer?.types.includes("Files")) return;
       depth++;
       setDragging(
@@ -279,6 +299,11 @@ export function AccountManager({
       );
     };
     const over = (event: DragEvent) => {
+      if (
+        event.defaultPrevented ||
+        (event.target instanceof Element && event.target.closest(".pin-card"))
+      )
+        return;
       if (!event.dataTransfer?.types.includes("Files")) return;
       event.preventDefault();
       event.dataTransfer.dropEffect =
@@ -303,6 +328,11 @@ export function AccountManager({
       if (!depth) setDragging(false);
     };
     const drop = (event: DragEvent) => {
+      if (
+        event.defaultPrevented ||
+        (event.target instanceof Element && event.target.closest(".pin-card"))
+      )
+        return;
       if (!event.dataTransfer?.types.includes("Files")) return;
       event.preventDefault();
       depth = 0;
@@ -345,77 +375,167 @@ export function AccountManager({
       return;
     }
     if (
-      uploadPublication === "create" &&
+      (uploadPublication === "create" || uploadPublication === "convert") &&
       (!uploadPublicTitle.trim() || uploadPublicTitle.trim().length > 200)
     ) {
       setError("Enter a public title containing 1-200 characters.");
       return;
     }
     void perform(async () => {
-      if (!skipReminder && rememberReminder) {
+      let converted: Publication | null = null;
+      if (
+        uploadPublication === "convert" &&
+        uploadTarget &&
+        !("id" in uploadTarget)
+      ) {
+        const payload = JSON.stringify({
+          cid: uploadTarget.cid,
+          title: uploadPublicTitle.trim(),
+        });
+        if (conversionRequest.current?.payload !== payload)
+          conversionRequest.current = {
+            payload,
+            requestId: crypto.randomUUID(),
+          };
+        const requestId = conversionRequest.current.requestId;
+        let result: PublicationResult;
         try {
-          localStorage.setItem(publicReminderKey, "true");
-          setSkipReminder(true);
-        } catch {
-          setRememberReminder(false);
+          result = await requestJson<PublicationResult>(
+            `/api/pins/${uploadTarget.cid}/convert`,
+            {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                title: uploadPublicTitle.trim(),
+                public: true,
+                requestId,
+              }),
+            },
+          );
+        } catch (failure) {
           throw new Error(
-            "Could not save the browser preference. Uncheck 'Do not remind me in this browser' and try again.",
+            `Conversion failed or is unconfirmed. No upload was attempted. Retry the identical public title and request ${requestId}, or refresh to check. ${failure instanceof Error ? failure.message : String(failure)}`,
           );
         }
-      }
-      let body: Blob;
-      let kind: "file" | "car";
-      if (uploadSelection.kind === "folder") {
-        setProgress("Preparing folder...");
-        const { buildDirectoryCar } = await import("./directory.js");
-        body = await buildDirectoryCar(uploadSelection);
-        kind = "car";
-      } else {
-        body = uploadSelection.file;
-        kind = "file";
-      }
-      const query = new URLSearchParams({
-        kind,
-        name: uploadName.trim(),
-      });
-      setProgress("Uploading...");
-      const pin = await requestJson<Pin>(`/api/pins/upload?${query}`, {
-        method: "POST",
-        headers: {
-          "content-type":
-            kind === "car"
-              ? "application/vnd.ipld.car"
-              : "application/octet-stream",
-          "x-pinboard-public": "true",
-        },
-        body,
-      });
-      setUploadSelection(null);
-      setPins((previous) => [
-        pin,
-        ...previous.filter((entry) => entry.cid !== pin.cid),
-      ]);
-      if (uploadPublication) {
-        const target =
-          uploadPublication === "create"
-            ? { title: uploadPublicTitle }
-            : publications.find((item) => item.id === uploadPublication);
-        if (!target)
-          throw new Error(
-            `Upload succeeded (${pin.cid}); publication no longer selected. Pin preserved.`,
-          );
-        const result = await publishUploadedPin(pin, target);
-        setNotice(
-          result.status === "nop"
-            ? "Uploaded. Already current; no version was created."
-            : "Uploaded and published.",
+        converted = result.publication;
+        setPins((previous) =>
+          previous.filter((pin) => pin.cid !== uploadTarget.cid),
         );
-        await refresh();
-        return;
+        setPublications((previous) => [
+          result.publication,
+          ...previous.filter((item) => item.id !== result.publication.id),
+        ]);
       }
-      await refresh();
-      setNotice("Pinned. These bytes are now public.");
+      try {
+        if (!skipReminder && rememberReminder) {
+          try {
+            localStorage.setItem(publicReminderKey, "true");
+            setSkipReminder(true);
+          } catch {
+            setRememberReminder(false);
+            throw new Error(
+              "Could not save the browser preference. Uncheck 'Do not remind me in this browser' and try again.",
+            );
+          }
+        }
+        let body: Blob;
+        let kind: "file" | "car";
+        if (uploadSelection.kind === "folder") {
+          setProgress("Preparing folder...");
+          const { buildDirectoryCar } = await import("./directory.js");
+          body = await buildDirectoryCar(uploadSelection);
+          kind = "car";
+        } else {
+          body = uploadSelection.file;
+          kind = "file";
+        }
+        const query = new URLSearchParams({
+          kind,
+          name: uploadName.trim(),
+        });
+        setProgress("Uploading...");
+        const pin = await requestJson<Pin>(`/api/pins/upload?${query}`, {
+          method: "POST",
+          headers: {
+            "content-type":
+              kind === "car"
+                ? "application/vnd.ipld.car"
+                : "application/octet-stream",
+            "x-pinboard-public": "true",
+          },
+          body,
+        });
+        setUploadSelection(null);
+        setPins((previous) => [
+          pin,
+          ...previous.filter((entry) => entry.cid !== pin.cid),
+        ]);
+        if (uploadPublication) {
+          const target =
+            converted ??
+            (uploadPublication === "create"
+              ? { title: uploadPublicTitle }
+              : publications.find((item) => item.id === uploadPublication));
+          if (!target)
+            throw new Error(
+              `Upload succeeded (${pin.cid}); publication no longer selected. Pin preserved.`,
+            );
+          const result = await publishUploadedPin(pin, target);
+          setNotice(
+            result.status === "nop"
+              ? "Uploaded. Already current; no version was created and draft description changes were not applied."
+              : "Uploaded and published.",
+          );
+          await refresh();
+          return;
+        }
+        await refresh();
+        setNotice("Pinned. These bytes are now public.");
+      } catch (failure) {
+        if (converted) {
+          setUploadSelection(null);
+          await refresh();
+          throw new Error(
+            `Conversion succeeded: publication ${converted.id} retains original content as v1. Upload/publish did not complete; refresh before retrying. ${failure instanceof Error ? failure.message : String(failure)}`,
+          );
+        }
+        throw failure;
+      }
     });
+  };
+  const pickFor = (target: UploadTarget, folder: boolean) => {
+    pickerTarget.current = target;
+    const picker = folder ? folderPicker.current : filePicker.current;
+    if (picker) {
+      picker.value = "";
+      picker.click();
+    }
+  };
+  const cardDrop = (event: ReactDragEvent, target: UploadTarget) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(false);
+    if (
+      busy ||
+      settingsOpen ||
+      uploadSelection ||
+      selected ||
+      publicationDialogOpen
+    )
+      return;
+    if (event.dataTransfer.types.includes(pinDragType)) {
+      if (!("id" in target)) return;
+      const source = pins.find(
+        (pin) => pin.cid === event.dataTransfer.getData(pinDragType),
+      );
+      if (!source) return;
+      setConverting(false);
+      setLinkTarget(target.id);
+      setPublishingPin(source);
+    } else if (event.dataTransfer.types.includes("Files")) {
+      const items = Array.from(event.dataTransfer.items);
+      choose(() => selectionFromDrop(items), target);
+    }
   };
   const createAgent = (event: FormEvent) => {
     event.preventDefault();
@@ -541,6 +661,7 @@ export function AccountManager({
             }
             onClick={() => {
               if (filePicker.current) {
+                pickerTarget.current = null;
                 filePicker.current.value = "";
                 filePicker.current.click();
               }
@@ -563,6 +684,7 @@ export function AccountManager({
               }
               onClick={() => {
                 if (folderPicker.current) {
+                  pickerTarget.current = null;
                   folderPicker.current.value = "";
                   folderPicker.current.click();
                 }
@@ -578,9 +700,13 @@ export function AccountManager({
         pin={publishingPin}
         pins={pins}
         publications={publications}
+        convert={converting}
+        initialTarget={linkTarget}
         onClose={() => {
           setSelectedPublication(null);
           setPublishingPin(null);
+          setConverting(false);
+          setLinkTarget("");
         }}
         onChanged={refresh}
       />
@@ -596,7 +722,9 @@ export function AccountManager({
         hidden
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
-          if (file) choose(() => selectionForFile(file));
+          const target = pickerTarget.current;
+          pickerTarget.current = null;
+          if (file) choose(() => selectionForFile(file), target);
         }}
       />
       <input
@@ -610,12 +738,14 @@ export function AccountManager({
           const entries = Array.from(event.currentTarget.files ?? []).map(
             (file) => ({ path: file.webkitRelativePath, file }),
           );
-          choose(() => selectionForDirectory(entries));
+          const target = pickerTarget.current;
+          pickerTarget.current = null;
+          choose(() => selectionForDirectory(entries), target);
         }}
       />
       <Dialog
         open={!!uploadSelection}
-        title="Make a pin"
+        title={uploadTarget ? "Confirm targeted upload" : "Make a pin"}
         busy={busy}
         onClose={() => setUploadSelection(null)}
       >
@@ -626,6 +756,13 @@ export function AccountManager({
         ) : null}
         {progress ? <p role="status">{progress}</p> : null}
         <form onSubmit={upload}>
+          {uploadTarget ? (
+            <p>
+              {"id" in uploadTarget
+                ? `Publish uploaded content to ${uploadTarget.title}. Current v${uploadTarget.currentRevision} and all previous versions remain in history.`
+                : `Convert ${uploadTarget.name} in place: original content becomes v1; new uploaded content becomes v2 (identical current CID is NOP and does not apply draft description changes). Enter a separate public title. Cancel makes no changes. Conversion may succeed even if upload or publish fails.`}
+            </p>
+          ) : null}
           <label>
             Pin name
             <input
@@ -649,11 +786,14 @@ export function AccountManager({
             After uploading
             <select
               value={uploadPublication}
-              disabled={busy}
+              disabled={busy || !!uploadTarget}
               onChange={(event) => setUploadPublication(event.target.value)}
             >
               <option value="">Keep as a pin only</option>
               <option value="create">Create a publication</option>
+              {uploadPublication === "convert" ? (
+                <option value="convert">Convert target, then publish v2</option>
+              ) : null}
               {publications.map((item) => (
                 <option key={item.id} value={item.id}>
                   Publish to {item.title} (current v{item.currentRevision})
@@ -661,7 +801,14 @@ export function AccountManager({
               ))}
             </select>
           </label>
-          {uploadPublication === "create" ? (
+          {uploadPublication ? (
+            <p className="muted">
+              New revisions publish the selected root's user descriptions too.
+              Publishing the current CID is a NOP and does not apply draft
+              description changes.
+            </p>
+          ) : null}
+          {uploadPublication === "create" || uploadPublication === "convert" ? (
             <>
               <label>
                 Public title
@@ -721,7 +868,9 @@ export function AccountManager({
                 busy ||
                 !uploadSelection ||
                 !uploadName.trim() ||
-                (uploadPublication === "create" && !uploadPublicTitle.trim())
+                ((uploadPublication === "create" ||
+                  uploadPublication === "convert") &&
+                  !uploadPublicTitle.trim())
               }
             >
               {uploadPublication ? "Upload & publish" : "Upload & pin"}
@@ -758,8 +907,19 @@ export function AccountManager({
                 onUnpin={() => unpin(pin)}
                 onPublish={() => {
                   setSelected(null);
+                  setConverting(false);
+                  setLinkTarget("");
                   setPublishingPin(pin);
                 }}
+                onConvert={() => {
+                  setConverting(true);
+                  setLinkTarget("");
+                  setPublishingPin(pin);
+                }}
+                onUploadFile={() => pickFor(pin, false)}
+                onUploadFolder={() => pickFor(pin, true)}
+                onDrop={(event) => cardDrop(event, pin)}
+                onTargetEnter={() => setDragging(false)}
               />
             ))}
             {publications.map((publication) => (
@@ -782,6 +942,10 @@ export function AccountManager({
                   void copy(`${location.origin}/p/${publication.id}`);
                 }}
                 onUnpin={() => setSelectedPublication(publication)}
+                onUploadFile={() => pickFor(publication, false)}
+                onUploadFolder={() => pickFor(publication, true)}
+                onDrop={(event) => cardDrop(event, publication)}
+                onTargetEnter={() => setDragging(false)}
               />
             ))}
           </ul>
@@ -839,6 +1003,7 @@ export function AccountManager({
         {selected ? (
           <div className="pin-detail" aria-busy={busy || detailsLoading}>
             <h3>{selected.name}</h3>
+            <NodeDescriptionEditor key={selected.cid} rootCid={selected.cid} />
             <button
               className="detail-cid"
               title="Copy full CID"
@@ -1193,6 +1358,11 @@ export function PinCard({
   onUnpin,
   onPublish,
   publication,
+  onConvert,
+  onUploadFile,
+  onUploadFolder,
+  onDrop,
+  onTargetEnter,
 }: {
   pin: Pin;
   previews?: PreviewClient;
@@ -1203,11 +1373,26 @@ export function PinCard({
   onUnpin: () => void;
   onPublish?: () => void;
   publication?: Publication;
+  onConvert?: () => void;
+  onUploadFile?: () => void;
+  onUploadFolder?: () => void;
+  onDrop?: (event: ReactDragEvent) => void;
+  onTargetEnter?: () => void;
 }) {
   const menuId = useId();
   const menu = useRef<HTMLDivElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropActive, setDropActive] = useState(false);
+  const dragDepth = useRef(0);
+  useEffect(() => {
+    const reset = () => {
+      dragDepth.current = 0;
+      setDropActive(false);
+    };
+    document.addEventListener("dragend", reset);
+    return () => document.removeEventListener("dragend", reset);
+  }, []);
   const [copyConfirmation, setCopyConfirmation] = useState<number | null>(null);
   const copySequence = useRef(0);
   const copied = copyConfirmation !== null;
@@ -1257,7 +1442,49 @@ export function PinCard({
   };
   return (
     <li
-      className={`pin-card${copied ? " copy-confirmed" : ""}`}
+      className={`pin-card${copied ? " copy-confirmed" : ""}${dropActive ? " drop-target" : ""}`}
+      draggable={!busy && !publication}
+      onDragStart={(event) => {
+        if (publication || busy) {
+          event.preventDefault();
+          return;
+        }
+        event.dataTransfer.setData(pinDragType, pin.cid);
+        event.dataTransfer.effectAllowed = "link";
+      }}
+      onDragEnter={(event) => {
+        if (!onDrop || busy) return;
+        if (
+          !event.dataTransfer.types.includes("Files") &&
+          !(publication && event.dataTransfer.types.includes(pinDragType))
+        )
+          return;
+        event.preventDefault();
+        event.stopPropagation();
+        dragDepth.current++;
+        onTargetEnter?.();
+        setDropActive(true);
+      }}
+      onDragOver={(event) => {
+        if (!onDrop || busy) return;
+        const external = event.dataTransfer.types.includes("Files");
+        const internal =
+          publication && event.dataTransfer.types.includes(pinDragType);
+        if (!external && !internal) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = internal ? "link" : "copy";
+      }}
+      onDragLeave={(event) => {
+        event.stopPropagation();
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (!dragDepth.current) setDropActive(false);
+      }}
+      onDrop={(event) => {
+        dragDepth.current = 0;
+        setDropActive(false);
+        onDrop?.(event);
+      }}
       onContextMenu={(event) => {
         if (busy) return;
         event.preventDefault();
@@ -1372,6 +1599,29 @@ export function PinCard({
           { label: "Copy CID", action: copyCid },
           ...(onPublish
             ? [{ label: "Add to a publication", action: onPublish }]
+            : []),
+          ...(onConvert
+            ? [{ label: "Convert to publication", action: onConvert }]
+            : []),
+          ...(onUploadFile
+            ? [
+                {
+                  label: publication
+                    ? "Upload file to publication"
+                    : "Convert & upload file",
+                  action: onUploadFile,
+                },
+              ]
+            : []),
+          ...(onUploadFolder
+            ? [
+                {
+                  label: publication
+                    ? "Upload folder to publication"
+                    : "Convert & upload folder",
+                  action: onUploadFolder,
+                },
+              ]
             : []),
           {
             label: publication ? "Manage publication & history" : "Unpin",

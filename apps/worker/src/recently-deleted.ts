@@ -3,7 +3,7 @@ import type { DeletedItem } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { requireScope, type Principal } from "./identity.js";
 import { key, parseCid } from "./content.js";
-import { refreshPreviewReferences } from "./previews.js";
+import { previewSourceLive, refreshPreviewReferences } from "./previews.js";
 
 export const RECOVERY_MS = 30 * 86400000;
 
@@ -84,7 +84,7 @@ export async function expireDeleted(
     ).bind(now),
     env.DB.prepare(
       `UPDATE content_previews SET unreferenced_at = ? WHERE unreferenced_at IS NULL
-      AND NOT EXISTS (SELECT 1 FROM retained_roots WHERE cid = source_cid)`,
+      AND NOT ${previewSourceLive}`,
     ).bind(now),
     refreshPreviewReferences(env.DB, time),
   ]);

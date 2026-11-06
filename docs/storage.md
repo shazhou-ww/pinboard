@@ -1,5 +1,24 @@
 # CAR-indexed storage
 
+## Scoped user metadata
+
+Migration `0007_descriptions.sql` adds owner/root/node-keyed `node_descriptions`
+and an additive default-empty JSON `publication_revisions.descriptions` column.
+Pin metadata has an `(account_id, root_cid)` foreign key to `pins` with
+cascading expiry cleanup; clearing keeps a versioned tombstone for CAS.
+Publication revisions snapshot metadata in their guarded D1 commit and never
+reference mutable Pin annotations. Preview tables, generation and GC remain
+separate. On-demand previews also support reachable DAG members: generation and
+thumbnail cleanup recheck retention through their root without adding standalone
+Pins or coupling user metadata to cache rows. Conversion retains v1 and its
+snapshot before atomically deleting the fixed Pin row; it creates no recoverable
+duplicate. Publication deletion/restore and expiry continue to control its own
+retained roots. No schema migration runs automatically in production.
+
+Descriptions do not change original DAG blocks, CIDs, CARs or ordinary content
+exports. Metadata requires explicit API/CLI sidecar export; see
+[publications](publications.md#user-descriptions-and-system-previews).
+
 New file, raw-block and CAR uploads share one validated storage path. The Worker
 checks hashes, supported codecs and complete DAG closure first, then normalizes
 the reachable blocks into a single-root CARv1. CARv2 imports and CIDv0 links are

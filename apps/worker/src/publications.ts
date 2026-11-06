@@ -17,7 +17,22 @@ import { getCar, storeDag } from "./storage.js";
 const fields = `p.id, p.title, p.current_revision AS currentRevision,
   p.sequence, p.created_at AS createdAt, p.updated_at AS updatedAt,
   (SELECT count(*) FROM publication_revisions WHERE publication_id = p.id) AS revisionCount`;
-const revisionFields = "revision, cid, size, blocks, created_at AS createdAt";
+const revisionFields =
+  "revision, cid, size, blocks, created_at AS createdAt, descriptions";
+const descriptionSnapshot = `(SELECT coalesce(json_group_object(node_cid, text), '{}') FROM node_descriptions WHERE account_id = ? AND root_cid = ? AND text IS NOT NULL)`;
+function decodeRevision(
+  row: Omit<PublicationRevision, "descriptions"> & {
+    descriptions?: string | Readonly<Record<string, string>>;
+  },
+): PublicationRevision {
+  return {
+    ...row,
+    descriptions:
+      typeof row.descriptions === "string"
+        ? (JSON.parse(row.descriptions) as Record<string, string>)
+        : (row.descriptions ?? {}),
+  };
+}
 type Row = Omit<Publication, "current">;
 type RequestRow = { payload: string; result: string };
 const conflict = () =>
@@ -45,8 +60,8 @@ export async function resolvePublication(
     throw new HTTPException(404, { message: "Revision not found" });
   const row = await env.DB.prepare(
     `SELECT ${fields},
-    c.cid AS currentCid, c.size AS currentSize, c.blocks AS currentBlocks, c.created_at AS currentCreatedAt,
-    r.revision, r.cid, r.size, r.blocks, r.created_at AS revisionCreatedAt
+    c.cid AS currentCid, c.size AS currentSize, c.blocks AS currentBlocks, c.created_at AS currentCreatedAt, c.descriptions AS currentDescriptions,
+    r.revision, r.cid, r.size, r.blocks, r.created_at AS revisionCreatedAt, r.descriptions
     FROM publications p
     JOIN publication_revisions c ON c.publication_id = p.id AND c.revision = p.current_revision
     JOIN publication_revisions r ON r.publication_id = p.id AND r.revision = coalesce(?, p.current_revision)
@@ -59,6 +74,8 @@ export async function resolvePublication(
         currentSize: number;
         currentBlocks: number;
         currentCreatedAt: string;
+        currentDescriptions: string;
+        descriptions: string;
         revision: number;
         cid: string;
         size: number;
@@ -85,6 +102,10 @@ export async function resolvePublication(
         size: row.currentSize,
         blocks: row.currentBlocks,
         createdAt: row.currentCreatedAt,
+        descriptions: JSON.parse(row.currentDescriptions) as Record<
+          string,
+          string
+        >,
       },
     },
     revision: {
@@ -93,6 +114,7 @@ export async function resolvePublication(
       size: row.size,
       blocks: row.blocks,
       createdAt: row.revisionCreatedAt,
+      descriptions: JSON.parse(row.descriptions) as Record<string, string>,
     },
   };
 }
@@ -103,7 +125,9 @@ export async function publicationHistory(
 ): Promise<PublicationHistory> {
   // One D1 batch is a consistent snapshot, including the deletion check.
   const rows = await env.DB.batch<
-    Row | PublicationRevision | PublicationHistory["operations"][number]
+    | Row
+    | (Omit<PublicationRevision, "descriptions"> & { descriptions: string })
+    | PublicationHistory["operations"][number]
   >([
     env.DB.prepare(
       `SELECT ${fields} FROM publications p WHERE id = ? AND deleted_at IS NULL`,
@@ -117,7 +141,11 @@ export async function publicationHistory(
   ]);
   const row = rows[0]!.results[0] as Row | undefined;
   if (!row) throw new HTTPException(404, { message: "Publication not found" });
-  const revisions = rows[1]!.results as PublicationRevision[];
+  const revisions = (
+    rows[1]!.results as (Omit<PublicationRevision, "descriptions"> & {
+      descriptions: string;
+    })[]
+  ).map(decodeRevision);
   const current = revisions.find(
     (item) => item.revision === row.currentRevision,
   );
@@ -205,14 +233,29 @@ export class PublicationService {
     title: string,
     cid: string,
     requestId: string,
+    convert = false,
   ): Promise<PublicationResult> {
     requireScope(this.principal, "publications:write");
+    if (convert) requireScope(this.principal, "pins:delete");
     title = validate(nameSchema, title);
     cid = key(parseCid(cid));
-    const payload = JSON.stringify({ kind: "create", title, cid });
+    const payload = JSON.stringify({
+      kind: convert ? "convert" : "create",
+      title,
+      cid,
+    });
     const replay = await this.replay(requestId, payload);
     if (replay) return replay;
-    const pin = await new PinService(this.env, this.principal).detail(cid);
+    let pin;
+    try {
+      pin = await new PinService(this.env, this.principal).detail(cid);
+    } catch (error) {
+      if (convert && error instanceof HTTPException && error.status === 404) {
+        const completed = await this.replay(requestId, payload);
+        if (completed) return completed;
+      }
+      throw error;
+    }
     await this.prepareTarget(cid);
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -224,7 +267,7 @@ export class PublicationService {
       createdAt: now,
     };
     const result: PublicationResult = {
-      status: "created",
+      status: convert ? "converted" : "created",
       publication: {
         id,
         title,
@@ -255,8 +298,17 @@ export class PublicationService {
         `INSERT INTO publications (id, account_id, title, current_revision, sequence, created_at, updated_at) SELECT ?, ?, ?, 1, 1, ?, ? WHERE ${guard}`,
       ).bind(id, this.principal.accountId, title, now, now, attempt),
       this.env.DB.prepare(
-        `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at) SELECT ?, 1, ?, ?, ?, ? WHERE ${guard}`,
-      ).bind(id, cid, pin.size, pin.blocks, now, attempt),
+        `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at, descriptions) SELECT ?, 1, ?, ?, ?, ?, ${descriptionSnapshot} WHERE ${guard}`,
+      ).bind(
+        id,
+        cid,
+        pin.size,
+        pin.blocks,
+        now,
+        this.principal.accountId,
+        cid,
+        attempt,
+      ),
       this.env.DB.prepare(
         `INSERT INTO publication_retention (publication_id, cid) SELECT ?, ? WHERE ${guard}`,
       ).bind(id, cid, attempt),
@@ -264,6 +316,14 @@ export class PublicationService {
         `INSERT INTO publication_operations (publication_id, sequence, revision, kind, created_at) SELECT ?, 1, 1, 'create', ? WHERE ${guard}`,
       ).bind(id, now, attempt),
       ...this.retain(cid, attempt),
+      this.snapshotResult(attempt, id, 1),
+      ...(convert
+        ? [
+            this.env.DB.prepare(
+              `DELETE FROM pins WHERE account_id = ? AND cid = ? AND ${guard}`,
+            ).bind(this.principal.accountId, cid, attempt),
+          ]
+        : []),
     ]);
     const saved = await this.replay(requestId, payload);
     if (!saved) throw conflict();
@@ -312,13 +372,16 @@ export class PublicationService {
     if (rollback && !previous)
       throw new HTTPException(404, { message: "Revision not found" });
     const cid = rollback ? previous!.cid : target.cid;
-    const pin = rollback
-      ? previous!
-      : await new PinService(this.env, this.principal).detail(cid);
-    await this.prepareTarget(cid);
     const nop = rollback
       ? before.currentRevision === target.revision
       : before.current.cid === cid;
+    if (!rollback) requireScope(this.principal, "pins:read");
+    const pin = nop
+      ? before.current
+      : rollback
+        ? previous!
+        : await new PinService(this.env, this.principal).detail(cid);
+    if (!nop) await this.prepareTarget(cid);
     const now = new Date().toISOString();
     const current = nop
       ? before.current
@@ -351,7 +414,7 @@ export class PublicationService {
       this.env.DB.prepare(
         `INSERT OR IGNORE INTO publication_requests (account_id, request_id, payload, attempt_id, result)
         SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM publications WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND sequence = ?)
-        ${rollback ? "" : `AND ${availablePin}`}`,
+        ${rollback || nop ? "" : `AND ${availablePin}`}`,
       ).bind(
         this.principal.accountId,
         write.requestId,
@@ -361,15 +424,25 @@ export class PublicationService {
         id,
         this.principal.accountId,
         write.expectedSequence,
-        ...(rollback ? [] : [this.principal.accountId, cid]),
+        ...(rollback || nop ? [] : [this.principal.accountId, cid]),
       ),
     ];
     if (!nop) {
       if (!rollback)
         statements.push(
           this.env.DB.prepare(
-            `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at) SELECT ?, ?, ?, ?, ?, ? WHERE ${guard}`,
-          ).bind(id, current.revision, cid, pin.size, pin.blocks, now, attempt),
+            `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at, descriptions) SELECT ?, ?, ?, ?, ?, ?, ${descriptionSnapshot} WHERE ${guard}`,
+          ).bind(
+            id,
+            current.revision,
+            cid,
+            pin.size,
+            pin.blocks,
+            now,
+            this.principal.accountId,
+            cid,
+            attempt,
+          ),
           this.env.DB.prepare(
             `INSERT OR IGNORE INTO publication_retention (publication_id, cid) SELECT ?, ? WHERE ${guard}`,
           ).bind(id, cid, attempt),
@@ -389,6 +462,7 @@ export class PublicationService {
           attempt,
         ),
         ...this.retain(cid, attempt),
+        this.snapshotResult(attempt, id, current.revision),
       );
     }
     await this.env.DB.batch(statements);
@@ -406,6 +480,12 @@ export class PublicationService {
         "UPDATE content_previews SET unreferenced_at = NULL WHERE source_cid = ? AND EXISTS (SELECT 1 FROM publication_requests WHERE attempt_id = ?)",
       ).bind(cid, attempt),
     ];
+  }
+
+  private snapshotResult(attempt: string, id: string, revision: number) {
+    return this.env.DB.prepare(
+      "UPDATE publication_requests SET result = json_set(result, '$.publication.current.descriptions', json((SELECT descriptions FROM publication_revisions WHERE publication_id = ? AND revision = ?))) WHERE attempt_id = ?",
+    ).bind(id, revision, attempt);
   }
 
   private async prepareTarget(cid: string): Promise<void> {

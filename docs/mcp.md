@@ -1,5 +1,26 @@
 # Agents and remote MCP
 
+## Conversion and user descriptions
+
+`publication_convert` accepts `{cid,title,public:true,requestId}` and atomically
+replaces an owned fixed Pin with a publication whose v1 retains the original
+content and descriptions. It requires existing `publications:write`, `pins:read`
+and `pins:delete` scopes; old pin-only tokens gain no authority. Retry an
+uncertain conversion with the same request ID and identical input.
+
+`description_get({rootCid,nodeCid})` reads scoped user text and system preview.
+`description_set({rootCid,nodeCid,text,expectedVersion})` sets bounded pure text
+or clears with `text:null`, using the actual version from a read (0 initially).
+`description_export({rootCid})` explicitly exports the root's metadata map.
+These use existing pin read/write scopes and require an active owned root and
+actual node reachability. Published metadata is immutable and available through
+`publication_get`/`publication_history` revision `descriptions` maps. A
+current-CID publish is NOP and does not apply draft metadata edits. Ordinary CAR
+exports omit all sidecars. See [publication semantics](publications.md).
+`publication_description({id,revision,nodeCid})` reads a fixed revision's
+root/child snapshot together with its system preview, including after the source
+Pin has expired.
+
 ## Publications and recovery tools
 
 These tools use the same services, CAS and recovery lifecycle as Web, CLI and

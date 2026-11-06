@@ -14,6 +14,11 @@ import {
 } from "./schemas.js";
 import { PublicationService, publicationHistory } from "./publications.js";
 import { listDeleted, restorePin } from "./recently-deleted.js";
+import {
+  DescriptionService,
+  descriptionWriteSchema,
+  publishedDescription,
+} from "./descriptions.js";
 
 export async function handleMcp(
   request: Request,
@@ -23,6 +28,7 @@ export async function handleMcp(
 ): Promise<Response> {
   const service = new PinService(env, principal, schedule);
   const publications = new PublicationService(env, principal);
+  const descriptions = new DescriptionService(env, principal, schedule);
   const server = new McpServer({ name: "pinboard", version: "0.1.0" });
   const result = async (operation: () => Promise<unknown>) => {
     try {
@@ -52,6 +58,68 @@ export async function handleMcp(
       };
     }
   };
+  server.registerTool(
+    "publication_description",
+    {
+      description:
+        "Read a public immutable revision's root or reachable child user description alongside its system preview. Never reads a live account annotation.",
+      inputSchema: {
+        id: z.string().max(128),
+        revision: z.number().int().positive(),
+        nodeCid: z.string().max(256),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    ({ id, revision, nodeCid }) =>
+      result(() => publishedDescription(env, id, revision, nodeCid, schedule)),
+  );
+  server.registerTool(
+    "publication_convert",
+    {
+      description:
+        "Atomically convert an owned fixed Pin in place into a publication with its original content and description snapshot as v1. Explicit public title required. The Pin is replaced, not trashed. Retry the identical request ID safely.",
+      inputSchema: publicationCreateSchema.shape,
+    },
+    ({ title, cid, requestId }) =>
+      result(() => publications.create(title, cid, requestId, true)),
+  );
+  server.registerTool(
+    "description_get",
+    {
+      description:
+        "Read a reachable node's account/root-scoped user description alongside the system preview. No global CID annotations.",
+      inputSchema: {
+        rootCid: z.string().max(256),
+        nodeCid: z.string().max(256),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    ({ rootCid, nodeCid }) => result(() => descriptions.read(rootCid, nodeCid)),
+  );
+  server.registerTool(
+    "description_set",
+    {
+      description:
+        "Set or clear (text:null) a pure-text description for an active owned root and reachable node using expectedVersion CAS. Published snapshots never change.",
+      inputSchema: {
+        rootCid: z.string().max(256),
+        nodeCid: z.string().max(256),
+        ...descriptionWriteSchema.shape,
+      },
+    },
+    ({ rootCid, nodeCid, ...input }) =>
+      result(() => descriptions.write(rootCid, nodeCid, input)),
+  );
+  server.registerTool(
+    "description_export",
+    {
+      description:
+        "Explicitly export account/root-scoped description sidecar metadata. Ordinary CAR exports contain original content only.",
+      inputSchema: { rootCid: z.string().max(256) },
+      annotations: { readOnlyHint: true },
+    },
+    ({ rootCid }) => result(() => descriptions.export(rootCid)),
+  );
   server.registerTool(
     "list",
     {
@@ -202,7 +270,7 @@ export async function handleMcp(
     "publication_publish",
     {
       description:
-        "Publish an owned pin using CAS and a persistent request ID. Current CID is NOP; historical noncurrent CID creates a new revision.",
+        "Link an owned pin using CAS and a persistent request ID without moving or renaming it. Current CID is NOP and does not apply draft description edits; historical noncurrent CID creates a new snapshot revision.",
       inputSchema: {
         id: z.string().max(128),
         ...publicationPublishSchema.shape,

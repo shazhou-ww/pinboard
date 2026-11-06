@@ -11,6 +11,7 @@ import { Dialog } from "./dialog.js";
 import { requestJson, formatSize } from "./manager.js";
 import { PreviewContent } from "./pin-preview.js";
 import { Icon } from "./icon.js";
+import { NodeDescriptionEditor } from "./node-description.js";
 
 const json = (body: unknown): RequestInit => ({
   method: "POST",
@@ -80,6 +81,8 @@ export function PublicationDialog({
   publications,
   onClose,
   onChanged,
+  convert = false,
+  initialTarget = "",
 }: {
   publication: Publication | null;
   pin: Pin | null;
@@ -87,6 +90,8 @@ export function PublicationDialog({
   publications: readonly Publication[];
   onClose: () => void;
   onChanged: () => Promise<void>;
+  convert?: boolean;
+  initialTarget?: string;
 }) {
   const [history, setHistory] = useState<PublicationHistory | null>(null);
   const [title, setTitle] = useState("");
@@ -117,7 +122,7 @@ export function PublicationDialog({
     setError("");
     setNotice("");
     setTitle("");
-    setTarget("");
+    setTarget(initialTarget);
     setCid(pin?.cid ?? "");
     if (!publication) return;
     const controller = new AbortController();
@@ -133,7 +138,7 @@ export function PublicationDialog({
           );
       });
     return () => controller.abort();
-  }, [publication?.id, pin?.cid]);
+  }, [publication?.id, pin?.cid, initialTarget, convert]);
   const perform = async (operation: () => Promise<void>) => {
     setBusy(true);
     setError("");
@@ -164,7 +169,13 @@ export function PublicationDialog({
   return (
     <Dialog
       open={!!publication || !!pin}
-      title={pin ? "Add to a publication" : "Publication details"}
+      title={
+        pin
+          ? convert
+            ? "Convert to publication"
+            : "Add to a publication"
+          : "Publication details"
+      }
       busy={busy}
       onClose={onClose}
     >
@@ -179,11 +190,15 @@ export function PublicationDialog({
           onSubmit={(event) => {
             event.preventDefault();
             void perform(async () => {
-              const existing = publications.find((item) => item.id === target);
+              const existing = convert
+                ? undefined
+                : publications.find((item) => item.id === target);
               const result = await mutate<PublicationResult>(
                 existing
                   ? `/api/publications/${existing.id}/publish`
-                  : "/api/publications",
+                  : convert
+                    ? `/api/pins/${pin.cid}/convert`
+                    : "/api/publications",
                 existing
                   ? {
                       cid: pin.cid,
@@ -191,40 +206,47 @@ export function PublicationDialog({
                     }
                   : {
                       title,
-                      cid: pin.cid,
+                      ...(convert ? {} : { cid: pin.cid }),
                       public: true,
                     },
               );
               await onChanged();
               setNotice(
                 result.status === "nop"
-                  ? "Already current. No version was created."
+                  ? "Already current. No version was created; draft description changes were not applied."
                   : "Published.",
               );
-              onClose();
+              if (result.status !== "nop") onClose();
             });
           }}
         >
           <p>
-            Publish this pin without removing it. The public title, stable link
-            and complete version history are visible to everyone. Your private
-            pin label and account identity stay private.
+            {convert
+              ? "Replace this fixed Pin with a publication in place; original content becomes v1. The original CID remains readable. "
+              : "Link this pin without removing or renaming it. "}
+            The public title, stable link and complete version history are
+            visible to everyone. Your private pin label and account identity
+            stay private. Root and reachable-child user descriptions are public
+            with each new revision. Publishing the current CID is a NOP: draft
+            description changes are not applied to the existing public version.
           </p>
-          <label>
-            Publication
-            <select
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
-              disabled={busy}
-            >
-              <option value="">Create a publication</option>
-              {publications.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title} (current v{item.currentRevision})
-                </option>
-              ))}
-            </select>
-          </label>
+          {!convert ? (
+            <label>
+              Publication
+              <select
+                value={target}
+                onChange={(event) => setTarget(event.target.value)}
+                disabled={busy}
+              >
+                <option value="">Create a publication</option>
+                {publications.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title} (current v{item.currentRevision})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {!target ? (
             <label>
               Public title
@@ -241,12 +263,18 @@ export function PublicationDialog({
             className="primary"
             disabled={busy || (!target && !title.trim())}
           >
-            Publish
+            {convert ? "Convert to publication" : "Publish"}
           </button>
         </form>
       ) : current ? (
         <>
           <h3>{current.title}</h3>
+          <NodeDescriptionEditor
+            key={`${current.id}:${current.currentRevision}`}
+            rootCid={current.current.cid}
+            publicationId={current.id}
+            revision={current.currentRevision}
+          />
           <p>
             Publication · Current v{current.currentRevision} ·{" "}
             {current.revisionCount} versions · Sequence {current.sequence}
@@ -301,7 +329,7 @@ export function PublicationDialog({
                 await refresh(current.id);
                 setNotice(
                   result.status === "nop"
-                    ? "Already current. No version was created."
+                    ? "Already current. No version was created; draft description changes were not applied."
                     : "Published.",
                 );
               });
@@ -566,17 +594,18 @@ export function PublicationPage({
       {publication && actual ? (
         <>
           <h1>{publication.title}</h1>
+          <NodeDescriptionEditor
+            key={`${id}:${actual.revision}`}
+            rootCid={actual.cid}
+            publicationId={id}
+            revision={actual.revision}
+          />
           <p>
             {revision
               ? `Fixed v${actual.revision}`
               : `Following current v${actual.revision}`}{" "}
             · {publication.revisionCount} versions · {formatSize(actual.size)}
           </p>
-          <PublicationPreview
-            key={`${id}:${actual.revision}`}
-            publication={publication}
-            revision={actual.revision}
-          />
           <div className="actions">
             <button
               onClick={() => {

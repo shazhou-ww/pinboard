@@ -2,9 +2,10 @@
 
 A publication gives public immutable content a stable identity. Its random ID
 does not depend on a title, email or private pin label. Publishing does not
-convert or remove the source pin. Multiple publications may use the same CID.
-The title and **complete revision and pointer history are public**; account
-identities and private pin labels are not included.
+convert or remove the source pin unless **Convert to publication** is explicitly
+selected. Multiple publications may use the same CID. The title and **complete
+revision and pointer history are public**; account identities and private pin
+labels are not included.
 
 ## Web
 
@@ -15,6 +16,26 @@ upload dialog also lets you **Create a publication** with a separate explicit
 publication. The default **Keep as a pin only** does not publish. Upload always
 finishes first; if publication fails, the uploaded pin remains and the UI
 reports that partial success.
+
+Drop a file or folder **onto a publication card** to highlight that target and
+confirm upload/publish. Drop onto a fixed Pin to confirm **conversion** with a
+separate, required public title: original content becomes v1, then uploaded
+content becomes v2. Cancel does not upload, convert or publish. If conversion
+succeeds but upload/publish fails, the new publication and original v1 remain;
+the error identifies this partial success. Dropping on blank space still makes a
+Pin by default.
+
+Dragging a fixed Pin onto a publication opens the link confirmation. It does not
+upload, move, remove or rename the source, or change the target title. The **Add
+to a publication**, **Convert to publication**, **Convert & upload file/folder**
+and **Upload file/folder to publication** card menus provide keyboard and touch
+equivalents (Shift+F10 or the options button).
+
+Explicit conversion needs no upload. It atomically replaces the Pin identity
+with a new random-ID publication and original-content v1. The source Pin is not
+put in trash, so restoring the publication cannot resurrect a duplicate static
+card. Original CID links remain readable through publication retention. Ordinary
+link and creation remain separate, non-destructive operations.
 
 Pins and publications share the same 4:3 wall cards. A publication has a
 permanent identity badge and separate **Current v3** and **5 versions**
@@ -44,18 +65,19 @@ Management endpoints use existing same-origin session or Agent-token checks.
 OAuth credentials remain restricted to `/mcp`. JSON writes use
 `Content-Type: application/json`.
 
-| Method | Route                              | Input / result                                      |
-| ------ | ---------------------------------- | --------------------------------------------------- |
-| POST   | `/api/publications`                | `{title,cid,public:true,requestId}`; first revision |
-| GET    | `/api/publications?cursor=...`     | owned active publications, `nextCursor`             |
-| GET    | `/api/publications/:id`            | owned active publication                            |
-| POST   | `/api/publications/:id/publish`    | `{cid,expectedSequence,requestId}`                  |
-| POST   | `/api/publications/:id/rollback`   | `{revision,expectedSequence,requestId}`             |
-| DELETE | `/api/publications/:id`            | move entire publication to recently deleted         |
-| POST   | `/api/publications/:id/restore`    | restore before expiry                               |
-| GET    | `/api/recently-deleted?cursor=...` | owned recoverable `items`, `nextCursor`             |
-| DELETE | `/api/pins/:cid`                   | move pin to recently deleted                        |
-| POST   | `/api/pins/:cid/restore`           | restore before expiry                               |
+| Method | Route                              | Input / result                                              |
+| ------ | ---------------------------------- | ----------------------------------------------------------- |
+| POST   | `/api/publications`                | `{title,cid,public:true,requestId}`; first revision         |
+| POST   | `/api/pins/:cid/convert`           | `{title,public:true,requestId}`; atomic in-place conversion |
+| GET    | `/api/publications?cursor=...`     | owned active publications, `nextCursor`                     |
+| GET    | `/api/publications/:id`            | owned active publication                                    |
+| POST   | `/api/publications/:id/publish`    | `{cid,expectedSequence,requestId}`                          |
+| POST   | `/api/publications/:id/rollback`   | `{revision,expectedSequence,requestId}`                     |
+| DELETE | `/api/publications/:id`            | move entire publication to recently deleted                 |
+| POST   | `/api/publications/:id/restore`    | restore before expiry                                       |
+| GET    | `/api/recently-deleted?cursor=...` | owned recoverable `items`, `nextCursor`                     |
+| DELETE | `/api/pins/:cid`                   | move pin to recently deleted                                |
+| POST   | `/api/pins/:cid/restore`           | restore before expiry                                       |
 
 `publications:read` permits private publication listing and recovery listing.
 `publications:write` permits creation, publish and rollback; an existing-pin
@@ -64,6 +86,7 @@ target also requires `pins:read`. Upload additionally requires `pins:write`.
 `pins:delete`; private recovery listing uses the respective object's read scope.
 Old `pins:write` tokens do **not** acquire publication write authority. Issue a
 new scoped token or explicitly consent to new OAuth scopes when needed.
+Conversion requires `publications:write`, `pins:read` and `pins:delete`.
 
 Targets must be active owned pins backed by a verified complete, ready DAG/CAR.
 No remote content fetching is performed. Sequence checks, publication activity,
@@ -84,7 +107,54 @@ Publishing the canonical current CID returns `status: "nop"` without changing
 revision count, sequence or update time. An outdated expected sequence still
 conflicts, even for the current CID. A noncurrent historical CID creates the
 next numbered revision; explicit rollback moves current without creating a
-revision. Publish and rollback responses contain `{status, publication}`.
+revision. Publish and rollback responses contain `{status, publication}`. **NOP
+does not apply draft description changes.** Editing descriptions alone cannot
+rewrite an already published version. Publishing a noncurrent CID creates a new
+snapshot; rollback reuses the chosen version's original snapshot.
+
+## User descriptions and system previews
+
+Names belong to pinned-item identities, not content nodes. A publication title
+is explicit public input; linking never copies a private name, changes either
+item's name, or rewrites embedded file names/paths.
+
+An optional user description is bounded pure text (8,000 characters, no NUL or
+unsafe control characters). It is persisted as a sidecar keyed by **account +
+retained root CID + reachable node CID**. The root and reachable child nodes are
+supported; arbitrary attached CIDs and other accounts/roots cannot be read or
+edited through this context. It remains private until explicitly published.
+
+- `GET /api/pins/:root/nodes/:node/description` requires `pins:read`.
+- `PUT` to that path requires `pins:read` + `pins:write` and strict JSON
+  `{text: "plain text" | null, expectedVersion: 0}`. Read the actual version
+  before updating. First write uses 0; each write/clear advances it. A stale
+  version returns 409. `null` clears; `""` is a valid explicit empty value.
+- The result is `{rootCid,nodeCid,description:{user:{text,version},preview}}`.
+  `preview` uses the existing generated `ContentPreview` type and renderers.
+  Generation, retries and cleanup never write or delete the user sidecar.
+- `GET /api/pins/:root/descriptions` explicitly exports
+  `{rootCid,descriptions:{"nodeCID":"text"}}` for clients to save separately.
+- `GET /api/public/publications/:id/versions/:revision/nodes/:node/description`
+  uses that immutable revision's root, reachability and user snapshot, never a
+  live account annotation. Its `user.version` identifies the public revision; it
+  is not an editable CAS version. Public revision/history responses also include
+  `descriptions` maps. The node endpoint supports ETags and checks deletion
+  before 304, like the other publication routes. CLI
+  `publication description ID NODE_CID --revision N` and MCP
+  `publication_description({id,revision,nodeCid})` expose the same contextual
+  public node response without requiring an active source Pin.
+
+Creation/conversion/publish snapshot the entire selected root's user-description
+map in the same D1 transaction as the revision. Later private edits, other
+publications and source-pin expiry cannot alter it. Published descriptions
+cannot be edited in place. Trashed Pins retain sidecars for 30-day recovery;
+expiry releases only that owner/root's sidecars. Publication snapshots are
+independent of source Pin and generated preview lifetimes.
+
+Sidecars never alter raw CID/CAR bytes. Ordinary downloads/exports contain only
+the original content, **not descriptions**; use the explicit metadata export or
+revision JSON when you need both. The Web Pin details editor offers a Node CID
+field for root/child editing; public version pages offer read-only node lookup.
 
 ### Upload and publish
 

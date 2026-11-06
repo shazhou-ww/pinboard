@@ -36,6 +36,10 @@ pinboard rename CID "New name"
 pinboard download CID
 pinboard export CID
 pinboard remove CID
+pinboard publication convert CID --title "Public title" --request-id UNIQUE
+pinboard description get ROOT_CID NODE_CID
+pinboard description set ROOT_CID NODE_CID --text "Description" --version 0
+pinboard description export ROOT_CID --json
 ```
 
 Uploads and imports publish public content. Removing a pin removes your account
@@ -43,6 +47,12 @@ reference, not public copies elsewhere. Download restores files or directories;
 export saves a CAR. Both accept `--output PATH` and never overwrite an existing
 destination. Default filenames use the pin's name when readable, otherwise the
 CID with an explicit warning. JSON output is available through `--json`.
+
+Conversion atomically replaces a Pin with original-content publication v1.
+Description edits use the actual version from a read and never rewrite public
+revision snapshots. Ordinary CAR exports omit sidecar metadata; save the
+explicit description export separately. Current-CID publishing is NOP, including
+metadata.
 
 Use `--endpoint ORIGIN` to select another Pinboard server. Content reads are
 public; account operations require a scoped Agent token. The default endpoint is

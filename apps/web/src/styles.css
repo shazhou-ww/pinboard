@@ -82,12 +82,14 @@ svg {
 }
 button,
 input,
+textarea,
 select {
   font: inherit;
 }
 button,
 a,
 input,
+textarea,
 select {
   -webkit-tap-highlight-color: transparent;
 }
@@ -107,6 +109,7 @@ button:disabled {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+textarea:focus-visible,
 select:focus-visible {
   outline: 2px solid #337758;
   outline-offset: 4px;
@@ -235,6 +238,7 @@ label {
   font-size: 13px;
 }
 input:not([type="checkbox"]):not([type="radio"]),
+textarea,
 select {
   width: 100%;
   background: #fffefa;
@@ -1247,4 +1251,23 @@ body:has(.canvas-dialog[open]) {
   .canvas-dialog > .section-title {
     top: -20px;
   }
+}
+.pin-card.drop-target {
+  outline: 3px solid var(--accent, #45674f);
+  outline-offset: 3px;
+}
+
+.node-user-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.node-description-editor {
+  min-width: 0;
+}
+
+.node-description-editor textarea {
+  min-height: 100px;
+  resize: vertical;
+  max-width: 100%;
 }

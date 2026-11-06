@@ -587,6 +587,58 @@ describe("bounded source-derived previews", () => {
 });
 
 describe("real images, CID delivery and retention references", () => {
+  it("generates and retains requested child previews through a parent DAG without creating a child Pin", async () => {
+    const original = await readFile(
+      new URL("fixtures/portrait.jpg", import.meta.url),
+    );
+    const source = Uint8Array.from([...original, 0x7e]);
+    const car = await buildDirectoryCar([
+      {
+        path: "child.jpg",
+        size: source.length,
+        content: (async function* () {
+          yield await Promise.resolve(source);
+        })(),
+      },
+    ]);
+    const parent = await service.upload(
+      car.bytes,
+      "car",
+      "Private parent name",
+    );
+    const child = [...(await readCar(car.bytes)).blocks.keys()].find(
+      (cid) => cid !== parent.cid,
+    )!;
+    expect(
+      await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
+    ).toBe(0);
+    expect((await getPreview(env, child)).status).toBe("pending");
+    await processPreview(env, child);
+    const value = await getPreview(env, child);
+    expect(value.status).toBe("ready");
+    if (value.contentType !== "image/webp")
+      throw new Error("not a child image");
+    await runPreviews(env, Date.now() + 8 * 86400000);
+    expect((await getPreview(env, child)).status).toBe("ready");
+    expect(await getBlock(env, value.content.cid)).not.toBeNull();
+    expect(
+      await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
+    ).toBe(0);
+    await releasePin(service, parent.cid);
+    await env.DB.prepare(
+      "UPDATE content_previews SET unreferenced_at = '2000-01-01' WHERE source_cid = ?",
+    )
+      .bind(child)
+      .run();
+    await runPreviews(env);
+    expect(
+      await count(
+        "SELECT count(*) AS n FROM content_previews WHERE source_cid = ?",
+        child,
+      ),
+    ).toBe(0);
+  });
+
   it("stores actual BLOB bytes under their raw CID and delivers cacheable images and verified raw blocks", async () => {
     const { pin, value } = await preview(
       await readFile(new URL("fixtures/photo.jpg", import.meta.url)),
@@ -645,9 +697,11 @@ describe("real images, CID delivery and retention references", () => {
   });
   it("allows distinct originals to share a thumbnail; protects accounts, direct pins, version swaps and racing repins", async () => {
     // Trailing JPEG bytes change source identity but not decoded pixels.
-    const source = await readFile(
+    const original = await readFile(
       new URL("fixtures/portrait.jpg", import.meta.url),
     );
+    // Other tests retain the unmodified original through directory DAGs.
+    const source = Uint8Array.from([...original, 0x7f]);
     const a = await preview(source);
     const altered = new Uint8Array(source.length + 1);
     altered.set(source);
