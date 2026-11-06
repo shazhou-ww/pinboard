@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   Children,
   isValidElement,
@@ -6,6 +7,20 @@ import {
   type ReactNode,
 } from "react";
 import type { Publication } from "@shazhou/pinboard-contracts";
+
+it("overrides generic input styling with the pill-shaped search selector", () => {
+  const styles = readFileSync(
+    new URL("../src/styles.css", import.meta.url),
+    "utf8",
+  );
+  const selector = '.item-filter input[type="search"]';
+  expect(styles).toMatch(
+    /\.item-filter input\[type="search"\]\s*\{[^}]*border-radius:\s*999px;/u,
+  );
+  expect(styles.indexOf(selector)).toBeGreaterThan(
+    styles.indexOf('input:not([type="checkbox"]):not([type="radio"])'),
+  );
+});
 
 const host = vi.hoisted(() => ({
   slots: [] as unknown[],
