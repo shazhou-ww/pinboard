@@ -74,7 +74,7 @@ export function validRedirect(value: string): boolean {
 }
 
 function parse<Output, Input>(
-  schema: z.ZodType<Output, z.ZodTypeDef, Input>,
+  schema: z.ZodType<Output, Input>,
   input: unknown,
 ): Output {
   const parsed = schema.safeParse(input);

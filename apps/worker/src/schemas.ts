@@ -51,7 +51,7 @@ export const publicationRollbackSchema = publicationWriteSchema
   .strict();
 
 export function validate<Output, Input>(
-  schema: z.ZodType<Output, z.ZodTypeDef, Input>,
+  schema: z.ZodType<Output, Input>,
   value: unknown,
 ): Output {
   const parsed = schema.safeParse(value);
