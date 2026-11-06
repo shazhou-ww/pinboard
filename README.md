@@ -236,10 +236,15 @@ extend to the card's bottom edge behind the translucent, frosted information
 strip rather than stopping above it. Text and directory cards use a lighter tint
 and tighter blur so sparse glyphs remain visible as softened shapes beneath the
 strip. Images retain stronger frosting for their denser backgrounds.
-Theme-tinted information strips use 90% surface opacity for
-text/code/directories and 94% for images; headers, menus and floating feedback
-also use 94%. These bounded scrims keep text readable over arbitrary light/dark
-content without removing blur or tinting the image itself. The card's keyboard
+Theme-tinted information strips retain the original visible frosting: 45%
+surface opacity for text/code/directories with 4px blur, and 72% for images with
+16px blur. The header uses a 66%-to-62% tint with 24px blur, and the search
+input uses 75%; menus, publication badges and floating feedback use 90%. Do not
+replace these distinct glass treatments with a near-opaque shared fill:
+preserving a blur declaration alone does not preserve the visible effect.
+Contrast over arbitrary image content is not guaranteed by these translucent
+information strips; check actual image/text underlays visually rather than
+claiming a worst-case guarantee from solid-color tests. The card's keyboard
 focus ring has a solid surface band so it remains identifiable over thumbnails.
 Success, warning and error/danger colors stay fixed independently of the
 selected palette. These color-pair checks are regression coverage, not a claim

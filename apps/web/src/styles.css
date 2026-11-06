@@ -9,9 +9,20 @@
   --error-bg: #fceef0;
   --focus: var(--accent);
   --canvas-muted: color-mix(in srgb, var(--muted) 70%, var(--text));
-  /* Bound contrast over arbitrary content while retaining the frosted layers. */
-  --surface-glass: color-mix(in srgb, var(--surface) 94%, transparent);
-  --surface-glass-light: color-mix(in srgb, var(--surface) 90%, transparent);
+  --surface-glass: color-mix(in srgb, var(--surface) 72%, transparent);
+  --surface-glass-light: color-mix(in srgb, var(--surface) 45%, transparent);
+  --surface-glass-dense: color-mix(in srgb, var(--surface) 90%, transparent);
+  --surface-glass-header-start: color-mix(
+    in srgb,
+    var(--surface) 66%,
+    transparent
+  );
+  --surface-glass-header-end: color-mix(
+    in srgb,
+    var(--surface) 62%,
+    transparent
+  );
+  --surface-glass-input: color-mix(in srgb, var(--surface) 75%, transparent);
   --shadow: color-mix(in srgb, var(--text) 10%, transparent);
   --shadow-soft: color-mix(in srgb, var(--text) 4%, transparent);
   --backdrop: color-mix(in srgb, var(--text) 50%, transparent);
@@ -625,7 +636,7 @@ legend {
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
-  background: var(--surface-glass);
+  background: var(--surface-glass-dense);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   box-shadow: 0 8px 24px var(--shadow);
@@ -682,7 +693,11 @@ footer {
   gap: 12px;
   height: 64px;
   padding: 10px 40px;
-  background: var(--surface-glass);
+  background: linear-gradient(
+    135deg,
+    var(--surface-glass-header-start),
+    var(--surface-glass-header-end)
+  );
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   backdrop-filter: blur(24px) saturate(1.6);
   border-bottom: 1px solid var(--border);
@@ -706,7 +721,7 @@ footer {
   padding: 8px 44px 8px 14px;
   border: 1px solid var(--control);
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--surface-glass-input);
   color: var(--text);
   font: inherit;
   text-align: left;
@@ -778,7 +793,7 @@ footer {
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface-glass);
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
 }
 .account-avatar {
   display: grid;
@@ -817,7 +832,7 @@ footer {
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
-  background: var(--surface-glass);
+  background: var(--surface-glass-dense);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   box-shadow: 0 8px 24px var(--shadow);
@@ -942,7 +957,7 @@ footer {
   padding: 3px 8px;
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: var(--surface-glass);
+  background: var(--surface-glass-dense);
   color: var(--text);
   font-size: 11px;
   pointer-events: none;
@@ -1323,7 +1338,7 @@ footer {
   padding: 24px;
   border: 2px dashed var(--focus);
   border-radius: 12px;
-  background: var(--surface-glass);
+  background: var(--surface-glass-dense);
   text-align: center;
   font-size: clamp(22px, 4vw, 40px);
 }

@@ -240,10 +240,22 @@ describe("global palette contract", () => {
   );
 
   it.each(Object.keys(approved))(
-    "bounds frosted text/focus contrast over arbitrary SDR content in %s",
+    "keeps dense overlays readable and restores visible frosting in %s",
     (id) => {
       const palette = rule(`:root[data-background="${id}"]`);
-      for (const role of ["surface-glass", "surface-glass-light"]) {
+      for (const [role, opacity] of [
+        ["surface-glass", 72],
+        ["surface-glass-light", 45],
+        ["surface-glass-dense", 90],
+        ["surface-glass-header-start", 66],
+        ["surface-glass-header-end", 62],
+        ["surface-glass-input", 75],
+      ] as const) {
+        expect(shared[`--${role}`]?.replace(/\s+/g, "")).toBe(
+          `color-mix(insrgb,var(--surface)${opacity}%,transparent)`,
+        );
+      }
+      for (const role of ["surface-glass-dense"]) {
         const definition = shared[`--${role}`]!;
         expect(definition).toMatch(
           /^color-mix\(in srgb, var\(--surface\) \d+%, transparent\)$/,
@@ -268,6 +280,20 @@ describe("global palette contract", () => {
               `${id}: ${foreground}/${role}`,
             ).toBeGreaterThanOrEqual(4.5);
           }
+        }
+      }
+      for (const role of ["surface-glass", "surface-glass-light"]) {
+        const opacity = Number(/(\d+)%/.exec(shared[`--${role}`]!)![1]) / 100;
+        const background = composite(
+          rgb(palette["--surface"]!),
+          opacity,
+          rgb(palette["--subtle"]!),
+        );
+        for (const foreground of ["text", "muted"]) {
+          expect(
+            contrast(rgb(palette[`--${foreground}`]!), background),
+            `${id}: ${foreground}/${role} over themed preview`,
+          ).toBeGreaterThanOrEqual(4.5);
         }
       }
       expect(rule(".pin-info").background).toBe("var(--surface-glass)");
@@ -306,7 +332,7 @@ describe("global palette contract", () => {
   it("themes the integrated filter input and clear action with shared roles", () => {
     expect(rule('.item-filter input[type="search"]')).toMatchObject({
       border: "1px solid var(--control)",
-      background: "var(--surface)",
+      background: "var(--surface-glass-input)",
       color: "var(--text)",
     });
     expect(rule(".item-filter button").color).toBe("var(--accent)");
@@ -338,14 +364,23 @@ describe("global palette contract", () => {
     );
     expect(rule("button:disabled").opacity).toBe("0.5");
     for (const selector of [
-      ".home-header",
       ".account-popover",
       ".snackbar",
       ".publication-badge",
       ".canvas-drop",
     ]) {
-      expect(rule(selector).background).toBe("var(--surface-glass)");
+      expect(rule(selector).background).toBe("var(--surface-glass-dense)");
     }
+    expect(rule(".home-header").background?.replace(/\s+/g, " ")).toBe(
+      "linear-gradient( 135deg, var(--surface-glass-header-start), var(--surface-glass-header-end) )",
+    );
+    expect(rule(".home-header")["backdrop-filter"]).toBe(
+      "blur(24px) saturate(1.6)",
+    );
+    expect(rule(".account-popover")["backdrop-filter"]).toBe("blur(16px)");
+    expect(rule(".account-trigger").background).toBe(
+      "color-mix(in srgb, var(--surface) 40%, transparent)",
+    );
     expect(rule(".pin-preview img")).not.toHaveProperty("filter");
     expect(rule(".pin-preview img")).not.toHaveProperty("mix-blend-mode");
   });
