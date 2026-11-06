@@ -11,7 +11,8 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Store, configDirectory } from "../src/store.js";
 import {
@@ -20,6 +21,7 @@ import {
   secureDirectory,
   verify,
 } from "../src/permissions.js";
+import { fixtureDirectory } from "./fixture-directory.js";
 
 const executeFile = promisify(execFile);
 const execute = (
@@ -31,21 +33,34 @@ const execute = (
   pending.child.stdin?.end();
   return pending;
 };
-const root = resolve(
-  process.env.PINBOARD_TEST_ROOT ?? ".",
-  ".permission-tests",
-);
+let root: string;
 beforeAll(async () => {
-  await rm(root, { recursive: true, force: true });
-  await mkdir(root, { recursive: true });
+  root = await fixtureDirectory(".permission-tests-");
 });
 afterAll(async () => {
-  await rm(root, { recursive: true, force: true });
+  if (root) await rm(root, { recursive: true, force: true });
 });
 const one = "https://one.example",
   two = "https://two.example";
 
 describe(`real ${process.platform} credential protection`, () => {
+  it("isolates fixture runs under the selected parent or protected Windows default", async () => {
+    const other = await fixtureDirectory(".permission-tests-");
+    try {
+      expect(dirname(root)).toBe(
+        resolve(
+          process.env.PINBOARD_TEST_ROOT ??
+            (process.platform === "win32" ? homedir() : "."),
+        ),
+      );
+      expect(dirname(other)).toBe(dirname(root));
+      expect(other).not.toBe(root);
+      expect((await lstat(other)).isDirectory()).toBe(true);
+    } finally {
+      await rm(other, { recursive: true, force: true });
+    }
+  });
+
   it("compares exact file IDs across real path and handle stat APIs", async () => {
     const path = join(root, "identity");
     await writeFile(path, "identity");

@@ -38,9 +38,6 @@ describe("typed, display-only content previews", () => {
     );
     expect(styles).not.toMatch(/\.preview-entry-icon[^{}]*::(?:before|after)/u);
     expect(styles).toMatch(
-      /\.preview-truncated\s*\{[^}]*position:\s*absolute;[^}]*top:\s*5px;/u,
-    );
-    expect(styles).toMatch(
       /\.pin-info\s*\{[^}]*backdrop-filter:\s*blur\(16px\)/u,
     );
   });
@@ -67,6 +64,38 @@ describe("typed, display-only content previews", () => {
     expect(styles).toMatch(/\.preview-directory ul\s*\{[^}]*margin:\s*0;/u);
     expect(styles).toMatch(
       /\.preview-folder-heading\s*\{[^}]*margin-bottom:\s*10px;/u,
+    );
+  });
+  it("connects nested rows from the preceding row's center to their own center", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-directory li\[data-depth="1"\]::before\s*\{[^}]*left:\s*-15px;[^}]*top:\s*-14px;[^}]*width:\s*10px;[^}]*height:\s*28px;[^}]*border-left:\s*1px solid #bdcbb7;/u,
+    );
+  });
+  it("uses the current pin name for folder headings and truncates long names", () => {
+    const markup = renderToStaticMarkup(
+      <PreviewContent
+        name={"<Project> " + "x".repeat(200)}
+        preview={{
+          ...base,
+          contentType: "application/vnd.pinboard.directory+json",
+          content: { entries: [], total: 0 },
+        }}
+      />,
+    );
+    expect(markup).toContain(
+      'class="preview-entry-name" title="&lt;Project&gt; ' + "x".repeat(200),
+    );
+    expect(markup).not.toContain("<span>Folder</span>");
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.preview-entry-name\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/u,
     );
   });
   it("uses only the separately cacheable thumbnail URL, not a CAR or data URL", () => {
@@ -143,6 +172,9 @@ describe("typed, display-only content previews", () => {
       /<svg [^>]*aria-hidden="true"[^>]*data-kind="directory"/u,
     );
     expect(markup).toContain('class="preview-folder-heading"');
+    expect(markup).toContain(">my private pin</span>");
+    expect(markup).not.toContain("Excerpt / sampled overview");
+    expect(markup).not.toContain("preview-truncated");
     expect(markup).not.toMatch(/href=|<button|<a |total/iu);
   });
   it("only reports verified counts and distinguishes empty folders from sampled empty previews", () => {

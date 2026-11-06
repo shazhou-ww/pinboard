@@ -1,5 +1,5 @@
 import { mkdir, rm, writeFile, open, symlink } from "node:fs/promises";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { CID } from "multiformats/cid";
 import stringWidth from "string-width";
@@ -11,8 +11,9 @@ import { credentials, stdinToken } from "../src/credentials.js";
 import { Store } from "../src/store.js";
 import { prepareInput } from "../src/input.js";
 import * as inputModule from "../src/input.js";
+import { fixtureDirectory } from "./fixture-directory.js";
 
-const directory = resolve(process.env.PINBOARD_TEST_ROOT ?? ".", ".cli-tests");
+let directory: string;
 const token = "synthetic-test-token";
 const cid = "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a";
 const record = {
@@ -232,11 +233,10 @@ describe("publication and recovery commands", () => {
   });
 });
 beforeAll(async () => {
-  await rm(directory, { recursive: true, force: true });
-  await mkdir(directory, { recursive: true });
+  directory = await fixtureDirectory(".cli-tests-");
 });
 afterAll(async () => {
-  await rm(directory, { recursive: true, force: true });
+  if (directory) await rm(directory, { recursive: true, force: true });
 });
 
 async function invoke(

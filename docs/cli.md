@@ -351,7 +351,9 @@ filesystem, not mocked ACL results. Local synthetic credentials are
 implementation evidence, not proof of production account authorization. Kubo
 interoperability checks remain separate and optional.
 
-Windows CI places credential fixtures under the current user's profile rather
-than a potentially replaceable checkout directory. `PINBOARD_TEST_ROOT` can
-select a dedicated fixture parent for local tests; it does not change the CLI's
-configuration location or relax ownership, DACL, or ancestor checks.
+Credential tests create a unique temporary directory for each suite and remove
+it after the run. On Windows, these directories default to the current user's
+profile rather than a potentially replaceable checkout directory, both locally
+and in CI. Other platforms retain the checkout as the default parent.
+`PINBOARD_TEST_ROOT` can override the fixture parent; it does not change the
+CLI's configuration location or relax ownership, DACL, or ancestor checks.

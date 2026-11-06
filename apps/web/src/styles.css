@@ -989,6 +989,10 @@ footer {
   margin-left: 24px;
 }
 .preview-directory li[data-depth="1"]::before {
+  left: -15px;
+  top: -14px;
+  width: 10px;
+  height: 28px;
   border-left: 1px solid #bdcbb7;
 }
 .preview-directory li[data-kind="directory"] .preview-entry-name {
@@ -1013,17 +1017,6 @@ footer {
   margin: 0;
   color: #6b796b;
   font-size: 13px;
-}
-.preview-truncated {
-  position: absolute;
-  top: 5px;
-  right: 24px;
-  max-width: calc(100% - 48px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  color: #64705f;
 }
 .canvas-empty {
   min-height: 50dvh;

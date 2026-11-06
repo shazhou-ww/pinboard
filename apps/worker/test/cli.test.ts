@@ -5,7 +5,7 @@ import type { Pin, PublicationResult } from "@shazhou/pinboard-contracts";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createServer } from "node:http";
 import { readFile, readdir, mkdir, writeFile, rm } from "node:fs/promises";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -19,11 +19,9 @@ import { buildDirectoryCar } from "../../web/src/directory.js";
 import { selectionForDirectory } from "../../web/src/uploads.js";
 import { encodeCar } from "../src/car.js";
 import { migrate } from "./migrations.js";
+import { fixtureDirectory } from "../../cli/test/fixture-directory.js";
 
-const directory = resolve(
-  process.env.PINBOARD_TEST_ROOT ?? ".",
-  ".worker-cli-tests",
-);
+let directory: string;
 let mf: Miniflare;
 let env: Bindings;
 let origin: string;
@@ -79,7 +77,7 @@ const server = createServer((request, response) => {
 });
 
 beforeAll(async () => {
-  await mkdir(directory, { recursive: true });
+  directory = await fixtureDirectory(".worker-cli-tests-");
   await new Promise<void>((ready) => {
     server.listen(0, "127.0.0.1", ready);
   });

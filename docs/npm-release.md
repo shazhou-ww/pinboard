@@ -39,15 +39,18 @@ installing `latest` may still select that placeholder.
 ```powershell
 pnpm install --frozen-lockfile
 pnpm check
-pnpm package:cli 0.1.0
+pnpm prepare:cli 0.1.0
+pnpm --dir apps/cli/dist/npm pack --pack-destination ..
 $env:PINBOARD_CLI_EXPECTED_VERSION = "0.1.0"
 node --test .\scripts\cli-package.test.mjs
 Remove-Item Env:\PINBOARD_CLI_EXPECTED_VERSION
 ```
 
-`package:cli` bundles the executable and all non-builtin runtime dependencies,
-including the private contracts and encoding workspaces. The npm artifact
-contains only:
+`prepare:cli [x.y.z]` bundles the executable and all non-builtin runtime
+dependencies, including the private contracts and encoding workspaces, and
+prepares the release directory. Native `pnpm pack` creates the tarball; the
+preparation script does not launch a package manager. The npm artifact contains
+only:
 
 - The executable, with a Node shebang.
 - Package metadata and the CLI README.
@@ -57,8 +60,9 @@ There are no runtime npm dependencies, workspace/catalog references, lifecycle
 scripts, source tests, credentials or development tooling in the package. The
 root and workspace manifests remain private; only the generated release manifest
 is publishable. Its version comes from the tag, not a source version bump.
-Running `pnpm package:cli` without a version produces a private
-`0.0.0-development.0` package for smoke tests.
+Running `pnpm package:cli` prepares and packs a private `0.0.0-development.0`
+package for smoke tests. To pack a release version locally, use the two commands
+above; neither command publishes it.
 
 The exact tarball is written to `apps/cli/dist/shazhou-pinboard-<version>.tgz`.
 The isolated smoke test installs it offline through npm into a fresh directory
