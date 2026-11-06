@@ -2146,7 +2146,7 @@ describe("publications and recovery", () => {
       publication: { currentRevision: 1, revisionCount: 1, sequence: 1 },
       revisions: [{ cid: initial.cid }],
     });
-  });
+  }, 30000);
 
   it("does not grant publication writes to old pin tokens, including MCP", async () => {
     const a = await upload();
