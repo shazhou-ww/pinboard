@@ -735,12 +735,16 @@ footer {
 }
 .item-filter button {
   position: absolute;
+  display: grid;
+  place-items: center;
   right: 0;
   top: 0;
   width: 44px;
   height: 44px;
   padding: 0;
   border: 0;
+  border-radius: 50%;
+  outline-offset: -4px;
   background: transparent;
   color: var(--accent);
   font-size: 24px;

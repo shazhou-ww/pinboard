@@ -28,6 +28,19 @@ it("overrides generic input styling with the pill-shaped search selector", () =>
   );
 });
 
+it("keeps the clear action circular without clipping its keyboard focus", () => {
+  const styles = readFileSync(
+    new URL("../src/styles.css", import.meta.url),
+    "utf8",
+  );
+  const rule = styles.match(/\.item-filter button\s*\{([^}]+)\}/u)?.[1];
+  expect(rule).toMatch(/width:\s*44px;/u);
+  expect(rule).toMatch(/height:\s*44px;/u);
+  expect(rule).toMatch(/border-radius:\s*50%;/u);
+  expect(rule).toMatch(/place-items:\s*center;/u);
+  expect(rule).toMatch(/outline-offset:\s*-4px;/u);
+});
+
 const host = vi.hoisted(() => ({
   slots: [] as unknown[],
   index: 0,
