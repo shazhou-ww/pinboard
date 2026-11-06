@@ -28,7 +28,8 @@ UUID 仅属于历史记录，禁止对其操作。仅在本次独立 session 的
 `2b109be68a8105bef2b1c51171e937c774f6b553`，
 [发布流程](https://github.com/shazhou-ww/pinboard/actions/runs/42176511205)
 成功；Worker version
-`418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7`，100% 流量，迁移账本 0001–0008。不重复执行历史 rollout 操作。当前仅执行公开只读下载及获授权控制面只读核对；新建/清理夹具或令牌先确认生产写入授权。
+`418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7`，100% 流量，迁移账本 0001–0008。不重复执行历史 rollout 操作。初始仅执行公开只读下载及获授权控制面只读核对；新建/清理夹具或令牌先确认生产写入授权。本轮后续明确授权、实测与仅自有资源清理记录见
+[生产证据](ProductionEvidence.md)，不扩展为部署或迁移授权。
 
 发布前置条件：确认控制面身份及 D1 查询/写入权限、既有 release 工作流所需部署凭证。发布由 release
 tag 触发 GitHub Actions，使用 production

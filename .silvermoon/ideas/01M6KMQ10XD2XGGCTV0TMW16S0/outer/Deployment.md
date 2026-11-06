@@ -51,7 +51,7 @@ Token 的 MCP 调用与 CLI 操作仍可成功。记录观察到的撤销生效�
 
 ## 当前验收边界（2026-11-06）
 
-- 本次在独立 session 的隔离工作区继续，只修订本 idea 的 outer 与 ledger，不改变已验收 inner/ideal 或源代码。所有 D-* 仍未完成，证据齐备前不记录
+- 本次在独立 session 的隔离工作区继续，只修订本 idea 的 outer 与 ledger，不改变已验收 inner/ideal 或源代码。D-* 逐项执行状态见 ledger；证据齐备前不记录
   `submitOuter`，也不请求或记录 `acceptOuter`。
 - 用户交接的生产为 `release-261106-5`，应用提交
   `2b109be68a8105bef2b1c51171e937c774f6b553`，
@@ -64,7 +64,6 @@ Token 的 MCP 调用与 CLI 操作仍可成功。记录观察到的撤销生效�
   `access_ttl=3600`、原 expiry 不变、外键检查为空。这些是既有迁移记录，不授权再次执行迁移或还原。
 - 历史 SDK 1.32.2 的真实同意、换码、MCP
   list、只读拒绝、资源边界和授权码等待 65 秒拒绝可作为注明版本的历史证据；不把 3600 秒元数据当成新默认一天或真实访问凭据到期证明。
-- 仍缺真实 VS Code +
-  Copilot 完整闭环、当前生命周期及撤销/自然到期、取消与跨账户、有效原 API
-  Token 的 MCP/CLI 兼容和公开注册滥用防护证据。详见[生产验收证据](Production-verification.md)。
+- 真实 VS Code + Copilot、SDK、生命周期、取消/撤销、双账户和 API
+  Token兼容性的实际结果及剩余门限统一见[生产验收证据](Production-verification.md)，不以历史缺口清单替代最新逐项观察。
 - 新生产写入、测试注册/授权/Token、公开夹具及清理若无明确现行授权，先与用户确认。本请求不授权发布、迁移、数据重置、发 tag 或 npm 发布。

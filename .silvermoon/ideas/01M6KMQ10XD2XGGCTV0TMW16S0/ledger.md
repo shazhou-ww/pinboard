@@ -23,5 +23,5 @@
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** 真实客户端无需手动 Token 即可连接
+- [x] **D-AC01:** 真实客户端无需手动 Token 即可连接
 - [ ] **D-AC02:** 实际权限与兼容性符合契约

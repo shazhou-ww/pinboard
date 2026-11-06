@@ -1,4 +1,29 @@
 {
+  "interactiveClientVerification": {
+    "source": "用户在实际 VS Code 中完成正常浏览器同意并确认 Copilot list 成功，无手工 Token；不是代理自动采集的 UI 日志",
+    "vscodeVersion": "1.145.0 (user setup)",
+    "vscodeCommit": "a717861c07586a53d83b80d742cd3f59b20a6273",
+    "copilotComponentVersion": "1.0.103.r41379698026.g3219c66",
+    "copilotSdkComponentVersion": "1.0.27.41379698026.g3219c66",
+    "manualAuthorizationHeader": false,
+    "tool": "list",
+    "userObservedSuccess": true,
+    "independentD1Observation": {
+      "at": "2026-11-06T08:33:13Z",
+      "clientName": "Visual Studio Code",
+      "issuedGrants": 1,
+      "accessTtl": 86400,
+      "unrevoked": 1,
+      "rowsWritten": 0,
+      "accountOrCredentialValuesReturned": false
+    }
+  },
+  "apiTokenCleanup": {
+    "at": "2026-11-06T08:24:09.489Z",
+    "newMcpInitializationStatus": 401,
+    "dedicatedLocalEntryRemovedAfterRejection": true,
+    "normalUserCliConfigurationChanged": false
+  },
   "recordedAt": "2026-11-06T08:18:19.264Z",
   "applicationCommit": "2b109be68a8105bef2b1c51171e937c774f6b553",
   "workerVersion": "418e27ae-3c78-46e5-8f5f-48c6ad7c6ad7",
@@ -226,6 +251,6 @@
     "Cross-account four core checks and both own-pin cleanups passed; final private-HTTP-API assertion erroneously expected 401 instead of the implementation contract 403; that extra assertion remains excluded, not called passed",
     "First permanent revocation probe returned 200 while D1 revoked_at was null; after user confirmed actual Revoked state, probe returned 401 and D1 marked revoked",
     "Short-lived helper processes were stopped; day-expiry helper remains detached with the access credential only in memory",
-    "Operation-owned temporary API Token still awaits user revocation after remaining compatibility work"
+    "The initial snapshot preceded temporary API Token cleanup; the subsequent actual 401 and dedicated local removal are recorded in apiTokenCleanup"
   ]
 }
