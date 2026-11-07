@@ -18,7 +18,7 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 确认发布与兼容窗口
+- [ ] **D-S01:** 确认发布与过渡条件
 - [ ] **D-S02:** 验证真实环境展示与恢复
 
 ### Deployment acceptance criteria

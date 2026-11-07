@@ -1,6 +1,6 @@
 # 2 号文档：现有 preview 如何编码和传递
 
-本文是 [Idea](./Idea.md) 的现状证据，供[3 号设计](./03-Normalized-preview-design.md)对照。业务代码基线为 `ab0d6ed31426c2fbeca5feca47ab4cef81393e02`；以下不是新协议，也不表示 PDF 首页已经实现。
+本文只记录 [Idea](./Idea.md) 的现状事实，目标决策统一见[3 号设计](./03-Normalized-preview-design.md)。业务代码基线为 `ab0d6ed31426c2fbeca5feca47ab4cef81393e02`；这是 PDF 实施前的快照，不表示 PDF 首页已经实现。待 PDF 完成并合入主线后再刷新基线。
 
 ## 1. 当前编码：contentType 判别的是物料
 
@@ -38,41 +38,9 @@ type ContentPreview = PreviewPayload & {
 | `status / reason` | 生成状态与原因 | 不应在新协议中被空物料抹掉 |
 | `version / truncated` | 生成描述版本、物料是否截断 | 仍是迁移与有界展示所需的信息 |
 
-### 当前成功图片
+成功图片返回 `contentType: "image/webp"` 和缩略图引用，原文件 MIME 不随结果保留；无 PDF 物料时返回文件占位 MIME，实际的 `application/pdf` 位于 `content.mediaType`。
 
-以下 JSON 是字段示意，CID 及 URL 不是实际可请求样例：
-
-```json
-{
-  "version": 1,
-  "status": "ready",
-  "contentType": "image/webp",
-  "content": {
-    "cid": "<thumbnail-cid>",
-    "url": "/ipfs/<thumbnail-cid>",
-    "width": 480,
-    "height": 320
-  },
-  "truncated": false
-}
-```
-
-这个响应只能证明有一张 WebP 预览物料，不能证明原文件是 WebP。
-
-### 当前没有 PDF 物料
-
-```json
-{
-  "version": 1,
-  "status": "unsupported",
-  "contentType": "application/vnd.pinboard.file+json",
-  "content": { "mediaType": "application/pdf", "size": 1024 },
-  "truncated": false,
-  "reason": "No supported lightweight preview for this content"
-}
-```
-
-其中 `size` 是示意：现有生成器只在已读取完整文件时填入该字段，并非所有文件都返回大小。不能把 Pin 的块载荷大小直接等同于 UnixFS 逻辑文件大小。
+现有文件占位只在已读取完整文件时填入 `size`，并非所有文件都返回大小。Pin 的块载荷大小与 UnixFS 逻辑文件大小不是同一概念。
 
 ## 2. 从生成到显示的完整链路
 
@@ -93,7 +61,9 @@ type ContentPreview = PreviewPayload & {
 
 pending 占位通常是文件描述加空 `content: {}`，尚无原类型。failed 只有部分图片失败路径能保留 MIME 等元数据。非 file/raw 的已验证 IPLD 内容也会使用文件占位，不能由这个占位断言其原内容就是普通文件。
 
-`processPreview` 将完整描述 JSON 写入 D1，缩略图引用另由 `thumbnail_cid`、`preview_images` 和活跃版本参与发布及回收；协议调整不能只改 JSON 而忘记图片引用关系。
+`processPreview` 将完整描述 JSON 写入 D1，缩略图引用另由 `thumbnail_cid`、`preview_images` 和活跃版本参与发布及回收。
+
+`PREVIEW_VERSION` 同时用于描述中的 `version`、D1 记录选择和任务调度。`getPreview / getPreviews` 只读取当前生成版本，缺少时建立 pending 任务；现有代码没有跨版本读取并转换旧描述的步骤，也没有 HTTP 表示版本协商。
 
 ### API 如何包装
 
@@ -106,7 +76,7 @@ pending 占位通常是文件描述加空 `content: {}`，尚无原类型。fail
 
 证据：[私有 API](../../../../../../apps/worker/src/api.ts)、[批量服务](../../../../../../apps/worker/src/service.ts)、[公开 API](../../../../../../apps/worker/src/publication-api.ts)、[节点描述](../../../../../../apps/worker/src/descriptions.ts)。
 
-HTTP `Content-Type: application/json` 只是响应编码，与 JSON 内的 `contentType` 不是同一个层次。批量项的 404 也是 API 错误，不能变成 unsupported 文件卡片。
+HTTP `Content-Type: application/json` 是响应编码，与 JSON 内的 `contentType` 不是同一个层次。批量项的 404 是 API 错误，不是 unsupported 生成状态。
 
 ### 前端校验、缓存和渲染
 
@@ -114,10 +84,10 @@ HTTP `Content-Type: application/json` 只是响应编码，与 JSON 内的 `cont
 - [缓存校验](../../../../../../apps/web/src/preview-cache.ts)按旧 `contentType` 验证 `content`，检查图片 URL、尺寸、目录层级和条目数量等。unsupported 新鲜期为 5 分钟，其余为 1 小时；保留期为 7 天。
 - [PinPreview / PreviewContent](../../../../../../apps/web/src/pin-preview.tsx)先对非 ready 状态输出提示及部分文件元数据，再按物料 `contentType` 渲染。图片加载失败目前输出文字，不会显示文件类型图标。
 - [PublicationPreview](../../../../../../apps/web/src/publications.tsx)和[节点详情](../../../../../../apps/web/src/node-description.tsx)也复用 `PreviewContent`，但请求路径不同，不是都通过同一个 PreviewClient。
-- [开发预览数据](../../../../../../apps/web/src/dev-preview-data.ts)与[开发 API](../../../../../../apps/web/src/dev-preview.ts)也构造旧描述和对象 URL，迁移时需要同步。
+- [开发预览数据](../../../../../../apps/web/src/dev-preview-data.ts)与[开发 API](../../../../../../apps/web/src/dev-preview.ts)也构造旧描述和对象 URL。
 
 ## 3. 与正在实施的 PDF 首页方案的关系
 
-[PDF Idea](../../../../01M6SSPF59MS6DY1MV1JWFZD4N/outer/inner/ideal/Idea.md)已定义首页缩略图边界；其[架构设计](../../../../01M6SSPF59MS6DY1MV1JWFZD4N/outer/inner/ideal/Architecture-review.md)计划复用现有图片发布路径，不把 PDF 状态扩散到前端。
+[PDF Idea](../../../../01M6SSPF59MS6DY1MV1JWFZD4N/outer/inner/ideal/Idea.md)已定义首页缩略图边界；其[架构设计](../../../../01M6SSPF59MS6DY1MV1JWFZD4N/outer/inner/ideal/Architecture-review.md)规定 PDF 渲染模块返回 RGBA，像素编码模块输出 WebP，CID、URL 和描述由现有 preview 编排负责。
 
-在旧协议下，PDF 首页一旦成功，会像普通图片一样成为 `contentType: "image/webp"`。这足以显示首页，但无法持续携带“原内容是 PDF”的身份。新设计应保留这个复用方向，同时补上原类型与物料的分离；本 Idea 不接管 PDF 渲染实现。
+按此方案接入旧协议后，PDF 首页会像普通图片一样成为 `contentType: "image/webp"`，足以显示首页，但响应中不再保留原内容是 PDF 的身份。这是方案推导，不是已完成实施的证据。
