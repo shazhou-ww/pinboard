@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-11-07T07:38:11.949Z",
+  "contractCommitBeforeVerification": "0afde7c671bdc2a5f3ef171d7cf550ff12ffb66e",
+  "contractRevisionBeforeVerification": "b587546132a6",
+  "target": "https://pinboard.shazhou.work/mcp",
+  "client": {
+    "name": "Pinboard acceptance 20261106 - default 1d KEEP UNTIL EXPIRY",
+    "sdkVersion": "1.32.2"
+  },
+  "timedObservation": {
+    "name": "Pinboard acceptance 20261106 - default 1d KEEP UNTIL EXPIRY",
+    "sdkVersion": "1.32.2",
+    "startedAt": "2026-11-06T07:33:07.536Z",
+    "stage": "expired_request_rejected_reconnect_still_requires_user",
+    "checks": [
+      {
+        "label": "default-1d-token-metadata",
+        "at": "2026-11-06T07:33:23.242Z",
+        "passed": true,
+        "expiresIn": 86400,
+        "refreshTokenIssued": false,
+        "scope": "pins:read"
+      },
+      {
+        "label": "sdk-initialize-tools-list-call",
+        "at": "2026-11-06T07:33:25.325Z",
+        "passed": true,
+        "accountContentPersisted": false
+      },
+      {
+        "label": "immediately-after-issue",
+        "at": "2026-11-06T07:33:25.723Z",
+        "status": 200
+      },
+      {
+        "label": "after-natural-one-day-expiry",
+        "at": "2026-11-07T07:33:31.947Z",
+        "status": 401
+      }
+    ],
+    "credentialPersistence": "memory-only",
+    "issuedAtObserved": "2026-11-06T07:33:23.242Z",
+    "expiresIn": 86400,
+    "expectedCheckAfter": "2026-11-07T07:33:28.242Z"
+  },
+  "independentDatabaseObservation": {
+    "databaseId": "9f15fd50-e103-459f-9f3f-9db3036f91de",
+    "originalGrant": {
+      "created_at": 1793950401485,
+      "access_ttl": 86400,
+      "expires_at": 1794036803020,
+      "revoked_at": null,
+      "token_issued": 1,
+      "observed_server_now_ms": 1794037087000
+    },
+    "renewedGrant": {
+      "created_at": 1794037001735,
+      "access_ttl": 86400,
+      "expires_at": 1794123402397,
+      "revoked_at": 1794037007872,
+      "token_issued": 0,
+      "observed_server_now_ms": 1794037087000
+    },
+    "relation": {
+      "matching_grants": 2,
+      "distinct_clients": 1,
+      "distinct_accounts": 1
+    },
+    "originalExpiresAtUtc": "2026-11-07T07:33:23.020Z",
+    "exactOriginalGrantUnrevokedAndTokenStillPresent": true,
+    "originalExpiryPrecededRefusalByMS": 8927,
+    "rowsWritten": 0,
+    "changedDb": false,
+    "accountIdsOrTokenHashesReturned": false
+  },
+  "normalReconnect": {
+    "startedAt": "2026-11-07T07:36:33.009Z",
+    "purpose": "normal-reauthorization-of-same-client-after-natural-expiry",
+    "clientName": "Pinboard acceptance 20261106 - default 1d KEEP UNTIL EXPIRY",
+    "stage": "passed",
+    "checks": [
+      {
+        "label": "reuse-original-registered-client-after-independent-unrevoked-expiry-check",
+        "passed": true,
+        "serverNow": 1794036994000,
+        "originalExpiresAt": 1794036803020,
+        "originalRevoked": false,
+        "rowsWritten": 0,
+        "noNewClientRegistration": true
+      },
+      {
+        "label": "normal-browser-session-and-grant-management-after-release",
+        "status": 200,
+        "grantManagementStatus": 200,
+        "passed": true
+      },
+      {
+        "label": "released-DCR-authorization-code-exchange",
+        "at": "2026-11-07T07:36:42.651Z",
+        "expiresIn": 86400,
+        "refreshTokenIssued": false,
+        "scope": "pins:read",
+        "passed": true
+      },
+      {
+        "label": "released-authenticated-MCP-list",
+        "at": "2026-11-07T07:36:44.201Z",
+        "passed": true,
+        "accountContentPersisted": false
+      },
+      {
+        "label": "released-own-grant-revocation",
+        "at": "2026-11-07T07:36:49.745Z",
+        "status": 401,
+        "passed": true
+      }
+    ],
+    "credentialPersistence": "memory-only",
+    "cleanup": [
+      {
+        "action": "only-operation-owned-grant-revoked-through-normal-browser-ui",
+        "at": "2026-11-07T07:36:48.937Z"
+      }
+    ],
+    "completedAt": "2026-11-07T07:36:49.745Z",
+    "noNewDcrRegistration": true,
+    "sameRegisteredClientAndAccountIndependentlyVerified": true,
+    "onlyRenewedGrantRevoked": true,
+    "oldExpiredGrantLeftUnmodified": true,
+    "clarification": "Some helper check labels retain released-* names from reused helper; this run reuses the original public-client registration, not a fresh DCR registration or replay of yesterday's release smoke."
+  },
+  "observedProduction": {
+    "latestDeployment": {
+      "id": "763d3534-00b6-4c07-94ac-014dd83914ff",
+      "createdOn": "2026-11-07T06:35:56.546573Z",
+      "versions": [
+        {
+          "version_id": "886ec1c5-4267-4c7d-a09d-2f89b0f45709",
+          "percentage": 100
+        }
+      ]
+    },
+    "latestSuccessfulReleaseWorkflow": {
+      "conclusion": "success",
+      "headBranch": "release-261107-3",
+      "headSha": "eaebe728744afc7803f1c02f1c3541a0862936c3",
+      "status": "completed",
+      "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42347549308"
+    },
+    "observedConcurrentlyNotDeployedByThisVerification": true
+  },
+  "boundaries": [
+    "Real wall-clock wait from 2026-11-06 to 2026-11-07; no production clock or expiry changes",
+    "Expired credential existed only in the detached process's memory and was cleared on exit",
+    "401 is interpreted as natural expiry only with independent exact original grant non-revocation and server expiry evidence",
+    "Normal existing Google-authenticated browser session was reused; no Google credential automation, cookie copying or manually pasted Token",
+    "Reconnect is a fresh normal approval/code exchange for the same registered client and account; it is not refresh-token issuance",
+    "Renewed grant was revoked only after successful SDK list; final 401 after that revocation is distinct from the original natural-expiry 401",
+    "No production deploy, tag, migration, reset, Pin mutation or npm publication performed by this verification",
+    "7d/30d natural-expiry periods were not elapsed; prior tests cover issued metadata only, as declared in the deployment contract",
+    "No acceptOuter inferred or recorded by completed checks"
+  ]
+}
