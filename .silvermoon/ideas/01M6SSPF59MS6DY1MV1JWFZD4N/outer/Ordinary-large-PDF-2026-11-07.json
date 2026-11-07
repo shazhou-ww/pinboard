@@ -1,0 +1,109 @@
+{
+  "credentials": {
+    "source": "CFG",
+    "pinboardCliAuthenticationSuccessful": true,
+    "cloudflareReadQueriesSuccessful": true,
+    "secretsRecorded": false
+  },
+  "ordinaryPdf": {
+    "name": "PDF-Verify-09-ordinary-5.76MB-2pages.pdf",
+    "sourceCid": "bafybeibgocskxaj2xt6p6sbf6643dhn7pburgpctes4kxetctl4e5pw6ci",
+    "logicalBytes": 5760921,
+    "indexedPayloadBytes": 5762030,
+    "uniqueBlocks": 23,
+    "uploadMethod": "Normal CLI file upload",
+    "createdAt": "2026-11-07T15:21:32.151Z",
+    "sha256": "017c3d7e46265c60b8013f69fc9bb76e68ebf6841fac95d5460774203f04f6d3",
+    "preview": {
+      "version": 2,
+      "status": "ready",
+      "thumbnailCid": "bafkreie6hfz5ek5iqxt4mis6pzn4ilx3eh2wwknkjc3z7ub75prdm6oycu",
+      "width": 200,
+      "height": 200
+    },
+    "invocation": {
+      "cfRay": "a56d53fa2f4568ae",
+      "otelTraceId": "01e64565fc7d40bd770a5dac75b8e741",
+      "matchedInvocationCount": 1,
+      "cpuTimeMs": 506,
+      "wallTimeMs": 1744,
+      "scope": "Complete upload invocation including verification/storage/background work, not isolated PDF rendering time"
+    },
+    "r2PreviewReads": [
+      { "offset": 1245, "length": 255897, "successful": true },
+      { "offset": 5500841, "length": 262144, "successful": true },
+      { "offset": 97, "length": 1109, "successful": true }
+    ],
+    "r2PreviewReadBytes": 519150,
+    "r2ObjectWriteBytes": 5762985
+  },
+  "fullDownload": {
+    "method": "Public CAR download followed by local UnixFS reconstruction",
+    "cfRay": "a56d5fc1c83d2ad0",
+    "otelTraceId": "4585b2d1ec16691600f41c622c72ffdd",
+    "matchedInvocationCount": 1,
+    "cpuTimeMs": 3,
+    "wallTimeMs": 91,
+    "r2GetCount": 1,
+    "r2ReadBytes": 5762985,
+    "roundtripLogicalBytes": 5760921,
+    "roundtripSha256Matches": true
+  },
+  "readComparison": {
+    "previewR2Bytes": 519150,
+    "fullCarR2Bytes": 5762985,
+    "savingsPercent": 90.99,
+    "basis": "Observed R2 GET Range lengths versus one observed full-object GET of the same stored CAR, including CAR framing in the full baseline"
+  },
+  "cacheLimitSample": {
+    "name": "PDF-Verify-10-cache-budget-9MiB.pdf",
+    "sourceCid": "bafybeietfysibfv7pz3edndhgfzfl3rzqdbtojvkkapyzw2rfcwpfypfqq",
+    "logicalBytes": 9437850,
+    "indexedPayloadBytes": 9439708,
+    "status": "unsupported",
+    "reason": "PDF exceeds 8 MiB logical cache budget",
+    "cfRay": "a56d67d63a462f7a",
+    "matchedInvocationCount": 1,
+    "cpuTimeMs": 923,
+    "wallTimeMs": 5405,
+    "runtimeOutcome": "ok",
+    "r2ReadCount": 34,
+    "r2RangeBytes": 8391132,
+    "compressionBombOrNativeOomInjected": false
+  },
+  "healthyAfterLimit": {
+    "name": "PDF-Verify-11-after-budget-yellow.pdf",
+    "sourceCid": "bafkreiawxgr5cg3flh6pymal73mckbd5s23b4ennptrldveyhlff52qyzi",
+    "logicalBytes": 498,
+    "status": "ready",
+    "thumbnailCid": "bafkreicvhrml4rnmowby273b2h4mlq7buvsl3lliwdrcnhcrxjcw3l46bi",
+    "width": 200,
+    "height": 200,
+    "centerRgb": [255, 255, 0],
+    "cfRay": "a56d680dfaa32ea2",
+    "matchedInvocationCount": 1,
+    "cpuTimeMs": 164,
+    "wallTimeMs": 638,
+    "runtimeOutcome": "ok"
+  },
+  "newTestPinRestoration": {
+    "sourceCid": "bafybeibgocskxaj2xt6p6sbf6643dhn7pburgpctes4kxetctl4e5pw6ci",
+    "removedReference": true,
+    "accountPreviewWhileRemoved": 404,
+    "publicThumbnailWhileRemoved": 200,
+    "restoredReference": true,
+    "sameThumbnailCid": true,
+    "checkedAt": "2026-11-07T15:36:23.1584884Z",
+    "publicBytesDeleted": false,
+    "existingUserContentModified": false
+  },
+  "remainingLimitations": [
+    "No direct total-isolate peak-memory metric was found.",
+    "This is a bounded representative workload, not a production stress or native OOM test.",
+    "Same-isolate placement across separate production invocations is not guaranteed.",
+    "Full download CPU is not a full server PDF-render baseline; reconstruction occurs in CLI.",
+    "No actual code rollback or retention-period acceleration was performed.",
+    "No accessible pre-release PDF remained in the configured token account for an independent historical upgrade smoke check; earlier local version tests and user feedback remain separate evidence.",
+    "No new release tag, deployment, permissions or schema change was performed."
+  ]
+}
