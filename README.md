@@ -151,15 +151,18 @@ this browser's `localStorage` under the existing `pinboard:background` key
 OAuth pages. Clearing site data restores the default. Unavailable or invalid
 saved preferences are logged and leave the default background usable; failed
 saves show an error in Settings without changing the current palette. All
-palettes share the same bundled, low-contrast silver linework: an evenly
-staggered 480 × 960 px SVG tile with varied icon sizes and seamless wrapping on
-both axes. Its fixed CSS size prevents stretching on larger screens; only the
-gradient fills the viewport. There is no runtime layout or collision
-calculation, and the background adds no interactive or accessibility nodes. The
-account dropdown contains **Settings** and **Sign out**; Settings is no longer a
-floating action. There is no visible wall title or explanatory footer. Drop
-instructions appear in the empty state, on drag-over and in the Add tooltip
-instead of occupying a permanent row above the pins.
+palettes share the same shallow-engraved icon geometry: an evenly staggered 480
+× 960 px SVG tile with varied icon sizes and seamless wrapping on both axes. The
+approved 1.6 px lines use a subtle dark upper-left edge and light lower-right
+edge, replacing the metallic gradient without widening or softening the groove.
+Bundled static SVG variants tint the engraving to each palette; switching
+palettes requires no runtime SVG generation. The fixed CSS size prevents
+stretching on larger screens; only the gradient fills the viewport. There is no
+runtime layout or collision calculation, and the background adds no interactive
+or accessibility nodes. The account dropdown contains **Settings** and **Sign
+out**; Settings is no longer a floating action. There is no visible wall title
+or explanatory footer. Drop instructions appear in the empty state, on drag-over
+and in the Add tooltip instead of occupying a permanent row above the pins.
 
 On refresh, the shared header and content-wall frame remain neutral until the
 session is known: neither pins nor sign-in content is shown prematurely. Session
@@ -262,23 +265,23 @@ focus ring has a solid surface band so it remains identifiable over thumbnails.
 Success, warning and error/danger colors stay fixed independently of the
 selected palette. These color-pair checks are regression coverage, not a claim
 of whole-site WCAG conformance. Text placed directly on the patterned canvas
-uses a stronger derived secondary-text role; the bundled linework itself is
-unchanged. Keep interface colors in the shared roles in
-`apps/web/src/styles.css`; `apps/web/test/palette.test.ts` checks palette
-completeness, solid/glass/linework contrast and semantic-state independence.
-Thumbnail images fill the card with a centered crop on the longer axis, without
-changing the original bytes, thumbnail CID or stored aspect ratio. Display
-Markdown escapes source punctuation; structured/code text uses literal code
-fences, not invented headings or AI summaries. Links, HTML and remote images
-remain inert text. Verified directories use the current Pin name as their
-folder-tab heading and a compact, read-only directory tree with folded-page file
-icons, folder tabs and hierarchy lines aligned beneath parent icons without
-overlapping them. They show at most 24 actual names across two entry levels,
-without subfolder navigation. Cards omit sampling labels; sampled/truncated
-overviews never claim unverified totals. PDF, GIF, video, audio and unknown
-binary content use explicit unsupported placeholders with only reliably
-identified metadata. Invalid or oversized images fail explicitly instead of
-downloading originals.
+uses a stronger derived secondary-text role, with contrast checked against the
+composited translucent engraving layers for each palette. Keep interface colors
+in the shared roles in `apps/web/src/styles.css`;
+`apps/web/test/palette.test.ts` checks palette completeness,
+solid/glass/linework contrast and semantic-state independence. Thumbnail images
+fill the card with a centered crop on the longer axis, without changing the
+original bytes, thumbnail CID or stored aspect ratio. Display Markdown escapes
+source punctuation; structured/code text uses literal code fences, not invented
+headings or AI summaries. Links, HTML and remote images remain inert text.
+Verified directories use the current Pin name as their folder-tab heading and a
+compact, read-only directory tree with folded-page file icons, folder tabs and
+hierarchy lines aligned beneath parent icons without overlapping them. They show
+at most 24 actual names across two entry levels, without subfolder navigation.
+Cards omit sampling labels; sampled/truncated overviews never claim unverified
+totals. PDF, GIF, video, audio and unknown binary content use explicit
+unsupported placeholders with only reliably identified metadata. Invalid or
+oversized images fail explicitly instead of downloading originals.
 
 Previews are shared by source CID and generation version, without account names.
 `pending`, `ready`, `unsupported` and `failed` are distinct from their
