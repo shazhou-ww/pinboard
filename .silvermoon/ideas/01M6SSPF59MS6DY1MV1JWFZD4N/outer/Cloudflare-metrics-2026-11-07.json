@@ -1,0 +1,40 @@
+{
+  "credentialSource": "CFG",
+  "readOnlyVerification": true,
+  "scope": "pinboard",
+  "timeframe": {
+    "from": "2026-11-07T08:53:00Z",
+    "to": "2026-11-07T08:56:00Z"
+  },
+  "deploymentRead": {
+    "successful": true,
+    "deploymentId": "763d3534-00b6-4c07-94ac-014dd83914ff",
+    "createdOn": "2026-11-07T06:35:56.546573Z",
+    "versionId": "886ec1c5-4267-4c7d-a09d-2f89b0f45709",
+    "trafficPercent": 100
+  },
+  "serviceWindowAggregates": {
+    "observedLogRows": 171,
+    "maxCpuTimeMs": 340,
+    "maxWallTimeMs": 1113
+  },
+  "outcomeQuery": {
+    "filters": ["$metadata.service = pinboard", "$workers.outcome exists"],
+    "groupBy": "$workers.outcome",
+    "groups": [
+      {
+        "outcome": "ok",
+        "count": 173,
+        "sampleInterval": 1
+      }
+    ]
+  },
+  "memoryMetricDiscovered": false,
+  "limitations": [
+    "Service-level log aggregates are not individually attributed PDF jobs.",
+    "Queries have different filters and independently returned counts; neither count is treated as a unique request count.",
+    "Outcome ok does not mean every application response succeeded or every preview is supported.",
+    "No production isolate peak-memory measurement or R2 byte measurement was obtained.",
+    "No token, raw log, user label or authorization header is recorded."
+  ]
+}

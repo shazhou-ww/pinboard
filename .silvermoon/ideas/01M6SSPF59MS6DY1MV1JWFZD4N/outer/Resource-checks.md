@@ -46,3 +46,22 @@ OAuth 仍是现有的正常上传渠道。该条件只限制普通大文件的 H
 
 因此本轮扩大了实际线上成功和错误处理证据，但 D-S01/D-AC01 的完整平台资源证明、D-AC02 的剩余恢复证据仍未齐备，ledger 不自动勾选，不提交
 `submitOuter` 或批准缺失证据的 Deployment。
+
+## 23:08 后续：CFG 凭据解除 Cloudflare 查询阻塞
+
+用户明确允许尝试 CFG 中已有的 Cloudflare
+Token。本会话从 CFG 的远端键读取到进程内变量，直接调用 Cloudflare 官方 API；没有输出凭据、写入仓库、修改账户权限或把它交给另一个服务。请求仅读取
+`pinboard` 部署和执行观测查询，未创建或修改任何云资源。
+
+实际成功读取当前部署、发现 CPU/wall/outcome 字段并查询此前 08:53 至 08:56
+UTC 验证时窗，见[脱敏指标结果](./Cloudflare-metrics-2026-11-07.json)。服务级 CPU 最大值为 340
+ms，wall time 最大值为 1,113 ms；单独按 outcome 分组的查询只返回
+`ok`。前一段 Cloudflare MCP
+OAuth 过期描述保留为历史，本次直接 CFG 查询可用，所以不再把 MCP 重新授权当作继续查询的必需条件。
+
+两个聚合查询的筛选不同、计数分别为 171 与 173，均不当作独立请求数量，也不能逐个归因到本次 PDF。`ok`
+是运行时 outcome，不表示所有 HTTP 响应成功或所有格式支持。键发现未返回内存指标，尚未得到 R2 读取字节数。
+
+当前剩余条件仍是有效的 Pinboard
+CLI/HTTP 上传凭据、普通大文件的实际读取指标与生产总 isolate 内存证据。Cloudflare
+Token 不代替应用 Agent Token，本轮没有扩大该验证范围或提前接受外部门禁。
