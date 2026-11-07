@@ -104,3 +104,34 @@ framing，本报告明确区分逻辑文件、去重载荷和实际对象长度�
 
 这消除了普通大文件上传、真实 R2 读取和应用引用恢复的执行阻塞。尚未获得直接总 isolate 峰值内存；生产请求是否共用同一 isolate 无法保证，没有进行 native
 OOM、实际部署回滚或加速回收。本 Token 账户没有可访问的上线前历史 PDF，因此该项独立线上复查未完成；不绕过账户边界访问缺失的旧引用，先前用户手工结果和本地版本迁移测试保留为不同来源的证据。当前不据此伪造完整外部验收。
+
+## 2026-11-08 续办：CFG 同步与已上线 v3 复查
+
+按用户要求执行
+`cfg sync`，随后从同步后的本地 CFG 缓存取得应用 Token，正常认证访问账户 API。没有输出凭据、写入 CLI 认证配置或扩展权限。前述 CLI
+401 与 Cloudflare OAuth 阻塞是历史记录，不再是当前执行阻塞。
+
+同步 primary 到 `c9f35e72148a141ee7f9450862541a9897b9ff56`
+后，发现其他发布流程已经上线 `release-261108-1`。GitHub deployment run
+[42391212471](https://github.com/shazhou-ww/pinboard/actions/runs/42391212471)
+成功；CFG Cloudflare Token 的只读控制面查询确认 Worker
+`95756681-0759-490a-a318-b743f1e64106`
+获得 100% 流量。本会话没有创建标签、重复部署或修改云资源。
+
+精确数据见[当前版本复查结果](./Preview-v3-recheck-2026-11-08.json)：
+
+- 09 的已有证据在 `2026-11-07T15:21:53Z`
+  为 v2/ready；当前认证查询为 v3/ready，并通过当前 shared contracts 的
+  `isContentPreview` 校验。源类型为
+  `application/pdf`，大小为 5,760,921 字节，图像位于
+  `preview.kind=image`，不再把 WebP 类型当作原文件类型。
+- 原源 CID、200 ×
+  200 缩略图及其 CID 均不变；正常 CLI 重新下载原文件，SHA-256 与上传前基准一致。这是已存在 PDF 的真实 v2→v3 外部升级对照，不是本地模拟。
+- 10 当前为 v3/unsupported，仍明确提示
+  `PDF exceeds 8 MiB logical cache budget`；随后读取 11 为 v3/ready，黄色图片 CID 不变。这是既有结果复查，不声称本轮再次触发了原生失败、同一 isolate 恢复或重新测得生成 CPU/R2 读量。
+- `pnpm check` 在当前 primary 通过：Worker 252 项、Web
+  225 项通过；既有 Kubo/平台权限跳过仍属非 PDF 测试。没有业务代码改动或新增上传、Publication。
+
+第一次当前描述查询即为 ready，未观察到该历史 PDF 从 pending 到 ready 的过程，不推断 v3 生成触发时刻。当前账户列表还存在两份早于最初 PDF 发布的根，但认证描述均为目录；未递归搜索这些目录中的历史文件，因而不把“没有 PDF 文件根”当作“账户绝无历史 PDF”。本轮已补充 v2→v3 的历史证明，最初不支持 PDF 的 v1→当前版本仍无独立样例证明。
+
+普通大文件、认证和历史 v2 描述复查不再阻塞；完整 D-S01/D-AC01 仍缺获准隔离环境及直接总 isolate 峰值证据，实际部署回退和加速回收也未演练。不因 Token 可用就扩大生产操作授权或降低验收要求，ledger 与 outer 提交状态继续保留未完成。

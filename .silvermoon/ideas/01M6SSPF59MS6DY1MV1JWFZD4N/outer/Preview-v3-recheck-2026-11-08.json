@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "endpoint": "https://pinboard.shazhou.work",
+  "primaryObserved": "c9f35e72148a141ee7f9450862541a9897b9ff56",
+  "cfg": {
+    "syncSucceeded": true,
+    "authenticatedApiSucceeded": true,
+    "credentialsPrinted": false,
+    "persistentCliAuthenticationChanged": false
+  },
+  "deployment": {
+    "releaseTag": "release-261108-1",
+    "releaseCommit": "ebfed1a217aa9e8e5c6db8223fcfa87bea83d063",
+    "workflowRun": 42391212471,
+    "workflowConclusion": "success",
+    "id": "b5981270-2744-4e52-8fab-6dc9c202347e",
+    "createdOn": "2026-11-07T16:28:24.442084Z",
+    "workerVersion": "95756681-0759-490a-a318-b743f1e64106",
+    "trafficPercentage": 100,
+    "releasedByThisVerification": false
+  },
+  "historicalPdf": {
+    "sourceCid": "bafybeibgocskxaj2xt6p6sbf6643dhn7pburgpctes4kxetctl4e5pw6ci",
+    "previous": {
+      "at": "2026-11-07T15:21:53.0643271Z",
+      "version": 2,
+      "status": "ready"
+    },
+    "current": {
+      "at": "2026-11-07T22:52:29.2694425Z",
+      "cfRay": "a56fe89afd55a682-LAX",
+      "version": 3,
+      "status": "ready",
+      "contentType": "application/pdf",
+      "size": 5760921,
+      "materialKind": "image",
+      "imageCid": "bafkreie6hfz5ek5iqxt4mis6pzn4ilx3eh2wwknkjc3z7ub75prdm6oycu",
+      "width": 200,
+      "height": 200
+    },
+    "currentCanonicalContractValidated": true,
+    "sourceCidUnchanged": true,
+    "thumbnailCidUnchanged": true,
+    "originalDownloadedAgain": true,
+    "originalSha256": "017c3d7e46265c60b8013f69fc9bb76e68ebf6841fac95d5460774203f04f6d3",
+    "originalSha256Unchanged": true,
+    "pendingTransitionObserved": false
+  },
+  "budgetRecheck": {
+    "at": "2026-11-07T22:55:11.4125867Z",
+    "sourceCid": "bafybeietfysibfv7pz3edndhgfzfl3rzqdbtojvkkapyzw2rfcwpfypfqq",
+    "version": 3,
+    "status": "unsupported",
+    "contentType": "application/pdf",
+    "size": 9437850,
+    "preview": null,
+    "reason": "PDF exceeds 8 MiB logical cache budget"
+  },
+  "normalPdfRecheck": {
+    "at": "2026-11-07T22:55:12.1487236Z",
+    "sourceCid": "bafkreiawxgr5cg3flh6pymal73mckbd5s23b4ennptrldveyhlff52qyzi",
+    "version": 3,
+    "status": "ready",
+    "contentType": "application/pdf",
+    "size": 498,
+    "imageCid": "bafkreicvhrml4rnmowby273b2h4mlq7buvsl3lliwdrcnhcrxjcw3l46bi",
+    "thumbnailCidUnchanged": true
+  },
+  "validation": {
+    "pnpmCheck": "passed",
+    "workerTestsPassed": 252,
+    "workerNonPdfTestsSkipped": 1,
+    "webTestsPassed": 225,
+    "cliTestsPassed": 161,
+    "cliPlatformTestsSkipped": 2,
+    "pdfTestsSkipped": 0
+  },
+  "coverage": {
+    "newUploads": 0,
+    "newPublications": 0,
+    "newCloudResources": 0,
+    "productionOomInjected": false,
+    "sameIsolateRecoveryProven": false,
+    "newRenderCpuOrR2Measurements": false,
+    "isolatePeakMemoryDirectlyMeasured": false,
+    "isolatedEnvironmentValidated": false,
+    "actualDeploymentRollbackPerformed": false,
+    "acceleratedGcPerformed": false,
+    "v1PdfUpgradeIndependentlyVerified": false,
+    "preInitialReleaseRootsInspected": 2,
+    "preInitialReleaseRootKinds": ["directory", "directory"],
+    "historicalDirectoriesRecursivelySearched": false,
+    "privateRootCidsAndLabelsRecorded": false,
+    "outerSubmitted": false
+  }
+}
