@@ -37,11 +37,13 @@ put in trash, so restoring the publication cannot resurrect a duplicate static
 card. Original CID links remain readable through publication retention. Ordinary
 link and creation remain separate, non-destructive operations.
 
-Pins and publications share the same 4:3 wall cards. A publication has a
-permanent identity badge and separate **Current v3** and **5 versions**
-information: rollback does not erase later history. Open details to publish
-another owned pin, inspect the public history, make an old version current, or
-delete.
+Pins and publications share the same 4:3 wall cards, preview spacing and
+single-line name/size summary. A publication has a floating icon-only identity
+badge in the top-right corner. Its **Current v3** and **5 versions** information
+appears with the CID when the information strip expands on hover or keyboard
+focus; touch devices keep that information visible. Rollback does not erase
+later history. Open details to publish another owned pin, inspect the public
+history, make an old version current, or delete.
 
 - `/p/<id>` follows current.
 - `/p/<id>/v/3` identifies fixed revision 3.

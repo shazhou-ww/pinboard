@@ -1492,8 +1492,8 @@ export function PinCard({
         <PinPreview pin={pin} client={previews} />
       )}
       {publication ? (
-        <span className="publication-badge">
-          <Icon name="publication" size={14} /> Publication
+        <span className="publication-badge" role="img" aria-label="Publication">
+          <Icon name="publication" size={14} />
         </span>
       ) : null}
       <button
@@ -1530,14 +1530,16 @@ export function PinCard({
           <strong className="pin-name" title={pin.name}>
             {pin.name}
           </strong>
-          <span className="pin-size">
-            {publication
-              ? `Current v${publication.currentRevision} · ${publication.revisionCount} ${publication.revisionCount === 1 ? "version" : "versions"} · `
-              : ""}
-            {formatSize(pin.size)}
-          </span>
+          <span className="pin-size">{formatSize(pin.size)}</span>
         </div>
         <div className="pin-info-cid">
+          {publication ? (
+            <div className="pin-publication-version">
+              Current v{publication.currentRevision} ·{" "}
+              {publication.revisionCount}{" "}
+              {publication.revisionCount === 1 ? "version" : "versions"}
+            </div>
+          ) : null}
           <button
             type="button"
             className="pin-cid"

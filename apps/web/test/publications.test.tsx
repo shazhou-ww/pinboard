@@ -257,9 +257,21 @@ describe("publication wall identity and management", () => {
     expect(fixed).not.toContain("publication-badge");
     expect(published).toContain('class="publication-badge"');
     expect(published).toContain(
+      'class="publication-badge" role="img" aria-label="Publication">',
+    );
+    expect(published).toContain(
       renderToStaticMarkup(<Icon name="publication" size={14} />),
     );
-    expect(published).toContain("Current v3 · 5 versions");
+    expect(published).not.toContain("</svg> Publication");
+    for (const html of [fixed, published]) {
+      expect(html).toMatch(
+        /<div class="pin-info-summary"><strong[^>]*>[^<]+<\/strong><span class="pin-size">100 B<\/span><\/div>/u,
+      );
+    }
+    expect(fixed).not.toContain("pin-publication-version");
+    expect(published).toContain(
+      '<div class="pin-info-cid"><div class="pin-publication-version">Current v3 · 5 versions</div>',
+    );
     expect(published).not.toContain("Current v5");
     expect(published).not.toContain("Private label");
     expect(published).toContain(
@@ -271,7 +283,9 @@ describe("publication wall identity and management", () => {
     expect(published.match(/<button/g)).toHaveLength(2);
     expect(
       render({ ...publication, currentRevision: 1, revisionCount: 1 }),
-    ).toContain("Publication");
+    ).toContain(
+      '<div class="pin-publication-version">Current v1 · 1 version</div>',
+    );
   });
 
   it("explains public title/history versus private pin identity before creating a publication", () => {

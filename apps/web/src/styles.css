@@ -947,26 +947,26 @@ footer {
   gap: 12px;
   min-width: 0;
 }
-.pin-card:has(.publication-badge) .pin-info-summary {
-  display: grid;
-  gap: 1px;
-}
 .publication-badge {
   position: absolute;
   top: 12px;
-  left: 12px;
+  right: 12px;
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  max-width: calc(100% - 70px);
-  padding: 3px 8px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border: 1px solid var(--border);
   border-radius: 5px;
   background: var(--surface-glass-dense);
   color: var(--text);
-  font-size: 11px;
   pointer-events: none;
+}
+.pin-publication-version {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
 }
 .publication-history {
   list-style: none;
@@ -1153,14 +1153,6 @@ footer {
 .pin-card .pin-preview.has-image {
   grid-template-rows: minmax(0, 1fr);
   padding: 0;
-}
-.pin-card:has(.publication-badge) .pin-preview:not(.has-image) {
-  padding-top: 48px;
-}
-.pin-card:has(.publication-badge) .pin-size {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .pin-card .pin-preview img {
   min-height: 0;

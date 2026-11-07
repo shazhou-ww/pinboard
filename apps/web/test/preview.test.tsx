@@ -10,6 +10,33 @@ const render = (preview: ContentPreview) =>
   );
 const base = { version: 1, status: "ready" as const, truncated: false };
 describe("typed, display-only content previews", () => {
+  it("floats publication icons without changing the shared preview or summary layout", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.publication-badge\s*\{[^}]*position:\s*absolute;[^}]*top:\s*12px;[^}]*right:\s*12px;[^}]*width:\s*28px;[^}]*height:\s*28px;/u,
+    );
+    expect(styles).not.toMatch(
+      /\.pin-card:has\(\.publication-badge\) \.(?:pin-preview|pin-info-summary|pin-size)/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-info\s*\{[^}]*grid-template-rows:\s*auto 0fr;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-info-cid\s*\{[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;[^}]*opacity:\s*0;[^}]*visibility:\s*hidden;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-info:focus-visible,\s*\.pin-info:has\(:focus-visible\),\s*\.pin-card.copy-confirmed \.pin-info\s*\{[^}]*grid-template-rows:\s*auto 1fr;/u,
+    );
+    expect(styles).toMatch(
+      /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*\.pin-info:hover\s*\{[^}]*grid-template-rows:\s*auto 1fr;/u,
+    );
+    expect(styles).toMatch(
+      /@media \(hover: none\), \(pointer: coarse\)\s*\{\s*\.pin-info\s*\{[^}]*grid-template-rows:\s*auto 1fr;/u,
+    );
+  });
   it("extends previews behind the frosted information strip and centers image crops", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
