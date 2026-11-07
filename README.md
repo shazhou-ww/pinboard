@@ -226,7 +226,7 @@ binding or external image service), capped at 8 MiB input and 2 million decoded
 pixels. Actual aspect-preserving WebP thumbnails have a 480-pixel maximum edge
 and 64 KiB maximum size. D1 stores their binary BLOBs under SHA2-256 raw CIDs;
 the browser separately loads immutable `/ipfs/:thumbnailCid` images. PDF nodes
-use the same image descriptor for their first page, rendered on white by bundled
+use the same image material for their first page, rendered on white by bundled
 PDFium with licensed Chinese font fallback. There is no PDF reader, document
 scripting, external resource fetch or new download/Range endpoint. See
 [PDF preview limits and build provenance](docs/pdf-previews.md).
@@ -236,7 +236,8 @@ reuse preview descriptions from memory or account-scoped IndexedDB. Ready
 descriptions are fresh for one hour, unsupported descriptions for five minutes;
 stale entries up to seven days old render immediately while being refreshed.
 Pending and failed states are not persisted and invalidate older cached
-descriptions. Legacy version-1 PDF placeholders are immediately revalidated. The
+descriptions. The normalized format upgrades IndexedDB to version 2 and clears
+all old descriptions once; no old-format adapter or negotiation is provided. The
 cache stores no account labels or image BLOBs: memory holds at most 128 entries;
 IndexedDB retains at most 500 entries and 2 MiB of JSON payloads, with a 16 KiB
 per-entry budget and least-recently-used eviction. Browser storage failures are
@@ -275,7 +276,7 @@ uses a stronger derived secondary-text role, with contrast checked against the
 composited translucent engraving layers for each palette. Keep interface colors
 in the shared roles in `apps/web/src/styles.css`;
 `apps/web/test/palette.test.ts` checks palette completeness,
-solid/glass/linework contrast and semantic-state independence. Thumbnail images
+solid/glass/linework contrast and semantic-state independence. Ordinary images
 fill the card with a centered crop on the longer axis, without changing the
 original bytes, thumbnail CID or stored aspect ratio. Display Markdown escapes
 source punctuation; structured/code text uses literal code fences, not invented
@@ -287,24 +288,30 @@ folder heading and every entry use the same 28 px row rhythm, without extra
 spacing before the first entry. They show at most 24 actual names across two
 entry levels, without subfolder navigation. Cards omit sampling labels;
 sampled/truncated overviews never claim unverified totals. GIF, video, audio and
-unknown binary content use explicit unsupported placeholders with only reliably
-identified metadata. Invalid or oversized images fail explicitly instead of
-downloading originals. PDF forms, annotations, password protection and known
-missing fallback glyphs require flattening, embedding fonts or removing
-protection outside Pinboard; these are not published as successful blank images.
+unknown binary content use type-icon covers with only reliably identified source
+types. Invalid or oversized images fail explicitly instead of downloading
+originals. PDF forms, annotations, password protection and known missing
+fallback glyphs require flattening, embedding fonts or removing protection
+outside Pinboard; these are not published as successful blank images.
 
 Previews are shared by source CID and generation version, without account names.
-`pending`, `ready`, `unsupported` and `failed` are distinct from their
-`contentType`/`content` payload. Authenticated uploads (Web, CLI, HTTP and MCP)
+`contentType` is the original source MIME (or null when unknown), never the WebP
+output type or a guess from an editable filename. `preview` is an `image`,
+`markdown`, `text` or `directory` material, or null. Only `ready` descriptors
+carry material; `pending`, `unsupported` and `failed` retain their status/reason
+with null material. Reliable logical `size` is optional; directory sources use
+`inode/directory`. Shared runtime validation rejects invalid combinations at
+storage and client boundaries. Authenticated uploads (Web, CLI, HTTP and MCP)
 enqueue generation after the pin is saved; errors are logged without undoing the
 pin. The existing hourly cron processes at most two due jobs and discovers at
 most two missing legacy previews per run. Opening a card lazily enqueues missing
 previews too. A two-minute fenced lease prevents duplicate publication; failed
 jobs retry with backoff, at most three attempts per version. A generation
 version bump is required to retry exhausted/unsupported content after fixing a
-generator. Version 2 regenerates all formats, not only PDF. One isolate admits
-one generation immediately; busy jobs remain durably pending without spending
-failure attempts or waiting in a cross-request Promise queue.
+generator. Version 3 rebuilds every format into the normalized descriptor
+without changing originals, CARs, Pins, Publications or authorization records.
+One isolate admits one generation immediately; busy jobs remain durably pending
+without spending failure attempts or waiting in a cross-request Promise queue.
 
 Different originals can share identical thumbnail bytes. Each source retains its
 last published generation until a replacement is published, even if the new
@@ -331,8 +338,21 @@ also copy the full CID in the details dialog. Clicking anywhere else on the card
 count, rename, share, CAR download and Unpin actions. Renaming updates both the
 card and modal without changing the CID.
 
-SVG, HTML and other active content are never embedded. Preview errors remain
-visible on the card and do not prevent pin management or CAR downloads.
+PDF image material appears as a full, aspect-preserving floating paper on a
+neutral backdrop, with a light border/shadow and a small upper-left PDF badge.
+The information band occupies its own layout row, including when expanded,
+keyboard-focused or on touch; the independent Publication badge remains at upper
+right. PDF cards can grow to a minimum 280px height on narrow screens while
+staying within their assigned grid width, keeping the paper identifiable with an
+expanded band. Pin cards, Publications and node details share this treatment.
+Unknown source types still display valid material without guessed decoration.
+
+SVG, HTML and other active content are never embedded. Missing material and
+image-load failures use ordinary type-icon covers, without new failure text,
+warnings or retry controls. Image failures are local and recover on a new image
+identity or a successful load; they never rewrite or persist generation status.
+Diagnostics and polling remain intact. Invalid API payloads and authorization
+errors remain errors, not successful fallback descriptors.
 
 There is no protocol-format selector. Files, including `.car` files, are saved
 as ordinary files in the Web UI; use CLI `import` or the API/MCP CAR mode for

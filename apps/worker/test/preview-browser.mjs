@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createServer as createViteServer } from "vite";
 import { buildDirectoryCar } from "@shazhou/pinboard-encoding";
+import { simplePdf } from "./pdf-fixtures.ts";
 
 const origin = "http://127.0.0.1:5191";
 const dist = new URL("../dist/", import.meta.url);
@@ -59,7 +60,13 @@ await db
   .bind(
     token.slice(0, 11),
     createHash("sha256").update(token).digest("hex"),
-    JSON.stringify(["pins:read", "pins:write", "pins:delete"]),
+    JSON.stringify([
+      "pins:read",
+      "pins:write",
+      "pins:delete",
+      "publications:read",
+      "publications:write",
+    ]),
     new Date(Date.now() + 3600000).toISOString(),
   )
   .run();
@@ -86,6 +93,38 @@ await upload(
   "notes.txt",
 );
 await upload("%PDF-1.7\nunsupported document", "document.pdf");
+const papers = [];
+for (const [name, width, height] of [
+  ["Portrait paper.pdf", 300, 420],
+  ["Landscape paper.pdf", 420, 300],
+]) {
+  const pin = await upload(
+    simplePdf({
+      width,
+      height,
+      content: `0.15 0.25 0.4 rg 20 ${height - 50} ${width - 40} 30 re f
+        0.8 0.85 0.9 rg 20 60 ${width - 40} ${height - 130} re f
+        0.8 0.3 0.1 rg 20 15 ${width - 40} 20 re f`,
+    }),
+    name,
+  );
+  papers.push(pin);
+}
+const publicationResponse = await runtime.dispatchFetch(
+  `${origin}/api/publications`,
+  {
+    method: "POST",
+    headers: { authorization, "content-type": "application/json" },
+    body: JSON.stringify({
+      title: "Published portrait paper",
+      cid: papers[0].cid,
+      requestId: "synthetic-browser-paper",
+      public: true,
+    }),
+  },
+);
+if (!publicationResponse.ok) throw new Error(await publicationResponse.text());
+const { publication } = await publicationResponse.json();
 const content = new TextEncoder().encode("a real file inside the folder");
 const directory = await buildDirectoryCar([
   {
@@ -124,7 +163,10 @@ const server = createServer((request, response) => {
     for (const [name, value] of Object.entries(request.headers))
       if (value !== undefined)
         headers.set(name, Array.isArray(value) ? value.join(",") : value);
-    if (request.url?.startsWith("/api/pins"))
+    if (
+      request.url?.startsWith("/api/pins") ||
+      request.url?.startsWith("/api/publications")
+    )
       headers.set("authorization", authorization);
     const result = await runtime.dispatchFetch(origin + request.url, {
       method: request.method,
@@ -160,6 +202,7 @@ const vite = await createViteServer({
 });
 await vite.listen();
 console.log(`PREVIEW_BROWSER_READY ${origin}`);
+console.log(`PREVIEW_PUBLICATION ${origin}/p/${publication.id}`);
 async function close() {
   await vite.close();
   await new Promise((resolve) => server.close(resolve));

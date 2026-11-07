@@ -4,6 +4,15 @@ export const previewEnabled =
   typeof location !== "undefined" &&
   ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 export async function apiFetch(
   path: string,
   init?: RequestInit,

@@ -2,7 +2,17 @@
 
 PDF thumbnails use the existing preview descriptor, raw WebP CID, publication
 transaction and retained-root/DAG-member garbage collection. They do not create
-account pins or expose PDF byte ranges. Existing cards still center-crop images.
+account pins or expose PDF byte ranges. The normalized descriptor keeps
+`contentType: "application/pdf"` and supplies
+`preview: { kind: "image", image }` on success. Identified unsupported/failed
+PDFs preserve their MIME and reliable logical size with null material. PDFium
+still returns pixels only; orchestration owns encoding, CID, URL and descriptor
+assembly.
+
+The shared UI displays the whole page as floating paper, with an upper-left PDF
+badge and separate information-band space. Ordinary images retain their centered
+crop. Missing or unloadable material becomes a PDF type-icon cover without a
+failure message; generation diagnostics and bounded retries remain unchanged.
 
 ## Supported content and failure policy
 

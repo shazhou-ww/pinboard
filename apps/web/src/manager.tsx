@@ -23,7 +23,7 @@ import { Dialog } from "./dialog.js";
 import { OAuthGrants } from "./oauth.js";
 import { PinPreview } from "./pin-preview.js";
 import { PreviewClient } from "./preview-client.js";
-import { apiFetch } from "./api.js";
+import { apiFetch, ApiRequestError } from "./api.js";
 import { Icon } from "./icon.js";
 import {
   DeletedDialog,
@@ -46,7 +46,7 @@ export async function requestJson<T>(
 ): Promise<T> {
   const response = await apiFetch(path, init);
   if (!response.ok) {
-    const body: unknown = await response.json();
+    const body: unknown = await response.json().catch(() => null);
     const message =
       body &&
       typeof body === "object" &&
@@ -54,7 +54,7 @@ export async function requestJson<T>(
       typeof body.error === "string"
         ? body.error
         : `HTTP ${response.status}`;
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status);
   }
   return response.status === 204
     ? (undefined as T)

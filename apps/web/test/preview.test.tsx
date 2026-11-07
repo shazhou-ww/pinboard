@@ -11,11 +11,78 @@ const render = (preview: ContentPreview) =>
   );
 const base = { version: 1, status: "ready" as const, truncated: false };
 describe("typed, display-only content previews", () => {
+  it.each([
+    ["application/pdf", "PDF"],
+    ["image/jpeg", "Image"],
+    ["video/mp4", "Video"],
+    ["audio/mpeg", "Audio"],
+    ["text/plain", "Text"],
+    ["inode/directory", "Folder"],
+    ["application/octet-stream", "File"],
+    [null, "Content"],
+  ] as const)(
+    "uses source %s for the normal empty-material cover",
+    (contentType, label) => {
+      const markup = render({
+        ...base,
+        status: "unsupported",
+        contentType,
+        preview: null,
+        reason: "Internal diagnosis",
+      });
+      expect(markup).toContain(`aria-label="${label} preview"`);
+      expect(markup).not.toMatch(
+        /Internal diagnosis|unavailable|retry|role="alert"/u,
+      );
+    },
+  );
+  it("decorates only PDF image material and preserves unknown source material", () => {
+    const image = {
+      kind: "image" as const,
+      image: {
+        cid: "thumbnail",
+        url: "/ipfs/thumbnail",
+        width: 339,
+        height: 480,
+      },
+    };
+    for (const contentType of [
+      "application/pdf",
+      "image/jpeg",
+      "video/mp4",
+      null,
+    ]) {
+      const markup = render({ ...base, contentType, preview: image });
+      expect(markup).toContain('src="/ipfs/thumbnail"');
+      expect(markup.includes('class="preview-paper"')).toBe(
+        contentType === "application/pdf",
+      );
+      expect(markup.includes('aria-label="PDF document"')).toBe(
+        contentType === "application/pdf",
+      );
+    }
+  });
+  it("reserves actual layout space for expanded information bands instead of clipping the paper", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.pin-wall \.pin-card:has\(\.has-paper\)\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;[^}]*width:\s*100%;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card:has\(\.has-paper\) \.pin-info\s*\{[^}]*position:\s*relative;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-preview \.preview-paper img\s*\{[^}]*max-height:\s*100%;[^}]*object-fit:\s*contain;/u,
+    );
+  });
   it("keeps polling transient backend retries across their backoff without retrying terminal failures", () => {
     const preview: ContentPreview = {
       ...base,
-      contentType: "application/vnd.pinboard.file+json",
-      content: { mediaType: "application/pdf" },
+      status: "pending",
+      contentType: "application/pdf",
+      preview: null,
     };
     expect(previewPollDelay({ ...preview, status: "pending" }, 1)).toBe(2000);
     expect(
@@ -160,8 +227,8 @@ describe("typed, display-only content previews", () => {
         name={"<Project> " + "x".repeat(200)}
         preview={{
           ...base,
-          contentType: "application/vnd.pinboard.directory+json",
-          content: { entries: [], total: 0 },
+          contentType: "inode/directory",
+          preview: { kind: "directory", entries: [], total: 0 },
         }}
       />,
     );
@@ -181,11 +248,14 @@ describe("typed, display-only content previews", () => {
     const markup = render({
       ...base,
       contentType: "image/webp",
-      content: {
-        cid: "thumbnail",
-        url: "/ipfs/thumbnail",
-        width: 480,
-        height: 320,
+      preview: {
+        kind: "image",
+        image: {
+          cid: "thumbnail",
+          url: "/ipfs/thumbnail",
+          width: 480,
+          height: 320,
+        },
       },
     });
     expect(markup).toContain('src="/ipfs/thumbnail"');
@@ -198,8 +268,10 @@ describe("typed, display-only content previews", () => {
       const markup = render({
         ...base,
         contentType,
-        content:
-          "<script>alert(1)</script><svg onload='bad()'/><img src='https://bad.test/x'>\n[link](https://bad.test)",
+        preview: {
+          kind: contentType === "text/plain" ? "text" : "markdown",
+          text: "<script>alert(1)</script><svg onload='bad()'/><img src='https://bad.test/x'>\n[link](https://bad.test)",
+        },
       });
       expect(markup).not.toMatch(/<script|<svg|<img|<a |href=/u);
       expect(markup).toContain("&lt;script&gt;");
@@ -211,13 +283,19 @@ describe("typed, display-only content previews", () => {
       render({
         ...base,
         contentType: "text/markdown",
-        content: "\\# literal \\*star\\* \\[link\\]\\(url\\)",
+        preview: {
+          kind: "markdown",
+          text: "\\# literal \\*star\\* \\[link\\]\\(url\\)",
+        },
       }),
     ).toContain("# literal *star* [link](url)");
     const markup = render({
       ...base,
       contentType: "text/markdown",
-      content: "````\nconst x = '<script>';\n```\n````",
+      preview: {
+        kind: "markdown",
+        text: "````\nconst x = '<script>';\n```\n````",
+      },
     });
     expect(markup).toContain(
       "<code>const x = &#x27;&lt;script&gt;&#x27;;\n```</code>",
@@ -228,8 +306,9 @@ describe("typed, display-only content previews", () => {
     const markup = render({
       ...base,
       truncated: true,
-      contentType: "application/vnd.pinboard.directory+json",
-      content: {
+      contentType: "inode/directory",
+      preview: {
+        kind: "directory",
         entries: [
           { name: "<evil>.txt", kind: "file", depth: 0 },
           { name: "photos", kind: "directory", depth: 1 },
@@ -259,23 +338,31 @@ describe("typed, display-only content previews", () => {
   it("only reports verified counts and distinguishes empty folders from sampled empty previews", () => {
     const directory = {
       ...base,
-      contentType: "application/vnd.pinboard.directory+json" as const,
-      content: { entries: [], total: 0 },
+      contentType: "inode/directory",
+      preview: { kind: "directory" as const, entries: [], total: 0 },
     };
     expect(render(directory)).toContain("Empty folder");
     expect(render(directory)).toContain("0");
     expect(
-      render({ ...directory, truncated: true, content: { entries: [] } }),
+      render({
+        ...directory,
+        truncated: true,
+        preview: { kind: "directory", entries: [] },
+      }),
     ).toContain("No entries in this preview");
     expect(
-      render({ ...directory, content: { entries: [], total: 1 } }),
+      render({
+        ...directory,
+        preview: { kind: "directory", entries: [], total: 1 },
+      }),
     ).toContain("top-level");
   });
   it("keeps unknown folder entries honest and long names inert", () => {
     const markup = render({
       ...base,
-      contentType: "application/vnd.pinboard.directory+json",
-      content: {
+      contentType: "inode/directory",
+      preview: {
+        kind: "directory",
         entries: [
           { name: "<script>" + "x".repeat(200), kind: "unknown", depth: 0 },
         ],
@@ -287,19 +374,20 @@ describe("typed, display-only content previews", () => {
     expect(markup).not.toMatch(/<script|href=|tabindex=|role="tree"/iu);
   });
   it.each(["pending", "failed", "unsupported"] as const)(
-    "shows %s independently of content type and preserves reliable file metadata",
+    "renders %s as the same type cover without a failure UX",
     (status) => {
       const markup = render({
         ...base,
         status,
         reason: "Explicit reason",
-        contentType: "application/vnd.pinboard.file+json",
-        content: { mediaType: "application/pdf", size: 1024 },
+        contentType: "application/pdf",
+        size: 1024,
+        preview: null,
       });
-      expect(markup).toContain('role="status"');
-      expect(markup).toContain("Explicit reason");
-      expect(markup).toContain("application/pdf");
-      expect(markup).toContain("1024 bytes");
+      expect(markup).toContain('aria-label="PDF preview"');
+      expect(markup).not.toMatch(
+        /role="status"|Explicit reason|1024|failed|pending|unavailable/iu,
+      );
     },
   );
   it("keeps unavailable cards inert instead of using source filenames to fetch originals", () => {
@@ -314,7 +402,7 @@ describe("typed, display-only content previews", () => {
         }}
       />,
     );
-    expect(markup).toContain("Preview pending");
+    expect(markup).toContain('aria-label="Content preview"');
     expect(markup).not.toContain("<img");
     expect(markup).not.toContain("/car");
   });

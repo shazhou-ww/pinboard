@@ -8,23 +8,77 @@ import { PreviewClient, PreviewRequestError } from "./preview-client.js";
 import { Icon } from "./icon.js";
 import { previewPollDelay } from "./preview-poll.js";
 
-function Thumbnail({ image, name }: { image: PreviewImage; name: string }) {
+export function TypeCover({ contentType }: { contentType: string | null }) {
+  const [icon, label] =
+    contentType === "application/pdf"
+      ? (["pdf", "PDF"] as const)
+      : contentType === "inode/directory"
+        ? (["folder", "Folder"] as const)
+        : contentType?.startsWith("image/")
+          ? (["image", "Image"] as const)
+          : contentType?.startsWith("video/") ||
+              contentType === "application/mp4"
+            ? (["video", "Video"] as const)
+            : contentType?.startsWith("audio/")
+              ? (["audio", "Audio"] as const)
+              : contentType?.startsWith("text/")
+                ? (["file", "Text"] as const)
+                : contentType
+                  ? (["file", "File"] as const)
+                  : (["unknown", "Content"] as const);
+  return (
+    <div className="preview-type-cover" aria-label={`${label} preview`}>
+      <Icon name={icon} size={48} weight="duotone" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+export function previewClassName(preview: ContentPreview | null): string {
+  return `pin-preview${preview?.preview?.kind === "image" ? " has-image" : ""}${preview?.preview?.kind === "image" && preview.contentType === "application/pdf" ? " has-paper" : ""}`;
+}
+
+function Thumbnail({
+  image,
+  name,
+  contentType,
+}: {
+  image: PreviewImage;
+  name: string;
+  contentType: string | null;
+}) {
   const [failed, setFailed] = useState(false);
-  return failed ? (
-    <p className="muted" role="status">
-      Unable to load thumbnail. The original is available in details.
-    </p>
-  ) : (
+  const picture = (
     <img
       src={image.url}
       width={image.width}
       height={image.height}
       alt={name}
       loading="lazy"
+      hidden={failed}
       onError={() => {
         setFailed(true);
       }}
+      onLoad={() => {
+        setFailed(false);
+      }}
     />
+  );
+  return (
+    <>
+      {failed ? <TypeCover contentType={contentType} /> : null}
+      {contentType === "application/pdf" ? (
+        <div className="preview-paper" hidden={failed}>
+          <span className="preview-type-badge" aria-label="PDF document">
+            <Icon name="pdf" size={16} />
+            PDF
+          </span>
+          <div className="preview-paper-sheet">{picture}</div>
+        </div>
+      ) : (
+        picture
+      )}
+    </>
   );
 }
 
@@ -35,53 +89,35 @@ export function PreviewContent({
   preview: ContentPreview;
   name: string;
 }) {
-  if (preview.status !== "ready")
-    return (
-      <div>
-        <p className="muted" role="status">
-          {preview.status === "pending"
-            ? "Preview pending"
-            : preview.status === "failed"
-              ? "Preview failed"
-              : "Preview unavailable"}
-          {preview.reason ? `: ${preview.reason}` : ""}
-        </p>
-        {preview.contentType === "application/vnd.pinboard.file+json" ? (
-          <p className="muted">
-            {preview.content.mediaType}
-            {preview.content.size === undefined
-              ? ""
-              : ` (${preview.content.size} bytes)`}
-          </p>
-        ) : null}
-      </div>
-    );
-  switch (preview.contentType) {
-    case "image/webp":
+  const material = preview.preview;
+  if (!material) return <TypeCover contentType={preview.contentType} />;
+  switch (material.kind) {
+    case "image":
       return (
         <Thumbnail
-          key={preview.content.cid}
-          image={preview.content}
+          key={`${material.image.cid}:${material.image.url}`}
+          image={material.image}
           name={name}
+          contentType={preview.contentType}
         />
       );
-    case "text/plain":
-      return <div className="preview-text">{preview.content}</div>;
-    case "text/markdown": {
-      const fence = /^(`{3,})\n/u.exec(preview.content);
+    case "text":
+      return <div className="preview-text">{material.text}</div>;
+    case "markdown": {
+      const fence = /^(`{3,})\n/u.exec(material.text);
       return fence ? (
         <pre className="preview-code">
           <code>
-            {preview.content.slice(fence[0].length, -(fence[1]!.length + 1))}
+            {material.text.slice(fence[0].length, -(fence[1]!.length + 1))}
           </code>
         </pre>
       ) : (
         <div className="preview-text">
-          {preview.content.replace(/\\([\\`*_{}[\]()#+.!>|~-])/gu, "$1")}
+          {material.text.replace(/\\([\\`*_{}[\]()#+.!>|~-])/gu, "$1")}
         </div>
       );
     }
-    case "application/vnd.pinboard.directory+json":
+    case "directory":
       return (
         <div className="preview-directory">
           <div className="preview-folder-heading">
@@ -93,18 +129,18 @@ export function PreviewContent({
             <span className="preview-entry-name" title={name}>
               {name}
             </span>
-            {preview.content.total === undefined ? (
+            {material.total === undefined ? (
               ""
             ) : (
               <span className="preview-folder-count">
-                {preview.content.total} top-level{" "}
-                {preview.content.total === 1 ? "entry" : "entries"}
+                {material.total} top-level{" "}
+                {material.total === 1 ? "entry" : "entries"}
               </span>
             )}
           </div>
-          {preview.content.entries.length ? (
+          {material.entries.length ? (
             <ul aria-label="Folder contents">
-              {preview.content.entries.map((entry, index) => (
+              {material.entries.map((entry, index) => (
                 <li key={index} data-depth={entry.depth} data-kind={entry.kind}>
                   <Icon
                     name={
@@ -134,18 +170,12 @@ export function PreviewContent({
             </ul>
           ) : (
             <p className="preview-folder-empty">
-              {preview.content.total === 0 && !preview.truncated
+              {material.total === 0 && !preview.truncated
                 ? "Empty folder"
                 : "No entries in this preview"}
             </p>
           )}
         </div>
-      );
-    case "application/vnd.pinboard.file+json":
-      return (
-        <p className="muted">
-          {preview.content.mediaType ?? "File"} — no content preview
-        </p>
       );
   }
 }
@@ -216,16 +246,15 @@ export function PinPreview({
     };
   }, [pin.cid, previews]);
   return (
-    <div
-      ref={ref}
-      className={`pin-preview${preview?.status === "ready" && preview.contentType === "image/webp" ? " has-image" : ""}`}
-    >
+    <div ref={ref} className={previewClassName(preview)}>
       {preview ? (
         <PreviewContent preview={preview} name={pin.name} />
-      ) : (
+      ) : error ? (
         <p className="muted" role="status">
-          {error || "Preview pending"}
+          {error}
         </p>
+      ) : (
+        <TypeCover contentType={null} />
       )}
       {preview && error ? (
         <p className="muted" role="status">

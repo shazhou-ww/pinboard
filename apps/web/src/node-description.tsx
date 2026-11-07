@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { NodeDescription } from "@shazhou/pinboard-contracts";
+import { isContentPreview } from "@shazhou/pinboard-contracts";
+import { ApiRequestError, previewEnabled } from "./api.js";
 import { requestJson } from "./manager.js";
-import { PreviewContent } from "./pin-preview.js";
+import { PreviewContent, previewClassName } from "./pin-preview.js";
 import { previewPollDelay } from "./preview-poll.js";
 
 export function NodeDescriptionEditor({
@@ -40,6 +42,11 @@ export function NodeDescriptionEditor({
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
+        if (!isContentPreview(value?.description?.preview, previewEnabled)) {
+          setData(null);
+          throw new Error("Invalid node preview response");
+        }
+        setError("");
         if (first) {
           setData(value);
           setText(value.description.user.text ?? "");
@@ -63,10 +70,17 @@ export function NodeDescriptionEditor({
             void load();
           }, delay);
       } catch (failure) {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          if (
+            (failure instanceof ApiRequestError &&
+              [401, 403, 404].includes(failure.status)) ||
+            failure instanceof SyntaxError
+          )
+            setData(null);
           setError(
             failure instanceof Error ? failure.message : String(failure),
           );
+        }
       }
     };
     void load();
@@ -89,6 +103,10 @@ export function NodeDescriptionEditor({
           expectedVersion: data.description.user.version,
         }),
       });
+      if (!isContentPreview(next?.description?.preview, previewEnabled)) {
+        setData(null);
+        throw new Error("Invalid node preview response");
+      }
       setData(next);
       setText(next.description.user.text ?? "");
       setNotice(
@@ -96,6 +114,11 @@ export function NodeDescriptionEditor({
       );
       await onChanged?.();
     } catch (failure) {
+      if (
+        failure instanceof ApiRequestError &&
+        [401, 403, 404].includes(failure.status)
+      )
+        setData(null);
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {
       setBusy(false);
@@ -168,7 +191,7 @@ export function NodeDescriptionEditor({
             </form>
           )}
           <h4>System preview</h4>
-          <div className="pin-preview">
+          <div className={previewClassName(data.description.preview)}>
             <PreviewContent
               preview={data.description.preview}
               name={selectedNode}

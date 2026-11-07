@@ -9,7 +9,9 @@ import type {
 } from "@shazhou/pinboard-contracts";
 import { Dialog } from "./dialog.js";
 import { requestJson, formatSize } from "./manager.js";
-import { PreviewContent } from "./pin-preview.js";
+import { PreviewContent, previewClassName, TypeCover } from "./pin-preview.js";
+import { isContentPreview } from "@shazhou/pinboard-contracts";
+import { previewEnabled } from "./api.js";
 import { Icon } from "./icon.js";
 import { NodeDescriptionEditor } from "./node-description.js";
 import { previewPollDelay } from "./preview-poll.js";
@@ -37,22 +39,27 @@ export function PublicationPreview({
     setError("");
     const load = async () => {
       try {
-        const next = await requestJson<ContentPreview>(
+        const next = await requestJson<unknown>(
           `/api/public/publications/${publication.id}/preview/${revision ?? publication.currentRevision}`,
           { signal: controller.signal },
         );
         if (controller.signal.aborted) return;
+        if (!isContentPreview(next, previewEnabled))
+          throw new Error("Invalid preview response");
         setPreview(next);
+        setError("");
         const delay = previewPollDelay(next, ++attempts);
         if (delay !== undefined)
           timer = setTimeout(() => {
             void load();
           }, delay);
       } catch (failure) {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          setPreview(null);
           setError(
             failure instanceof Error ? failure.message : String(failure),
           );
+        }
       }
     };
     void load();
@@ -62,15 +69,15 @@ export function PublicationPreview({
     };
   }, [publication.id, publication.currentRevision, revision]);
   return (
-    <div
-      className={`pin-preview${preview?.contentType === "image/webp" && preview.status === "ready" ? " has-image" : ""}`}
-    >
+    <div className={previewClassName(preview)}>
       {preview ? (
         <PreviewContent preview={preview} name={publication.title} />
-      ) : (
+      ) : error ? (
         <p className="muted" role="status">
-          {error || "Preview pending"}
+          {error}
         </p>
+      ) : (
+        <TypeCover contentType={null} />
       )}
     </div>
   );

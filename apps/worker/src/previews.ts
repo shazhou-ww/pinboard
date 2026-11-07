@@ -5,9 +5,10 @@ import {
 } from "ipfs-unixfs-exporter";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
-import type {
-  ContentPreview,
-  PreviewPayload,
+import {
+  isContentPreview,
+  type ContentPreview,
+  type PreviewMaterial,
 } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { parseCid } from "./content.js";
@@ -18,13 +19,12 @@ import {
   PreviewUnsupported,
 } from "./preview-limits.js";
 
-export const PREVIEW_VERSION = 2;
+export const PREVIEW_VERSION = 3;
 export const PREVIEW_RETENTION_MS = 7 * 86400000;
 const MAX_FILE = 8 * 1024 * 1024;
 const MAX_TEXT = 2400;
 const MAX_ENTRIES = 24;
 const MAX_ATTEMPTS = 3;
-const fileType = "application/vnd.pinboard.file+json" as const;
 const nowIso = (time: number) => new Date(time).toISOString();
 interface Row {
   descriptor: string;
@@ -37,7 +37,7 @@ interface Generated {
 }
 interface FileMetadata {
   size?: number;
-  mediaType?: string;
+  contentType?: string;
 }
 class PreviewFailure extends Error {
   constructor(
@@ -47,15 +47,24 @@ class PreviewFailure extends Error {
     super(message);
   }
 }
+class IdentifiedDeferral extends PreviewDeferred {
+  constructor(
+    message: string,
+    readonly metadata: FileMetadata,
+  ) {
+    super(message);
+  }
+}
 const placeholder = (
-  status: ContentPreview["status"],
+  status: Exclude<ContentPreview["status"], "ready">,
   reason?: string,
   metadata: FileMetadata = {},
 ): ContentPreview => ({
   version: PREVIEW_VERSION,
   status,
-  contentType: fileType,
-  content: metadata,
+  contentType: metadata.contentType ?? null,
+  preview: null,
+  ...(metadata.size === undefined ? {} : { size: metadata.size }),
   truncated: false,
   ...(reason ? { reason } : {}),
 });
@@ -107,7 +116,7 @@ export async function getPreviews(
   const result = new Map(
     rows.results.map((row) => [
       row.source_cid,
-      JSON.parse(row.descriptor) as ContentPreview,
+      parseDescription(row.descriptor),
     ]),
   );
   for (const cid of cids)
@@ -125,23 +134,28 @@ export async function getPreview(
   )
     .bind(cid, PREVIEW_VERSION)
     .first<Row>();
-  return row
-    ? (JSON.parse(row.descriptor) as ContentPreview)
-    : placeholder("pending");
+  return row ? parseDescription(row.descriptor) : placeholder("pending");
+}
+
+function parseDescription(json: string): ContentPreview {
+  const value: unknown = JSON.parse(json);
+  if (!isContentPreview(value)) throw new Error("Invalid preview descriptor");
+  return value;
 }
 
 function description(
-  payload: PreviewPayload,
+  contentType: string | null,
+  preview: PreviewMaterial,
   truncated = false,
-  status: ContentPreview["status"] = "ready",
-  reason?: string,
+  size?: number,
 ): ContentPreview {
   return {
-    ...payload,
+    contentType,
+    preview,
     version: PREVIEW_VERSION,
-    status,
+    status: "ready",
     truncated,
-    ...(reason ? { reason } : {}),
+    ...(size === undefined ? {} : { size }),
   };
 }
 
@@ -182,14 +196,18 @@ export function textDescription(
       ),
     );
     return description(
-      { contentType: "text/markdown", content: `${fence}\n${text}\n${fence}` },
+      "text/plain",
+      { kind: "markdown", text: `${fence}\n${text}\n${fence}` },
       truncated,
+      reliableSize(size),
     );
   }
   const escaped = text.replace(/([\\`*_{}[\]()#+.!>|~-])/gu, "\\$1");
   return description(
-    { contentType: "text/markdown", content: escaped },
+    "text/plain",
+    { kind: "markdown", text: escaped },
     truncated,
+    reliableSize(size),
   );
 }
 
@@ -207,25 +225,33 @@ async function generate(env: Bindings, cid: string): Promise<Generated> {
   }
 }
 
-async function imageResult(image: {
-  bytes: Uint8Array;
-  width: number;
-  height: number;
-}): Promise<Generated> {
+const reliableSize = (size: bigint): number | undefined =>
+  size <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(size) : undefined;
+
+async function imageResult(
+  image: { bytes: Uint8Array; width: number; height: number },
+  contentType: string,
+  size: bigint,
+): Promise<Generated> {
   const thumbnailCid = CID.createV1(
     0x55,
     await sha256.digest(image.bytes),
   ).toString();
   return {
-    descriptor: description({
-      contentType: "image/webp",
-      content: {
-        cid: thumbnailCid,
-        url: `/ipfs/${thumbnailCid}`,
-        width: image.width,
-        height: image.height,
+    descriptor: description(
+      contentType,
+      {
+        kind: "image",
+        image: {
+          cid: thumbnailCid,
+          url: `/ipfs/${thumbnailCid}`,
+          width: image.width,
+          height: image.height,
+        },
       },
-    }),
+      false,
+      reliableSize(size),
+    ),
     image: { ...image, cid: thumbnailCid },
   };
 }
@@ -271,15 +297,26 @@ async function generateFromStore(
         }
       }
     };
-    await visit(root, 0);
+    try {
+      await visit(root, 0);
+    } catch (error) {
+      const metadata = { contentType: "inode/directory" };
+      if (error instanceof PreviewUnsupported)
+        return {
+          descriptor: placeholder("unsupported", error.message, metadata),
+        };
+      throw new PreviewFailure(
+        error instanceof Error ? error.message : String(error),
+        metadata,
+      );
+    }
     return {
       descriptor: description(
+        "inode/directory",
         {
-          contentType: "application/vnd.pinboard.directory+json",
-          content: {
-            entries,
-            ...(!overview.truncated ? { total: rootTotal } : {}),
-          },
+          kind: "directory",
+          entries,
+          ...(!overview.truncated ? { total: rootTotal } : {}),
         },
         overview.truncated,
       ),
@@ -287,9 +324,7 @@ async function generateFromStore(
   }
   if (root.type !== "file" && root.type !== "raw")
     return {
-      descriptor: description(
-        { contentType: fileType, content: {} },
-        false,
+      descriptor: placeholder(
         "unsupported",
         "No preview for this verified IPLD content",
       ),
@@ -318,7 +353,7 @@ async function generateFromStore(
   const first = new TextDecoder().decode(bytes.subarray(0, 16));
   if (first.startsWith("%PDF-")) {
     const metadata = {
-      mediaType: "application/pdf",
+      contentType: "application/pdf",
       ...(size <= BigInt(Number.MAX_SAFE_INTEGER)
         ? { size: Number(size) }
         : {}),
@@ -331,9 +366,10 @@ async function generateFromStore(
       signal.throwIfAborted();
       const image = await encodeRaster(raster);
       signal.throwIfAborted();
-      return imageResult(image);
+      return imageResult(image, metadata.contentType, size);
     } catch (error) {
-      if (error instanceof PreviewDeferred) throw error;
+      if (error instanceof PreviewDeferred)
+        throw new IdentifiedDeferral(error.message, metadata);
       if (error instanceof PreviewUnsupported)
         return {
           descriptor: placeholder("unsupported", error.message, metadata),
@@ -355,6 +391,10 @@ async function generateFromStore(
         : bytes[0] === 137
           ? "image/png"
           : "image/webp";
+    const metadata = {
+      contentType: mediaType,
+      ...(reliableSize(size) === undefined ? {} : { size: Number(size) }),
+    };
     try {
       if (size > BigInt(MAX_FILE))
         throw new Error("Image exceeds 8 MiB preview limit");
@@ -364,15 +404,13 @@ async function generateFromStore(
       const { thumbnail } = await import("./preview-image.js");
       const image = await thumbnail(bytes);
       signal.throwIfAborted();
-      return imageResult(image);
+      return imageResult(image, mediaType, size);
     } catch (error) {
-      if (error instanceof PreviewDeferred) throw error;
+      if (error instanceof PreviewDeferred)
+        throw new IdentifiedDeferral(error.message, metadata);
       throw new PreviewFailure(
         error instanceof Error ? error.message : String(error),
-        {
-          mediaType,
-          ...(BigInt(bytes.length) === size ? { size: bytes.length } : {}),
-        },
+        metadata,
       );
     }
   }
@@ -389,17 +427,13 @@ async function generateFromStore(
   const text = mediaType ? null : textDescription(bytes, size);
   if (text) return { descriptor: text };
   return {
-    descriptor: description(
-      {
-        contentType: fileType,
-        content: {
-          ...(BigInt(bytes.length) === size ? { size: bytes.length } : {}),
-          ...(mediaType ? { mediaType } : {}),
-        },
-      },
-      false,
+    descriptor: placeholder(
       "unsupported",
       "No supported lightweight preview for this content",
+      {
+        contentType: mediaType ?? "application/octet-stream",
+        ...(reliableSize(size) === undefined ? {} : { size: Number(size) }),
+      },
     ),
   };
 }
@@ -460,8 +494,17 @@ export async function processPreview(
     )
     .first<Row>();
   if (!row) return;
+  const previous = parseDescription(row.descriptor);
+  const metadata = {
+    ...(previous.contentType === null
+      ? {}
+      : { contentType: previous.contentType }),
+    ...(previous.size === undefined ? {} : { size: previous.size }),
+  };
   try {
     const generated = await admitPreview(() => generate(env, cid));
+    if (!isContentPreview(generated.descriptor))
+      throw new Error("Invalid generated preview descriptor");
     const statements: D1PreparedStatement[] = [];
     statements.push(
       env.DB.prepare(
@@ -514,7 +557,11 @@ export async function processPreview(
       )
         .bind(
           JSON.stringify(
-            placeholder("pending", "Preview renderer busy; retry scheduled"),
+            placeholder(
+              "pending",
+              "Preview renderer busy; retry scheduled",
+              error instanceof IdentifiedDeferral ? error.metadata : metadata,
+            ),
           ),
           nowIso(time + 2000),
           cid,
@@ -530,7 +577,7 @@ export async function processPreview(
       row.attempts >= MAX_ATTEMPTS
         ? "Preview failed after 3 attempts"
         : "Preview generation failed; retry scheduled",
-      error instanceof PreviewFailure ? error.metadata : {},
+      error instanceof PreviewFailure ? error.metadata : metadata,
     );
     await env.DB.prepare(
       `UPDATE content_previews SET status = 'failed', descriptor = ?, lease = NULL, lease_until = NULL, retry_at = ?
@@ -581,18 +628,13 @@ export async function processPreviewBatch(
 
 export async function runPreviews(env: Bindings, time = Date.now()) {
   const exhausted = await env.DB.prepare(
-    `UPDATE content_previews SET status = 'failed', descriptor = ?, lease = NULL, lease_until = NULL
+    `UPDATE content_previews SET status = 'failed',
+     descriptor = json_set(descriptor, '$.status', 'failed', '$.preview', NULL, '$.truncated', json('false'), '$.reason', 'Preview worker exhausted 3 attempts'),
+     lease = NULL, lease_until = NULL
      WHERE version = ? AND attempts >= ? AND status IN ('pending', 'failed')
      AND lease_until IS NOT NULL AND lease_until <= ?`,
   )
-    .bind(
-      JSON.stringify(
-        placeholder("failed", "Preview worker exhausted 3 attempts"),
-      ),
-      PREVIEW_VERSION,
-      MAX_ATTEMPTS,
-      nowIso(time),
-    )
+    .bind(PREVIEW_VERSION, MAX_ATTEMPTS, nowIso(time))
     .run();
   if (exhausted.meta.changes)
     console.error(

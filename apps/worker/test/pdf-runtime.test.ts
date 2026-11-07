@@ -302,14 +302,15 @@ it("publishes the generic WebP descriptor through protected, public publication 
     await runtime.dispatchFetch(privatePath, { headers })
   ).json()) as ContentPreview;
   expect(descriptor).toMatchObject({
-    version: 2,
+    version: 3,
     status: "ready",
-    contentType: "image/webp",
+    contentType: "application/pdf",
+    preview: { kind: "image" },
   });
-  if (descriptor.contentType !== "image/webp")
+  if (descriptor.preview?.kind !== "image")
     throw new Error("Expected image descriptor");
   const image = await runtime.dispatchFetch(
-    `https://pdf.test${descriptor.content.url}`,
+    `https://pdf.test${descriptor.preview.image.url}`,
   );
   expect(image.status).toBe(200);
   expect(image.headers.get("content-type")).toBe("image/webp");

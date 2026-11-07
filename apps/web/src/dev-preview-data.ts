@@ -46,18 +46,18 @@ async function asset(
     car: await collecting,
     preview: image
       ? {
-          version: 1,
+          version: 3,
           status: "ready",
           truncated: false,
-          contentType: "image/webp",
-          content: image,
+          contentType: "image/png",
+          preview: { kind: "image", image },
         }
       : {
-          version: 1,
+          version: 3,
           status: "ready",
           truncated: false,
           contentType: "text/plain",
-          content: new TextDecoder().decode(bytes),
+          preview: { kind: "text", text: new TextDecoder().decode(bytes) },
         },
   };
 }

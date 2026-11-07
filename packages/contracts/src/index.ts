@@ -140,34 +140,37 @@ export interface PreviewImage {
   readonly height: number;
 }
 
-export type PreviewPayload =
-  | { readonly contentType: "image/webp"; readonly content: PreviewImage }
+export interface DirectoryEntry {
+  readonly name: string;
+  readonly kind: "file" | "directory" | "unknown";
+  readonly depth: number;
+}
+
+export type PreviewMaterial =
+  | { readonly kind: "image"; readonly image: PreviewImage }
+  | { readonly kind: "markdown"; readonly text: string }
+  | { readonly kind: "text"; readonly text: string }
   | {
-      readonly contentType: "text/plain" | "text/markdown";
-      readonly content: string;
-    }
-  | {
-      readonly contentType: "application/vnd.pinboard.directory+json";
-      readonly content: {
-        readonly entries: readonly {
-          readonly name: string;
-          readonly kind: "file" | "directory" | "unknown";
-          readonly depth: number;
-        }[];
-        readonly total?: number;
-      };
-    }
-  | {
-      readonly contentType: "application/vnd.pinboard.file+json";
-      readonly content: { readonly size?: number; readonly mediaType?: string };
+      readonly kind: "directory";
+      readonly entries: readonly DirectoryEntry[];
+      readonly total?: number;
     };
 
-export type ContentPreview = PreviewPayload & {
+export type ContentPreview = {
+  readonly contentType: string | null;
   readonly version: number;
-  readonly status: "pending" | "ready" | "unsupported" | "failed";
   readonly truncated: boolean;
   readonly reason?: string;
-};
+  readonly size?: number;
+} & (
+  | { readonly status: "ready"; readonly preview: PreviewMaterial }
+  | {
+      readonly status: "pending" | "unsupported" | "failed";
+      readonly preview: null;
+    }
+);
+
+export { isContentPreview } from "./preview.js";
 
 export interface NodeDescription {
   readonly rootCid: string;

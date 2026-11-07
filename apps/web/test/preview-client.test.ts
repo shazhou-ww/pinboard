@@ -12,17 +12,12 @@ import {
   type CachedPreview,
 } from "../src/preview-cache.js";
 
-const ready = (
-  version = 1,
-): Extract<
-  ContentPreview,
-  { contentType: "text/plain" | "text/markdown" }
-> => ({
+const ready = (version = 3): Extract<ContentPreview, { status: "ready" }> => ({
   version,
   status: "ready",
   truncated: false,
-  contentType: "text/markdown",
-  content: `version ${version}`,
+  contentType: "text/plain",
+  preview: { kind: "markdown", text: `version ${version}` },
 });
 const clients: PreviewClient[] = [];
 const client = (account = "account-a") => {
@@ -40,7 +35,7 @@ const requestCids = (init?: RequestInit): string[] => {
   return (JSON.parse(init.body) as { cids: string[] }).cids;
 };
 const rows = async (): Promise<CachedPreview[]> => {
-  const open = indexedDB.open("pinboard-preview-descriptions", 1);
+  const open = indexedDB.open("pinboard-preview-descriptions", 2);
   const db = await new Promise<IDBDatabase>((resolve) => {
     open.onsuccess = () => {
       resolve(open.result);
@@ -78,39 +73,77 @@ afterEach(() => {
 });
 
 describe("account-scoped, bounded preview description cache", () => {
-  it("revalidates legacy PDF descriptors and discards stale state during pending/failed regeneration", async () => {
+  it("clears every old cache record exactly once on the format upgrade", async () => {
+    const old = indexedDB.open("pinboard-preview-descriptions", 1);
+    old.onupgradeneeded = () => {
+      old.result.createObjectStore("descriptions", { keyPath: "key" });
+    };
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      old.onsuccess = () => {
+        resolve(old.result);
+      };
+    });
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction("descriptions", "readwrite");
+      for (const account of ["account-a", "account-b"])
+        tx.objectStore("descriptions").put({
+          key: key("old", account),
+          savedAt: Date.now(),
+          preview: {
+            version: 2,
+            status: "unsupported",
+            truncated: false,
+            contentType: "application/vnd.pinboard.file+json",
+            content: { mediaType: "application/pdf" },
+          },
+        });
+      tx.oncomplete = () => {
+        resolve();
+      };
+    });
+    db.close();
+    expect(await client().cached("old")).toBeNull();
+    expect(await rows()).toEqual([]);
+    await client().request("new");
+    expect((await client().cached("new"))?.preview).toEqual(ready());
+    expect(await rows()).toHaveLength(1);
+  });
+  it("discards stale state during pending/failed regeneration", async () => {
     const old: ContentPreview = {
-      version: 1,
+      version: 3,
       status: "unsupported",
       truncated: false,
-      contentType: "application/vnd.pinboard.file+json",
-      content: { mediaType: "application/pdf" },
+      contentType: "application/pdf",
+      preview: null,
     };
     const previews = client();
     vi.mocked(fetch).mockResolvedValueOnce(response(["pdf"], old));
     await previews.request("pdf");
     expect(await previews.cached("pdf")).toEqual({
       preview: old,
-      fresh: false,
+      fresh: true,
     });
     for (const status of ["pending", "failed"] as const) {
       vi.mocked(fetch).mockResolvedValueOnce(
-        response(["pdf"], { ...old, version: 2, status }),
+        response(["pdf"], { ...old, status }),
       );
       await previews.request("pdf");
       expect(await previews.cached("pdf")).toBeNull();
       expect(await client().cached("pdf")).toBeNull();
     }
     const current: ContentPreview = {
-      version: 2,
+      version: 3,
       status: "ready",
       truncated: false,
-      contentType: "image/webp",
-      content: {
-        cid: "thumbnail",
-        url: "/ipfs/thumbnail",
-        width: 370,
-        height: 480,
+      contentType: "application/pdf",
+      preview: {
+        kind: "image",
+        image: {
+          cid: "thumbnail",
+          url: "/ipfs/thumbnail",
+          width: 370,
+          height: 480,
+        },
       },
     };
     vi.mocked(fetch).mockResolvedValueOnce(response(["pdf"], current));
@@ -172,7 +205,7 @@ describe("account-scoped, bounded preview description cache", () => {
     "never persists %s states",
     async (status) => {
       vi.mocked(fetch).mockResolvedValueOnce(
-        response(["cid"], { ...ready(), status }),
+        response(["cid"], { ...ready(), status, preview: null }),
       );
       await client().request("cid");
       expect(await client().cached("cid")).toBeNull();
@@ -187,8 +220,8 @@ describe("account-scoped, bounded preview description cache", () => {
         version: 1,
         status: "unsupported",
         truncated: false,
-        contentType: "application/vnd.pinboard.file+json",
-        content: {},
+        contentType: null,
+        preview: null,
       }),
     );
     const previews = client();
@@ -320,7 +353,10 @@ describe("account-scoped, bounded preview description cache", () => {
   it("enforces the JSON payload byte budget independently of the entry count", async () => {
     const now = Date.now();
     const records = Array.from({ length: 200 }, (_, i) => {
-      const preview = { ...ready(), content: "x".repeat(14000) };
+      const preview = {
+        ...ready(),
+        preview: { kind: "text" as const, text: "x".repeat(14000) },
+      };
       return {
         key: key(String(i)),
         preview,
@@ -342,7 +378,7 @@ describe("account-scoped, bounded preview description cache", () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       response(["large"], {
         ...ready(),
-        content: "x".repeat(20000),
+        preview: { kind: "text", text: "x".repeat(20000) },
       }),
     );
     await client().request("large");

@@ -10,6 +10,7 @@ import type { Bindings } from "../src/env.js";
 import {
   enqueuePreview,
   getPreview,
+  getPreviews,
   PREVIEW_VERSION,
   processPreview,
   refreshPreviewReferences,
@@ -102,6 +103,37 @@ async function releasePin(service: PinService, cid: string) {
 }
 
 describe("bounded source-derived previews", () => {
+  it("rejects malformed current descriptors at both D1 read boundaries", async () => {
+    const pin = await service.upload(
+      text("invalid descriptor fixture"),
+      "file",
+      "fixture",
+    );
+    const original = await getPreview(env, pin.cid);
+    try {
+      await env.DB.prepare(
+        "UPDATE content_previews SET descriptor = ? WHERE source_cid = ? AND version = ?",
+      )
+        .bind(
+          JSON.stringify({ ...original, status: "ready", preview: null }),
+          pin.cid,
+          PREVIEW_VERSION,
+        )
+        .run();
+      await expect(getPreview(env, pin.cid)).rejects.toThrow(
+        "Invalid preview descriptor",
+      );
+      await expect(getPreviews(env, [pin.cid])).rejects.toThrow(
+        "Invalid preview descriptor",
+      );
+    } finally {
+      await env.DB.prepare(
+        "UPDATE content_previews SET descriptor = ? WHERE source_cid = ? AND version = ?",
+      )
+        .bind(JSON.stringify(original), pin.cid, PREVIEW_VERSION)
+        .run();
+    }
+  });
   it("durably defers busy renderers without source reads or consuming content attempts", async () => {
     const pin = await service.upload(simplePdf(), "file", "budget.pdf");
     const start = Date.now();
@@ -134,27 +166,28 @@ describe("bounded source-derived previews", () => {
     }
     await processPreview(env, pin.cid, start + 2000);
     expect(await getPreview(env, pin.cid)).toMatchObject({
-      version: 2,
+      version: PREVIEW_VERSION,
       status: "ready",
-      contentType: "image/webp",
+      contentType: "application/pdf",
+      preview: { kind: "image" },
     });
     await releasePin(service, pin.cid);
   });
-  it("regenerates legacy unsupported PDF rows without altering old descriptors or creating source pins", async () => {
+  it("regenerates version-2 PDF rows without altering old descriptors or creating source pins", async () => {
     const pin = await service.upload(
       simplePdf({ rotate: 180 }),
       "file",
       "legacy.pdf",
     );
     const legacy = {
-      version: 1,
+      version: 2,
       status: "unsupported",
       contentType: "application/vnd.pinboard.file+json",
       content: { mediaType: "application/pdf" },
       truncated: false,
     };
     await env.DB.prepare(
-      "UPDATE content_previews SET version = 1, status = 'unsupported', descriptor = ? WHERE source_cid = ? AND version = ?",
+      "UPDATE content_previews SET version = 2, status = 'unsupported', descriptor = ? WHERE source_cid = ? AND version = ?",
     )
       .bind(JSON.stringify(legacy), pin.cid, PREVIEW_VERSION)
       .run();
@@ -163,12 +196,13 @@ describe("bounded source-derived previews", () => {
     await processPreview(env, pin.cid);
     expect(await getPreview(env, pin.cid)).toMatchObject({
       status: "ready",
-      contentType: "image/webp",
-      version: 2,
+      contentType: "application/pdf",
+      preview: { kind: "image" },
+      version: PREVIEW_VERSION,
     });
     expect(
       await env.DB.prepare(
-        "SELECT descriptor, active FROM content_previews WHERE source_cid = ? AND version = 1",
+        "SELECT descriptor, active FROM content_previews WHERE source_cid = ? AND version = 2",
       )
         .bind(pin.cid)
         .first(),
@@ -221,7 +255,7 @@ describe("bounded source-derived previews", () => {
           cid: ownPin.cid,
           preview: {
             status: "ready",
-            content: "batch owned excerpt",
+            preview: { kind: "markdown", text: "batch owned excerpt" },
           },
         },
         {
@@ -409,7 +443,8 @@ describe("bounded source-derived previews", () => {
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(await response.json()).toMatchObject({
       status: "pending",
-      contentType: "application/vnd.pinboard.file+json",
+      contentType: null,
+      preview: null,
     });
     await Promise.all(pending);
     const ready = await app.request(
@@ -419,8 +454,8 @@ describe("bounded source-derived previews", () => {
     );
     expect(await ready.json()).toMatchObject({
       status: "ready",
-      contentType: "text/markdown",
-      content: "authorized endpoint excerpt",
+      contentType: "text/plain",
+      preview: { kind: "markdown", text: "authorized endpoint excerpt" },
     });
     expect(
       (
@@ -492,9 +527,10 @@ describe("bounded source-derived previews", () => {
       "private-markdown-label",
     );
     expect(value.status).toBe("ready");
-    expect(value.contentType).toBe("text/markdown");
-    expect(value.content).toContain("\\# not an invented heading");
-    expect(value.content).toContain("\\*literal\\*");
+    expect(value.contentType).toBe("text/plain");
+    if (value.preview?.kind !== "markdown") throw new Error("not markdown");
+    expect(value.preview.text).toContain("\\# not an invented heading");
+    expect(value.preview.text).toContain("\\*literal\\*");
     expect(JSON.stringify(value)).not.toContain("private-markdown-label");
     const raw = await env.DB.prepare(
       "SELECT descriptor FROM content_previews WHERE source_cid = ?",
@@ -509,16 +545,20 @@ describe("bounded source-derived previews", () => {
   it("preserves structured code and bounds excerpts including UTF-8 boundaries", () => {
     const source = '{ "code": "```", "html": "<script>alert(1)</script>" }';
     const result = textDescription(text(source), BigInt(text(source).length))!;
-    expect(result.content).toBe("````\n" + source + "\n````");
+    expect(result.preview).toEqual({
+      kind: "markdown",
+      text: "````\n" + source + "\n````",
+    });
     const long = textDescription(text("文".repeat(9000)), 27000n)!;
     expect(long.truncated).toBe(true);
-    expect(Array.from(long.content as string)).toHaveLength(2400);
+    if (long.preview?.kind !== "markdown") throw new Error("not markdown");
+    expect(Array.from(long.preview.text)).toHaveLength(2400);
     const emoji = "😀".repeat(1500);
     expect(
       textDescription(text(emoji), BigInt(text(emoji).length)),
     ).toMatchObject({
       truncated: false,
-      content: emoji,
+      preview: { kind: "markdown", text: emoji },
     });
     expect(textDescription(new Uint8Array([0xc3]), 1n)).toBeNull();
     expect(textDescription(new Uint8Array([0xc3]), 2n)).not.toBeNull();
@@ -534,10 +574,10 @@ describe("bounded source-derived previews", () => {
     async (source, type) => {
       const { value } = await preview(text(source), "deceptive.jpg");
       expect(value.status).toBe("unsupported");
-      expect(value.contentType).toBe("application/vnd.pinboard.file+json");
-      expect(value.content).toMatchObject({
+      expect(value.contentType).toBe(type ?? "application/octet-stream");
+      expect(value.preview).toBeNull();
+      expect(value).toMatchObject({
         size: text(source).length,
-        ...(type ? { mediaType: type } : {}),
       });
     },
   );
@@ -572,21 +612,20 @@ describe("bounded source-derived previews", () => {
     await processPreview(env, imported.cid);
     const value = await getPreview(env, imported.cid);
     expect(value.status).toBe("ready");
-    expect(value.contentType).toBe("application/vnd.pinboard.directory+json");
-    if (value.contentType !== "application/vnd.pinboard.directory+json")
-      throw new Error("not directory");
-    expect(value.content.entries.length).toBeLessThanOrEqual(24);
+    expect(value.contentType).toBe("inode/directory");
+    if (value.preview?.kind !== "directory") throw new Error("not directory");
+    expect(value.preview.entries.length).toBeLessThanOrEqual(24);
     expect(
-      value.content.entries.some((entry) => entry.kind === "directory"),
+      value.preview.entries.some((entry) => entry.kind === "directory"),
     ).toBe(true);
-    expect(value.content.entries.some((entry) => entry.depth === 1)).toBe(true);
-    expect(value.content.total).toBeUndefined();
+    expect(value.preview.entries.some((entry) => entry.depth === 1)).toBe(true);
+    expect(value.preview.total).toBeUndefined();
     expect(value.truncated).toBe(true);
     const ordinary = await service.upload(car.bytes, "file", "archive.car");
     await processPreview(env, ordinary.cid);
     expect(ordinary.cid).not.toBe(imported.cid);
     expect((await getPreview(env, ordinary.cid)).contentType).toBe(
-      "application/vnd.pinboard.file+json",
+      "application/octet-stream",
     );
   });
   it("reports a verified complete directory total and never confuses chunked files with folders", async () => {
@@ -594,7 +633,7 @@ describe("bounded source-derived previews", () => {
     const pin = await service.upload(bytes, "file", "large.dat");
     expect(pin.blocks).toBeGreaterThan(1);
     await processPreview(env, pin.cid);
-    expect((await getPreview(env, pin.cid)).contentType).toBe("text/markdown");
+    expect((await getPreview(env, pin.cid)).contentType).toBe("text/plain");
     const car = await buildDirectoryCar([
       {
         path: "readme.txt",
@@ -608,7 +647,8 @@ describe("bounded source-derived previews", () => {
     await processPreview(env, dir.cid);
     expect(await getPreview(env, dir.cid)).toMatchObject({
       truncated: false,
-      content: {
+      preview: {
+        kind: "directory",
         total: 1,
         entries: [{ name: "readme.txt", kind: "file", depth: 0 }],
       },
@@ -621,6 +661,8 @@ describe("bounded source-derived previews", () => {
         new Uint8Array([255, 216, 255, 0, 0, 0]),
       );
       expect(value.status).toBe("failed");
+      expect(value.contentType).toBe("image/jpeg");
+      expect(value.preview).toBeNull();
       expect(await service.detail(pin.cid)).toMatchObject({ cid: pin.cid });
       const start = Date.now();
       await Promise.all([
@@ -657,6 +699,9 @@ describe("bounded source-derived previews", () => {
     expect(await getPreview(env, pin.cid)).toMatchObject({
       status: "failed",
       reason: "Preview worker exhausted 3 attempts",
+      contentType: "text/plain",
+      size: text("legacy backfill").length,
+      preview: null,
     });
   });
 });
@@ -694,11 +739,14 @@ describe("real images, CID delivery and retention references", () => {
       await processPreview(env, child);
       const value = await getPreview(env, child);
       expect(value.status).toBe("ready");
-      if (value.contentType !== "image/webp")
-        throw new Error("not a child image");
+      expect(value.contentType).toBe(
+        format === "pdf" ? "application/pdf" : "image/jpeg",
+      );
+      expect(value.size).toBe(source.length);
+      if (value.preview?.kind !== "image") throw new Error("not a child image");
       await runPreviews(env, Date.now() + 8 * 86400000);
       expect((await getPreview(env, child)).status).toBe("ready");
-      expect(await getBlock(env, value.content.cid)).not.toBeNull();
+      expect(await getBlock(env, value.preview.image.cid)).not.toBeNull();
       expect(
         await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
       ).toBe(0);
@@ -723,8 +771,8 @@ describe("real images, CID delivery and retention references", () => {
       await readFile(new URL("fixtures/photo.jpg", import.meta.url)),
     );
     expect(value.status).toBe("ready");
-    if (value.contentType !== "image/webp") throw new Error("not image");
-    const cid = value.content.cid;
+    if (value.preview?.kind !== "image") throw new Error("not image");
+    const cid = value.preview.image.cid;
     const stored = await env.DB.prepare(
       "SELECT typeof(bytes) AS kind, length(bytes) AS n FROM preview_images WHERE cid = ?",
     )
@@ -742,7 +790,7 @@ describe("real images, CID delivery and retention references", () => {
     expect(image.headers.get("cache-control")).toContain("immutable");
     expect(CID.createV1(0x55, await sha256.digest(bytes)).toString()).toBe(cid);
     expect(cid).not.toBe(pin.cid);
-    expect(value.content.url).toBe(`/ipfs/${cid}`);
+    expect(value.preview.image.url).toBe(`/ipfs/${cid}`);
     const etag = image.headers.get("etag")!;
     expect(
       (
@@ -785,14 +833,11 @@ describe("real images, CID delivery and retention references", () => {
     const altered = new Uint8Array(source.length + 1);
     altered.set(source);
     const b = await preview(altered);
-    if (
-      a.value.contentType !== "image/webp" ||
-      b.value.contentType !== "image/webp"
-    )
+    if (a.value.preview?.kind !== "image" || b.value.preview?.kind !== "image")
       throw new Error("not images");
-    const cid = a.value.content.cid;
+    const cid = a.value.preview.image.cid;
     expect(a.pin.cid).not.toBe(b.pin.cid);
-    expect(b.value.content.cid).toBe(cid);
+    expect(b.value.preview.image.cid).toBe(cid);
     const second = new PinService(env, other);
     await second.pin(a.pin.cid, "account two secret");
     await releasePin(service, a.pin.cid);
@@ -855,9 +900,9 @@ describe("real images, CID delivery and retention references", () => {
     const { pin, value } = await preview(
       await readFile(new URL("fixtures/transparent.png", import.meta.url)),
     );
-    if (value.contentType !== "image/webp") throw new Error("not image");
+    if (value.preview?.kind !== "image") throw new Error("not image");
     await releasePin(service, pin.cid);
-    const cid = value.content.cid;
+    const cid = value.preview.image.cid;
     const orphan = await env.DB.prepare(
       "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
     )
@@ -885,8 +930,8 @@ describe("real images, CID delivery and retention references", () => {
     const { pin, value } = await preview(
       await readFile(new URL("fixtures/photo.png", import.meta.url)),
     );
-    if (value.contentType !== "image/webp") throw new Error("not image");
-    const cid = value.content.cid;
+    if (value.preview?.kind !== "image") throw new Error("not image");
+    const cid = value.preview.image.cid;
     await releasePin(service, pin.cid);
     await env.DB.prepare(
       "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
@@ -953,8 +998,8 @@ describe("real images, CID delivery and retention references", () => {
       const { pin, value } = await preview(
         await readFile(new URL("fixtures/transparent.png", import.meta.url)),
       );
-      if (value.contentType !== "image/webp") throw new Error("not image");
-      const cid = value.content.cid;
+      if (value.preview?.kind !== "image") throw new Error("not image");
+      const cid = value.preview.image.cid;
       const bytes = (await readBlock(env, cid))!;
       const car = await buildDirectoryCar([
         {
@@ -1051,8 +1096,8 @@ describe("real images, CID delivery and retention references", () => {
     const { pin, value } = await preview(
       await readFile(new URL("fixtures/transparent.png", import.meta.url)),
     );
-    if (value.contentType !== "image/webp") throw new Error("not image");
-    const cid = value.content.cid;
+    if (value.preview?.kind !== "image") throw new Error("not image");
+    const cid = value.preview.image.cid;
     const bytes = (await readBlock(env, cid))!;
     const car = await buildDirectoryCar([
       {
@@ -1095,7 +1140,7 @@ describe("real images, CID delivery and retention references", () => {
     const { pin, value } = await preview(
       await readFile(new URL("fixtures/photo.jpg", import.meta.url)),
     );
-    if (value.contentType !== "image/webp") throw new Error("not image");
+    if (value.preview?.kind !== "image") throw new Error("not image");
     await env.DB.prepare(
       "UPDATE content_previews SET version = 0, descriptor = json_set(descriptor, '$.version', 0) WHERE source_cid = ? AND version = ?",
     )
@@ -1117,7 +1162,7 @@ describe("real images, CID delivery and retention references", () => {
     ).toMatchObject({ active: 1 });
     expect(
       await env.DB.prepare("SELECT cid FROM preview_images WHERE cid = ?")
-        .bind(value.content.cid)
+        .bind(value.preview.image.cid)
         .first(),
     ).not.toBeNull();
     await env.DB.prepare(
@@ -1149,12 +1194,12 @@ describe("real images, CID delivery and retention references", () => {
       await readFile(new URL("fixtures/portrait.jpg", import.meta.url)),
     );
     if (
-      old.value.contentType !== "image/webp" ||
-      current.value.contentType !== "image/webp"
+      old.value.preview?.kind !== "image" ||
+      current.value.preview?.kind !== "image"
     )
       throw new Error("not images");
-    const oldCid = old.value.content.cid;
-    const currentCid = current.value.content.cid;
+    const oldCid = old.value.preview.image.cid;
+    const currentCid = current.value.preview.image.cid;
     expect(oldCid).not.toBe(currentCid);
     await releasePin(service, old.pin.cid);
     // Reference-only version-swap fixture using two genuinely encoded BLOBs;

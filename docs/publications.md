@@ -40,12 +40,19 @@ link and creation remain separate, non-destructive operations.
 Pins and publications share the same 4:3 wall cards, preview spacing and
 single-line name/size summary. A publication has a floating icon-only identity
 badge in the top-right corner. Non-image wall previews use compact 12px top
-padding while retaining 24px side padding; image previews remain edge-to-edge.
-The publication's **Current v3** and **5 versions** information appears with the
-CID when the information strip expands on hover or keyboard focus; touch devices
-keep that information visible. Rollback does not erase later history. Open
-details to publish another owned pin, inspect the public history, make an old
-version current, or delete.
+padding while retaining 24px side padding; ordinary image previews remain
+edge-to-edge. PDF image material instead uses the shared floating-paper layout:
+full aspect ratio, upper-left PDF badge and a separate bottom information row,
+including on touch and keyboard expansion. PDF cards have a 280px minimum height
+so expanded metadata does not squeeze the page to an unrecognizable sliver on
+narrow screens; ordinary cards retain their existing ratio. The Publication
+badge stays at upper right. Unknown source types still display valid material;
+missing material or an image-load failure uses the ordinary source-type icon,
+not an error screen. The publication's **Current v3** and **5 versions**
+information appears with the CID when the information strip expands on hover or
+keyboard focus; touch devices keep that information visible. Rollback does not
+erase later history. Open details to publish another owned pin, inspect the
+public history, make an old version current, or delete.
 
 - `/p/<id>` follows current.
 - `/p/<id>/v/3` identifies fixed revision 3.
@@ -160,8 +167,12 @@ edited through this context. It remains private until explicitly published.
   before updating. First write uses 0; each write/clear advances it. A stale
   version returns 409. `null` clears; `""` is a valid explicit empty value.
 - The result is `{rootCid,nodeCid,description:{user:{text,version},preview}}`.
-  `preview` uses the existing generated `ContentPreview` type and renderers.
-  Generation, retries and cleanup never write or delete the user sidecar.
+  `preview` is the same normalized `ContentPreview` used by private single/batch
+  and public publication endpoints: source `contentType: string | null`, a
+  discriminated `preview` material (image/markdown/text/directory) only when
+  ready, otherwise null, plus version/status/truncated/reason and optional size.
+  Node details use the same validated rendering and image fallback. Generation,
+  retries and cleanup never write or delete the user sidecar.
 - `GET /api/pins/:root/descriptions` explicitly exports
   `{rootCid,descriptions:{"nodeCID":"text"}}` for clients to save separately.
 - `GET /api/public/publications/:id/versions/:revision/nodes/:node/description`

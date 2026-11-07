@@ -5,6 +5,10 @@ import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import { FileTextIcon } from "@phosphor-icons/react/dist/csr/FileText";
+import { FilePdfIcon } from "@phosphor-icons/react/dist/csr/FilePdf";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { FilmStripIcon } from "@phosphor-icons/react/dist/csr/FilmStrip";
+import { MusicNoteIcon } from "@phosphor-icons/react/dist/csr/MusicNote";
 import { FolderIcon } from "@phosphor-icons/react/dist/csr/Folder";
 import { FolderPlusIcon } from "@phosphor-icons/react/dist/csr/FolderPlus";
 import { GearIcon } from "@phosphor-icons/react/dist/csr/Gear";
@@ -28,6 +32,10 @@ const icons = {
   download: ArrowDownIcon,
   externalLink: ArrowUpRightIcon,
   file: FileTextIcon,
+  pdf: FilePdfIcon,
+  image: ImageIcon,
+  video: FilmStripIcon,
+  audio: MusicNoteIcon,
   folder: FolderIcon,
   more: DotsThreeIcon,
   settings: GearIcon,

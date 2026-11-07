@@ -4,6 +4,7 @@ import type {
   NodeDescription,
   PublicationHistory,
 } from "@shazhou/pinboard-contracts";
+import type { PreviewAsset } from "../src/dev-preview-data.js";
 
 const demo = vi.hoisted(() => {
   const pin = {
@@ -13,23 +14,32 @@ const demo = vi.hoisted(() => {
     blocks: 1,
     createdAt: "2026-01-01T00:00:00Z",
   };
-  const preview: Extract<ContentPreview, { contentType: "image/webp" }> = {
+  const preview = {
     version: 1,
     status: "ready",
     truncated: false,
-    contentType: "image/webp",
-    content: {
-      cid: "thumbnail",
-      url: "/ipfs/thumbnail",
-      width: 480,
-      height: 320,
+    contentType: "image/png",
+    preview: {
+      kind: "image",
+      image: {
+        cid: "thumbnail",
+        url: "/ipfs/thumbnail",
+        width: 480,
+        height: 320,
+      },
     },
-  } as const;
+  } as const satisfies ContentPreview;
   return {
     pin,
     preview,
-    createPreviewAssets: vi.fn(() =>
-      Promise.resolve([{ pin, preview, car: new Uint8Array([1, 2, 3]) }]),
+    createPreviewAssets: vi.fn((): Promise<readonly PreviewAsset[]> =>
+      Promise.resolve([
+        {
+          pin,
+          preview,
+          car: new Uint8Array([1, 2, 3]),
+        },
+      ]),
     ),
   };
 });
@@ -493,9 +503,12 @@ describe("one-shot local UI preview", () => {
     stored.set(key, "read-only");
     const objectPreview = {
       ...demo.preview,
-      content: {
-        ...demo.preview.content,
-        url: "blob:http://127.0.0.1:5178/local-thumbnail",
+      preview: {
+        kind: "image" as const,
+        image: {
+          ...demo.preview.preview.image,
+          url: "blob:http://127.0.0.1:5178/local-thumbnail",
+        },
       },
     };
     demo.createPreviewAssets.mockResolvedValueOnce([

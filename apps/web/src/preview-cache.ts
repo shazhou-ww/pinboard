@@ -1,4 +1,6 @@
 import type { ContentPreview } from "@shazhou/pinboard-contracts";
+import { isContentPreview } from "@shazhou/pinboard-contracts";
+export { isContentPreview } from "@shazhou/pinboard-contracts";
 
 export const previewFreshMs = 60 * 60 * 1000;
 export const previewRetentionMs = 7 * 24 * previewFreshMs;
@@ -21,74 +23,7 @@ const object = (value: unknown): value is Record<string, unknown> =>
 const integer = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
-export function isContentPreview(
-  value: unknown,
-  allowObjectUrls = false,
-): value is ContentPreview {
-  if (
-    !object(value) ||
-    !integer(value.version) ||
-    value.version < 1 ||
-    !["pending", "ready", "failed", "unsupported"].includes(
-      String(value.status),
-    ) ||
-    typeof value.truncated !== "boolean" ||
-    (value.reason !== undefined && typeof value.reason !== "string")
-  )
-    return false;
-  const content = value.content;
-  switch (value.contentType) {
-    case "text/plain":
-    case "text/markdown":
-      return typeof content === "string";
-    case "image/webp":
-      return (
-        object(content) &&
-        typeof content.cid === "string" &&
-        typeof content.url === "string" &&
-        (content.url === `/ipfs/${content.cid}` ||
-          (allowObjectUrls && content.url.startsWith("blob:"))) &&
-        integer(content.width) &&
-        content.width > 0 &&
-        content.width <= 480 &&
-        integer(content.height) &&
-        content.height > 0 &&
-        content.height <= 480
-      );
-    case "application/vnd.pinboard.directory+json":
-      return (
-        object(content) &&
-        Array.isArray(content.entries) &&
-        content.entries.length <= 24 &&
-        (content.total === undefined || integer(content.total)) &&
-        content.entries.every(
-          (entry: unknown) =>
-            object(entry) &&
-            typeof entry.name === "string" &&
-            ["file", "directory", "unknown"].includes(String(entry.kind)) &&
-            integer(entry.depth) &&
-            entry.depth <= 1,
-        )
-      );
-    case "application/vnd.pinboard.file+json":
-      return (
-        object(content) &&
-        (content.size === undefined || integer(content.size)) &&
-        (content.mediaType === undefined ||
-          typeof content.mediaType === "string")
-      );
-    default:
-      return false;
-  }
-}
-
 export function isFresh(entry: CachedPreview, now = Date.now()): boolean {
-  if (
-    entry.preview.version < 2 &&
-    entry.preview.contentType === "application/vnd.pinboard.file+json" &&
-    entry.preview.content.mediaType === "application/pdf"
-  )
-    return false;
   const ttl =
     entry.preview.status === "unsupported" ? 5 * 60 * 1000 : previewFreshMs;
   return entry.savedAt <= now && now - entry.savedAt < ttl;
@@ -96,9 +31,11 @@ export function isFresh(entry: CachedPreview, now = Date.now()): boolean {
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(databaseName, 1);
+    const request = indexedDB.open(databaseName, 2);
     let blocked = false;
     request.onupgradeneeded = () => {
+      if (request.result.objectStoreNames.contains(storeName))
+        request.result.deleteObjectStore(storeName);
       request.result.createObjectStore(storeName, { keyPath: "key" });
     };
     request.onblocked = () => {
@@ -110,7 +47,12 @@ function openDatabase(): Promise<IDBDatabase> {
     };
     request.onsuccess = () => {
       if (blocked) request.result.close();
-      else resolve(request.result);
+      else {
+        request.result.onversionchange = () => {
+          request.result.close();
+        };
+        resolve(request.result);
+      }
     };
   });
 }

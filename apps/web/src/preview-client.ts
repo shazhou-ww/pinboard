@@ -197,8 +197,8 @@ export class PreviewClient {
             };
             this.remember(cid, entry);
             if (
-              result.contentType !== "image/webp" ||
-              !result.content.url.startsWith("blob:")
+              result.preview?.kind !== "image" ||
+              !result.preview.image.url.startsWith("blob:")
             )
               updates.push(entry);
           } else

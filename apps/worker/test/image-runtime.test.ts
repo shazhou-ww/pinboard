@@ -255,9 +255,9 @@ it("generates through the real authenticated API and MCP, with no preview-only a
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
   expect(descriptor!.status).toBe("ready");
-  if (descriptor!.contentType !== "image/webp") throw new Error("not image");
+  if (descriptor!.preview?.kind !== "image") throw new Error("not image");
   const image = await runtime.dispatchFetch(
-    `https://local.test${descriptor!.content.url}`,
+    `https://local.test${descriptor!.preview.image.url}`,
     { headers: { accept: "image/webp,*/*" } },
   );
   expect(image.headers.get("content-type")).toBe("image/webp");

@@ -843,7 +843,12 @@ describe("scoped node descriptions and conversion", () => {
         "UPDATE content_previews SET status = 'failed', descriptor = ?, retry_at = ?, lease_until = NULL WHERE source_cid = ?",
       )
         .bind(
-          JSON.stringify({ ...preview, status: "failed" }),
+          JSON.stringify({
+            ...preview,
+            status: "failed",
+            preview: null,
+            truncated: false,
+          }),
           new Date(0).toISOString(),
           node,
         )
@@ -1251,7 +1256,8 @@ describe("publication HTTP boundaries", () => {
     const ready = await httpRequest(path);
     expect(await ready.json()).toMatchObject({
       status: "ready",
-      contentType: "text/markdown",
+      contentType: "text/plain",
+      preview: { kind: "markdown" },
     });
     const etag = ready.headers.get("etag")!;
     expect(etag).not.toBe(initial.headers.get("etag"));
@@ -2375,10 +2381,10 @@ describe("publications and recovery", () => {
     );
     await processPreview(env, image.cid);
     const descriptor = await getPreview(env, image.cid);
-    expect(descriptor.contentType).toBe("image/webp");
-    if (descriptor.contentType !== "image/webp")
+    expect(descriptor.preview?.kind).toBe("image");
+    if (descriptor.preview?.kind !== "image")
       throw new Error("Missing test thumbnail");
-    const thumbnail = descriptor.content.cid;
+    const thumbnail = descriptor.preview.image.cid;
     const large = await pins.upload(
       new TextEncoder().encode("large publication content ".repeat(30000)),
       "file",
