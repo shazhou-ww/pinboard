@@ -1307,8 +1307,8 @@ footer {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 24px;
-  margin-bottom: 10px;
+  height: 28px;
+  margin-bottom: 0;
   color: var(--accent);
   font-size: 13px;
   font-weight: 600;

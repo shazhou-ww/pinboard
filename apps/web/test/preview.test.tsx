@@ -127,7 +127,7 @@ describe("typed, display-only content previews", () => {
       /\.preview-directory ul\s*\{[^}]*padding:\s*0 0 0 14\.5px;[^}]*margin:\s*0 0 0 8\.5px;/u,
     );
     expect(styles).toMatch(
-      /\.preview-folder-heading\s*\{[^}]*margin-bottom:\s*10px;/u,
+      /\.preview-folder-heading\s*\{[^}]*height:\s*28px;[^}]*margin-bottom:\s*0;/u,
     );
   });
   it("aligns guide axes with parent icon centers and leaves room before child icons", () => {
