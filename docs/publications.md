@@ -39,11 +39,13 @@ link and creation remain separate, non-destructive operations.
 
 Pins and publications share the same 4:3 wall cards, preview spacing and
 single-line name/size summary. A publication has a floating icon-only identity
-badge in the top-right corner. Its **Current v3** and **5 versions** information
-appears with the CID when the information strip expands on hover or keyboard
-focus; touch devices keep that information visible. Rollback does not erase
-later history. Open details to publish another owned pin, inspect the public
-history, make an old version current, or delete.
+badge in the top-right corner. Non-image wall previews use compact 12px top
+padding while retaining 24px side padding; image previews remain edge-to-edge.
+The publication's **Current v3** and **5 versions** information appears with the
+CID when the information strip expands on hover or keyboard focus; touch devices
+keep that information visible. Rollback does not erase later history. Open
+details to publish another owned pin, inspect the public history, make an old
+version current, or delete.
 
 - `/p/<id>` follows current.
 - `/p/<id>/v/3` identifies fixed revision 3.

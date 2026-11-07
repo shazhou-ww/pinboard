@@ -1257,7 +1257,7 @@ footer {
   inset: 0;
   grid-template-rows: minmax(0, 1fr) auto;
   border-radius: 0;
-  padding: 24px 24px 0;
+  padding: 12px 24px 0;
   overflow: hidden;
 }
 .pin-card .pin-preview.has-image {

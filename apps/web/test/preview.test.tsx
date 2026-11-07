@@ -72,7 +72,7 @@ describe("typed, display-only content previews", () => {
       /@media \(hover: none\), \(pointer: coarse\)\s*\{\s*\.pin-info\s*\{[^}]*grid-template-rows:\s*auto 1fr;/u,
     );
   });
-  it("extends previews behind the frosted information strip and centers image crops", () => {
+  it("uses compact top spacing while extending previews behind the strip and centering image crops", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
       "utf8",
@@ -81,10 +81,10 @@ describe("typed, display-only content previews", () => {
       /\.pin-card \.pin-preview\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;/u,
     );
     expect(styles).toMatch(
-      /\.pin-card \.pin-preview\s*\{[^}]*padding:\s*24px 24px 0;[^}]*overflow:\s*hidden;/u,
+      /\.pin-card \.pin-preview\s*\{[^}]*padding:\s*12px 24px 0;[^}]*overflow:\s*hidden;/u,
     );
     expect(styles).toMatch(
-      /\.pin-card \.pin-preview\.has-image\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\);/u,
+      /\.pin-card \.pin-preview\.has-image\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\);[^}]*padding:\s*0;/u,
     );
     expect(styles).toMatch(
       /\.pin-card \.pin-preview img\s*\{[^}]*min-height:\s*0;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center;/u,
