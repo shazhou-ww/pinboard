@@ -117,7 +117,7 @@ vi.mock("react", async (original) => {
 import { useItemLists } from "../src/item-filter.js";
 import { useActionItems } from "../src/action-items.js";
 import { AccountManager } from "../src/manager.js";
-import { LoadingIndicator } from "../src/loading.js";
+import { LoadingIndicator, LoadingReveal } from "../src/loading.js";
 import { PublicationDialog } from "../src/publications.js";
 
 function render() {
@@ -237,6 +237,7 @@ describe("item filter lifecycle", () => {
     disabled?: boolean;
     label?: string;
     compact?: boolean;
+    loading?: boolean;
     "aria-label"?: string;
     onClick?: () => void;
     onChange?: (event: {
@@ -289,9 +290,11 @@ describe("item filter lifecycle", () => {
     const loader = (tree: ReactNode) =>
       find(tree, (node) => node.type === LoadingIndicator);
     let tree = renderManager();
-    expect(loader(tree)?.props).toMatchObject({
+    expect(
+      find(tree, (node) => node.type === LoadingReveal)?.props,
+    ).toMatchObject({
       label: "Loading your pins...",
-      compact: false,
+      loading: true,
     });
     await vi.advanceTimersByTimeAsync(0);
     expect(loader(renderManager())).toBeUndefined();

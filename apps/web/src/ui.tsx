@@ -6,7 +6,7 @@ import type {
 import { useRef, type MouseEventHandler, type ReactNode } from "react";
 import { AccountManager } from "./manager.js";
 import { Icon } from "./icon.js";
-import { LoadingIndicator } from "./loading.js";
+import { LoadingReveal } from "./loading.js";
 
 export type DashboardState =
   | { readonly kind: "loading" }
@@ -138,31 +138,7 @@ export function Dashboard({
   return (
     <main className={`shell home-shell${signedOut ? "" : " canvas-shell"}`}>
       {!user ? <HomeHeader user={null} showSignIn={signedOut} /> : null}
-      {signedOut ? (
-        <section className="intro">
-          <p className="eyebrow">A quiet home for content-addressed things</p>
-          <h1>
-            Pin blocks.
-            <br />
-            <em>Share by CID.</em>
-          </h1>
-          <p>
-            Save a file or a complete IPFS DAG. Keep the CID.
-            <br />
-            No feeds. No folders to organize. Just what you pin.
-          </p>
-        </section>
-      ) : null}
-      {state.kind === "loading" ? (
-        <div className="canvas">
-          <LoadingIndicator label="Loading Pinboard..." />
-        </div>
-      ) : state.kind === "error" ? (
-        <div className="notice" role="alert">
-          <p>{state.message}</p>
-          <a href="/">Try again</a>
-        </div>
-      ) : user ? (
+      {user ? (
         <AccountManager
           key={user.id}
           accountId={user.id}
@@ -178,38 +154,72 @@ export function Dashboard({
           )}
         />
       ) : (
-        <section className="panel signin" id="signin" tabIndex={-1}>
-          <h2>Keep something worth keeping.</h2>
-          <p>
-            Sign in to upload and manage your pins. Reading by CID is always
-            public.
-          </p>
-          {state.bootstrap.providers.length ? (
-            <div className="actions" role="group" aria-label="Sign-in options">
-              {state.bootstrap.providers.map((provider) => (
-                <button
-                  key={provider.id}
-                  type="button"
-                  className="primary"
-                  value={provider.id}
-                  onClick={onSignIn}
-                  disabled={signingIn !== null}
-                  aria-busy={signingIn === provider.id}
-                >
-                  {signingIn === provider.id
-                    ? `Connecting to ${provider.label}...`
-                    : `Continue with ${provider.label}`}
-                  <Icon name="externalLink" />
-                </button>
-              ))}
+        <LoadingReveal
+          loading={state.kind === "loading"}
+          label="Loading Pinboard..."
+          className="canvas"
+        >
+          {signedOut ? (
+            <section className="intro">
+              <p className="eyebrow">
+                A quiet home for content-addressed things
+              </p>
+              <h1>
+                Pin blocks.
+                <br />
+                <em>Share by CID.</em>
+              </h1>
+              <p>
+                Save a file or a complete IPFS DAG. Keep the CID.
+                <br />
+                No feeds. No folders to organize. Just what you pin.
+              </p>
+            </section>
+          ) : null}
+          {state.kind === "error" ? (
+            <div className="notice" role="alert">
+              <p>{state.message}</p>
+              <a href="/">Try again</a>
             </div>
-          ) : (
-            <p className="muted">
-              Google sign-in is not configured. Set Google credentials in{" "}
-              <code>.dev.vars</code>.
-            </p>
-          )}
-        </section>
+          ) : state.kind === "ready" ? (
+            <section className="panel signin" id="signin" tabIndex={-1}>
+              <h2>Keep something worth keeping.</h2>
+              <p>
+                Sign in to upload and manage your pins. Reading by CID is always
+                public.
+              </p>
+              {state.bootstrap.providers.length ? (
+                <div
+                  className="actions"
+                  role="group"
+                  aria-label="Sign-in options"
+                >
+                  {state.bootstrap.providers.map((provider) => (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      className="primary"
+                      value={provider.id}
+                      onClick={onSignIn}
+                      disabled={signingIn !== null}
+                      aria-busy={signingIn === provider.id}
+                    >
+                      {signingIn === provider.id
+                        ? `Connecting to ${provider.label}...`
+                        : `Continue with ${provider.label}`}
+                      <Icon name="externalLink" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">
+                  Google sign-in is not configured. Set Google credentials in{" "}
+                  <code>.dev.vars</code>.
+                </p>
+              )}
+            </section>
+          ) : null}
+        </LoadingReveal>
       )}
     </main>
   );

@@ -167,6 +167,12 @@ and item-list loading use a single spinner instead of duplicate visible status
 lines, with accessible loading labels and reduced-motion support. The sign-in
 page appears only after the session is confirmed signed out. Filtering and
 pagination keep existing items visible with a compact loading indicator.
+Full-page loading pairs an editorial-style original Pinboard thought with the
+spinner, rotating every 2.6 seconds without repeatedly announcing it to screen
+readers. Once content is ready, the loading scene fades out over 320 ms before
+the result fades in at the same pace. Reduced-motion preferences skip this
+handoff delay and disable the transitions; filtering and pagination keep their
+compact spinner without rotating copy.
 
 Click or tap a pin or publication card to open its details and management
 actions; keyboard users can activate the card's details button with Enter or

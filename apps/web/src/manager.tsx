@@ -34,7 +34,7 @@ import { BackgroundSettings } from "./background.js";
 import { NodeDescriptionEditor } from "./node-description.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
-import { LoadingIndicator } from "./loading.js";
+import { LoadingIndicator, LoadingReveal } from "./loading.js";
 
 const pinDragType = "application/x-pinboard-pin";
 type UploadTarget = Pin | Publication;
@@ -918,95 +918,100 @@ export function AccountManager({
         aria-busy={lists.loading}
       >
         <h1 className="visually-hidden">Your pins</h1>
-        {lists.loading && !lists.error ? (
+        {loaded && lists.loading && !lists.error ? (
           <LoadingIndicator
             label={lists.filtered ? "Filtering..." : "Loading your pins..."}
             compact={loaded}
           />
         ) : null}
-        {lists.error ? (
-          <div role="alert">
-            <p>{lists.error}</p>
-            <button type="button" onClick={() => void lists.refresh()}>
-              Try again
-            </button>
-          </div>
-        ) : !loaded ? null : !pins.length &&
-          !publications.length &&
-          !lists.loading ? (
-          lists.filtered ? (
-            <div className="canvas-empty">
-              <p>No items match this filter.</p>
-              <button type="button" onClick={lists.clear}>
-                Clear filter
+        <LoadingReveal
+          loading={!loaded && !lists.error}
+          label="Loading your pins..."
+        >
+          {lists.error ? (
+            <div role="alert">
+              <p>{lists.error}</p>
+              <button type="button" onClick={() => void lists.refresh()}>
+                Try again
               </button>
             </div>
+          ) : !loaded ? null : !pins.length &&
+            !publications.length &&
+            !lists.loading ? (
+            lists.filtered ? (
+              <div className="canvas-empty">
+                <p>No items match this filter.</p>
+                <button type="button" onClick={lists.clear}>
+                  Clear filter
+                </button>
+              </div>
+            ) : (
+              <div className="canvas-empty">
+                <h3>Keep something here.</h3>
+                <p className="muted">
+                  Drop one file or folder here to make your first pin.
+                </p>
+              </div>
+            )
           ) : (
-            <div className="canvas-empty">
-              <h3>Keep something here.</h3>
-              <p className="muted">
-                Drop one file or folder here to make your first pin.
-              </p>
-            </div>
-          )
-        ) : (
-          <ul className="pin-list">
-            {pins.map((pin) => (
-              <PinCard
-                key={pin.cid}
-                pin={pin}
-                previews={previews}
-                busy={busy}
-                onOpen={() => openPin(pin)}
-                onCopyCid={(onCopied) => {
-                  void copy(pin.cid, onCopied);
-                }}
-                onDrop={(event) => cardDrop(event, pin)}
-                onTargetEnter={() => setDragging(false)}
-              />
-            ))}
-            {publications.map((publication) => (
-              <PinCard
-                key={`publication:${publication.id}`}
-                pin={{
-                  cid: publication.current.cid,
-                  name: publication.title,
-                  size: publication.current.size,
-                  blocks: publication.current.blocks,
-                  createdAt: publication.createdAt,
-                }}
-                publication={publication}
-                busy={busy}
-                onOpen={() => setSelectedPublication(publication)}
-                onCopyCid={(onCopied) => {
-                  void copy(publication.current.cid, onCopied);
-                }}
-                onDrop={(event) => cardDrop(event, publication)}
-                onTargetEnter={() => setDragging(false)}
-              />
-            ))}
-          </ul>
-        )}
-        {cursor ? (
-          <button
-            disabled={busy || lists.loading || !!lists.error}
-            onClick={() => {
-              void lists.loadMore("pins");
-            }}
-          >
-            Load more
-          </button>
-        ) : null}
-        {publicationCursor ? (
-          <button
-            disabled={busy || lists.loading || !!lists.error}
-            onClick={() => {
-              void lists.loadMore("publications");
-            }}
-          >
-            Load more publications
-          </button>
-        ) : null}
+            <ul className="pin-list">
+              {pins.map((pin) => (
+                <PinCard
+                  key={pin.cid}
+                  pin={pin}
+                  previews={previews}
+                  busy={busy}
+                  onOpen={() => openPin(pin)}
+                  onCopyCid={(onCopied) => {
+                    void copy(pin.cid, onCopied);
+                  }}
+                  onDrop={(event) => cardDrop(event, pin)}
+                  onTargetEnter={() => setDragging(false)}
+                />
+              ))}
+              {publications.map((publication) => (
+                <PinCard
+                  key={`publication:${publication.id}`}
+                  pin={{
+                    cid: publication.current.cid,
+                    name: publication.title,
+                    size: publication.current.size,
+                    blocks: publication.current.blocks,
+                    createdAt: publication.createdAt,
+                  }}
+                  publication={publication}
+                  busy={busy}
+                  onOpen={() => setSelectedPublication(publication)}
+                  onCopyCid={(onCopied) => {
+                    void copy(publication.current.cid, onCopied);
+                  }}
+                  onDrop={(event) => cardDrop(event, publication)}
+                  onTargetEnter={() => setDragging(false)}
+                />
+              ))}
+            </ul>
+          )}
+          {cursor ? (
+            <button
+              disabled={busy || lists.loading || !!lists.error}
+              onClick={() => {
+                void lists.loadMore("pins");
+              }}
+            >
+              Load more
+            </button>
+          ) : null}
+          {publicationCursor ? (
+            <button
+              disabled={busy || lists.loading || !!lists.error}
+              onClick={() => {
+                void lists.loadMore("publications");
+              }}
+            >
+              Load more publications
+            </button>
+          ) : null}
+        </LoadingReveal>
       </section>
       <Dialog
         open={!!selected}

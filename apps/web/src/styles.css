@@ -886,6 +886,77 @@ footer {
 .loading-indicator-compact {
   min-height: 44px;
 }
+.loading-editorial {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: 32px 16px;
+}
+.loading-eyebrow {
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+.loading-thought {
+  display: grid;
+  align-items: center;
+  min-height: 150px;
+  width: min(560px, 100%);
+}
+.loading-quote {
+  font-family: "Newsreader Variable", Georgia, serif;
+  font-size: clamp(29px, 4vw, 42px);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -1.2px;
+  text-wrap: balance;
+  margin: 0;
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+.loading-quote.changing {
+  opacity: 0;
+}
+.loading-quote em {
+  color: var(--accent);
+}
+.loading-colophon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.loading-colophon .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 1.5px;
+}
+.loading-reveal-overlay.leaving {
+  animation: loading-leave ease both;
+  pointer-events: none;
+}
+.loading-reveal-content:not([hidden]) {
+  animation: loading-enter ease both;
+}
+@keyframes loading-leave {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes loading-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .loading-spinner {
   width: 28px;
   height: 28px;
@@ -1079,8 +1150,16 @@ footer {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .loading-spinner {
+  .loading-spinner,
+  .loading-reveal-overlay,
+  .loading-reveal-content {
     animation: none;
+  }
+  .loading-quote {
+    transition: none;
+  }
+  .loading-quote.changing {
+    opacity: 1;
   }
   .item-filter,
   .pin-info,

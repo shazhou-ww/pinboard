@@ -219,10 +219,13 @@ describe("Pinboard interface", () => {
     );
     expect(html).toContain('class="shell home-shell canvas-shell"');
     expect(html).toContain('class="home-header"');
-    expect(html).toContain('class="canvas"');
+    expect(html).toContain('class="loading-reveal canvas"');
     expect(html.match(/role="status"/g)).toHaveLength(1);
     expect(html).toContain('aria-label="Loading Pinboard..."');
     expect(html).toContain('class="loading-spinner" aria-hidden="true"');
+    expect(html).toContain('class="loading-editorial" aria-hidden="true"');
+    expect(html).toContain("Keep what matters.");
+    expect(html).toContain("<em>Let the noise pass.</em>");
     expect(html).not.toContain('class="intro"');
     expect(html).not.toContain("Sign in");
     expect(html).not.toContain("Continue with");
