@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  --background-pattern: url("./assets/pinboard-pattern.svg");
   --on-accent: #ffffff;
   --success: #286044;
   --success-bg: #edf6ef;
@@ -30,7 +31,7 @@
   color: var(--text);
   background-color: var(--background-start);
   background-image:
-    url("./assets/pinboard-pattern.svg"),
+    var(--background-pattern),
     radial-gradient(
       ellipse at 12% 10%,
       var(--background-light),
@@ -105,6 +106,12 @@
   --accent: #425e96;
   --accent-hover: #3c5588;
   --accent-pressed: #314773;
+}
+:root[data-background="sand"] {
+  --background-pattern: url("./assets/pinboard-pattern-sand.svg");
+}
+:root[data-background="ice"] {
+  --background-pattern: url("./assets/pinboard-pattern-ice.svg");
 }
 * {
   box-sizing: border-box;

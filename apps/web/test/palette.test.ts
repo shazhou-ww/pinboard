@@ -201,7 +201,7 @@ describe("global palette contract", () => {
   );
 
   it.each(Object.keys(approved))(
-    "keeps canvas text and focus readable even on opaque decorative strokes in %s",
+    "keeps canvas text and focus readable over palette-tinted shallow engraving in %s",
     (id) => {
       const palette = rule(`:root[data-background="${id}"]`);
       expect(shared["--canvas-muted"]).toBe(
@@ -210,22 +210,56 @@ describe("global palette contract", () => {
       const text = rgb(palette["--text"]!);
       const muted = rgb(palette["--muted"]!);
       const canvasMuted = composite(muted, 0.7, text);
+      const file =
+        id === "mist" ? "pinboard-pattern.svg" : `pinboard-pattern-${id}.svg`;
+      const selector =
+        id === "mist" ? ":root" : `:root[data-background="${id}"]`;
+      const patternRule = rules.find(
+        (entry) =>
+          entry.selectors.includes(selector) &&
+          entry.declarations["--background-pattern"],
+      );
+      expect(patternRule?.declarations["--background-pattern"]).toBe(
+        `url("./assets/${file}")`,
+      );
       const pattern = readFileSync(
-        new URL("../src/assets/pinboard-pattern.svg", import.meta.url),
+        new URL(`../src/assets/${file}`, import.meta.url),
         "utf8",
       );
-      const strokes = Array.from(
-        pattern.matchAll(/stop-color="(#[\da-f]{6})"/g),
-        ([, value]) => rgb(value!),
-      );
-      expect(strokes.length).toBeGreaterThan(0);
-      for (const stroke of strokes) {
-        // Even a fully opaque stroke is a conservative bound for this linework.
-        expect(contrast(text, stroke)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(canvasMuted, stroke)).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrast(rgb(palette["--accent"]!), stroke),
-        ).toBeGreaterThanOrEqual(3);
+      const floods = new Map<string, { color: RGB; opacity: number }>();
+      for (const [, color, opacity, name] of pattern.matchAll(
+        /<feFlood\s+flood-color="(#[\da-f]{6})"\s+flood-opacity="([\d.]+)"\s+result="([^"]+)"\s*\/>/g,
+      )) {
+        if (!color || !opacity || !name)
+          throw new Error("Invalid engraving flood.");
+        floods.set(name, { color: rgb(color), opacity: Number(opacity) });
+      }
+      expect(floods.size).toBe(3);
+      for (const background of [
+        "background-start",
+        "background-end",
+        "background-light",
+        "background-wash",
+      ]) {
+        let strokes = [rgb(palette[`--${background}`]!)];
+        // Bound each layer's coverage from zero to one in SVG merge order.
+        for (const name of ["light-color", "core-color", "shadow-color"]) {
+          const flood = floods.get(name);
+          if (!flood) throw new Error(`Missing engraving flood: ${name}`);
+          strokes = [
+            ...strokes,
+            ...strokes.map((stroke) =>
+              composite(flood.color, flood.opacity, stroke),
+            ),
+          ];
+        }
+        for (const stroke of strokes) {
+          expect(contrast(text, stroke)).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(canvasMuted, stroke)).toBeGreaterThanOrEqual(4.5);
+          expect(
+            contrast(rgb(palette["--accent"]!), stroke),
+          ).toBeGreaterThanOrEqual(3);
+        }
       }
       for (const selector of [
         ".eyebrow",
