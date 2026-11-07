@@ -1,0 +1,76 @@
+[
+  {
+    "at": "2026-11-07T17:16:53.371Z",
+    "path": "/",
+    "status": 200,
+    "bytes": 662,
+    "sha256": "130e5288eb149863ad7a4126a1ecda0cea26867ab4fb47870be4f26495dd2ae5",
+    "contentType": "text/html",
+    "cacheControl": "public, max-age=0, must-revalidate",
+    "nosniff": null
+  },
+  {
+    "at": "2026-11-07T17:16:54.375Z",
+    "path": "/assets/index-DxJaRKmm.js",
+    "status": 200,
+    "bytes": 361248,
+    "sha256": "157eb55e27d85b1fbae2428ee5eeb648c95575a186c378c34c019a2fb2cbbe21",
+    "contentType": "text/javascript",
+    "cacheControl": "public, max-age=0, must-revalidate",
+    "nosniff": null
+  },
+  {
+    "at": "2026-11-07T17:16:54.710Z",
+    "path": "/assets/index-B1iVkNIA.css",
+    "status": 200,
+    "bytes": 29533,
+    "sha256": "c9bf8dfa7e4af1531a5c075d89073179f5c0896cd831e618935a482b01fefc1e",
+    "contentType": "text/css",
+    "cacheControl": "public, max-age=0, must-revalidate",
+    "nosniff": null
+  },
+  {
+    "at": "2026-11-07T17:16:54.888Z",
+    "path": "/api/health",
+    "status": 200,
+    "bytes": 36,
+    "sha256": "830fe1c64663c02f5bf292a0b5bbf04aabcab472f60d1ecd6a4937db537115ab",
+    "contentType": "application/json",
+    "cacheControl": "no-store",
+    "nosniff": "nosniff",
+    "body": {
+      "service": "Pinboard",
+      "status": "ok"
+    }
+  },
+  {
+    "at": "2026-11-07T17:16:56.835Z",
+    "path": "/ipfs/bafkreihd6ugt2x3givrfd6d44sgfdccmiovx4ex3qnktqndaacgxy4tcda?format=raw",
+    "status": 200,
+    "bytes": 1038,
+    "sha256": "e3f50d3d5f66456251f87ce48c51884c43ab7e12fb8355383460008d7c726218",
+    "contentType": "application/vnd.ipld.raw",
+    "cacheControl": "public, max-age=29030400, immutable",
+    "nosniff": "nosniff"
+  },
+  {
+    "at": "2026-11-07T17:16:57.015Z",
+    "path": "/api/pins/bafkreihd6ugt2x3givrfd6d44sgfdccmiovx4ex3qnktqndaacgxy4tcda/preview",
+    "status": 401,
+    "bytes": 31,
+    "sha256": "7fff0adc561131b8c6ca8300c39e63b60ed713521abc0969adab88cc21dee8a5",
+    "contentType": "application/json",
+    "cacheControl": "no-store",
+    "nosniff": "nosniff"
+  },
+  {
+    "at": "2026-11-07T17:16:57.613Z",
+    "path": "/api/pins/bafkreihd6ugt2x3givrfd6d44sgfdccmiovx4ex3qnktqndaacgxy4tcda/nodes/bafkreihd6ugt2x3givrfd6d44sgfdccmiovx4ex3qnktqndaacgxy4tcda/description",
+    "status": 401,
+    "bytes": 31,
+    "sha256": "7fff0adc561131b8c6ca8300c39e63b60ed713521abc0969adab88cc21dee8a5",
+    "contentType": "application/json",
+    "cacheControl": "no-store",
+    "nosniff": "nosniff"
+  }
+]

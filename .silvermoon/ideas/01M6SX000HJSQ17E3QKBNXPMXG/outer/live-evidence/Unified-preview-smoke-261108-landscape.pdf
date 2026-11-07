@@ -1,0 +1,41 @@
+%PDF-1.7
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R 
+       >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 420 300]
+     /Rotate 0 
+      /Resources << >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 119  >>
+stream
+0.15 0.25 0.4 rg 20 250 380 30 re f
+        0.8 0.85 0.9 rg 20 60 380 170 re f
+        0.8 0.3 0.1 rg 20 15 380 20 re f
+endstream
+endobj
+5 0 obj
+<< /Type /Annot /Subtype /Widget /Rect [20 20 100 100] /FT /Tx /T (name) /V (required value) >>
+endobj
+6 0 obj
+<< /S /JavaScript /JS (app.launchURL\(\"https://pdf-example.invalid/\"\);) >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000066 00000 n 
+0000000123 00000 n 
+0000000249 00000 n 
+0000000420 00000 n 
+0000000531 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R  >>
+startxref
+624
+%%EOF
