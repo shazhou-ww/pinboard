@@ -71,6 +71,12 @@ describe("typed, display-only content previews", () => {
       /\.pin-wall \.pin-card:has\(\.has-paper\)\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;[^}]*width:\s*100%;/u,
     );
     expect(styles).toMatch(
+      /\.pin-wall \.pin-card:has\(\.has-paper\)\s*\{[^}]*min-height:\s*0;/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-card \.pin-preview\.has-paper\s*\{[^}]*height:\s*auto;/u,
+    );
+    expect(styles).toMatch(
       /\.pin-card:has\(\.has-paper\) \.pin-info\s*\{[^}]*position:\s*relative;/u,
     );
     expect(styles).toMatch(

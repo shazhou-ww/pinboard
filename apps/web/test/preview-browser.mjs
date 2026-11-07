@@ -111,6 +111,10 @@ async function paperGeometry(scope, label, withInfo = true) {
   );
   if (card) {
     assert(
+      Math.abs(card.height - (card.width * 3) / 4) <= 1,
+      `${label}: card must retain the shared 4:3 dimensions`,
+    );
+    assert(
       card.left >= 0 && card.right <= viewport.width,
       `${label}: card outside viewport`,
     );
@@ -166,8 +170,54 @@ async function noFailureUi(scope) {
   assert.equal(await scope.locator('[role="alert"]').count(), 0);
 }
 
+async function mixedCardDimensions(page, label) {
+  await page.getByPlaceholder("Filter items...").fill("");
+  await page.waitForFunction(
+    () => document.querySelectorAll(".pin-card").length > 3,
+  );
+  for (const card of await page.locator(".pin-card").all())
+    await card.scrollIntoViewIfNeeded();
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".pin-card .preview-paper") &&
+      document.querySelector(".pin-card .preview-directory") &&
+      document.querySelector(".pin-card .pin-preview img"),
+  );
+  const cards = await page.locator(".pin-card").evaluateAll((elements) =>
+    elements.map((element) => {
+      const { width, height } = element.getBoundingClientRect();
+      return {
+        width,
+        height,
+        paper: !!element.querySelector(".preview-paper"),
+        directory: !!element.querySelector(".preview-directory"),
+      };
+    }),
+  );
+  for (const card of cards) {
+    assert(
+      Math.abs(card.width - cards[0].width) <= 1,
+      `${label}: equal widths`,
+    );
+    assert(
+      Math.abs(card.height - cards[0].height) <= 1,
+      `${label}: equal heights`,
+    );
+    assert(
+      Math.abs(card.height - (card.width * 3) / 4) <= 1,
+      `${label}: shared aspect ratio`,
+    );
+  }
+  check(label, cards);
+  await page.getByPlaceholder("Filter items...").fill("paper");
+  await page.waitForFunction(
+    () => document.querySelectorAll(".pin-card").length === 3,
+  );
+}
+
 try {
   await page.goto(origin);
+  await mixedCardDimensions(page, "desktop-mixed-card-dimensions");
   await page.getByPlaceholder("Filter items...").fill("paper");
   await page.locator(".pin-card").first().waitFor();
   await page.waitForFunction(
@@ -521,6 +571,7 @@ const touch = await chromium.launchPersistentContext(
 try {
   const page = await touch.newPage();
   await page.goto(origin);
+  await mixedCardDimensions(page, "390px-mixed-card-dimensions");
   await page.getByPlaceholder("Filter items...").fill("paper");
   await page.waitForFunction(
     () => document.querySelectorAll(".pin-card").length === 3,
@@ -536,6 +587,7 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: resolve(output, "narrow-touch.png") });
   await page.setViewportSize({ width: 320, height: 720 });
+  await mixedCardDimensions(page, "320px-mixed-card-dimensions");
   for (let i = 0; i < 3; i++)
     await paperGeometry(cards.nth(i), `small-320px-touch-${i}`);
   await page.evaluate(() => document.body.scrollTo(0, 0));

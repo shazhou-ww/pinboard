@@ -1325,16 +1325,25 @@ footer {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   width: 100%;
-  min-height: 280px;
+  min-height: 0;
 }
 .pin-card .pin-preview.has-paper {
   position: relative;
   inset: auto;
-  height: 100%;
+  height: auto;
 }
 .pin-card:has(.has-paper) .pin-info {
   position: relative;
   inset: auto;
+}
+@media (max-width: 480px) {
+  .pin-card .preview-paper {
+    gap: 4px;
+    padding: 8px;
+  }
+  .pin-card .preview-type-badge {
+    height: 16px;
+  }
 }
 .pin-preview [hidden] {
   display: none;

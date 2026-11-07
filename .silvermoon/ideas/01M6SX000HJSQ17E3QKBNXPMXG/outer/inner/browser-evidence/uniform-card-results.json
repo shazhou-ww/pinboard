@@ -1,0 +1,1911 @@
+[
+  {
+    "name": "desktop-mixed-card-dimensions",
+    "detail": [
+      {
+        "width": 380.328125,
+        "height": 285.234375,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 380.328125,
+        "height": 285.234375,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 380.34375,
+        "height": 285.25,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 380.328125,
+        "height": 285.234375,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 380.328125,
+        "height": 285.234375,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 380.34375,
+        "height": 285.25,
+        "paper": true,
+        "directory": false
+      },
+      {
+        "width": 380.328125,
+        "height": 285.234375,
+        "paper": true,
+        "directory": false
+      },
+      {
+        "width": 380.328125,
+        "height": 285.234375,
+        "paper": false,
+        "directory": true
+      },
+      {
+        "width": 380.34375,
+        "height": 285.25,
+        "paper": true,
+        "directory": false
+      }
+    ]
+  },
+  {
+    "name": "desktop-0",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 40,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 420.328125,
+        "bottom": 365.234375,
+        "left": 40
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 167.796875,
+        "y": 121,
+        "width": 124.734375,
+        "height": 173.828125,
+        "top": 121,
+        "right": 292.53125,
+        "bottom": 294.828125,
+        "left": 167.796875
+      },
+      "badge": {
+        "x": 57,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 99.1875,
+        "bottom": 113,
+        "left": 57
+      },
+      "paper": {
+        "x": 41,
+        "y": 81,
+        "width": 378.328125,
+        "height": 229.84375,
+        "top": 81,
+        "right": 419.328125,
+        "bottom": 310.84375,
+        "left": 41
+      },
+      "info": {
+        "x": 41,
+        "y": 316.84375,
+        "width": 378.328125,
+        "height": 47.390625,
+        "top": 316.84375,
+        "right": 419.328125,
+        "bottom": 364.234375,
+        "left": 41
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "hover-expanded-0",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 40,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 420.328125,
+        "bottom": 365.234375,
+        "left": 40
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 184.9375,
+        "y": 121,
+        "width": 90.453125,
+        "height": 125.828125,
+        "top": 121,
+        "right": 275.390625,
+        "bottom": 246.828125,
+        "left": 184.9375
+      },
+      "badge": {
+        "x": 57,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 99.1875,
+        "bottom": 113,
+        "left": 57
+      },
+      "paper": {
+        "x": 41,
+        "y": 81,
+        "width": 378.328125,
+        "height": 181.84375,
+        "top": 81,
+        "right": 419.328125,
+        "bottom": 262.84375,
+        "left": 41
+      },
+      "info": {
+        "x": 41,
+        "y": 268.84375,
+        "width": 378.328125,
+        "height": 95.390625,
+        "top": 268.84375,
+        "right": 419.328125,
+        "bottom": 364.234375,
+        "left": 41
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "keyboard-expanded-0",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 40,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 420.328125,
+        "bottom": 365.234375,
+        "left": 40
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 184.9375,
+        "y": 121,
+        "width": 90.453125,
+        "height": 125.828125,
+        "top": 121,
+        "right": 275.390625,
+        "bottom": 246.828125,
+        "left": 184.9375
+      },
+      "badge": {
+        "x": 57,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 99.1875,
+        "bottom": 113,
+        "left": 57
+      },
+      "paper": {
+        "x": 41,
+        "y": 81,
+        "width": 378.328125,
+        "height": 181.84375,
+        "top": 81,
+        "right": 419.328125,
+        "bottom": 262.84375,
+        "left": 41
+      },
+      "info": {
+        "x": 41,
+        "y": 268.84375,
+        "width": 378.328125,
+        "height": 95.390625,
+        "top": 268.84375,
+        "right": 419.328125,
+        "bottom": 364.234375,
+        "left": 41
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "desktop-1",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 442.328125,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 822.65625,
+        "bottom": 365.234375,
+        "left": 442.328125
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 511.203125,
+        "y": 121,
+        "width": 242.578125,
+        "height": 173.828125,
+        "top": 121,
+        "right": 753.78125,
+        "bottom": 294.828125,
+        "left": 511.203125
+      },
+      "badge": {
+        "x": 459.328125,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 501.515625,
+        "bottom": 113,
+        "left": 459.328125
+      },
+      "paper": {
+        "x": 443.328125,
+        "y": 81,
+        "width": 378.328125,
+        "height": 229.84375,
+        "top": 81,
+        "right": 821.65625,
+        "bottom": 310.84375,
+        "left": 443.328125
+      },
+      "info": {
+        "x": 443.328125,
+        "y": 316.84375,
+        "width": 378.328125,
+        "height": 47.390625,
+        "top": 316.84375,
+        "right": 821.65625,
+        "bottom": 364.234375,
+        "left": 443.328125
+      },
+      "publicationBadge": null,
+      "ratio": 1.4,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "hover-expanded-1",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 442.328125,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 822.65625,
+        "bottom": 365.234375,
+        "left": 442.328125
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 544.796875,
+        "y": 121,
+        "width": 175.375,
+        "height": 125.828125,
+        "top": 121,
+        "right": 720.171875,
+        "bottom": 246.828125,
+        "left": 544.796875
+      },
+      "badge": {
+        "x": 459.328125,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 501.515625,
+        "bottom": 113,
+        "left": 459.328125
+      },
+      "paper": {
+        "x": 443.328125,
+        "y": 81,
+        "width": 378.328125,
+        "height": 181.84375,
+        "top": 81,
+        "right": 821.65625,
+        "bottom": 262.84375,
+        "left": 443.328125
+      },
+      "info": {
+        "x": 443.328125,
+        "y": 268.84375,
+        "width": 378.328125,
+        "height": 95.390625,
+        "top": 268.84375,
+        "right": 821.65625,
+        "bottom": 364.234375,
+        "left": 443.328125
+      },
+      "publicationBadge": null,
+      "ratio": 1.4,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "keyboard-expanded-1",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 442.328125,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 822.65625,
+        "bottom": 365.234375,
+        "left": 442.328125
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 544.796875,
+        "y": 121,
+        "width": 175.375,
+        "height": 125.828125,
+        "top": 121,
+        "right": 720.171875,
+        "bottom": 246.828125,
+        "left": 544.796875
+      },
+      "badge": {
+        "x": 459.328125,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 501.515625,
+        "bottom": 113,
+        "left": 459.328125
+      },
+      "paper": {
+        "x": 443.328125,
+        "y": 81,
+        "width": 378.328125,
+        "height": 181.84375,
+        "top": 81,
+        "right": 821.65625,
+        "bottom": 262.84375,
+        "left": 443.328125
+      },
+      "info": {
+        "x": 443.328125,
+        "y": 268.84375,
+        "width": 378.328125,
+        "height": 95.390625,
+        "top": 268.84375,
+        "right": 821.65625,
+        "bottom": 364.234375,
+        "left": 443.328125
+      },
+      "publicationBadge": null,
+      "ratio": 1.4,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "desktop-2",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 844.65625,
+        "y": 80,
+        "width": 380.34375,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 844.65625
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 972.453125,
+        "y": 121,
+        "width": 124.75,
+        "height": 173.84375,
+        "top": 121,
+        "right": 1097.203125,
+        "bottom": 294.84375,
+        "left": 972.453125
+      },
+      "badge": {
+        "x": 861.65625,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 903.84375,
+        "bottom": 113,
+        "left": 861.65625
+      },
+      "paper": {
+        "x": 845.65625,
+        "y": 81,
+        "width": 378.34375,
+        "height": 229.859375,
+        "top": 81,
+        "right": 1224,
+        "bottom": 310.859375,
+        "left": 845.65625
+      },
+      "info": {
+        "x": 845.65625,
+        "y": 316.859375,
+        "width": 378.34375,
+        "height": 47.390625,
+        "top": 316.859375,
+        "right": 1224,
+        "bottom": 364.25,
+        "left": 845.65625
+      },
+      "publicationBadge": {
+        "x": 1184,
+        "y": 93,
+        "width": 28,
+        "height": 28,
+        "top": 93,
+        "right": 1212,
+        "bottom": 121,
+        "left": 1184
+      },
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "hover-expanded-2",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 844.65625,
+        "y": 80,
+        "width": 380.34375,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 844.65625
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 999.296875,
+        "y": 121,
+        "width": 71.046875,
+        "height": 98.65625,
+        "top": 121,
+        "right": 1070.34375,
+        "bottom": 219.65625,
+        "left": 999.296875
+      },
+      "badge": {
+        "x": 861.65625,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 903.84375,
+        "bottom": 113,
+        "left": 861.65625
+      },
+      "paper": {
+        "x": 845.65625,
+        "y": 81,
+        "width": 378.34375,
+        "height": 154.671875,
+        "top": 81,
+        "right": 1224,
+        "bottom": 235.671875,
+        "left": 845.65625
+      },
+      "info": {
+        "x": 845.65625,
+        "y": 241.671875,
+        "width": 378.34375,
+        "height": 122.578125,
+        "top": 241.671875,
+        "right": 1224,
+        "bottom": 364.25,
+        "left": 845.65625
+      },
+      "publicationBadge": {
+        "x": 1184,
+        "y": 93,
+        "width": 28,
+        "height": 28,
+        "top": 93,
+        "right": 1212,
+        "bottom": 121,
+        "left": 1184
+      },
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "keyboard-expanded-2",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 844.65625,
+        "y": 80,
+        "width": 380.34375,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 844.65625
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 999.296875,
+        "y": 121,
+        "width": 71.046875,
+        "height": 98.65625,
+        "top": 121,
+        "right": 1070.34375,
+        "bottom": 219.65625,
+        "left": 999.296875
+      },
+      "badge": {
+        "x": 861.65625,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 903.84375,
+        "bottom": 113,
+        "left": 861.65625
+      },
+      "paper": {
+        "x": 845.65625,
+        "y": 81,
+        "width": 378.34375,
+        "height": 154.671875,
+        "top": 81,
+        "right": 1224,
+        "bottom": 235.671875,
+        "left": 845.65625
+      },
+      "info": {
+        "x": 845.65625,
+        "y": 241.671875,
+        "width": 378.34375,
+        "height": 122.578125,
+        "top": 241.671875,
+        "right": 1224,
+        "bottom": 364.25,
+        "left": 845.65625
+      },
+      "publicationBadge": {
+        "x": 1184,
+        "y": 93,
+        "width": 28,
+        "height": 28,
+        "top": 93,
+        "right": 1212,
+        "bottom": 121,
+        "left": 1184
+      },
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "dark-OS-preference",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 40,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 420.328125,
+        "bottom": 365.234375,
+        "left": 40
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 167.796875,
+        "y": 121,
+        "width": 124.734375,
+        "height": 173.828125,
+        "top": 121,
+        "right": 292.53125,
+        "bottom": 294.828125,
+        "left": 167.796875
+      },
+      "badge": {
+        "x": 57,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 99.1875,
+        "bottom": 113,
+        "left": 57
+      },
+      "paper": {
+        "x": 41,
+        "y": 81,
+        "width": 378.328125,
+        "height": 229.84375,
+        "top": 81,
+        "right": 419.328125,
+        "bottom": 310.84375,
+        "left": 41
+      },
+      "info": {
+        "x": 41,
+        "y": 316.84375,
+        "width": 378.328125,
+        "height": 47.390625,
+        "top": 316.84375,
+        "right": 419.328125,
+        "bottom": 364.234375,
+        "left": 41
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "simulated-dark-surface-0",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 40,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 420.328125,
+        "bottom": 365.234375,
+        "left": 40
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 167.796875,
+        "y": 121,
+        "width": 124.734375,
+        "height": 173.828125,
+        "top": 121,
+        "right": 292.53125,
+        "bottom": 294.828125,
+        "left": 167.796875
+      },
+      "badge": {
+        "x": 57,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 99.1875,
+        "bottom": 113,
+        "left": 57
+      },
+      "paper": {
+        "x": 41,
+        "y": 81,
+        "width": 378.328125,
+        "height": 229.84375,
+        "top": 81,
+        "right": 419.328125,
+        "bottom": 310.84375,
+        "left": 41
+      },
+      "info": {
+        "x": 41,
+        "y": 316.84375,
+        "width": 378.328125,
+        "height": 47.390625,
+        "top": 316.84375,
+        "right": 419.328125,
+        "bottom": 364.234375,
+        "left": 41
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "simulated-dark-surface-1",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 442.328125,
+        "y": 80,
+        "width": 380.328125,
+        "height": 285.234375,
+        "top": 80,
+        "right": 822.65625,
+        "bottom": 365.234375,
+        "left": 442.328125
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 511.203125,
+        "y": 121,
+        "width": 242.578125,
+        "height": 173.828125,
+        "top": 121,
+        "right": 753.78125,
+        "bottom": 294.828125,
+        "left": 511.203125
+      },
+      "badge": {
+        "x": 459.328125,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 501.515625,
+        "bottom": 113,
+        "left": 459.328125
+      },
+      "paper": {
+        "x": 443.328125,
+        "y": 81,
+        "width": 378.328125,
+        "height": 229.84375,
+        "top": 81,
+        "right": 821.65625,
+        "bottom": 310.84375,
+        "left": 443.328125
+      },
+      "info": {
+        "x": 443.328125,
+        "y": 316.84375,
+        "width": 378.328125,
+        "height": 47.390625,
+        "top": 316.84375,
+        "right": 821.65625,
+        "bottom": 364.234375,
+        "left": 443.328125
+      },
+      "publicationBadge": null,
+      "ratio": 1.4,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "simulated-dark-surface-2",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": {
+        "x": 844.65625,
+        "y": 80,
+        "width": 380.34375,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 844.65625
+      },
+      "grid": {
+        "x": 40,
+        "y": 80,
+        "width": 1185,
+        "height": 285.25,
+        "top": 80,
+        "right": 1225,
+        "bottom": 365.25,
+        "left": 40
+      },
+      "maxTrackWidth": 380.344,
+      "image": {
+        "x": 999.296875,
+        "y": 121,
+        "width": 71.046875,
+        "height": 98.65625,
+        "top": 121,
+        "right": 1070.34375,
+        "bottom": 219.65625,
+        "left": 999.296875
+      },
+      "badge": {
+        "x": 861.65625,
+        "y": 93,
+        "width": 42.1875,
+        "height": 20,
+        "top": 93,
+        "right": 903.84375,
+        "bottom": 113,
+        "left": 861.65625
+      },
+      "paper": {
+        "x": 845.65625,
+        "y": 81,
+        "width": 378.34375,
+        "height": 154.671875,
+        "top": 81,
+        "right": 1224,
+        "bottom": 235.671875,
+        "left": 845.65625
+      },
+      "info": {
+        "x": 845.65625,
+        "y": 241.671875,
+        "width": 378.34375,
+        "height": 122.578125,
+        "top": 241.671875,
+        "right": 1224,
+        "bottom": 364.25,
+        "left": 845.65625
+      },
+      "publicationBadge": {
+        "x": 1184,
+        "y": 93,
+        "width": 28,
+        "height": 28,
+        "top": 93,
+        "right": 1212,
+        "bottom": 121,
+        "left": 1184
+      },
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "private-node-details",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": null,
+      "grid": null,
+      "maxTrackWidth": null,
+      "image": {
+        "x": 537.921875,
+        "y": 826.28125,
+        "width": 189.140625,
+        "height": 263.984375,
+        "top": 826.28125,
+        "right": 727.0625,
+        "bottom": 1090.265625,
+        "left": 537.921875
+      },
+      "badge": {
+        "x": 345,
+        "y": 798.28125,
+        "width": 42.1875,
+        "height": 20,
+        "top": 798.28125,
+        "right": 387.1875,
+        "bottom": 818.28125,
+        "left": 345
+      },
+      "paper": {
+        "x": 329,
+        "y": 786.28125,
+        "width": 607,
+        "height": 320,
+        "top": 786.28125,
+        "right": 936,
+        "bottom": 1106.28125,
+        "left": 329
+      },
+      "info": null,
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "node-error-and-successful-load",
+    "detail": "Shared renderer returns to paper; no failure UI."
+  },
+  {
+    "name": "node-save-409",
+    "detail": "Conflict preserves editable data."
+  },
+  {
+    "name": "node-save-403",
+    "detail": "Forbidden clears old preview."
+  },
+  {
+    "name": "node-poll-500",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": true,
+      "draftRetained": true
+    }
+  },
+  {
+    "name": "node-poll-network",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": true,
+      "draftRetained": true
+    }
+  },
+  {
+    "name": "node-poll-401",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": false,
+      "oldPreviewRetained": false
+    }
+  },
+  {
+    "name": "node-poll-403",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": false,
+      "oldPreviewRetained": false
+    }
+  },
+  {
+    "name": "node-poll-404",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": false,
+      "oldPreviewRetained": false
+    }
+  },
+  {
+    "name": "node-poll-invalid",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": false,
+      "oldPreviewRetained": false
+    }
+  },
+  {
+    "name": "node-poll-malformed-json",
+    "detail": {
+      "initialReads": 2,
+      "failedReads": 1,
+      "formVisible": false,
+      "oldPreviewRetained": false
+    }
+  },
+  {
+    "name": "public-publication-node",
+    "detail": {
+      "viewport": {
+        "width": 1280,
+        "documentClientWidth": 1280,
+        "documentScrollWidth": 1280,
+        "bodyClientWidth": 1265,
+        "bodyScrollWidth": 1265
+      },
+      "card": null,
+      "grid": null,
+      "maxTrackWidth": null,
+      "image": {
+        "x": 537.921875,
+        "y": 555.046875,
+        "width": 189.140625,
+        "height": 263.984375,
+        "top": 555.046875,
+        "right": 727.0625,
+        "bottom": 819.03125,
+        "left": 537.921875
+      },
+      "badge": {
+        "x": 168.5,
+        "y": 527.046875,
+        "width": 42.1875,
+        "height": 20,
+        "top": 527.046875,
+        "right": 210.6875,
+        "bottom": 547.046875,
+        "left": 168.5
+      },
+      "paper": {
+        "x": 152.5,
+        "y": 515.046875,
+        "width": 960,
+        "height": 320,
+        "top": 515.046875,
+        "right": 1112.5,
+        "bottom": 835.046875,
+        "left": 152.5
+      },
+      "info": null,
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "public-node-image-error",
+    "detail": "PDF type cover, not an error screen."
+  },
+  {
+    "name": "pin-network-failure-and-reload",
+    "detail": "All 3 PDF cards fall back; fresh mount recovers without persisted failure."
+  },
+  {
+    "name": "public-api-200",
+    "detail": "Rejected as an API error, not a successful type cover."
+  },
+  {
+    "name": "public-api-401",
+    "detail": "Rejected as an API error, not a successful type cover."
+  },
+  {
+    "name": "public-api-403",
+    "detail": "Rejected as an API error, not a successful type cover."
+  },
+  {
+    "name": "public-api-404",
+    "detail": "Rejected as an API error, not a successful type cover."
+  },
+  {
+    "name": "material-with-image/jpeg-source",
+    "detail": "Valid image shown without PDF decoration."
+  },
+  {
+    "name": "material-with-unknown-source",
+    "detail": "Valid image shown without PDF decoration."
+  },
+  {
+    "name": "material-with-video/mp4-source",
+    "detail": "Valid image shown without PDF decoration."
+  },
+  {
+    "name": "image-identity-recovery",
+    "detail": "A different material CID/URL remounts and loads normally."
+  },
+  {
+    "name": "390px-mixed-card-dimensions",
+    "detail": [
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": true,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": true,
+        "directory": false
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": false,
+        "directory": true
+      },
+      {
+        "width": 346,
+        "height": 259.5,
+        "paper": true,
+        "directory": false
+      }
+    ]
+  },
+  {
+    "name": "narrow-touch-expanded-0",
+    "detail": {
+      "viewport": {
+        "width": 390,
+        "documentClientWidth": 390,
+        "documentScrollWidth": 390,
+        "bodyClientWidth": 390,
+        "bodyScrollWidth": 390
+      },
+      "card": {
+        "x": 22,
+        "y": -1,
+        "width": 346,
+        "height": 259.5,
+        "top": -1,
+        "right": 368,
+        "bottom": 258.5,
+        "left": 22
+      },
+      "grid": {
+        "x": 22,
+        "y": -1,
+        "width": 346,
+        "height": 822.5,
+        "top": -1,
+        "right": 368,
+        "bottom": 821.5,
+        "left": 22
+      },
+      "maxTrackWidth": 346,
+      "image": {
+        "x": 151.8125,
+        "y": 28,
+        "width": 86.359375,
+        "height": 120.09375,
+        "top": 28,
+        "right": 238.171875,
+        "bottom": 148.09375,
+        "left": 151.8125
+      },
+      "badge": {
+        "x": 31,
+        "y": 8,
+        "width": 42.1875,
+        "height": 16,
+        "top": 8,
+        "right": 73.1875,
+        "bottom": 24,
+        "left": 31
+      },
+      "paper": {
+        "x": 23,
+        "y": 0,
+        "width": 344,
+        "height": 156.109375,
+        "top": 0,
+        "right": 367,
+        "bottom": 156.109375,
+        "left": 23
+      },
+      "info": {
+        "x": 23,
+        "y": 162.109375,
+        "width": 344,
+        "height": 95.390625,
+        "top": 162.109375,
+        "right": 367,
+        "bottom": 257.5,
+        "left": 23
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "narrow-touch-expanded-1",
+    "detail": {
+      "viewport": {
+        "width": 390,
+        "documentClientWidth": 390,
+        "documentScrollWidth": 390,
+        "bodyClientWidth": 390,
+        "bodyScrollWidth": 390
+      },
+      "card": {
+        "x": 22,
+        "y": 280.5,
+        "width": 346,
+        "height": 259.5,
+        "top": 280.5,
+        "right": 368,
+        "bottom": 540,
+        "left": 22
+      },
+      "grid": {
+        "x": 22,
+        "y": -1,
+        "width": 346,
+        "height": 822.5,
+        "top": -1,
+        "right": 368,
+        "bottom": 821.5,
+        "left": 22
+      },
+      "maxTrackWidth": 346,
+      "image": {
+        "x": 111.328125,
+        "y": 309.5,
+        "width": 167.34375,
+        "height": 120.09375,
+        "top": 309.5,
+        "right": 278.671875,
+        "bottom": 429.59375,
+        "left": 111.328125
+      },
+      "badge": {
+        "x": 31,
+        "y": 289.5,
+        "width": 42.1875,
+        "height": 16,
+        "top": 289.5,
+        "right": 73.1875,
+        "bottom": 305.5,
+        "left": 31
+      },
+      "paper": {
+        "x": 23,
+        "y": 281.5,
+        "width": 344,
+        "height": 156.109375,
+        "top": 281.5,
+        "right": 367,
+        "bottom": 437.609375,
+        "left": 23
+      },
+      "info": {
+        "x": 23,
+        "y": 443.609375,
+        "width": 344,
+        "height": 95.390625,
+        "top": 443.609375,
+        "right": 367,
+        "bottom": 539,
+        "left": 23
+      },
+      "publicationBadge": null,
+      "ratio": 1.4,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "narrow-touch-expanded-2",
+    "detail": {
+      "viewport": {
+        "width": 390,
+        "documentClientWidth": 390,
+        "documentScrollWidth": 390,
+        "bodyClientWidth": 390,
+        "bodyScrollWidth": 390
+      },
+      "card": {
+        "x": 22,
+        "y": 562,
+        "width": 346,
+        "height": 259.5,
+        "top": 562,
+        "right": 368,
+        "bottom": 821.5,
+        "left": 22
+      },
+      "grid": {
+        "x": 22,
+        "y": -1,
+        "width": 346,
+        "height": 822.5,
+        "top": -1,
+        "right": 368,
+        "bottom": 821.5,
+        "left": 22
+      },
+      "maxTrackWidth": 346,
+      "image": {
+        "x": 161.53125,
+        "y": 591,
+        "width": 66.9375,
+        "height": 92.90625,
+        "top": 591,
+        "right": 228.46875,
+        "bottom": 683.90625,
+        "left": 161.53125
+      },
+      "badge": {
+        "x": 31,
+        "y": 571,
+        "width": 42.1875,
+        "height": 16,
+        "top": 571,
+        "right": 73.1875,
+        "bottom": 587,
+        "left": 31
+      },
+      "paper": {
+        "x": 23,
+        "y": 563,
+        "width": 344,
+        "height": 128.921875,
+        "top": 563,
+        "right": 367,
+        "bottom": 691.921875,
+        "left": 23
+      },
+      "info": {
+        "x": 23,
+        "y": 697.921875,
+        "width": 344,
+        "height": 122.578125,
+        "top": 697.921875,
+        "right": 367,
+        "bottom": 820.5,
+        "left": 23
+      },
+      "publicationBadge": {
+        "x": 327,
+        "y": 575,
+        "width": 28,
+        "height": 28,
+        "top": 575,
+        "right": 355,
+        "bottom": 603,
+        "left": 327
+      },
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "320px-mixed-card-dimensions",
+    "detail": [
+      {
+        "width": 276,
+        "height": 207,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": false,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": true,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": true,
+        "directory": false
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": false,
+        "directory": true
+      },
+      {
+        "width": 276,
+        "height": 207,
+        "paper": true,
+        "directory": false
+      }
+    ]
+  },
+  {
+    "name": "small-320px-touch-0",
+    "detail": {
+      "viewport": {
+        "width": 320,
+        "documentClientWidth": 320,
+        "documentScrollWidth": 320,
+        "bodyClientWidth": 320,
+        "bodyScrollWidth": 320
+      },
+      "card": {
+        "x": 22,
+        "y": -33,
+        "width": 276,
+        "height": 207,
+        "top": -33,
+        "right": 298,
+        "bottom": 174,
+        "left": 22
+      },
+      "grid": {
+        "x": 22,
+        "y": -33,
+        "width": 276,
+        "height": 665,
+        "top": -33,
+        "right": 298,
+        "bottom": 632,
+        "left": 22
+      },
+      "maxTrackWidth": 276,
+      "image": {
+        "x": 135.5625,
+        "y": -4,
+        "width": 48.859375,
+        "height": 67.59375,
+        "top": -4,
+        "right": 184.421875,
+        "bottom": 63.59375,
+        "left": 135.5625
+      },
+      "badge": {
+        "x": 31,
+        "y": -24,
+        "width": 42.1875,
+        "height": 16,
+        "top": -24,
+        "right": 73.1875,
+        "bottom": -8,
+        "left": 31
+      },
+      "paper": {
+        "x": 23,
+        "y": -32,
+        "width": 274,
+        "height": 103.609375,
+        "top": -32,
+        "right": 297,
+        "bottom": 71.609375,
+        "left": 23
+      },
+      "info": {
+        "x": 23,
+        "y": 77.609375,
+        "width": 274,
+        "height": 95.390625,
+        "top": 77.609375,
+        "right": 297,
+        "bottom": 173,
+        "left": 23
+      },
+      "publicationBadge": null,
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "small-320px-touch-1",
+    "detail": {
+      "viewport": {
+        "width": 320,
+        "documentClientWidth": 320,
+        "documentScrollWidth": 320,
+        "bodyClientWidth": 320,
+        "bodyScrollWidth": 320
+      },
+      "card": {
+        "x": 22,
+        "y": 196,
+        "width": 276,
+        "height": 207,
+        "top": 196,
+        "right": 298,
+        "bottom": 403,
+        "left": 22
+      },
+      "grid": {
+        "x": 22,
+        "y": -33,
+        "width": 276,
+        "height": 665,
+        "top": -33,
+        "right": 298,
+        "bottom": 632,
+        "left": 22
+      },
+      "maxTrackWidth": 276,
+      "image": {
+        "x": 113.078125,
+        "y": 225,
+        "width": 93.84375,
+        "height": 67.59375,
+        "top": 225,
+        "right": 206.921875,
+        "bottom": 292.59375,
+        "left": 113.078125
+      },
+      "badge": {
+        "x": 31,
+        "y": 205,
+        "width": 42.1875,
+        "height": 16,
+        "top": 205,
+        "right": 73.1875,
+        "bottom": 221,
+        "left": 31
+      },
+      "paper": {
+        "x": 23,
+        "y": 197,
+        "width": 274,
+        "height": 103.609375,
+        "top": 197,
+        "right": 297,
+        "bottom": 300.609375,
+        "left": 23
+      },
+      "info": {
+        "x": 23,
+        "y": 306.609375,
+        "width": 274,
+        "height": 95.390625,
+        "top": 306.609375,
+        "right": 297,
+        "bottom": 402,
+        "left": 23
+      },
+      "publicationBadge": null,
+      "ratio": 1.4,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  },
+  {
+    "name": "small-320px-touch-2",
+    "detail": {
+      "viewport": {
+        "width": 320,
+        "documentClientWidth": 320,
+        "documentScrollWidth": 320,
+        "bodyClientWidth": 320,
+        "bodyScrollWidth": 320
+      },
+      "card": {
+        "x": 22,
+        "y": 425,
+        "width": 276,
+        "height": 207,
+        "top": 425,
+        "right": 298,
+        "bottom": 632,
+        "left": 22
+      },
+      "grid": {
+        "x": 22,
+        "y": -33,
+        "width": 276,
+        "height": 665,
+        "top": -33,
+        "right": 298,
+        "bottom": 632,
+        "left": 22
+      },
+      "maxTrackWidth": 276,
+      "image": {
+        "x": 145.28125,
+        "y": 454,
+        "width": 29.4375,
+        "height": 40.40625,
+        "top": 454,
+        "right": 174.71875,
+        "bottom": 494.40625,
+        "left": 145.28125
+      },
+      "badge": {
+        "x": 31,
+        "y": 434,
+        "width": 42.1875,
+        "height": 16,
+        "top": 434,
+        "right": 73.1875,
+        "bottom": 450,
+        "left": 31
+      },
+      "paper": {
+        "x": 23,
+        "y": 426,
+        "width": 274,
+        "height": 76.421875,
+        "top": 426,
+        "right": 297,
+        "bottom": 502.421875,
+        "left": 23
+      },
+      "info": {
+        "x": 23,
+        "y": 508.421875,
+        "width": 274,
+        "height": 122.578125,
+        "top": 508.421875,
+        "right": 297,
+        "bottom": 631,
+        "left": 23
+      },
+      "publicationBadge": {
+        "x": 257,
+        "y": 438,
+        "width": 28,
+        "height": 28,
+        "top": 438,
+        "right": 285,
+        "bottom": 466,
+        "left": 257
+      },
+      "ratio": 0.7142857142857143,
+      "filter": "none",
+      "objectFit": "contain"
+    }
+  }
+]
