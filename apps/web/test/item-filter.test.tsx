@@ -117,6 +117,7 @@ vi.mock("react", async (original) => {
 import { useItemLists } from "../src/item-filter.js";
 import { useActionItems } from "../src/action-items.js";
 import { AccountManager } from "../src/manager.js";
+import { LoadingIndicator } from "../src/loading.js";
 import { PublicationDialog } from "../src/publications.js";
 
 function render() {
@@ -234,7 +235,10 @@ describe("item filter lifecycle", () => {
     className?: string;
     value?: string;
     disabled?: boolean;
+    label?: string;
+    compact?: boolean;
     "aria-label"?: string;
+    onClick?: () => void;
     onChange?: (event: {
       target: { value: string };
       currentTarget?: { files: File[] };
@@ -266,6 +270,58 @@ describe("item filter lifecycle", () => {
     effects();
     return tree;
   }
+  it("uses one loader for initial items and filtering, then stops on failure and recovers on retry", async () => {
+    vi.stubGlobal("document", {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    vi.stubGlobal("localStorage", { getItem: () => null });
+    const respond = async (path: string) =>
+      path.startsWith("/api/tokens")
+        ? Response.json({ tokens: [] })
+        : path.startsWith("/api/publications")
+          ? Response.json({
+              publications: [targetPublication],
+              nextCursor: null,
+            })
+          : reply(path);
+    host.fetch.mockImplementation(respond);
+    const loader = (tree: ReactNode) =>
+      find(tree, (node) => node.type === LoadingIndicator);
+    let tree = renderManager();
+    expect(loader(tree)?.props).toMatchObject({
+      label: "Loading your pins...",
+      compact: false,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(loader(renderManager())).toBeUndefined();
+    const filterInput = (
+      managerFilter.props.children as ReactElement<InputHandlers>[]
+    )[0]!.props;
+    filterInput.onChange({ target: { value: "query" } });
+    tree = renderManager();
+    expect(loader(tree)?.props).toMatchObject({
+      label: "Filtering...",
+      compact: true,
+    });
+    expect(
+      find(tree, (node) => node.props.className === "pin-list"),
+    ).toBeDefined();
+    host.fetch.mockResolvedValue(new Response("", { status: 503 }));
+    await vi.advanceTimersByTimeAsync(200);
+    tree = renderManager();
+    expect(loader(tree)).toBeUndefined();
+    const retry = find(
+      tree,
+      (node) => node.type === "button" && node.props.children === "Try again",
+    );
+    expect(retry).toBeDefined();
+    host.fetch.mockImplementation(respond);
+    retry?.props.onClick?.();
+    expect(loader(renderManager())?.props.compact).toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(loader(renderManager())).toBeUndefined();
+  });
   describe("unfiltered action choices", () => {
     it("loads only on demand, follows unfiltered cursors, and reports errors with retry", async () => {
       host.fetch.mockImplementation(async (path: string) => {

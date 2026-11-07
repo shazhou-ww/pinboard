@@ -161,6 +161,13 @@ floating action. There is no visible wall title or explanatory footer. Drop
 instructions appear in the empty state, on drag-over and in the Add tooltip
 instead of occupying a permanent row above the pins.
 
+On refresh, the shared header and content-wall frame remain neutral until the
+session is known: neither pins nor sign-in content is shown prematurely. Session
+and item-list loading use a single spinner instead of duplicate visible status
+lines, with accessible loading labels and reduced-motion support. The sign-in
+page appears only after the session is confirmed signed out. Filtering and
+pagination keep existing items visible with a compact loading indicator.
+
 Click or tap a pin or publication card to open its details and management
 actions; keyboard users can activate the card's details button with Enter or
 Space. Cards have no custom right-click menu or overflow button, preserving the

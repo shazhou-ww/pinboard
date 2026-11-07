@@ -213,10 +213,44 @@ describe("Pinboard interface", () => {
     expect(html).toContain('aria-busy="true"');
     expect(html).not.toContain('href="/api/auth/signout"');
   });
-  it("renders loading, failure and unconfigured-provider states", () => {
-    expect(
-      renderToStaticMarkup(<Dashboard state={{ kind: "loading" }} />),
-    ).toContain("Checking your session");
+  it("keeps the content-wall shell neutral until the session is known", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard state={{ kind: "loading" }} />,
+    );
+    expect(html).toContain('class="shell home-shell canvas-shell"');
+    expect(html).toContain('class="home-header"');
+    expect(html).toContain('class="canvas"');
+    expect(html.match(/role="status"/g)).toHaveLength(1);
+    expect(html).toContain('aria-label="Loading Pinboard..."');
+    expect(html).toContain('class="loading-spinner" aria-hidden="true"');
+    expect(html).not.toContain('class="intro"');
+    expect(html).not.toContain("Sign in");
+    expect(html).not.toContain("Continue with");
+    expect(html).not.toContain("Account options");
+    expect(html).not.toContain("Your pins");
+    expect(html).not.toContain("Keep something here.");
+    expect(html).not.toContain("Checking your session");
+    expect(html).not.toContain('aria-label="Pinboard tools"');
+  });
+  it("uses the same single loading indicator while fetching pins", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard
+        state={{
+          kind: "ready",
+          bootstrap,
+          session: { user: { name: "Alice" } },
+        }}
+      />,
+    );
+    expect(html.match(/class="loading-indicator"/g)).toHaveLength(1);
+    expect(html).toContain('aria-label="Loading your pins..."');
+    expect(html).toContain('class="loading-spinner" aria-hidden="true"');
+    expect(html).not.toContain(">Loading your pins...</");
+    expect(html).not.toContain("Checking your session");
+    expect(html).not.toContain("Keep something here.");
+    expect(html).not.toContain('class="pin-list"');
+  });
+  it("renders failure and unconfigured-provider states", () => {
     expect(
       renderToStaticMarkup(
         <Dashboard state={{ kind: "error", message: "HTTP 503" }} />,
