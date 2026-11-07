@@ -889,8 +889,8 @@ footer {
 .loading-spinner {
   width: 28px;
   height: 28px;
-  border: 2px solid #dce1d8;
-  border-top-color: #326849;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: loading-spin 0.8s linear infinite;
 }
