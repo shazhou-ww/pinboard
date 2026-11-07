@@ -2,7 +2,7 @@
 
 本文只记录 [Idea](./Idea.md)
 的现状事实，目标决策统一见[3 号设计](./03-Normalized-preview-design.md)。业务代码基线为
-`ab0d6ed31426c2fbeca5feca47ab4cef81393e02`；这是 PDF 实施前的快照，不表示 PDF 首页已经实现。待 PDF 完成并合入主线后再刷新基线。
+`ab0d6ed31426c2fbeca5feca47ab4cef81393e02`；这是 PDF 实施前的历史快照，不描述当前部署状态。PDF 的实施进展见其[实施证据](../../../../01M6SSPF59MS6DY1MV1JWFZD4N/outer/inner/Implementation-evidence.md)；本 Idea 编码前再基于已合入实现刷新完整现状。
 
 ## 1. 当前编码：contentType 判别的是物料
 

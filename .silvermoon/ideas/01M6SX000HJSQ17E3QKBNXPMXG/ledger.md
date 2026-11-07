@@ -11,7 +11,7 @@
 ### Implementation acceptance criteria
 
 - [ ] **I-AC01:** 协议可独立表达类型和物料
-- [ ] **I-AC02:** 所有展示入口一致降级
+- [ ] **I-AC02:** 所有展示入口保留类型语义并一致降级
 - [ ] **I-AC03:** 缓存升级与现有行为可回归
 
 ## Deployment
