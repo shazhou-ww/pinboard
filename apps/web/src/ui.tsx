@@ -6,6 +6,7 @@ import type {
 import { useRef, type MouseEventHandler, type ReactNode } from "react";
 import { AccountManager } from "./manager.js";
 import { Icon } from "./icon.js";
+import { LoadingIndicator } from "./loading.js";
 
 export type DashboardState =
   | { readonly kind: "loading" }
@@ -23,6 +24,7 @@ export function HomeHeader({
   signingOut = false,
   disabled = false,
   filter,
+  showSignIn = true,
 }: {
   user: SessionUser | null;
   onSettings?: () => void;
@@ -30,6 +32,7 @@ export function HomeHeader({
   signingOut?: boolean;
   disabled?: boolean;
   filter?: ReactNode;
+  showSignIn?: boolean;
 }) {
   const menu = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -108,11 +111,11 @@ export function HomeHeader({
             </button>
           </div>
         </>
-      ) : (
+      ) : showSignIn ? (
         <a className="header-signin" href="#signin">
           Sign in
         </a>
-      )}
+      ) : null}
     </header>
   );
 }
@@ -131,10 +134,11 @@ export function Dashboard({
   readonly signingOut?: boolean;
 }) {
   const user = state.kind === "ready" ? (state.session?.user ?? null) : null;
+  const signedOut = state.kind === "ready" && !user;
   return (
-    <main className={`shell home-shell${user ? " canvas-shell" : ""}`}>
-      {!user ? <HomeHeader user={null} /> : null}
-      {!user ? (
+    <main className={`shell home-shell${signedOut ? "" : " canvas-shell"}`}>
+      {!user ? <HomeHeader user={null} showSignIn={signedOut} /> : null}
+      {signedOut ? (
         <section className="intro">
           <p className="eyebrow">A quiet home for content-addressed things</p>
           <h1>
@@ -150,7 +154,9 @@ export function Dashboard({
         </section>
       ) : null}
       {state.kind === "loading" ? (
-        <p role="status">Checking your session...</p>
+        <div className="canvas">
+          <LoadingIndicator label="Loading Pinboard..." />
+        </div>
       ) : state.kind === "error" ? (
         <div className="notice" role="alert">
           <p>{state.message}</p>

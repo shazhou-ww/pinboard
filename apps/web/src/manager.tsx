@@ -34,6 +34,7 @@ import { BackgroundSettings } from "./background.js";
 import { NodeDescriptionEditor } from "./node-description.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
+import { LoadingIndicator } from "./loading.js";
 
 const pinDragType = "application/x-pinboard-pin";
 type UploadTarget = Pin | Publication;
@@ -917,13 +918,12 @@ export function AccountManager({
         aria-busy={lists.loading}
       >
         <h1 className="visually-hidden">Your pins</h1>
-        <div role="status" aria-live="polite" aria-atomic="true">
-          {lists.loading
-            ? lists.filtered
-              ? "Filtering..."
-              : "Loading your pins..."
-            : ""}
-        </div>
+        {lists.loading && !lists.error ? (
+          <LoadingIndicator
+            label={lists.filtered ? "Filtering..." : "Loading your pins..."}
+            compact={loaded}
+          />
+        ) : null}
         {lists.error ? (
           <div role="alert">
             <p>{lists.error}</p>
@@ -931,9 +931,9 @@ export function AccountManager({
               Try again
             </button>
           </div>
-        ) : !loaded ? (
-          <p role="status">Loading your pins...</p>
-        ) : !pins.length && !publications.length && !lists.loading ? (
+        ) : !loaded ? null : !pins.length &&
+          !publications.length &&
+          !lists.loading ? (
           lists.filtered ? (
             <div className="canvas-empty">
               <p>No items match this filter.</p>

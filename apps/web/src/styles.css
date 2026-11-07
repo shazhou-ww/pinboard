@@ -878,6 +878,27 @@ footer {
   min-height: calc(100dvh - 64px);
   padding: 16px 0 88px;
 }
+.loading-indicator {
+  min-height: 50dvh;
+  display: grid;
+  place-items: center;
+}
+.loading-indicator-compact {
+  min-height: 44px;
+}
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .pin-wall .pin-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
@@ -1058,6 +1079,9 @@ footer {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
   .item-filter,
   .pin-info,
   .pin-info-cid {
