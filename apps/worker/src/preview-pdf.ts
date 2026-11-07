@@ -308,12 +308,14 @@ export async function renderPdf(
         }
       }
       check();
-      const scale = Math.min(1, 480 / Math.max(sourceWidth, sourceHeight));
-      const width = Math.max(1, Math.min(480, Math.round(sourceWidth * scale)));
-      const height = Math.max(
+      const width = Math.max(4, Math.floor(Math.min(480, sourceWidth) / 4) * 4);
+      const height = (width / 4) * 3;
+      const pageHeight = Math.max(
         1,
-        Math.min(480, Math.round(sourceHeight * scale)),
+        Math.round(sourceHeight * (width / sourceWidth)),
       );
+      if (!Number.isSafeInteger(pageHeight) || pageHeight > 0x7fffffff)
+        throw new PreviewLimit("PDF exceeds render dimension budget");
       const pointer = allocate(state, width * height * 4);
       pointers.push(pointer);
       bitmap = state.call(
@@ -344,7 +346,7 @@ export async function renderPdf(
         0,
         0,
         width,
-        height,
+        pageHeight,
         0,
         0,
       );

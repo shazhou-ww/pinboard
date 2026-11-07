@@ -19,7 +19,7 @@ import {
   PreviewUnsupported,
 } from "./preview-limits.js";
 
-export const PREVIEW_VERSION = 3;
+export const PREVIEW_VERSION = 4;
 export const PREVIEW_RETENTION_MS = 7 * 86400000;
 const MAX_FILE = 8 * 1024 * 1024;
 const MAX_TEXT = 2400;

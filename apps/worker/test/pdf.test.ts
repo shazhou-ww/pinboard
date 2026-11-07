@@ -25,7 +25,7 @@ it("renders and encodes deterministic first-page rasters, with bounded persisten
   const bytes = simplePdf();
   for (let index = 0; index < 3; index++) {
     const raster = await renderPdf(source(bytes));
-    expect(raster).toMatchObject({ width: 200, height: 200 });
+    expect(raster).toMatchObject({ width: 200, height: 150 });
     expect([...raster.data.slice(0, 4)]).toEqual([255, 0, 0, 255]);
     const result = await encodeRaster(raster);
     expect(result.bytes.length).toBeLessThanOrEqual(65536);
@@ -39,6 +39,53 @@ it("renders and encodes deterministic first-page rasters, with bounded persisten
     nativeBytes: 32 * 1024 * 1024,
     occupied: false,
   });
+});
+it.each([
+  [600, 900, 480, 360],
+  [800, 600, 480, 360],
+  [1000, 500, 480, 360],
+  [339, 480, 336, 252],
+  [1, 100000, 4, 3],
+])(
+  "renders %sx%s pages into an exact %sx%s 4:3 viewport",
+  async (width, height, expectedWidth, expectedHeight) => {
+    const raster = await renderPdf(source(simplePdf({ width, height })));
+    expect(raster).toMatchObject({
+      width: expectedWidth,
+      height: expectedHeight,
+    });
+    expect(raster.width * 3).toBe(raster.height * 4);
+    const encoded = await encodeRaster(raster);
+    expect(encoded.width * 3).toBe(encoded.height * 4);
+  },
+);
+it("crops portrait page bottoms without shrinking or stretching their top content", async () => {
+  const raster = await renderPdf(
+    source(
+      simplePdf({
+        width: 400,
+        height: 800,
+        content: "1 0 0 rg 0 500 400 300 re f\n0 0 1 rg 0 0 400 500 re f",
+      }),
+    ),
+  );
+  expect(raster).toMatchObject({ width: 400, height: 300 });
+  expect([...raster.data.slice(0, 4)]).toEqual([255, 0, 0, 255]);
+  expect([...raster.data.slice(-4)]).toEqual([255, 0, 0, 255]);
+});
+it("preserves landscape page proportions with white space below the page", async () => {
+  const raster = await renderPdf(
+    source(
+      simplePdf({
+        width: 400,
+        height: 200,
+        content: "0 0 1 rg 0 0 400 200 re f",
+      }),
+    ),
+  );
+  expect(raster).toMatchObject({ width: 400, height: 300 });
+  expect([...raster.data.slice(0, 4)]).toEqual([0, 0, 255, 255]);
+  expect([...raster.data.slice(-4)]).toEqual([255, 255, 255, 255]);
 });
 it("performs asynchronous availability rounds and matches full reads", async () => {
   const bytes = largeSecondPagePdf();
@@ -61,6 +108,7 @@ it("rejects encrypted/invalid/unsupported capabilities instead of publishing bla
     simplePdf({ annotation: true }),
     cjkPdf("한국", false, true),
     simplePdf({ width: 0 }),
+    simplePdf({ width: 1, height: 1e12 }),
     simplePdf({ crop: "300 300 500 500" }),
     simplePdf({ crop: "10 0 0 10" }),
   ])

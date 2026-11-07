@@ -62,25 +62,28 @@ describe("typed, display-only content previews", () => {
       );
     }
   });
-  it("reserves actual layout space for expanded information bands instead of clipping the paper", () => {
+  it("keeps PDF paper below the overlay in the same fixed-size card as other content", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
       "utf8",
     );
-    expect(styles).toMatch(
-      /\.pin-wall \.pin-card:has\(\.has-paper\)\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\) auto;[^}]*width:\s*100%;/u,
+    expect(styles).not.toMatch(
+      /\.pin-(?:wall \.pin-)?card:has\(\.has-paper\)/u,
     );
     expect(styles).toMatch(
-      /\.pin-wall \.pin-card:has\(\.has-paper\)\s*\{[^}]*min-height:\s*0;/u,
+      /\.pin-card \.pin-preview\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/u,
     );
     expect(styles).toMatch(
-      /\.pin-card \.pin-preview\.has-paper\s*\{[^}]*height:\s*auto;/u,
+      /\.pin-info\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*auto 0 0;/u,
     );
     expect(styles).toMatch(
-      /\.pin-card:has\(\.has-paper\) \.pin-info\s*\{[^}]*position:\s*relative;/u,
+      /\.pin-card \.pin-preview\.has-paper\s*\{[^}]*height:\s*100%;/u,
     );
     expect(styles).toMatch(
-      /\.pin-preview \.preview-paper img\s*\{[^}]*max-height:\s*100%;[^}]*object-fit:\s*contain;/u,
+      /\.preview-paper-sheet\s*\{[^}]*aspect-ratio:\s*4 \/ 3;[^}]*overflow:\s*hidden;[^}]*border-bottom:\s*0;[^}]*box-shadow:\s*-3px 0 6px -2px var\(--shadow\),\s*3px 0 6px -2px var\(--shadow\),\s*0 -3px 6px -2px var\(--shadow\);/u,
+    );
+    expect(styles).toMatch(
+      /\.pin-preview \.preview-paper img\s*\{[^}]*width:\s*100%;[^}]*height:\s*100%;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center top;/u,
     );
   });
   it("keeps polling transient backend retries across their backoff without retrying terminal failures", () => {

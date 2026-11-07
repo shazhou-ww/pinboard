@@ -140,7 +140,7 @@ it("renders independent red/blue first-page expectations, rotation and CropBox",
     [
       {},
       200,
-      200,
+      150,
       [
         [20, 20, [255, 0, 0, 255]],
         [180, 20, [0, 0, 255, 255]],
@@ -149,19 +149,19 @@ it("renders independent red/blue first-page expectations, rotation and CropBox",
     [
       { rotate: 90 },
       200,
-      200,
+      150,
       [
         [20, 20, [255, 0, 0, 255]],
-        [20, 180, [0, 0, 255, 255]],
+        [20, 130, [0, 0, 255, 255]],
       ],
     ],
     [
       { crop: "0 0 100 200" },
       100,
-      200,
+      75,
       [
         [20, 20, [255, 0, 0, 255]],
-        [80, 180, [255, 0, 0, 255]],
+        [80, 60, [255, 0, 0, 255]],
       ],
     ],
   ] as const) {
@@ -183,7 +183,7 @@ it("encodes <=480px/64KiB WebP without initializing image decoders", async () =>
   expect(result.headers.get("content-type")).toBe("image/webp");
   expect(JSON.parse(result.headers.get("x-stats")!)).toMatchObject({
     width: 480,
-    height: 240,
+    height: 360,
     owner: "pdf",
     nativeBytes: 33554432,
   });
@@ -195,7 +195,7 @@ it("renders embedded images against independent color expectations and rejects e
   const pixels = new Uint8Array(await image.arrayBuffer());
   expect(pixel(pixels, 200, 20, 20)).toEqual([255, 0, 0, 255]);
   expect(pixel(pixels, 200, 180, 20)).toEqual([0, 0, 255, 255]);
-  expect(pixel(pixels, 200, 20, 180)).toEqual([0, 255, 0, 255]);
+  expect(pixel(pixels, 200, 20, 130)).toEqual([0, 255, 0, 255]);
   const encrypted = await render(passwordPdf());
   expect(encrypted.status).toBe(422);
   expect(await encrypted.text()).toContain("Password-protected");
@@ -302,7 +302,7 @@ it("publishes the generic WebP descriptor through protected, public publication 
     await runtime.dispatchFetch(privatePath, { headers })
   ).json()) as ContentPreview;
   expect(descriptor).toMatchObject({
-    version: 3,
+    version: 4,
     status: "ready",
     contentType: "application/pdf",
     preview: { kind: "image" },
@@ -442,8 +442,8 @@ it.each(["resume", "fail", "cancel"] as const)(
           await runtime.dispatchFetch("https://pdf.test/arena-digest")
         ).arrayBuffer(),
       );
-    const expected = new Uint8Array(200 * 200 * 4);
-    for (let y = 0; y < 200; y++)
+    const expected = new Uint8Array(200 * 150 * 4);
+    for (let y = 0; y < 150; y++)
       for (let x = 0; x < 200; x++)
         expected.set(
           x < 100 ? [255, 0, 0, 255] : [0, 0, 255, 255],

@@ -9,15 +9,22 @@ PDFs preserve their MIME and reliable logical size with null material. PDFium
 still returns pixels only; orchestration owns encoding, CID, URL and descriptor
 assembly.
 
-The shared UI displays the whole page as floating paper, with an upper-left PDF
-badge and separate information-band space. Ordinary images retain their centered
-crop. Missing or unloadable material becomes a PDF type-icon cover without a
-failure message; generation diagnostics and bounded retries remain unchanged.
+PDF thumbnails use a fixed 4:3 viewport: page zero is scaled to its width
+without stretching, portrait pages are cropped from the top, and wider landscape
+pages have white space below. The shared UI displays this as paper with
+top/left/right edge shadows and a clipped bottom, with an upper-left PDF badge.
+PDF cards use the same fixed 4:3 size as other cards; the information band
+overlays the paper and never resizes it when expanded. Older full-page
+thumbnails are top-cropped by the UI while preview version 4 regenerates
+retained sources. Ordinary images retain their centered crop. Missing or
+unloadable material becomes a PDF type-icon cover without a failure message;
+generation diagnostics and bounded retries remain unchanged.
 
 ## Supported content and failure policy
 
-- Only page zero, white background, preserved aspect ratio, at most 480 pixels
-  on the longest edge and 65,536 encoded bytes.
+- Only page zero, white background, preserved page proportions in an exact 4:3
+  viewport, at most 480 pixels wide and 65,536 encoded bytes. Bitmap allocation
+  is bounded by the viewport, not the full scaled portrait page.
 - Ordinary pages, embedded images, rotation and intersecting MediaBox/CropBox
   bounds; empty pages are allowed. Non-finite, zero or disjoint bounds fail.
 - Bundled Droid Sans Fallback supports the tested simplified/traditional Chinese
