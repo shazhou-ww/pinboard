@@ -1,20 +1,17 @@
 import decodeJpeg, { init as initJpeg } from "@jsquash/jpeg/decode.js";
-import jpegWasm from "@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm";
-import decodePng, { init as initPng } from "@jsquash/png/decode.js";
-import pngWasm from "@jsquash/png/codec/pkg/squoosh_png_bg.wasm";
+import jpegWasm from "../.preview-assets/jpeg.wasm";
+import initPng, {
+  decode as decodePng,
+} from "../.preview-assets/preview-png.js";
+import pngWasm from "../.preview-assets/png.wasm";
 import decodeWebp, { init as initWebp } from "@jsquash/webp/decode.js";
-import webpWasm from "@jsquash/webp/codec/dec/webp_dec.wasm";
-import createEncoder from "@jsquash/webp/codec/enc/webp_enc.js";
-import encoderWasm from "@jsquash/webp/codec/enc/webp_enc.wasm";
-import { defaultOptions } from "@jsquash/webp/meta.js";
+import webpWasm from "../.preview-assets/webp.wasm";
+import { encodeRaster, type Raster } from "./preview-raster.js";
+import { nativeSession } from "./preview-native.js";
 
 export const MAX_IMAGE_PIXELS = 2_000_000;
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-export interface Raster {
-  width: number;
-  height: number;
-  data: Uint8ClampedArray;
-}
+export type { Raster } from "./preview-raster.js";
 
 export function imageInfo(bytes: Uint8Array): {
   type: "image/png" | "image/jpeg" | "image/webp";
@@ -77,69 +74,7 @@ export function imageInfo(bytes: Uint8Array): {
   return null;
 }
 
-function resize(source: Raster, edge: number): Raster {
-  const scale = Math.min(1, edge / Math.max(source.width, source.height));
-  const width = Math.max(1, Math.round(source.width * scale));
-  const height = Math.max(1, Math.round(source.height * scale));
-  const data = new Uint8ClampedArray(width * height * 4);
-  // Area averaging avoids aliasing and preserves transparency at small sizes.
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const sum = [0, 0, 0, 0];
-      let count = 0;
-      for (
-        let sy = Math.floor(y / scale);
-        sy < Math.min(source.height, Math.ceil((y + 1) / scale));
-        sy++
-      ) {
-        for (
-          let sx = Math.floor(x / scale);
-          sx < Math.min(source.width, Math.ceil((x + 1) / scale));
-          sx++
-        ) {
-          const index = (sy * source.width + sx) * 4;
-          const alpha = source.data[index + 3]! / 255;
-          for (let c = 0; c < 3; c++)
-            sum[c]! += source.data[index + c]! * alpha;
-          sum[3]! += alpha;
-          count++;
-        }
-      }
-      const index = (y * width + x) * 4;
-      for (let c = 0; c < 3; c++)
-        data[index + c] = sum[3] ? sum[c]! / sum[3] : 0;
-      data[index + 3] = (255 * sum[3]!) / count;
-    }
-  }
-  return { width, height, data };
-}
-
-let initialized: Promise<Awaited<ReturnType<typeof createEncoder>>> | undefined;
-function codecs() {
-  return (initialized ??= (async () => {
-    if (!("ImageData" in globalThis))
-      Object.assign(globalThis, {
-        ImageData: class {
-          constructor(
-            readonly data: Uint8ClampedArray,
-            readonly width: number,
-            readonly height: number,
-          ) {}
-        },
-      });
-    await initJpeg(jpegWasm);
-    await initPng(pngWasm);
-    await initWebp(webpWasm);
-    return createEncoder({
-      noInitialRun: true,
-      instantiateWasm(imports, callback) {
-        const instance = new WebAssembly.Instance(encoderWasm, imports);
-        callback(instance);
-        return instance.exports;
-      },
-    });
-  })());
-}
+let decoderGeneration = 0;
 
 export async function thumbnail(bytes: Uint8Array) {
   const info = imageInfo(bytes);
@@ -151,36 +86,36 @@ export async function thumbnail(bytes: Uint8Array) {
     info.width * info.height > MAX_IMAGE_PIXELS
   )
     throw new Error("Image exceeds 8 MiB / 2 million pixel decode limit");
-  const encoder = await codecs();
-  const buffer = bytes.slice().buffer;
-  const source =
-    info.type === "image/png"
-      ? await decodePng(buffer)
-      : info.type === "image/jpeg"
-        ? await decodeJpeg(buffer)
-        : await decodeWebp(buffer);
-  if (source.width * source.height > MAX_IMAGE_PIXELS)
-    throw new Error("Decoded image exceeds pixel limit");
-  for (const [edge, quality] of [
-    [480, 72],
-    [480, 45],
-    [320, 40],
-    [240, 30],
-  ] as const) {
-    const raster = resize(source, edge);
-    const output = encoder.encode(raster.data, raster.width, raster.height, {
-      ...defaultOptions,
-      quality,
-      method: 2,
-      alpha_quality: 80,
-    });
-    if (!output || output.length === 0) throw new Error("WebP encoding failed");
-    if (output.length <= 64 * 1024)
-      return {
-        bytes: output.slice(),
-        width: raster.width,
-        height: raster.height,
+  return nativeSession(info.type, async (memory, generation) => {
+    if (decoderGeneration !== generation) {
+      const module = info.type === "image/jpeg" ? jpegWasm : webpWasm;
+      const options = {
+        instantiateWasm(
+          imports: WebAssembly.Imports,
+          callback: (instance: WebAssembly.Instance) => void,
+        ) {
+          const instance = new WebAssembly.Instance(module, {
+            ...imports,
+            pinboard: { memory },
+          });
+          callback(instance);
+          return instance.exports;
+        },
       };
-  }
-  throw new Error("Thumbnail exceeds 64 KiB after bounded retries");
+      if (info.type === "image/png") await initPng(pngWasm, memory);
+      else if (info.type === "image/jpeg") await initJpeg(options);
+      else await initWebp(options);
+      decoderGeneration = generation;
+    }
+    const buffer = bytes.slice().buffer;
+    const decoded: Raster =
+      info.type === "image/png"
+        ? decodePng(new Uint8Array(buffer))
+        : info.type === "image/jpeg"
+          ? await decodeJpeg(buffer)
+          : await decodeWebp(buffer);
+    if (decoded.width * decoded.height > MAX_IMAGE_PIXELS)
+      throw new Error("Decoded image exceeds pixel limit");
+    return encodeRaster(decoded);
+  });
 }

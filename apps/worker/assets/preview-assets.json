@@ -1,0 +1,51 @@
+{
+  "tool": "wabt@1.0.39",
+  "records": {
+    "pdfium": {
+      "source": "@hyzyla/pdfium/pdfium.wasm",
+      "originalSha256": "beeaf5bbff216d555fecec7cd486072838c4632a2272d31b52ef1fd05008fe7c",
+      "sha256": "eb773988c99b904bf78350b602f6dbb5b6e6d45df6915f5f1414c4fc2cd2023f",
+      "maximumBytes": 33554432,
+      "shared": true
+    },
+    "jpeg": {
+      "source": "@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm",
+      "originalSha256": "a7c4b12169817e779ff4af137981393ae924944e167ad1bd95747c9199162d3e",
+      "sha256": "23ffc0e6770a75a4eb85a824bb128e53d7c819508f5ca92799964c639620663e",
+      "maximumBytes": 33554432,
+      "shared": true
+    },
+    "png": {
+      "source": "@jsquash/png/codec/pkg/squoosh_png_bg.wasm",
+      "originalSha256": "263d6e658808a74b72a1a99c5cc1d619237e70c150db6e41d5d84d3d117ab9be",
+      "sha256": "20ecbd26c7dbd4c7c1a8309ef99ce2e7e61d7fc7b7c795b2dd38e09b664eccb1",
+      "maximumBytes": 33554432,
+      "shared": true
+    },
+    "webp": {
+      "source": "@jsquash/webp/codec/dec/webp_dec.wasm",
+      "originalSha256": "30fb52fa2a80166d25ba7debf902218904ba1f05ccce9f959f722beff9e2f344",
+      "sha256": "01320278e6e106b50833bbbb84b7572828cc33b9ee56b8043950a8986766bb1f",
+      "maximumBytes": 33554432,
+      "shared": true
+    },
+    "encoder": {
+      "source": "@jsquash/webp/codec/enc/webp_enc.wasm",
+      "originalSha256": "b6085bb6702f144e9dc6016d58d230b34a84976bf0d080b7390b4b4b137d6ab7",
+      "sha256": "4fb2b5c5ab860f0905ca0b8cb7b98e254e85e2c7cb22559b2610b5e328a6768a",
+      "maximumBytes": 16777216,
+      "shared": true
+    },
+    "callbacks": {
+      "sha256": "25ec51b958e853610b17b85d9d7f30267fbe245e5c3ad1db581fae70f9bf2da1"
+    },
+    "pngGlue": {
+      "originalSha256": "65ebe1192f970c46263d52a122edf6bd01be81174c6bf1736a16f1e6f0e9b411",
+      "sha256": "937e0e849512c7d20d10108ce0b1d48b7260e86d15d63a9bb1c105902088dcaf"
+    },
+    "font": {
+      "sha256": "97320619b0f1ce4a7cda74cf064a0ce44ef3091287bc42755597e177cccf94c2",
+      "bytes": 4529044
+    }
+  }
+}

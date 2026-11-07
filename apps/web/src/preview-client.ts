@@ -183,10 +183,9 @@ export class PreviewClient {
       for (const [cid, result] of results) {
         if (result instanceof Error) {
           await this.invalidate(cid);
-        } else if (
-          result.status === "ready" ||
-          result.status === "unsupported"
-        ) {
+        } else if (result.status === "pending" || result.status === "failed") {
+          await this.invalidate(cid);
+        } else {
           const bytes = new TextEncoder().encode(JSON.stringify(result)).length;
           if (bytes <= previewEntryBytes) {
             const entry = {

@@ -14,9 +14,9 @@ const runtime = new Miniflare(
     modules: [
       { type: "ESModule", path: fileURLToPath(new URL("index.js", dist)) },
       ...(await readdir(dist))
-        .filter((name) => name.endsWith(".wasm"))
+        .filter((name) => name.endsWith(".wasm") || name.endsWith(".ttf"))
         .map((name) => ({
-          type: "CompiledWasm",
+          type: name.endsWith(".wasm") ? "CompiledWasm" : "Data",
           path: fileURLToPath(new URL(name, dist)),
         })),
     ],

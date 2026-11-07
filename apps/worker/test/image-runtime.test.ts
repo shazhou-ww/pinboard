@@ -49,9 +49,11 @@ beforeAll(async () => {
           path: fileURLToPath(new URL("image-entry.js", directory)),
         },
         ...(await readdir(directory))
-          .filter((name) => name.endsWith(".wasm"))
+          .filter((name) => name.endsWith(".wasm") || name.endsWith(".ttf"))
           .map((name) => ({
-            type: "CompiledWasm" as const,
+            type: name.endsWith(".wasm")
+              ? ("CompiledWasm" as const)
+              : ("Data" as const),
             path: fileURLToPath(new URL(name, directory)),
           })),
       ],

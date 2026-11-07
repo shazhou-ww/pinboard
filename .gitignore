@@ -1,4 +1,6 @@
 coverage/
+.preview-assets/
+*-test-dist/
 dist/
 node_modules/
 *.tgz

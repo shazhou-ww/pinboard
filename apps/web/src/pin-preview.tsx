@@ -6,6 +6,7 @@ import type {
 } from "@shazhou/pinboard-contracts";
 import { PreviewClient, PreviewRequestError } from "./preview-client.js";
 import { Icon } from "./icon.js";
+import { previewPollDelay } from "./preview-poll.js";
 
 function Thumbnail({ image, name }: { image: PreviewImage; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -173,10 +174,11 @@ export function PinPreview({
         const next = await previews.request(pin.cid);
         if (controller.signal.aborted) return;
         setPreview(next);
-        if (next.status === "pending" && ++requests < 24)
+        const delay = previewPollDelay(next, ++requests);
+        if (delay !== undefined)
           timer = setTimeout(() => {
             void load();
-          }, 2000);
+          }, delay);
       } catch (failure) {
         if (!controller.signal.aborted) {
           if (

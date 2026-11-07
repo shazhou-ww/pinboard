@@ -24,6 +24,8 @@ import { migrate } from "./migrations.js";
 import app from "../src/index.js";
 import { createToken } from "../src/tokens.js";
 import { expireDeleted } from "../src/recently-deleted.js";
+import { admitPreview } from "../src/preview-limits.js";
+import { simplePdf } from "./pdf-fixtures.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -100,6 +102,79 @@ async function releasePin(service: PinService, cid: string) {
 }
 
 describe("bounded source-derived previews", () => {
+  it("durably defers busy renderers without source reads or consuming content attempts", async () => {
+    const pin = await service.upload(simplePdf(), "file", "budget.pdf");
+    const start = Date.now();
+    let release!: () => void;
+    const wait = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const occupied = admitPreview(() => wait);
+    const read = vi.spyOn(env.BLOCKS, "get");
+    try {
+      await processPreview(env, pin.cid, start);
+      expect(read).not.toHaveBeenCalled();
+      expect((await getPreview(env, pin.cid)).status).toBe("pending");
+      expect((await getPreview(env, pin.cid)).reason).toContain("busy");
+      expect(
+        await env.DB.prepare(
+          "SELECT attempts, lease, retry_at FROM content_previews WHERE source_cid = ? AND version = ?",
+        )
+          .bind(pin.cid, PREVIEW_VERSION)
+          .first(),
+      ).toEqual({
+        attempts: 0,
+        lease: null,
+        retry_at: new Date(start + 2000).toISOString(),
+      });
+    } finally {
+      read.mockRestore();
+      release();
+      await occupied;
+    }
+    await processPreview(env, pin.cid, start + 2000);
+    expect(await getPreview(env, pin.cid)).toMatchObject({
+      version: 2,
+      status: "ready",
+      contentType: "image/webp",
+    });
+    await releasePin(service, pin.cid);
+  });
+  it("regenerates legacy unsupported PDF rows without altering old descriptors or creating source pins", async () => {
+    const pin = await service.upload(
+      simplePdf({ rotate: 180 }),
+      "file",
+      "legacy.pdf",
+    );
+    const legacy = {
+      version: 1,
+      status: "unsupported",
+      contentType: "application/vnd.pinboard.file+json",
+      content: { mediaType: "application/pdf" },
+      truncated: false,
+    };
+    await env.DB.prepare(
+      "UPDATE content_previews SET version = 1, status = 'unsupported', descriptor = ? WHERE source_cid = ? AND version = ?",
+    )
+      .bind(JSON.stringify(legacy), pin.cid, PREVIEW_VERSION)
+      .run();
+    await enqueuePreview(env, pin.cid);
+    expect((await getPreview(env, pin.cid)).status).toBe("pending");
+    await processPreview(env, pin.cid);
+    expect(await getPreview(env, pin.cid)).toMatchObject({
+      status: "ready",
+      contentType: "image/webp",
+      version: 2,
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT descriptor, active FROM content_previews WHERE source_cid = ? AND version = 1",
+      )
+        .bind(pin.cid)
+        .first(),
+    ).toEqual({ descriptor: JSON.stringify(legacy), active: 0 });
+    await releasePin(service, pin.cid);
+  });
   it("batches only owned previews, deduplicates CIDs and reports denied items without leaking shared metadata", async () => {
     const ownPin = await service.upload(
       text("batch owned excerpt"),
@@ -587,57 +662,61 @@ describe("bounded source-derived previews", () => {
 });
 
 describe("real images, CID delivery and retention references", () => {
-  it("generates and retains requested child previews through a parent DAG without creating a child Pin", async () => {
-    const original = await readFile(
-      new URL("fixtures/portrait.jpg", import.meta.url),
-    );
-    const source = Uint8Array.from([...original, 0x7e]);
-    const car = await buildDirectoryCar([
-      {
-        path: "child.jpg",
-        size: source.length,
-        content: (async function* () {
-          yield await Promise.resolve(source);
-        })(),
-      },
-    ]);
-    const parent = await service.upload(
-      car.bytes,
-      "car",
-      "Private parent name",
-    );
-    const child = [...(await readCar(car.bytes)).blocks.keys()].find(
-      (cid) => cid !== parent.cid,
-    )!;
-    expect(
-      await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
-    ).toBe(0);
-    expect((await getPreview(env, child)).status).toBe("pending");
-    await processPreview(env, child);
-    const value = await getPreview(env, child);
-    expect(value.status).toBe("ready");
-    if (value.contentType !== "image/webp")
-      throw new Error("not a child image");
-    await runPreviews(env, Date.now() + 8 * 86400000);
-    expect((await getPreview(env, child)).status).toBe("ready");
-    expect(await getBlock(env, value.content.cid)).not.toBeNull();
-    expect(
-      await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
-    ).toBe(0);
-    await releasePin(service, parent.cid);
-    await env.DB.prepare(
-      "UPDATE content_previews SET unreferenced_at = '2000-01-01' WHERE source_cid = ?",
-    )
-      .bind(child)
-      .run();
-    await runPreviews(env);
-    expect(
-      await count(
-        "SELECT count(*) AS n FROM content_previews WHERE source_cid = ?",
-        child,
-      ),
-    ).toBe(0);
-  });
+  it.each(["image", "pdf"])(
+    "generates and retains requested %s child previews through a parent DAG without creating a child Pin",
+    async (format) => {
+      const original =
+        format === "pdf"
+          ? simplePdf({ rotate: 90 })
+          : await readFile(new URL("fixtures/portrait.jpg", import.meta.url));
+      const source = Uint8Array.from([...original, 0x7e]);
+      const car = await buildDirectoryCar([
+        {
+          path: "child.jpg",
+          size: source.length,
+          content: (async function* () {
+            yield await Promise.resolve(source);
+          })(),
+        },
+      ]);
+      const parent = await service.upload(
+        car.bytes,
+        "car",
+        "Private parent name",
+      );
+      const child = [...(await readCar(car.bytes)).blocks.keys()].find(
+        (cid) => cid !== parent.cid,
+      )!;
+      expect(
+        await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
+      ).toBe(0);
+      expect((await getPreview(env, child)).status).toBe("pending");
+      await processPreview(env, child);
+      const value = await getPreview(env, child);
+      expect(value.status).toBe("ready");
+      if (value.contentType !== "image/webp")
+        throw new Error("not a child image");
+      await runPreviews(env, Date.now() + 8 * 86400000);
+      expect((await getPreview(env, child)).status).toBe("ready");
+      expect(await getBlock(env, value.content.cid)).not.toBeNull();
+      expect(
+        await count("SELECT count(*) AS n FROM pins WHERE cid = ?", child),
+      ).toBe(0);
+      await releasePin(service, parent.cid);
+      await env.DB.prepare(
+        "UPDATE content_previews SET unreferenced_at = '2000-01-01' WHERE source_cid = ?",
+      )
+        .bind(child)
+        .run();
+      await runPreviews(env);
+      expect(
+        await count(
+          "SELECT count(*) AS n FROM content_previews WHERE source_cid = ?",
+          child,
+        ),
+      ).toBe(0);
+    },
+  );
 
   it("stores actual BLOB bytes under their raw CID and delivers cacheable images and verified raw blocks", async () => {
     const { pin, value } = await preview(
@@ -1018,15 +1097,15 @@ describe("real images, CID delivery and retention references", () => {
     );
     if (value.contentType !== "image/webp") throw new Error("not image");
     await env.DB.prepare(
-      "UPDATE content_previews SET version = 0, descriptor = json_set(descriptor, '$.version', 0) WHERE source_cid = ? AND version = 1",
+      "UPDATE content_previews SET version = 0, descriptor = json_set(descriptor, '$.version', 0) WHERE source_cid = ? AND version = ?",
     )
-      .bind(pin.cid)
+      .bind(pin.cid, PREVIEW_VERSION)
       .run();
     await enqueuePreview(env, pin.cid);
     await env.DB.prepare(
-      "UPDATE content_previews SET status = 'failed', attempts = 3 WHERE source_cid = ? AND version = 1",
+      "UPDATE content_previews SET status = 'failed', attempts = 3 WHERE source_cid = ? AND version = ?",
     )
-      .bind(pin.cid)
+      .bind(pin.cid, PREVIEW_VERSION)
       .run();
     await runPreviews(env, Date.now() + 8 * 86400000);
     expect(
@@ -1042,9 +1121,9 @@ describe("real images, CID delivery and retention references", () => {
         .first(),
     ).not.toBeNull();
     await env.DB.prepare(
-      "UPDATE content_previews SET status = 'pending', attempts = 0, retry_at = '2000-01-01' WHERE source_cid = ? AND version = 1",
+      "UPDATE content_previews SET status = 'pending', attempts = 0, retry_at = '2000-01-01' WHERE source_cid = ? AND version = ?",
     )
-      .bind(pin.cid)
+      .bind(pin.cid, PREVIEW_VERSION)
       .run();
     await processPreview(env, pin.cid);
     expect(
@@ -1056,9 +1135,9 @@ describe("real images, CID delivery and retention references", () => {
     ).toMatchObject({ active: 0 });
     expect(
       await env.DB.prepare(
-        "SELECT active FROM content_previews WHERE source_cid = ? AND version = 1",
+        "SELECT active FROM content_previews WHERE source_cid = ? AND version = ?",
       )
-        .bind(pin.cid)
+        .bind(pin.cid, PREVIEW_VERSION)
         .first(),
     ).toMatchObject({ active: 1 });
   });

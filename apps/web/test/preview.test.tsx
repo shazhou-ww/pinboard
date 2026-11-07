@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { ContentPreview } from "@shazhou/pinboard-contracts";
 import { PinPreview, PreviewContent } from "../src/pin-preview.js";
+import { previewPollDelay } from "../src/preview-poll.js";
 
 const render = (preview: ContentPreview) =>
   renderToStaticMarkup(
@@ -10,6 +11,40 @@ const render = (preview: ContentPreview) =>
   );
 const base = { version: 1, status: "ready" as const, truncated: false };
 describe("typed, display-only content previews", () => {
+  it("keeps polling transient backend retries across their backoff without retrying terminal failures", () => {
+    const preview: ContentPreview = {
+      ...base,
+      contentType: "application/vnd.pinboard.file+json",
+      content: { mediaType: "application/pdf" },
+    };
+    expect(previewPollDelay({ ...preview, status: "pending" }, 1)).toBe(2000);
+    expect(
+      previewPollDelay(
+        {
+          ...preview,
+          status: "failed",
+          reason: "Preview generation failed; retry scheduled",
+        },
+        3,
+      ),
+    ).toBe(30000);
+    expect(
+      previewPollDelay(
+        {
+          ...preview,
+          status: "failed",
+          reason: "Preview failed after 3 attempts",
+        },
+        3,
+      ),
+    ).toBeUndefined();
+    expect(
+      previewPollDelay({ ...preview, status: "unsupported" }, 1),
+    ).toBeUndefined();
+    expect(
+      previewPollDelay({ ...preview, status: "pending" }, 24),
+    ).toBeUndefined();
+  });
   it("floats publication icons without changing the shared preview or summary layout", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),

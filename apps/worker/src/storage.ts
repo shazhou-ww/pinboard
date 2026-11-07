@@ -154,8 +154,10 @@ export async function getBlock(
     !("offset" in object.range) ||
     object.range.offset !== location.byte_offset ||
     object.range.length !== location.byte_length
-  )
+  ) {
+    await object?.body.cancel().catch(() => undefined);
     unavailable();
+  }
   return { size: location.byte_length, body: object.body };
 }
 

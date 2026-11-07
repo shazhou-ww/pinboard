@@ -78,6 +78,48 @@ afterEach(() => {
 });
 
 describe("account-scoped, bounded preview description cache", () => {
+  it("revalidates legacy PDF descriptors and discards stale state during pending/failed regeneration", async () => {
+    const old: ContentPreview = {
+      version: 1,
+      status: "unsupported",
+      truncated: false,
+      contentType: "application/vnd.pinboard.file+json",
+      content: { mediaType: "application/pdf" },
+    };
+    const previews = client();
+    vi.mocked(fetch).mockResolvedValueOnce(response(["pdf"], old));
+    await previews.request("pdf");
+    expect(await previews.cached("pdf")).toEqual({
+      preview: old,
+      fresh: false,
+    });
+    for (const status of ["pending", "failed"] as const) {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        response(["pdf"], { ...old, version: 2, status }),
+      );
+      await previews.request("pdf");
+      expect(await previews.cached("pdf")).toBeNull();
+      expect(await client().cached("pdf")).toBeNull();
+    }
+    const current: ContentPreview = {
+      version: 2,
+      status: "ready",
+      truncated: false,
+      contentType: "image/webp",
+      content: {
+        cid: "thumbnail",
+        url: "/ipfs/thumbnail",
+        width: 370,
+        height: 480,
+      },
+    };
+    vi.mocked(fetch).mockResolvedValueOnce(response(["pdf"], current));
+    await previews.request("pdf");
+    expect(await client().cached("pdf")).toEqual({
+      preview: current,
+      fresh: true,
+    });
+  });
   it("coalesces duplicate in-flight CIDs and splits visible misses at the batch limit", async () => {
     const previews = client();
     const first = previews.request("cid-0");

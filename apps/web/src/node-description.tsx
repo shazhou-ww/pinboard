@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { NodeDescription } from "@shazhou/pinboard-contracts";
 import { requestJson } from "./manager.js";
 import { PreviewContent } from "./pin-preview.js";
+import { previewPollDelay } from "./preview-poll.js";
 
 export function NodeDescriptionEditor({
   rootCid,
@@ -56,11 +57,11 @@ export function NodeDescriptionEditor({
               : value,
           );
         }
-        const status = value.description.preview.status;
-        if ((status === "pending" || status === "failed") && ++attempts < 24)
+        const delay = previewPollDelay(value.description.preview, ++attempts);
+        if (delay !== undefined)
           timer = setTimeout(() => {
             void load();
-          }, 2000);
+          }, delay);
       } catch (failure) {
         if (!controller.signal.aborted)
           setError(

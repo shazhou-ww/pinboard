@@ -1,6 +1,9 @@
 coverage/
 dist/
 node_modules/
+.preview-assets/
+*-test-dist/
+apps/worker/assets/*LICENSE*
 pnpm-lock.yaml
 .turbo/
 .cli-tests/

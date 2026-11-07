@@ -225,17 +225,22 @@ extensions. JPEG, PNG and WebP images use bundled WebAssembly codecs (no Images
 binding or external image service), capped at 8 MiB input and 2 million decoded
 pixels. Actual aspect-preserving WebP thumbnails have a 480-pixel maximum edge
 and 64 KiB maximum size. D1 stores their binary BLOBs under SHA2-256 raw CIDs;
-the browser separately loads immutable `/ipfs/:thumbnailCid` images.
+the browser separately loads immutable `/ipfs/:thumbnailCid` images. PDF nodes
+use the same image descriptor for their first page, rendered on white by bundled
+PDFium with licensed Chinese font fallback. There is no PDF reader, document
+scripting, external resource fetch or new download/Range endpoint. See
+[PDF preview limits and build provenance](docs/pdf-previews.md).
 
 After loading the current account's authorized Pin list, visible cards first
 reuse preview descriptions from memory or account-scoped IndexedDB. Ready
 descriptions are fresh for one hour, unsupported descriptions for five minutes;
 stale entries up to seven days old render immediately while being refreshed.
-Pending and failed states are not persisted. The cache stores no account labels
-or image BLOBs: memory holds at most 128 entries; IndexedDB retains at most 500
-entries and 2 MiB of JSON payloads, with a 16 KiB per-entry budget and
-least-recently-used eviction. Browser storage failures are logged and leave
-normal authenticated network loading available.
+Pending and failed states are not persisted and invalidate older cached
+descriptions. Legacy version-1 PDF placeholders are immediately revalidated. The
+cache stores no account labels or image BLOBs: memory holds at most 128 entries;
+IndexedDB retains at most 500 entries and 2 MiB of JSON payloads, with a 16 KiB
+per-entry budget and least-recently-used eviction. Browser storage failures are
+logged and leave normal authenticated network loading available.
 
 Visible misses and stale descriptions are coalesced over 16 ms into
 `POST /api/pins/previews` requests, with at most 32 CIDs per batch. Duplicate
@@ -243,9 +248,10 @@ in-flight requests share one result. Each CID is checked against the current
 account, and missing/unowned entries return individual 404 results without
 revealing shared metadata. Batch responses remain private and `no-store`; the
 single-Pin endpoint remains supported. Each batch starts at most two generation
-jobs, and pending cards poll every two seconds at most 24 times. Account changes
-dispose the previous request client; cached descriptions are never a substitute
-for an authorized Pin list or server-side access checks.
+jobs. Cards make at most 24 polls: two seconds for pending work, thirty seconds
+for explicitly retry-scheduled failures; terminal failures are not polled.
+Account changes dispose the previous request client; cached descriptions are
+never a substitute for an authorized Pin list or server-side access checks.
 
 UTF-8 excerpts contain at most 2,400 characters. Text and directory previews
 extend to the card's bottom edge behind the translucent, frosted information
@@ -279,9 +285,12 @@ compact, read-only directory tree with folded-page file icons, folder tabs and
 hierarchy lines aligned beneath parent icons without overlapping them. They show
 at most 24 actual names across two entry levels, without subfolder navigation.
 Cards omit sampling labels; sampled/truncated overviews never claim unverified
-totals. PDF, GIF, video, audio and unknown binary content use explicit
-unsupported placeholders with only reliably identified metadata. Invalid or
-oversized images fail explicitly instead of downloading originals.
+totals. GIF, video, audio and unknown binary content use explicit unsupported
+placeholders with only reliably identified metadata. Invalid or oversized images
+fail explicitly instead of downloading originals. PDF forms, annotations,
+password protection and known missing fallback glyphs require flattening,
+embedding fonts or removing protection outside Pinboard; these are not published
+as successful blank images.
 
 Previews are shared by source CID and generation version, without account names.
 `pending`, `ready`, `unsupported` and `failed` are distinct from their
@@ -292,17 +301,20 @@ most two missing legacy previews per run. Opening a card lazily enqueues missing
 previews too. A two-minute fenced lease prevents duplicate publication; failed
 jobs retry with backoff, at most three attempts per version. A generation
 version bump is required to retry exhausted/unsupported content after fixing a
-generator.
+generator. Version 2 regenerates all formats, not only PDF. One isolate admits
+one generation immediately; busy jobs remain durably pending without spending
+failure attempts or waiting in a cross-request Promise queue.
 
 Different originals can share identical thumbnail bytes. Each source retains its
 last published generation until a replacement is published, even if the new
 generation is pending or fails. GC rechecks published source previews and
-account pins, including directly pinned thumbnails and DAG membership, in the
-same D1 transaction as deletion. Unreferenced thumbnails and metadata have a
-seven-day grace period; version swaps do not erase old images immediately. A
-direct pin suspended during GC republishes its verified image BLOB atomically
-with the new reference. Preview artifacts never create account pins on their
-own. Cached copies cannot be recalled after collection.
+retained roots (including publications and recovery), directly pinned thumbnails
+and DAG membership, in the same D1 transaction as deletion. Unreferenced
+thumbnails and metadata have a seven-day grace period; version swaps do not
+erase old images immediately. A direct pin suspended during GC republishes its
+verified image BLOB atomically with the new reference. Preview artifacts never
+create account pins on their own. Cached copies cannot be recalled after
+collection.
 
 Cards remain preview-first, with a translucent, frosted-glass bottom strip
 showing the name and size by default. Hovering over a card or focusing it with

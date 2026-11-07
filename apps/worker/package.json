@@ -4,16 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preview:assets": "node scripts/build-preview-assets.mjs",
     "build": "wrangler deploy --dry-run --outdir dist --config wrangler.jsonc",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "deploy": "wrangler deploy --config wrangler.jsonc",
     "dev": "wrangler dev --config wrangler.jsonc",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run --config vitest.config.ts --coverage",
+    "test": "pnpm preview:assets && vitest run --config vitest.config.ts --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "types": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@hyzyla/pdfium": "catalog:",
     "@jsquash/jpeg": "catalog:",
     "@jsquash/png": "catalog:",
     "@jsquash/webp": "catalog:",
@@ -32,6 +34,7 @@
     "hono": "catalog:"
   },
   "devDependencies": {
+    "wabt": "catalog:",
     "@shazhou/pinboard-encoding": "workspace:*",
     "@shazhou/pinboard": "workspace:*",
     "miniflare": "catalog:",

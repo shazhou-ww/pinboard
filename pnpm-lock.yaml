@@ -24,6 +24,9 @@ catalogs:
     '@hono/auth-js':
       specifier: ^1.1.1
       version: 1.1.1
+    '@hyzyla/pdfium':
+      specifier: 3.0.0
+      version: 3.0.0
     '@ipld/car':
       specifier: ^5.4.2
       version: 5.4.7
@@ -117,6 +120,9 @@ catalogs:
     vitest:
       specifier: ^5.0.4
       version: 5.0.4
+    wabt:
+      specifier: 1.0.39
+      version: 1.0.39
     wrangler:
       specifier: ^4.151.1
       version: 4.157.0
@@ -291,6 +297,9 @@ importers:
       '@hono/auth-js':
         specifier: 'catalog:'
         version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.0)
+      '@hyzyla/pdfium':
+        specifier: 'catalog:'
+        version: 3.0.0
       '@ipld/car':
         specifier: 'catalog:'
         version: 5.4.7
@@ -346,6 +355,9 @@ importers:
       miniflare:
         specifier: 'catalog:'
         version: 5.20261012.0-beta(@types/node@26.6.6)
+      wabt:
+        specifier: 'catalog:'
+        version: 1.0.39
       wrangler:
         specifier: 'catalog:'
         version: 4.157.0(@cloudflare/workers-types@5.20261103.1)(@types/node@26.6.6)
@@ -737,6 +749,10 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@hyzyla/pdfium@3.0.0':
+    resolution: {integrity: sha512-Hw7/Pc/y2f8ZYVNXxAvDiLAV0qJT4+e5HMwbMghra/s2RKXuuWYdR/8ohoD4YwQfTL5UzSNlTtP1LJHip7LiEQ==}
+    engines: {node: '>=22'}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2392,6 +2408,10 @@ packages:
       jsdom:
         optional: true
 
+  wabt@1.0.39:
+    resolution: {integrity: sha512-ba+dRL/75VQQY7RkU/CgriGbkoWAfS8TDyUlJfJhJ8KhtXgMl5dhNvoPNUcQ9IWRhW8u41glMSuZeTvsYq2rRg==}
+    hasBin: true
+
   wasm-feature-detect@1.9.0:
     resolution: {integrity: sha512-zonE+xlIIYtxPy++L24ow0hAD8CICb4+FgPyROd3buyXIqsJvUEDkBgfCCoXOd1Hu3DUr0GOfnPIdcGV+YpNaA==}
 
@@ -2707,6 +2727,8 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
+
+  '@hyzyla/pdfium@3.0.0': {}
 
   '@img/colour@1.1.0': {}
 
@@ -4349,6 +4371,8 @@ snapshots:
       '@vitest/coverage-v8': 5.0.4(vitest@5.0.4)
     transitivePeerDependencies:
       - msw
+
+  wabt@1.0.39: {}
 
   wasm-feature-detect@1.9.0: {}
 

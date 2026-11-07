@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pinboard",
   "main": "src/index.ts",
+  "build": { "command": "node scripts/build-preview-assets.mjs" },
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }],
   "compatibility_date": "2026-10-14",
   "compatibility_flags": ["nodejs_compat"],
   "triggers": { "crons": ["17 * * * *"] },

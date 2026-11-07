@@ -1,0 +1,10 @@
+(module
+  (import "callbacks" "available" (func $available (param i32 i32 i32) (result i32)))
+  (import "callbacks" "read" (func $read (param i32 i32 i32 i32) (result i32)))
+  (import "callbacks" "hint" (func $hint (param i32 i32 i32)))
+  (func (export "available") (param i32 i32 i32) (result i32)
+    local.get 0 local.get 1 local.get 2 call $available)
+  (func (export "read") (param i32 i32 i32 i32) (result i32)
+    local.get 0 local.get 1 local.get 2 local.get 3 call $read)
+  (func (export "hint") (param i32 i32 i32)
+    local.get 0 local.get 1 local.get 2 call $hint))

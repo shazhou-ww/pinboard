@@ -83,6 +83,12 @@ export function isContentPreview(
 }
 
 export function isFresh(entry: CachedPreview, now = Date.now()): boolean {
+  if (
+    entry.preview.version < 2 &&
+    entry.preview.contentType === "application/vnd.pinboard.file+json" &&
+    entry.preview.content.mediaType === "application/pdf"
+  )
+    return false;
   const ttl =
     entry.preview.status === "unsupported" ? 5 * 60 * 1000 : previewFreshMs;
   return entry.savedAt <= now && now - entry.savedAt < ttl;

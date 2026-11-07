@@ -101,9 +101,11 @@ beforeAll(async () => {
           path: fileURLToPath(new URL("../dist/index.js", import.meta.url)),
         },
         ...(await readdir(new URL("../dist/", import.meta.url)))
-          .filter((name) => name.endsWith(".wasm"))
+          .filter((name) => name.endsWith(".wasm") || name.endsWith(".ttf"))
           .map((name) => ({
-            type: "CompiledWasm" as const,
+            type: name.endsWith(".wasm")
+              ? ("CompiledWasm" as const)
+              : ("Data" as const),
             path: fileURLToPath(new URL(`../dist/${name}`, import.meta.url)),
           })),
       ],

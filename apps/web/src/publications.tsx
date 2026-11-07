@@ -12,6 +12,7 @@ import { requestJson, formatSize } from "./manager.js";
 import { PreviewContent } from "./pin-preview.js";
 import { Icon } from "./icon.js";
 import { NodeDescriptionEditor } from "./node-description.js";
+import { previewPollDelay } from "./preview-poll.js";
 
 const json = (body: unknown): RequestInit => ({
   method: "POST",
@@ -42,10 +43,11 @@ export function PublicationPreview({
         );
         if (controller.signal.aborted) return;
         setPreview(next);
-        if (next.status === "pending" && ++attempts < 24)
+        const delay = previewPollDelay(next, ++attempts);
+        if (delay !== undefined)
           timer = setTimeout(() => {
             void load();
-          }, 2000);
+          }, delay);
       } catch (failure) {
         if (!controller.signal.aborted)
           setError(

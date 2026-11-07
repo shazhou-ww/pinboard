@@ -7,6 +7,8 @@ export default tseslint.config(
     ignores: [
       "**/coverage/**",
       "**/dist/**",
+      "**/.preview-assets/**",
+      "**/*-test-dist/**",
       "**/.wrangler/**",
       "**/worker-configuration.d.ts",
       ".turbo/**",

@@ -7,6 +7,8 @@ export default defineConfig({
       name: "test-precompiled-wasm",
       enforce: "pre",
       load(id) {
+        if (id.endsWith(".ttf"))
+          return `export default Uint8Array.from(Buffer.from(${JSON.stringify(readFileSync(id).toString("base64"))}, "base64")).buffer;`;
         if (id.endsWith(".wasm"))
           return `export default new WebAssembly.Module(Uint8Array.from(Buffer.from(${JSON.stringify(readFileSync(id).toString("base64"))}, "base64")));`;
         return undefined;

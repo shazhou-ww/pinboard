@@ -10,15 +10,19 @@ import type {
   PreviewPayload,
 } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
-import { key, parseCid, verifyBlock } from "./content.js";
-import { readBlock } from "./storage.js";
+import { parseCid } from "./content.js";
+import { createPreviewStore, previewFileSource } from "./preview-source.js";
+import {
+  admitPreview,
+  PreviewDeferred,
+  PreviewUnsupported,
+} from "./preview-limits.js";
 
-export const PREVIEW_VERSION = 1;
+export const PREVIEW_VERSION = 2;
 export const PREVIEW_RETENTION_MS = 7 * 86400000;
 const MAX_FILE = 8 * 1024 * 1024;
 const MAX_TEXT = 2400;
 const MAX_ENTRIES = 24;
-const MAX_READS = 64;
 const MAX_ATTEMPTS = 3;
 const fileType = "application/vnd.pinboard.file+json" as const;
 const nowIso = (time: number) => new Date(time).toISOString();
@@ -190,21 +194,47 @@ export function textDescription(
 }
 
 async function generate(env: Bindings, cid: string): Promise<Generated> {
-  let reads = 0;
-  let readBytes = 0;
-  const store: ReadableStorage = {
-    async *get(link) {
-      if (++reads > MAX_READS)
-        throw new Error("Preview exceeds 64 block reads");
-      const bytes = await readBlock(env, key(link));
-      if (!bytes) throw new Error("Preview source block is unavailable");
-      readBytes += bytes.length;
-      if (readBytes > 12 * 1024 * 1024)
-        throw new Error("Preview exceeds 12 MiB block budget");
-      await verifyBlock(parseCid(link.toString()), bytes);
-      yield bytes;
-    },
+  const signal = AbortSignal.timeout(20000);
+  const source = createPreviewStore(env, signal);
+  try {
+    return await generateFromStore(cid, source.store, signal);
+  } catch (error) {
+    if (error instanceof PreviewUnsupported)
+      return { descriptor: placeholder("unsupported", error.message) };
+    throw error;
+  } finally {
+    source.clear();
+  }
+}
+
+async function imageResult(image: {
+  bytes: Uint8Array;
+  width: number;
+  height: number;
+}): Promise<Generated> {
+  const thumbnailCid = CID.createV1(
+    0x55,
+    await sha256.digest(image.bytes),
+  ).toString();
+  return {
+    descriptor: description({
+      contentType: "image/webp",
+      content: {
+        cid: thumbnailCid,
+        url: `/ipfs/${thumbnailCid}`,
+        width: image.width,
+        height: image.height,
+      },
+    }),
+    image: { ...image, cid: thumbnailCid },
   };
+}
+
+async function generateFromStore(
+  cid: string,
+  store: ReadableStorage,
+  signal: AbortSignal,
+): Promise<Generated> {
   const root = await exporter(parseCid(cid), store);
   if (root.type === "directory") {
     const entries: {
@@ -286,6 +316,34 @@ async function generate(env: Bindings, cid: string): Promise<Generated> {
   };
   let bytes = await readFile(10000);
   const first = new TextDecoder().decode(bytes.subarray(0, 16));
+  if (first.startsWith("%PDF-")) {
+    const metadata = {
+      mediaType: "application/pdf",
+      ...(size <= BigInt(Number.MAX_SAFE_INTEGER)
+        ? { size: Number(size) }
+        : {}),
+    };
+    try {
+      const source = previewFileSource(root, signal);
+      const { renderPdf } = await import("./preview-pdf.js");
+      const { encodeRaster } = await import("./preview-raster.js");
+      const raster = await renderPdf(source, signal);
+      signal.throwIfAborted();
+      const image = await encodeRaster(raster);
+      signal.throwIfAborted();
+      return imageResult(image);
+    } catch (error) {
+      if (error instanceof PreviewDeferred) throw error;
+      if (error instanceof PreviewUnsupported)
+        return {
+          descriptor: placeholder("unsupported", error.message, metadata),
+        };
+      throw new PreviewFailure(
+        error instanceof Error ? error.message : String(error),
+        metadata,
+      );
+    }
+  }
   const isImage =
     (bytes[0] === 255 && bytes[1] === 216) ||
     (bytes[0] === 137 && first.slice(1, 4) === "PNG") ||
@@ -305,23 +363,10 @@ async function generate(env: Bindings, cid: string): Promise<Generated> {
         throw new Error("Image length mismatch");
       const { thumbnail } = await import("./preview-image.js");
       const image = await thumbnail(bytes);
-      const thumbnailCid = CID.createV1(
-        0x55,
-        await sha256.digest(image.bytes),
-      ).toString();
-      return {
-        descriptor: description({
-          contentType: "image/webp",
-          content: {
-            cid: thumbnailCid,
-            url: `/ipfs/${thumbnailCid}`,
-            width: image.width,
-            height: image.height,
-          },
-        }),
-        image: { ...image, cid: thumbnailCid },
-      };
+      signal.throwIfAborted();
+      return imageResult(image);
     } catch (error) {
+      if (error instanceof PreviewDeferred) throw error;
       throw new PreviewFailure(
         error instanceof Error ? error.message : String(error),
         {
@@ -416,7 +461,7 @@ export async function processPreview(
     .first<Row>();
   if (!row) return;
   try {
-    const generated = await generate(env, cid);
+    const generated = await admitPreview(() => generate(env, cid));
     const statements: D1PreparedStatement[] = [];
     statements.push(
       env.DB.prepare(
@@ -461,6 +506,24 @@ export async function processPreview(
     statements.push(refreshPreviewReferences(env.DB, time, cid));
     await env.DB.batch(statements);
   } catch (error) {
+    if (error instanceof PreviewDeferred) {
+      await env.DB.prepare(
+        `UPDATE content_previews SET status = 'pending', descriptor = ?, attempts = attempts - 1,
+         lease = NULL, lease_until = NULL, retry_at = ?
+         WHERE source_cid = ? AND version = ? AND lease = ?`,
+      )
+        .bind(
+          JSON.stringify(
+            placeholder("pending", "Preview renderer busy; retry scheduled"),
+          ),
+          nowIso(time + 2000),
+          cid,
+          PREVIEW_VERSION,
+          lease,
+        )
+        .run();
+      return;
+    }
     previewLog("preview_generation_failed", cid, error);
     const descriptor = placeholder(
       "failed",
