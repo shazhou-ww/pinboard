@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-07",
+  "testWindow": {
+    "from": "2026-11-07T08:53:23.572Z",
+    "throughHttpVerification": "2026-11-07T08:55:27.617Z"
+  },
+  "scope": {
+    "additionalUploads": 4,
+    "maximumConcurrentUploads": 2,
+    "existingUserContentModified": false,
+    "deploymentPerformed": false,
+    "productionNativeAbortAttempted": false,
+    "productionGarbageCollectionAccelerated": false,
+    "samplesRetained": true
+  },
+  "samples": [
+    {
+      "name": "PDF-Verify-05-concurrent-A.pdf",
+      "sourceCid": "bafkreihsaicdslsy7bntmfzmskxpi5ns5drk4zbfl7evgonkothm6676ri",
+      "sourceBytes": 494,
+      "createdAt": "2026-11-07T08:53:23.572Z",
+      "previewStatus": "ready",
+      "thumbnailCid": "bafkreicdbmjjkrgny56fbefhnhbazr2kl2gy3pkalepo2v54dqzfexqpt4",
+      "width": 200,
+      "height": 200,
+      "thumbnailBytes": 196,
+      "centerRgb": [0, 255, 1],
+      "expected": "green",
+      "http": {
+        "imageGet": 200,
+        "conditionalGet": 304,
+        "conditionalBodyBytes": 0,
+        "rawGet": 200,
+        "rawAndImageBytesEqual": true,
+        "cidVerified": true
+      }
+    },
+    {
+      "name": "PDF-Verify-06-concurrent-B.pdf",
+      "sourceCid": "bafkreicmwnu4lkfjaezwly2wirkifuv3e3pwat4gbx567hspfkuewhxbzq",
+      "sourceBytes": 494,
+      "createdAt": "2026-11-07T08:53:23.845Z",
+      "previewStatus": "ready",
+      "thumbnailCid": "bafkreibnnhxlmanf4edfj6snlh6muzwxa2uboy2xyz6344vc66ekcnmu44",
+      "width": 200,
+      "height": 200,
+      "thumbnailBytes": 198,
+      "centerRgb": [255, 1, 255],
+      "expected": "magenta",
+      "http": {
+        "imageGet": 200,
+        "conditionalGet": 304,
+        "conditionalBodyBytes": 0,
+        "rawGet": 200,
+        "rawAndImageBytesEqual": true,
+        "cidVerified": true
+      }
+    },
+    {
+      "name": "PDF-Verify-07-form-expected-unsupported.pdf",
+      "sourceCid": "bafkreid5avfswe35gbrbajmsyxujm3dtfi5l65qn5aaw6boimo5g3uloju",
+      "sourceBytes": 511,
+      "createdAt": "2026-11-07T08:53:47.733Z",
+      "previewStatus": "unsupported",
+      "reason": "PDF forms and XFA require static flattening"
+    },
+    {
+      "name": "PDF-Verify-08-image-after-rejection.png",
+      "sourceCid": "bafkreidoertatz3afrfk2o37un5jwyuaaajpzgo4x3f7lmrrs6t6zrxsee",
+      "sourceBytes": 73,
+      "createdAt": "2026-11-07T08:54:08.381Z",
+      "previewStatus": "ready",
+      "thumbnailCid": "bafkreidgcjc5n7edbn47qd33rxixhc6kxniamrfna5ux6uzaxgrjcjhucu",
+      "width": 2,
+      "height": 2,
+      "thumbnailBytes": 68,
+      "http": {
+        "imageGet": 200,
+        "conditionalGet": 304,
+        "conditionalBodyBytes": 0,
+        "rawGet": 200,
+        "rawAndImageBytesEqual": true,
+        "cidVerified": true
+      }
+    }
+  ],
+  "anonymousAccountList": 401,
+  "anonymousOwnedSourcePreview": 401,
+  "health": 200,
+  "limitations": {
+    "sameIsolateBusyBranchObserved": false,
+    "nativeAbortRecoveryObservedInProduction": false,
+    "productionR2BytesMeasured": false,
+    "productionPeakMemoryMeasured": false,
+    "cpuTelemetry": "Cloudflare API connection requires re-authentication; no new CPU values reported",
+    "ordinaryLargeHttpUpload": "Configured CLI returned 401; MCP inline upload limit remains 2 MiB",
+    "actualRollbackPerformed": false,
+    "actualReferenceExpiryTested": false
+  },
+  "isolatedRegressionRun": {
+    "testFiles": 5,
+    "testsPassed": 69,
+    "productionEvidence": false
+  }
+}
