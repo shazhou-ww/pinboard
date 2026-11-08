@@ -1,0 +1,14 @@
+{
+  "attempt": 1,
+  "conclusion": "success",
+  "headSha": "88df4ea67a9277710aeb220da183849b97d93e71",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "name": "Deploy production Worker",
+      "status": "completed"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42436950404"
+}
