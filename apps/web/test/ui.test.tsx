@@ -163,7 +163,7 @@ describe("Pinboard interface", () => {
     );
     expect(html).toContain('aria-label="Pinboard tools"');
     expect(html).toContain('aria-label="Add file"');
-    expect(html).toContain('aria-label="Settings"');
+    expect(html).toContain('aria-label="Pinboard Settings"');
     expect(html).not.toContain("More add options");
     const toolbar = html.slice(
       html.indexOf('role="toolbar"'),
@@ -176,7 +176,7 @@ describe("Pinboard interface", () => {
     expect(toolbar).not.toContain("Settings");
     expect(toolbar).not.toContain(">Settings</button>");
     expect(toolbar).not.toContain(">Choose folder</button>");
-    expect(html.match(/<dialog/g)).toHaveLength(5);
+    expect(html.match(/<dialog/g)).toHaveLength(6);
     expect(html).toContain('aria-label="Pin details"');
     expect(html).not.toContain('class="intro"');
     expect(html).toContain("Create access token");
@@ -189,10 +189,10 @@ describe("Pinboard interface", () => {
     expect(html).toContain("drop one file or folder anywhere.");
     expect(html).not.toContain("Content type");
     expect(html).not.toContain("Raw IPFS block");
-    expect(html).toContain(
-      '<option value="active" selected="">Active tokens</option>',
-    );
-    expect(html).toContain("History (revoked or expired)");
+    expect(html).toContain('aria-label="access tokens filter options"');
+    expect(html).toContain('aria-label="Search access tokens"');
+    expect(html).toContain('<table aria-label="access tokens">');
+    expect(html).not.toContain("History (revoked or expired)");
     expect(html).toContain("30");
     expect(html).toContain("30 days");
     expect(html).not.toContain("Physical garbage collection is deferred");

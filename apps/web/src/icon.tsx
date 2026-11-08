@@ -19,6 +19,9 @@ import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { FunnelSimpleIcon } from "@phosphor-icons/react/dist/csr/FunnelSimple";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
+import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import type { IconProps } from "@phosphor-icons/react";
 
 const icons = {
@@ -28,6 +31,9 @@ const icons = {
   caretDown: CaretDownIcon,
   check: CheckIcon,
   close: XIcon,
+  filter: FunnelSimpleIcon,
+  refresh: ArrowsClockwiseIcon,
+  revoke: XCircleIcon,
   copy: CopyIcon,
   download: ArrowDownIcon,
   externalLink: ArrowUpRightIcon,

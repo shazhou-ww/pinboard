@@ -2,10 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { SettingsDialog, settingsTabTarget } from "../src/settings.js";
 
-function markup(
-  category: "Browser preferences" | "Access tokens",
-  busy = false,
-) {
+function markup(category: "General" | "Access tokens", busy = false) {
   return renderToStaticMarkup(
     <SettingsDialog
       open
@@ -16,7 +13,7 @@ function markup(
       secretPending
       error="Example request failure"
       panels={{
-        "Browser preferences": <p>Browser content</p>,
+        General: <p>Browser content</p>,
         "Access tokens": <input value="fixture-only-secret" readOnly />,
         "OAuth authorizations": <p>OAuth content</p>,
         "Recently deleted": <p>Recovery content</p>,
@@ -27,7 +24,7 @@ function markup(
 
 describe("Settings categories", () => {
   it("keeps four labeled panels mounted with only the selected one visible", () => {
-    const html = markup("Browser preferences");
+    const html = markup("General");
     expect(html.match(/role="tab"/g)).toHaveLength(4);
     expect(html.match(/role="tabpanel"/g)).toHaveLength(4);
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
@@ -36,8 +33,9 @@ describe("Settings categories", () => {
     expect(html).toContain("fixture-only-secret");
     expect(html).toContain("Return to copy token");
     expect(html).toContain("Example request failure");
-    expect(html).not.toContain("Close Settings");
-    expect(html).toContain("<h2>Settings</h2>");
+    expect(html).toContain('aria-label="Close Pinboard Settings"');
+    expect(html).toContain('title="Close Pinboard Settings"');
+    expect(html).toContain("<h2>Pinboard Settings</h2>");
     expect(markup("Access tokens")).not.toContain("Return to copy token");
   });
   it("keeps pending operation and request feedback visible across categories", () => {

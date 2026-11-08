@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { Icon } from "./icon.js";
 
 export function Dialog({
   open,
@@ -6,6 +7,7 @@ export function Dialog({
   busy = false,
   dismissOnOutsideClick = false,
   showClose = true,
+  glyphClose = false,
   className = "",
   onClose,
   children,
@@ -15,6 +17,7 @@ export function Dialog({
   busy?: boolean;
   dismissOnOutsideClick?: boolean;
   showClose?: boolean;
+  glyphClose?: boolean;
   className?: string;
   onClose: () => void;
   children: ReactNode;
@@ -84,10 +87,12 @@ export function Dialog({
           <button
             type="button"
             aria-label={`Close ${title}`}
+            title={`Close ${title}`}
+            className={glyphClose ? "glyph-button" : undefined}
             disabled={busy}
             onClick={onClose}
           >
-            Close
+            {glyphClose ? <Icon name="close" /> : "Close"}
           </button>
         )}
       </div>
