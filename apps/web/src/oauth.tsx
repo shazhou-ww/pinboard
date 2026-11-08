@@ -319,7 +319,7 @@ export function GrantList({
   onRevoke: (id: string) => void;
 }) {
   return (
-    <ul>
+    <ul className="token-list">
       {grants.map((grant) => {
         const status =
           grant.revokedAt !== null
@@ -333,27 +333,32 @@ export function GrantList({
                 : "Active";
         return (
           <li key={grant.id}>
-            <strong>{grant.clientName}</strong> — {status}
-            <p>
-              <code>{grant.clientId}</code> · {grant.scopes}
-            </p>
-            <p>
-              Created {new Date(grant.createdAt).toLocaleString()}
-              {grant.expiresAt !== null
-                ? ` · Expires ${new Date(grant.expiresAt).toLocaleString()}`
-                : grant.tokenIssued
-                  ? " · Never expires"
-                  : ""}
-            </p>
-            {grant.revokedAt === null && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onRevoke(grant.id)}
-              >
-                Revoke client authorization
-              </button>
-            )}
+            <div>
+              <strong>{grant.clientName}</strong>
+              <p>
+                <code>{grant.clientId}</code> · {grant.scopes}
+              </p>
+              <p>
+                Created {new Date(grant.createdAt).toLocaleString()}
+                {grant.expiresAt !== null
+                  ? ` · Expires ${new Date(grant.expiresAt).toLocaleString()}`
+                  : grant.tokenIssued
+                    ? " · Never expires"
+                    : ` · Code expires ${new Date(grant.codeExpiresAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="authorization-actions">
+              <span className="muted">{status}</span>
+              {grant.revokedAt === null && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onRevoke(grant.id)}
+                >
+                  Revoke client authorization
+                </button>
+              )}
+            </div>
           </li>
         );
       })}
@@ -361,14 +366,26 @@ export function GrantList({
   );
 }
 
-export function OAuthGrants() {
+export function OAuthGrants({
+  disabled = false,
+  onBusyChange,
+}: {
+  disabled?: boolean;
+  onBusyChange?: (busy: boolean) => void;
+} = {}) {
   const [grants, setGrants] = useState<OAuthGrant[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    onBusyChange?.(busy);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange]);
   function load() {
-    return oauthJson<{ grants: OAuthGrant[] }>("/api/oauth/grants").then(
-      (data) => setGrants(data.grants),
-    );
+    setLoading(true);
+    return oauthJson<{ grants: OAuthGrant[] }>("/api/oauth/grants")
+      .then((data) => setGrants(data.grants))
+      .finally(() => setLoading(false));
   }
   useEffect(() => {
     void load().catch(() => setError("Unable to load MCP authorizations."));
@@ -384,25 +401,33 @@ export function OAuthGrants() {
       .finally(() => setBusy(false));
   }
   return (
-    <section className="panel">
-      <h2>MCP client authorizations</h2>
+    <section>
+      <h2>OAuth authorizations</h2>
       <p>
         Separate from API tokens. Revoke access anytime. Operations already in
-        flight may finish.
+        flight may finish. Client names are labels, not proof of trust.
+      </p>
+      <p>
+        MCP endpoint{" "}
+        <code>
+          {typeof location === "undefined" ? "/mcp" : `${location.origin}/mcp`}
+        </code>
       </p>
       {error && <p role="alert">{error}</p>}
-      {grants.length ? (
-        <GrantList grants={grants} busy={busy} onRevoke={revoke} />
-      ) : (
-        <p>No client authorizations loaded.</p>
+      {loading && <p role="status">Loading OAuth authorizations...</p>}
+      {!loading && !error && !grants.length && <p>No OAuth authorizations.</p>}
+      {!!grants.length && (
+        <GrantList grants={grants} busy={busy || disabled} onRevoke={revoke} />
       )}
       <button
         type="button"
-        disabled={busy}
+        disabled={busy || disabled}
         onClick={() => {
-          void load().catch(() =>
-            setError("Unable to load MCP authorizations."),
-          );
+          setBusy(true);
+          setError("");
+          void load()
+            .catch(() => setError("Unable to load MCP authorizations."))
+            .finally(() => setBusy(false));
         }}
       >
         Refresh authorizations

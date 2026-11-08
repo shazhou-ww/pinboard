@@ -91,6 +91,7 @@ export function HomeHeader({
               disabled={disabled || signingOut}
               onClick={() => {
                 menu.current?.hidePopover();
+                trigger.current?.focus();
                 onSettings?.();
               }}
             >

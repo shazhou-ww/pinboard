@@ -195,8 +195,10 @@ describe("MCP consent and grant management interface", () => {
     ])
       expect(html).toContain(status);
     expect(html.match(/Revoke client authorization/g)).toHaveLength(5);
-    expect(html.match(/— Expired/g)).toHaveLength(2);
-    expect(html.match(/— Active/g)).toHaveLength(2);
+    expect(html.match(/class="muted">Expired/g)).toHaveLength(2);
+    expect(html.match(/class="muted">Active/g)).toHaveLength(2);
+    expect(html).toContain('class="token-list"');
+    expect(html.match(/class="authorization-actions"/g)).toHaveLength(6);
     expect(html).toContain("Never expires");
     expect(html).toContain("&lt;client&gt;");
     expect(html).not.toContain("access_token");

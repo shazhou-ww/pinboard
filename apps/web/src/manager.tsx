@@ -31,6 +31,7 @@ import {
   PublicationPreview,
 } from "./publications.js";
 import { BackgroundSettings } from "./background.js";
+import { SettingsDialog, type SettingsCategory } from "./settings.js";
 import { NodeDescriptionEditor } from "./node-description.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
@@ -139,6 +140,14 @@ export function AccountManager({
   const filePicker = useRef<HTMLInputElement>(null);
   const folderPicker = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpener = useRef<HTMLElement | null>(null);
+  const [settingsCategory, setSettingsCategory] = useState<SettingsCategory>(
+    "Browser preferences",
+  );
+  const [tokenFormOpen, setTokenFormOpen] = useState(false);
+  const [oauthBusy, setOauthBusy] = useState(false);
+  const [tokensLoading, setTokensLoading] = useState(true);
+  const [tokensError, setTokensError] = useState("");
   const [skipReminder, setSkipReminder] = useState(false);
   const [rememberReminder, setRememberReminder] = useState(false);
   const [uploadName, setUploadName] = useState("");
@@ -211,6 +220,7 @@ export function AccountManager({
       requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
     ]);
     setTokens(list.tokens);
+    setTokensError("");
   };
   const perform = async (operation: () => Promise<void>) => {
     setBusy(true);
@@ -228,6 +238,8 @@ export function AccountManager({
   };
   useEffect(() => {
     let active = true;
+    setTokensLoading(true);
+    setTokensError("");
     void requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`)
       .then((list) => {
         if (active) {
@@ -236,9 +248,12 @@ export function AccountManager({
       })
       .catch((failure: unknown) => {
         if (active)
-          setError(
+          setTokensError(
             failure instanceof Error ? failure.message : String(failure),
           );
+      })
+      .finally(() => {
+        if (active) setTokensLoading(false);
       });
     return () => {
       active = false;
@@ -621,7 +636,14 @@ export function AccountManager({
       aria-busy={busy}
     >
       {renderHeader(
-        () => setSettingsOpen(true),
+        () => {
+          settingsOpener.current =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
+          setSettingsCategory("Browser preferences");
+          setSettingsOpen(true);
+        },
         busy ||
           settingsOpen ||
           !!uploadSelection ||
@@ -722,7 +744,11 @@ export function AccountManager({
       />
       <DeletedDialog
         open={deletedOpen}
-        onClose={() => setDeletedOpen(false)}
+        onClose={() => {
+          setDeletedOpen(false);
+          setSettingsCategory("Recently deleted");
+          setSettingsOpen(true);
+        }}
         onChanged={refresh}
       />
       <input
@@ -1155,214 +1181,268 @@ export function AccountManager({
           </div>
         ) : null}
       </Dialog>
-      <Dialog
+      <SettingsDialog
         open={settingsOpen}
-        title="Settings"
-        busy={busy}
-        onClose={() => setSettingsOpen(false)}
-      >
-        {error ? (
-          <p role="alert" className="notice">
-            {error}
-          </p>
-        ) : null}
-        <section>
-          <h2>Recently deleted</h2>
-          <p className="muted">
-            Pins and publications can be restored for 30 days with their
-            original identity and links.
-          </p>
-          <button
-            onClick={() => {
-              setSettingsOpen(false);
-              setDeletedOpen(true);
-            }}
-          >
-            Open recently deleted
-          </button>
-        </section>
-        <section>
-          <div className="section-title">
-            <h2>Let an agent help</h2>
-          </div>
-          <p className="muted">
-            Account-bound, scoped, revocable. A name is a label, never an
-            identity.
-          </p>
-          <p>
-            MCP endpoint{" "}
-            <code>
-              {typeof location === "undefined"
-                ? "/mcp"
-                : `${location.origin}/mcp`}
-            </code>
-          </p>
-          <form onSubmit={createAgent}>
-            <div className="form-row">
-              <label>
-                Token label
-                <input
-                  value={tokenName}
-                  onChange={(e) => setTokenName(e.target.value)}
-                  required
-                  maxLength={200}
-                  placeholder="My assistant"
-                />
-              </label>
-              <label>
-                Expires in days
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={expires}
-                  onChange={(e) => setExpires(e.target.valueAsNumber)}
-                  required
-                />
-              </label>
-            </div>
-            <fieldset>
-              <legend>Permissions</legend>
-              {[
-                "pins:read",
-                "pins:write",
-                "pins:delete",
-                "publications:read",
-                "publications:write",
-                "publications:delete",
-              ].map((scope) => (
-                <label className="check" key={scope}>
-                  <input
-                    type="checkbox"
-                    checked={tokenScopes.includes(scope)}
-                    onChange={(e) =>
-                      setTokenScopes((previous) =>
-                        e.target.checked
-                          ? [...previous, scope]
-                          : previous.filter((item) => item !== scope),
-                      )
-                    }
-                  />
-                  {scope}
-                </label>
-              ))}
-            </fieldset>
-            <button
-              disabled={busy || !tokenScopes.length}
-              className="secondary"
-            >
-              Create Agent token
-            </button>
-          </form>
-          {newToken ? (
-            <div className="token-secret">
-              <label>
-                Copy now — shown only once
-                <input readOnly value={newToken} />
-              </label>
-              <div className="actions">
+        busy={busy || oauthBusy}
+        onClose={() => {
+          setSettingsOpen(false);
+          requestAnimationFrame(() => settingsOpener.current?.focus());
+        }}
+        category={settingsCategory}
+        onCategory={setSettingsCategory}
+        secretPending={!!newToken}
+        error={error}
+        panels={{
+          "Recently deleted": (
+            <>
+              <section>
+                <h2>Recently deleted</h2>
+                <p className="muted">
+                  Pins and publications can be restored for 30 days with their
+                  original identity and links.
+                </p>
                 <button
+                  disabled={busy || oauthBusy}
                   onClick={() => {
-                    void copy(newToken);
+                    setSettingsOpen(false);
+                    setDeletedOpen(true);
                   }}
                 >
-                  Copy token
+                  Open recently deleted
                 </button>
-                <button onClick={() => setNewToken("")}>Dismiss</button>
-              </div>
-            </div>
-          ) : null}
-          <label>
-            Token view
-            <select
-              value={tokenView}
-              disabled={busy}
-              onChange={(event) => {
-                setTokens([]);
-                setTokenView(
-                  event.target.value === "history" ? "history" : "active",
-                );
-              }}
-            >
-              <option value="active">Active tokens</option>
-              <option value="history">History (revoked or expired)</option>
-            </select>
-          </label>
-          <p className="muted">
-            Revocation and expiry take effect immediately. History is kept for
-            30 days from whichever happens first, then removed by scheduled
-            cleanup.
-          </p>
-          <ul className="token-list">
-            {tokens.map((token) => (
-              <li key={token.id}>
-                <div>
-                  <strong>{token.name}</strong>
-                  <p>
-                    <code>{token.prefix}…</code> · {token.scopes} · expires{" "}
-                    {new Date(token.expiresAt).toLocaleDateString()}
-                  </p>
+              </section>
+              <p className="muted policy">
+                Deleted pins and publications are recoverable for 30 days.
+                Expiry releases only their own references. The last reference
+                then starts seven days of cleanup grace. CDN, other nodes and
+                downloaded copies may remain. There is no permanent-delete
+                action.
+              </p>
+            </>
+          ),
+          "Access tokens": (
+            <>
+              <section>
+                <div className="section-title">
+                  <h2>Access tokens</h2>
                 </div>
-                {token.revokedAt ? (
-                  <span className="muted">Revoked</span>
-                ) : token.expiresAt <= new Date().toISOString() ? (
-                  <span className="muted">Expired</span>
-                ) : (
+                <p className="muted">
+                  Account-bound, scoped, revocable. A name is a label, never an
+                  identity.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTokenFormOpen(!tokenFormOpen)}
+                  aria-expanded={tokenFormOpen}
+                >
+                  {tokenFormOpen ? "Hide token form" : "Create token"}
+                </button>
+                <form onSubmit={createAgent} hidden={!tokenFormOpen}>
+                  <div className="form-row">
+                    <label>
+                      Token label
+                      <input
+                        value={tokenName}
+                        onChange={(e) => setTokenName(e.target.value)}
+                        required
+                        maxLength={200}
+                        placeholder="My assistant"
+                      />
+                    </label>
+                    <label>
+                      Expires in days
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={expires}
+                        onChange={(e) => setExpires(e.target.valueAsNumber)}
+                        required
+                      />
+                    </label>
+                  </div>
+                  <fieldset>
+                    <legend>Permissions</legend>
+                    {[
+                      "pins:read",
+                      "pins:write",
+                      "pins:delete",
+                      "publications:read",
+                      "publications:write",
+                      "publications:delete",
+                    ].map((scope) => (
+                      <label className="check" key={scope}>
+                        <input
+                          type="checkbox"
+                          checked={tokenScopes.includes(scope)}
+                          onChange={(e) =>
+                            setTokenScopes((previous) =>
+                              e.target.checked
+                                ? [...previous, scope]
+                                : previous.filter((item) => item !== scope),
+                            )
+                          }
+                        />
+                        {scope}
+                      </label>
+                    ))}
+                  </fieldset>
                   <button
-                    disabled={busy}
-                    onClick={() => {
-                      void perform(async () => {
-                        await requestJson(`/api/tokens/${token.id}`, {
-                          method: "DELETE",
-                        });
-                        await refresh();
-                        setNotice("Token revoked.");
-                      });
+                    disabled={
+                      busy || oauthBusy || !tokenScopes.length || !!newToken
+                    }
+                    className="secondary"
+                  >
+                    Create access token
+                  </button>
+                </form>
+                {newToken ? (
+                  <div className="token-secret">
+                    <label>
+                      Copy now — shown only once
+                      <input readOnly value={newToken} />
+                    </label>
+                    <div className="actions">
+                      <button
+                        disabled={busy || oauthBusy}
+                        onClick={() => {
+                          void copy(newToken);
+                        }}
+                      >
+                        Copy token
+                      </button>
+                      <button
+                        disabled={busy || oauthBusy}
+                        onClick={() => setNewToken("")}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                <label>
+                  Token view
+                  <select
+                    value={tokenView}
+                    disabled={busy || oauthBusy}
+                    onChange={(event) => {
+                      setTokens([]);
+                      setTokenView(
+                        event.target.value === "history" ? "history" : "active",
+                      );
                     }}
                   >
-                    Revoke
+                    <option value="active">Active tokens</option>
+                    <option value="history">
+                      History (revoked or expired)
+                    </option>
+                  </select>
+                </label>
+                <p className="muted">
+                  Revocation and expiry take effect immediately. History is kept
+                  for 30 days from whichever happens first, then removed by
+                  scheduled cleanup.
+                </p>
+                {tokensLoading ? (
+                  <p role="status">Loading access tokens...</p>
+                ) : tokensError ? (
+                  <p role="alert">{tokensError}</p>
+                ) : !tokens.length ? (
+                  <p>
+                    No {tokenView === "active" ? "active" : "historical"}{" "}
+                    tokens.
+                  </p>
+                ) : null}
+                {tokensError && (
+                  <button
+                    disabled={busy || oauthBusy}
+                    onClick={() => {
+                      void perform(refresh);
+                    }}
+                  >
+                    Retry access tokens
                   </button>
                 )}
-              </li>
-            ))}
-          </ul>
-        </section>
-        <OAuthGrants />
-        <section className="browser-settings">
-          <h3>Browser preferences</h3>
-          <BackgroundSettings disabled={busy} onError={setError} />
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={!skipReminder}
-              disabled={busy}
-              onChange={(event) => {
-                try {
-                  if (event.target.checked)
-                    localStorage.removeItem(publicReminderKey);
-                  else localStorage.setItem(publicReminderKey, "true");
-                  setSkipReminder(!event.target.checked);
-                } catch {
-                  setError(
-                    "Could not save browser preferences. Try enabling browser storage.",
-                  );
-                }
-              }}
-            />
-            Remind me that uploaded content is public
-          </label>
-          <p className="muted">
-            Saved only in this browser. Not synced to your account or other
-            devices.
-          </p>
-        </section>
-        <p className="muted policy">
-          Deleted pins and publications are recoverable for 30 days. Expiry
-          releases only their own references. The last reference then starts
-          seven days of cleanup grace. CDN, other nodes and downloaded copies
-          may remain. There is no permanent-delete action.
-        </p>
-      </Dialog>
+                <ul className="token-list">
+                  {tokens.map((token) => (
+                    <li key={token.id}>
+                      <div>
+                        <strong>{token.name}</strong>
+                        <p>
+                          <code>{token.prefix}…</code> · {token.scopes} ·
+                          expires{" "}
+                          {new Date(token.expiresAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {token.revokedAt ? (
+                        <span className="muted">Revoked</span>
+                      ) : token.expiresAt <= new Date().toISOString() ? (
+                        <span className="muted">Expired</span>
+                      ) : (
+                        <div className="authorization-actions">
+                          <span className="muted">Active</span>
+                          {tokenView === "active" && (
+                            <button
+                              disabled={busy || oauthBusy}
+                              onClick={() => {
+                                void perform(async () => {
+                                  await requestJson(`/api/tokens/${token.id}`, {
+                                    method: "DELETE",
+                                  });
+                                  await refresh();
+                                  setNotice("Token revoked.");
+                                });
+                              }}
+                            >
+                              Revoke
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </>
+          ),
+          "OAuth authorizations": (
+            <OAuthGrants disabled={busy} onBusyChange={setOauthBusy} />
+          ),
+          "Browser preferences": (
+            <section>
+              <h2>Browser preferences</h2>
+              <BackgroundSettings
+                disabled={busy || oauthBusy}
+                onError={setError}
+              />
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={!skipReminder}
+                  disabled={busy || oauthBusy}
+                  onChange={(event) => {
+                    try {
+                      if (event.target.checked)
+                        localStorage.removeItem(publicReminderKey);
+                      else localStorage.setItem(publicReminderKey, "true");
+                      setSkipReminder(!event.target.checked);
+                    } catch {
+                      setError(
+                        "Could not save browser preferences. Try enabling browser storage.",
+                      );
+                    }
+                  }}
+                />
+                Remind me that uploaded content is public
+              </label>
+              <p className="muted">
+                Saved only in this browser. Not synced to your account or other
+                devices.
+              </p>
+            </section>
+          ),
+        }}
+      />
     </div>
   );
 }
