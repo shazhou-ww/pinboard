@@ -12,11 +12,54 @@
         --accent: #505c86;
         --text: #283044;
         --muted: #515971;
+        --background-start: #e6edf3;
+        --background-end: #e8e3ef;
+        --background-light: #f0f4f8;
+        --background-wash: #dcd9eb;
+        --hover: #e3e7f2;
+        --selected: #d9e0f0;
+        --accent-hover: #414d75;
+        --on-accent: #ffffff;
+        --success: #286044;
+        --success-bg: #edf6ef;
+        --error: #a13645;
+        --shadow: color-mix(in srgb, var(--text) 10%, transparent);
+        --backdrop: color-mix(in srgb, var(--text) 50%, transparent);
         font:
           14px/1.5 system-ui,
           sans-serif;
         color: var(--text);
         color-scheme: light;
+      }
+      :root[data-background="sand"] {
+        --background-start: #f0e9e1;
+        --background-end: #eddfdf;
+        --background-light: #f7f1e9;
+        --background-wash: #e9d7d9;
+        --surface: #fdfafb;
+        --subtle: #f5edef;
+        --hover: #eee1e6;
+        --selected: #e8d5df;
+        --border: #dfccd5;
+        --text: #3d3038;
+        --muted: #69555f;
+        --accent: #794c62;
+        --accent-hover: #70435a;
+      }
+      :root[data-background="ice"] {
+        --background-start: #e9eef8;
+        --background-end: #dce5f7;
+        --background-light: #f4f7fc;
+        --background-wash: #d0ddf3;
+        --surface: #f8faff;
+        --subtle: #edf1fa;
+        --hover: #e1e9f8;
+        --selected: #d2def5;
+        --border: #c7d4e8;
+        --text: #29344a;
+        --muted: #4e5e7d;
+        --accent: #425e96;
+        --accent-hover: #3c5588;
       }
       * {
         box-sizing: border-box;
@@ -27,7 +70,22 @@
       body {
         margin: 0;
         min-height: 100dvh;
-        background: linear-gradient(145deg, #e6edf3, #e8e3ef);
+        background:
+          radial-gradient(
+            ellipse at 12% 10%,
+            var(--background-light),
+            transparent 68%
+          ),
+          radial-gradient(
+            ellipse at 90% 92%,
+            var(--background-wash),
+            transparent 66%
+          ),
+          linear-gradient(
+            145deg,
+            var(--background-start),
+            var(--background-end)
+          );
       }
       body:has(dialog[open]) {
         overflow: hidden;
@@ -51,9 +109,10 @@
       }
       button {
         cursor: pointer;
+        border-radius: 999px;
       }
       button:hover {
-        background: var(--subtle);
+        background: var(--hover);
       }
       :focus-visible {
         outline: 2px solid var(--accent);
@@ -61,13 +120,13 @@
       }
       .primary {
         background: var(--accent);
-        color: white;
+        color: var(--on-accent);
       }
       .primary:hover {
-        background: #414d75;
+        background: var(--accent-hover);
       }
       .danger {
-        color: #a13645;
+        color: var(--error);
       }
       h1,
       h2,
@@ -108,14 +167,14 @@
         background: var(--surface);
         color: var(--text);
         overflow: hidden;
-        box-shadow: 0 24px 100px #28304433;
+        box-shadow: 0 24px 100px var(--shadow);
       }
       dialog[open] {
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
       }
       dialog::backdrop {
-        background: #28304466;
+        background: var(--backdrop);
         backdrop-filter: blur(4px);
       }
       header {
@@ -145,7 +204,7 @@
         padding: 10px 12px;
       }
       nav [aria-selected="true"] {
-        background: #d9e0f0;
+        background: var(--selected);
         color: var(--accent);
         font-weight: 650;
       }
@@ -235,7 +294,7 @@
         border-bottom: 0;
       }
       tbody tr:hover td {
-        background: #eef0f766;
+        background: color-mix(in srgb, var(--hover) 45%, var(--surface));
       }
       th:nth-child(1) {
         width: 25%;
@@ -266,6 +325,30 @@
         padding: 3px 8px;
         white-space: nowrap;
       }
+      td .glyph-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-color: transparent;
+        background: transparent;
+        border-radius: 50%;
+      }
+      td .glyph-button:hover {
+        background: var(--hover);
+        border-color: var(--border);
+      }
+      .glyph-button svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
       .badge {
         display: inline-block;
         padding: 2px 6px;
@@ -276,8 +359,8 @@
         white-space: nowrap;
       }
       .badge.active {
-        color: #286044;
-        background: #edf6ef;
+        color: var(--success);
+        background: var(--success-bg);
       }
       .table-summary {
         display: flex;
@@ -804,9 +887,24 @@
           const action = row.insertCell();
           if (record.state === "active") {
             const button = document.createElement("button");
-            button.className = "danger";
-            button.textContent = "撤销";
+            button.className = "danger glyph-button";
+            button.title = `撤销${record.name}`;
             button.setAttribute("aria-label", `撤销${record.name}`);
+            const svg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("aria-hidden", "true");
+            svg.setAttribute("focusable", "false");
+            const circle = document.createElementNS(svg.namespaceURI, "circle");
+            circle.setAttribute("cx", "12");
+            circle.setAttribute("cy", "12");
+            circle.setAttribute("r", "8");
+            const cross = document.createElementNS(svg.namespaceURI, "path");
+            cross.setAttribute("d", "M9 9l6 6m0-6l-6 6");
+            svg.append(circle, cross);
+            button.append(svg);
             button.addEventListener("click", () => {
               status.textContent = `仅演示撤销「${record.name}」；未发送请求、未改变授权。`;
             });
@@ -880,13 +978,9 @@
       );
       document.querySelectorAll('input[name="palette"]').forEach((radio) =>
         radio.addEventListener("change", () => {
-          const colors = {
-            mist: ["#e6edf3", "#e8e3ef"],
-            sand: ["#f0e9e1", "#eddfdf"],
-            ice: ["#e9eef8", "#dce5f7"],
-          };
-          document.body.style.background = `linear-gradient(145deg, ${colors[radio.value].join(", ")})`;
-          status.textContent = "仅预览背景配色，未保存。";
+          document.documentElement.dataset.background = radio.value;
+          status.textContent =
+            "整页主题已预览：背景、面板、按钮、表格及导航同步切换；未保存。";
         }),
       );
       document.getElementById("reminder").addEventListener("change", () => {
