@@ -331,6 +331,17 @@
         font-size: 13px;
         color: var(--muted);
       }
+      .list li > div:first-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .list-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        flex-shrink: 0;
+      }
       .badge {
         display: inline-block;
         padding: 2px 8px;
@@ -508,7 +519,7 @@
               aria-selected="false"
               tabindex="-1"
             >
-              Agent tokens
+              访问令牌
             </button>
             <button
               role="tab"
@@ -594,18 +605,13 @@
             hidden
           >
             <span class="eyebrow">当前账户</span>
-            <h2>Agent tokens</h2>
+            <h2>访问令牌</h2>
             <p class="muted">
-              授权有范围，访问可撤销。名称只是标签，不是身份。
+              管理以 token 方式授予的访问。客户端可以是
+              agent、工具或脚本；令牌名称只是标签，不证明持有者身份。
             </p>
-            <div class="endpoint">
-              <strong>MCP endpoint</strong><br /><code
-                >https://pinboard.example/mcp</code
-              >
-              <span class="badge">示例地址</span>
-            </div>
             <div class="row section">
-              <h3>Token 管理 <span class="badge">示例数据</span></h3>
+              <h3>令牌列表 <span class="badge">示例数据</span></h3>
               <button
                 class="primary"
                 id="toggle-create"
@@ -710,7 +716,7 @@
                 aria-controls="active"
                 aria-selected="true"
               >
-                有效 tokens
+                有效令牌
               </button>
               <button
                 role="tab"
@@ -728,7 +734,7 @@
               aria-labelledby="tab-active"
               tabindex="0"
             >
-              <ul class="list">
+              <ul class="list" aria-label="有效访问令牌">
                 <li>
                   <div>
                     <strong>资料整理助手</strong>
@@ -737,9 +743,17 @@
                       天（示例）
                     </p>
                   </div>
-                  <button type="button" class="danger" data-demo="撤销 token">
-                    撤销
-                  </button>
+                  <div class="list-actions">
+                    <span class="badge">有效</span>
+                    <button
+                      type="button"
+                      class="danger"
+                      data-demo="撤销 token"
+                      aria-label="撤销资料整理助手令牌"
+                    >
+                      撤销
+                    </button>
+                  </div>
                 </li>
                 <li>
                   <div>
@@ -749,9 +763,17 @@
                       ><br />有效期：7 天（示例）
                     </p>
                   </div>
-                  <button type="button" class="danger" data-demo="撤销 token">
-                    撤销
-                  </button>
+                  <div class="list-actions">
+                    <span class="badge">有效</span>
+                    <button
+                      type="button"
+                      class="danger"
+                      data-demo="撤销 token"
+                      aria-label="撤销发布工作流令牌"
+                    >
+                      撤销
+                    </button>
+                  </div>
                 </li>
               </ul>
             </div>
@@ -762,18 +784,23 @@
               tabindex="0"
               hidden
             >
-              <ul class="list">
+              <ul class="list" aria-label="历史访问令牌">
                 <li>
                   <div>
                     <strong>旧测试助手</strong>
-                    <p><code>pins:read</code> · 示例历史记录</p>
+                    <p>
+                      <code>pins:read</code><br />有效期：30
+                      天，已提前撤销（示例）
+                    </p>
                   </div>
                   <span class="badge">已撤销</span>
                 </li>
                 <li>
                   <div>
                     <strong>临时整理助手</strong>
-                    <p><code>pins:read</code> · 示例历史记录</p>
+                    <p>
+                      <code>pins:read</code><br />有效期：7 天，已到期（示例）
+                    </p>
                   </div>
                   <span class="badge">已过期</span>
                 </li>
@@ -794,16 +821,23 @@
             <span class="eyebrow">当前账户</span>
             <h2>OAuth 授权</h2>
             <p class="muted">
-              管理通过 OAuth 连接的 MCP 客户端，不在此创建或管理 Agent token。
+              管理通过 OAuth 授予客户端的访问。每行是一条授权记录，不按 agent
+              或工具分类。
             </p>
+            <div class="endpoint">
+              <strong>MCP endpoint</strong><br /><code
+                >https://pinboard.example/mcp</code
+              >
+              <span class="badge">示例地址</span>
+            </div>
             <div class="row section">
-              <h3>MCP 客户端授权 <span class="badge">示例数据</span></h3>
+              <h3>授权列表 <span class="badge">示例数据</span></h3>
               <button data-demo="刷新 OAuth 授权">刷新授权</button>
             </div>
             <p class="muted">
-              独立于 Agent token。撤销后，已经开始执行的操作仍可能完成。
+              独立于访问令牌。客户端名称不代表可信认证；撤销后，已经开始执行的操作仍可能完成。
             </p>
-            <ul class="list">
+            <ul class="list" aria-label="OAuth 客户端授权">
               <li>
                 <div>
                   <strong>示例 MCP 客户端</strong>
@@ -812,7 +846,35 @@
                     ><br />无固定到期时间，直到撤销（示例）
                   </p>
                 </div>
-                <button class="danger" data-demo="撤销 OAuth 授权">撤销</button>
+                <div class="list-actions">
+                  <span class="badge">已授权</span>
+                  <button
+                    class="danger"
+                    data-demo="撤销 OAuth 授权"
+                    aria-label="撤销示例 MCP 客户端授权"
+                  >
+                    撤销
+                  </button>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>示例发布客户端</strong>
+                  <p>
+                    <code>publications:read · publications:write</code
+                    ><br />有效期：30 天（示例）
+                  </p>
+                </div>
+                <div class="list-actions">
+                  <span class="badge">已授权</span>
+                  <button
+                    class="danger"
+                    data-demo="撤销 OAuth 授权"
+                    aria-label="撤销示例发布客户端授权"
+                  >
+                    撤销
+                  </button>
+                </div>
               </li>
             </ul>
             <div class="callout">
