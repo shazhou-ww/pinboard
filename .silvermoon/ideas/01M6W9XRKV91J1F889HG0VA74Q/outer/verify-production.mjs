@@ -6,11 +6,10 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const origin = "https://pinboard.shazhou.work";
+const buildEvidence =
+  process.env.BUILD_EVIDENCE ?? "inner/evidence-refinement/results.json";
 const { assets: buildAssets } = JSON.parse(
-  await readFile(
-    resolve(root, "inner", "evidence-refinement", "results.json"),
-    "utf8",
-  ),
+  await readFile(resolve(root, buildEvidence), "utf8"),
 );
 const results = {
   checkedAt: new Date().toISOString(),
@@ -20,8 +19,10 @@ const results = {
   releaseTag: process.env.RELEASE_TAG,
   taggedCommit: process.env.RELEASE_COMMIT,
   workflowUrl: process.env.RELEASE_WORKFLOW,
-  implementationRevision: "32df5f993aa37a8c7dbe4878531cab076ba45921",
-  buildEvidence: "inner/evidence-refinement/results.json",
+  implementationRevision:
+    process.env.IMPLEMENTATION_REVISION ??
+    "32df5f993aa37a8c7dbe4878531cab076ba45921",
+  buildEvidence,
   homepage: null,
   assets: [],
   anonymousApi: [],
@@ -69,7 +70,10 @@ for (const path of ["/api/pins", "/api/tokens", "/api/oauth/grants"]) {
 results.errors = errors;
 results.passed = errors.length === 0;
 await writeFile(
-  resolve(root, "production-refinement-evidence.json"),
+  resolve(
+    root,
+    process.env.PRODUCTION_EVIDENCE ?? "production-refinement-evidence.json",
+  ),
   `${JSON.stringify(results, null, 2)}\n`,
 );
 assert.equal(errors.length, 0, errors.join("；"));
