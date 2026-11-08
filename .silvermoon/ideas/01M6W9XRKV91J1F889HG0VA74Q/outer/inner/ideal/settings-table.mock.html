@@ -181,6 +181,15 @@
         padding: 20px 24px;
         border-bottom: 1px solid var(--border);
       }
+      #settings > header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      #settings-title {
+        font-size: clamp(22px, 4vw, 30px);
+      }
       .layout {
         display: grid;
         grid-template-columns: 196px minmax(0, 1fr);
@@ -247,6 +256,53 @@
         min-width: 80px;
         border-radius: 999px;
         padding-inline: 14px;
+      }
+      .filter-box {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+      }
+      .filter-box:focus-within {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .filter-box input[type="search"] {
+        width: 0;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        outline: none;
+      }
+      .filter-box > button {
+        margin: 2px;
+        flex-shrink: 0;
+      }
+      .filter-box:has(input[role="switch"]:checked) > button {
+        background: var(--selected);
+        color: var(--accent);
+      }
+      .filter-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 3;
+        padding: 14px;
+        width: 224px;
+        max-width: calc(100vw - 48px);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: 0 8px 24px var(--shadow);
+      }
+      .filter-menu small {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
       }
       .toolbar label {
         display: flex;
@@ -560,10 +616,6 @@
           flex-wrap: wrap;
           gap: 4px;
         }
-        .toolbar input[type="search"] {
-          flex-basis: 100%;
-          width: 100%;
-        }
       }
     </style>
   </head>
@@ -578,7 +630,19 @@
       aria-labelledby="settings-title"
       aria-describedby="mock-note"
     >
-      <header><h1 id="settings-title">Settings</h1></header>
+      <header>
+        <h1 id="settings-title">Pinboard Settings</h1>
+        <button
+          class="glyph-button"
+          id="close-settings"
+          aria-label="关闭 Pinboard Settings"
+          title="关闭"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </header>
       <div class="layout">
         <nav aria-label="设置导航">
           <div
@@ -696,16 +760,33 @@
               <small>账户授权 · 示例数据</small>
             </div>
             <div class="toolbar" role="toolbar" aria-label="访问令牌工具栏">
-              <input
-                type="search"
-                id="search-tokens"
-                aria-label="搜索访问令牌"
-                placeholder="搜索名称或权限"
-              />
-              <label class="switch-label"
-                ><input type="checkbox" role="switch" id="invalid-tokens" />
-                显示无效授权</label
-              >
+              <div class="filter-box">
+                <input
+                  type="search"
+                  id="search-tokens"
+                  aria-label="搜索访问令牌"
+                  placeholder="搜索名称或权限"
+                />
+                <button
+                  class="glyph-button"
+                  id="filter-button-tokens"
+                  aria-label="访问令牌筛选选项"
+                  title="筛选选项"
+                  aria-expanded="false"
+                  aria-controls="filter-menu-tokens"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M7 12h10M10 17h4" />
+                  </svg>
+                </button>
+                <div class="filter-menu" id="filter-menu-tokens" hidden>
+                  <label class="switch-label"
+                    ><input type="checkbox" role="switch" id="invalid-tokens" />
+                    显示无效授权</label
+                  >
+                  <small>包含已过期和已撤销的记录</small>
+                </div>
+              </div>
               <button
                 class="primary glyph-button"
                 id="create-token"
@@ -754,16 +835,33 @@
               <small>账户授权 · 示例数据</small>
             </div>
             <div class="toolbar" role="toolbar" aria-label="OAuth 授权工具栏">
-              <input
-                type="search"
-                id="search-oauth"
-                aria-label="搜索 OAuth 授权"
-                placeholder="搜索客户端或权限"
-              />
-              <label class="switch-label"
-                ><input type="checkbox" role="switch" id="invalid-oauth" />
-                显示无效授权</label
-              >
+              <div class="filter-box">
+                <input
+                  type="search"
+                  id="search-oauth"
+                  aria-label="搜索 OAuth 授权"
+                  placeholder="搜索客户端或权限"
+                />
+                <button
+                  class="glyph-button"
+                  id="filter-button-oauth"
+                  aria-label="OAuth 授权筛选选项"
+                  title="筛选选项"
+                  aria-expanded="false"
+                  aria-controls="filter-menu-oauth"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M7 12h10M10 17h4" />
+                  </svg>
+                </button>
+                <div class="filter-menu" id="filter-menu-oauth" hidden>
+                  <label class="switch-label"
+                    ><input type="checkbox" role="switch" id="invalid-oauth" />
+                    显示无效授权</label
+                  >
+                  <small>包含已过期和已撤销的记录</small>
+                </div>
+              </div>
               <button
                 class="glyph-button"
                 data-demo="刷新 OAuth 授权"
@@ -904,6 +1002,42 @@
         });
       });
       const records = {};
+      function closeFilters(restoreFocus = false) {
+        for (const kind of ["tokens", "oauth"]) {
+          const menu = document.getElementById(`filter-menu-${kind}`);
+          const button = document.getElementById(`filter-button-${kind}`);
+          if (!menu.hidden && restoreFocus) button.focus();
+          menu.hidden = true;
+          button.setAttribute("aria-expanded", "false");
+        }
+      }
+      for (const kind of ["tokens", "oauth"]) {
+        const button = document.getElementById(`filter-button-${kind}`);
+        const menu = document.getElementById(`filter-menu-${kind}`);
+        button.addEventListener("click", () => {
+          const open = menu.hidden;
+          closeFilters();
+          menu.hidden = !open;
+          button.setAttribute("aria-expanded", String(open));
+          if (open) document.getElementById(`invalid-${kind}`).focus();
+        });
+      }
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".filter-box")) closeFilters();
+      });
+      settings.addEventListener("keydown", (event) => {
+        if (
+          event.key === "Escape" &&
+          document.querySelector(".filter-menu:not([hidden])")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeFilters(true);
+        }
+      });
+      document
+        .getElementById("close-settings")
+        .addEventListener("click", () => settings.close());
       const labels = { active: "有效", expired: "已过期", revoked: "已撤销" };
       for (const kind of ["tokens", "oauth"]) {
         records[kind] = Array.from({ length: 24 }, (_, index) => ({
@@ -1002,7 +1136,10 @@
         settings.showModal();
         activate(tabs[0], true);
       });
-      settings.addEventListener("close", () => opener.focus());
+      settings.addEventListener("close", () => {
+        closeFilters();
+        opener.focus();
+      });
       let outsidePress = false;
       function outside(event) {
         const bounds = settings.getBoundingClientRect();
