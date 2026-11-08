@@ -25,6 +25,7 @@
     "@modelcontextprotocol/sdk": "catalog:",
     "ipfs-unixfs-importer": "catalog:",
     "ipfs-unixfs-exporter": "catalog:",
+    "fflate": "catalog:",
     "multiformats": "catalog:",
     "zod": "catalog:",
     "@auth/core": "catalog:",

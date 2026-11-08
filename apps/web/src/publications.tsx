@@ -685,6 +685,11 @@ export function PublicationPage({
             >
               Copy CID
             </button>
+            <a
+              href={`/api/public/publications/${publication.id}/download/${actual.revision}?format=original`}
+            >
+              Download file / ZIP <Icon name="download" size={16} />
+            </a>
             <a href={`/api/public/${actual.cid}/car`}>
               Download complete CAR <Icon name="download" size={16} />
             </a>

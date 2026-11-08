@@ -53,6 +53,32 @@ HTTP routes, account authorization, explicit public-upload consent, raw ETags,
 negotiation and security headers are unchanged. R2 range reads are internal; the
 raw gateway still does not offer HTTP byte-range responses.
 
+## Original content downloads
+
+`GET /api/public/:cid/download` reconstructs raw and UnixFS files as original
+bytes and UnixFS directories as ZIP attachments. The pin detail, CID share and
+publication share pages offer this alongside unchanged CAR exports. Optional
+`?name=...` supplies the filename (or folder name before `.zip`); the pin UI
+supplies its current name. Without it, the filename is `<CID>.bin` or
+`<CID>.zip`: UnixFS file roots do not retain the original upload filename, and
+public retrieval never exposes account-scoped pin names.
+
+Downloads verify the complete DAG against the existing block/count/32 MiB limits
+before decoding. ZIP output preserves relative paths, Unicode names and empty
+directories/files. Output is streamed with backpressure, without buffering an
+additional complete file or ZIP; aggregate reconstructed file bytes are limited
+to 32 MiB even when shared DAG links expand repeatedly. Trees exceeding 10,000
+entries or 256 levels, unsafe/non-portable or conflicting paths, symlinks and
+other IPLD content fail explicitly; use CAR export for those DAGs. Content is
+always an attachment with sandbox and `nosniff` headers, never executed as a
+website.
+
+Publication downloads also accept
+`/api/public/publications/:id/download/:revision?format=original` (omit
+`:revision` to follow the current version). Publication resolution and deletion
+checks still apply. The default and `?format=car` remain CAR downloads,
+including their existing conditional request behavior.
+
 ## Publication, failures and recovery
 
 The writer first reserves a `storage_objects` row in `writing` state. The
