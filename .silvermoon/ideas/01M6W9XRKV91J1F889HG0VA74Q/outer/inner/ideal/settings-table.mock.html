@@ -202,6 +202,7 @@
         background: transparent;
         white-space: nowrap;
         padding: 10px 12px;
+        border-radius: 0;
       }
       nav [aria-selected="true"] {
         background: var(--selected);
@@ -244,12 +245,23 @@
         flex: 1;
         width: 120px;
         min-width: 80px;
+        border-radius: 999px;
+        padding-inline: 14px;
       }
       .toolbar label {
         display: flex;
         align-items: center;
         gap: 6px;
         font-size: 12px;
+        white-space: nowrap;
+      }
+      .toolbar .filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .toolbar > button {
+        margin-left: auto;
       }
       .endpoint {
         font-size: 12px;
@@ -506,8 +518,9 @@
           flex-wrap: wrap;
           gap: 4px;
         }
-        .toolbar label {
-          margin-left: auto;
+        .toolbar input[type="search"] {
+          flex-basis: 100%;
+          width: 100%;
         }
       }
     </style>
@@ -534,12 +547,12 @@
           >
             <button
               role="tab"
-              id="tab-browser"
-              aria-controls="browser"
+              id="tab-general"
+              aria-controls="general"
               aria-selected="true"
               autofocus
             >
-              浏览器偏好
+              通用
             </button>
             <button
               role="tab"
@@ -573,12 +586,12 @@
         <div class="detail">
           <section
             class="panel"
-            id="browser"
+            id="general"
             role="tabpanel"
-            aria-labelledby="tab-browser"
+            aria-labelledby="tab-general"
             tabindex="0"
           >
-            <h2>浏览器偏好</h2>
+            <h2>通用</h2>
             <p class="muted">仅当前浏览器 · 配色即时预览，不同步到其他设备。</p>
             <div class="palettes">
               <label class="palette"
@@ -609,6 +622,24 @@
                 关闭提醒不改变公开属性。其他节点、CDN 和下载者可能保留副本。
               </p>
             </div>
+            <div class="preference">
+              <h2>配置 MCP</h2>
+              <p class="muted">
+                在支持 MCP 的客户端添加以下远程地址，然后从客户端发起 OAuth
+                连接，并在 Pinboard 确认授权。
+              </p>
+              <p class="endpoint">
+                MCP endpoint <code>https://pinboard.example/mcp</code> ·
+                示例地址
+              </p>
+              <p class="policy">
+                也可以使用访问令牌连接支持该方式的客户端。令牌名称只是标签；客户端名称不证明可信。密钥仅创建后展示一次，不出现在授权表格。
+              </p>
+              <p class="policy">
+                访问令牌历史按既有 30
+                天保留规则清理。过期或撤销的授权可在相应页勾选筛选项查看；过期授权不需再次撤销。
+              </p>
+            </div>
           </section>
           <section
             class="panel authorization"
@@ -623,22 +654,21 @@
               <small>账户授权 · 示例数据</small>
             </div>
             <div class="toolbar" role="toolbar" aria-label="访问令牌工具栏">
-              <button class="primary" id="create-token">新建令牌</button>
               <input
                 type="search"
                 id="search-tokens"
                 aria-label="搜索访问令牌"
                 placeholder="搜索名称或权限"
               />
-              <label
-                >筛选
-                <select id="filter-tokens">
-                  <option value="active">有效</option>
-                  <option value="all">全部</option>
-                  <option value="expired">已过期</option>
-                  <option value="revoked">已撤销</option>
-                </select></label
-              >
+              <div class="filters" role="group" aria-label="访问令牌状态筛选">
+                <label
+                  ><input type="checkbox" id="expired-tokens" /> 已过期</label
+                >
+                <label
+                  ><input type="checkbox" id="revoked-tokens" /> 已撤销</label
+                >
+              </div>
+              <button class="primary" id="create-token">新建令牌</button>
             </div>
             <div
               class="table-scroll"
@@ -663,10 +693,6 @@
               <output id="count-tokens"></output
               ><span>固定表头 · 仅表格区滚动</span>
             </div>
-            <p class="policy">
-              名称只是标签。密钥仅创建后展示一次，不出现在表格。历史记录按既有
-              30 天保留规则清理。
-            </p>
           </section>
           <section
             class="panel authorization"
@@ -680,26 +706,21 @@
               <h2>OAuth 授权</h2>
               <small>账户授权 · 示例数据</small>
             </div>
-            <div class="endpoint">
-              MCP endpoint <code>https://pinboard.example/mcp</code> · 示例地址
-            </div>
             <div class="toolbar" role="toolbar" aria-label="OAuth 授权工具栏">
-              <button data-demo="连接方式说明">连接说明</button>
               <input
                 type="search"
                 id="search-oauth"
                 aria-label="搜索 OAuth 授权"
                 placeholder="搜索客户端或权限"
               />
-              <label
-                >筛选
-                <select id="filter-oauth">
-                  <option value="active">有效</option>
-                  <option value="all">全部</option>
-                  <option value="expired">已过期</option>
-                  <option value="revoked">已撤销</option>
-                </select></label
-              >
+              <div class="filters" role="group" aria-label="OAuth 授权状态筛选">
+                <label
+                  ><input type="checkbox" id="expired-oauth" /> 已过期</label
+                >
+                <label
+                  ><input type="checkbox" id="revoked-oauth" /> 已撤销</label
+                >
+              </div>
               <button data-demo="刷新 OAuth 授权">刷新</button>
             </div>
             <div
@@ -725,10 +746,6 @@
               <output id="count-oauth"></output
               ><span>固定表头 · 仅表格区滚动</span>
             </div>
-            <p class="policy">
-              每行是一条授权，客户端名称不证明可信。OAuth 从客户端发起，不在
-              Settings 凭空新建；已过期或已撤销条目无撤销操作。
-            </p>
           </section>
           <section
             class="panel"
@@ -846,22 +863,28 @@
           state: index < 16 ? "active" : index < 20 ? "expired" : "revoked",
           id: `示例 ${kind}-${index + 1}`,
         }));
-        document
-          .getElementById(`filter-${kind}`)
-          .addEventListener("change", () => render(kind));
+        for (const state of ["expired", "revoked"]) {
+          document
+            .getElementById(`${state}-${kind}`)
+            .addEventListener("change", () => render(kind));
+        }
         document
           .getElementById(`search-${kind}`)
           .addEventListener("input", () => render(kind));
       }
       function render(kind) {
-        const filter = document.getElementById(`filter-${kind}`).value;
+        const includedStates = ["active"];
+        for (const state of ["expired", "revoked"]) {
+          if (document.getElementById(`${state}-${kind}`).checked)
+            includedStates.push(state);
+        }
         const query = document
           .getElementById(`search-${kind}`)
           .value.trim()
           .toLowerCase();
         const visible = records[kind].filter(
           (record) =>
-            (filter === "all" || filter === record.state) &&
+            includedStates.includes(record.state) &&
             `${record.name} ${record.scopes}`.toLowerCase().includes(query),
         );
         const body = document.getElementById(`rows-${kind}`);
@@ -920,7 +943,7 @@
           cell.textContent = "没有符合筛选条件的记录";
         }
         document.getElementById(`count-${kind}`).textContent =
-          `显示 ${visible.length} / ${records[kind].length} 条 · ${labels[filter] ?? "全部"}`;
+          `显示 ${visible.length} / ${records[kind].length} 条`;
         body.closest(".table-scroll").scrollTop = 0;
       }
       render("tokens");
@@ -970,10 +993,7 @@
         });
       document.querySelectorAll("[data-demo]").forEach((button) =>
         button.addEventListener("click", () => {
-          status.textContent =
-            button.dataset.demo === "连接方式说明"
-              ? "从 MCP 客户端填写上方 endpoint，发起 OAuth 流程，再在 Pinboard 确认；样稿不发起授权。"
-              : `仅演示「${button.dataset.demo}」；未发送请求。`;
+          status.textContent = `仅演示「${button.dataset.demo}」；未发送请求。`;
         }),
       );
       document.querySelectorAll('input[name="palette"]').forEach((radio) =>
