@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pinboard · Settings 分类面板样稿</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --text: #283044;
+        --muted: #515971;
+        --surface: #fafbfe;
+        --subtle: #eef0f7;
+        --border: #cbd0df;
+        --accent: #505c86;
+        --selected: #d9e0f0;
+        --start: #e6edf3;
+        --end: #e8e3ef;
+        font:
+          15px/1.6 system-ui,
+          sans-serif;
+        color: var(--text);
+      }
+      :root[data-palette="sand"] {
+        --text: #3d3038;
+        --muted: #69555f;
+        --surface: #fdfafb;
+        --subtle: #f5edef;
+        --border: #dfccd5;
+        --accent: #794c62;
+        --selected: #e8d5df;
+        --start: #f0e9e1;
+        --end: #eddfdf;
+      }
+      :root[data-palette="ice"] {
+        --text: #29344a;
+        --muted: #4e5e7d;
+        --surface: #f8faff;
+        --subtle: #edf1fa;
+        --border: #c7d4e8;
+        --accent: #425e96;
+        --selected: #d2def5;
+        --start: #e9eef8;
+        --end: #dce5f7;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background: linear-gradient(145deg, var(--start), var(--end));
+      }
+      body:has(dialog[open]) {
+        overflow: hidden;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+        accent-color: var(--accent);
+      }
+      button {
+        cursor: pointer;
+        padding: 8px 14px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+      }
+      button:hover {
+        background: var(--subtle);
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font:
+          30px/1.2 Georgia,
+          serif;
+      }
+      h2 {
+        font-size: 24px;
+        letter-spacing: -0.03em;
+      }
+      h3 {
+        font-size: 16px;
+      }
+      p {
+        margin-top: 8px;
+      }
+      small,
+      .muted {
+        color: var(--muted);
+      }
+      small {
+        font-size: 12px;
+      }
+      .page {
+        max-width: 1160px;
+        margin: auto;
+        padding: 32px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .backdrop-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 60px;
+        opacity: 0.55;
+      }
+      .backdrop-cards div {
+        height: 240px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        padding: 24px;
+      }
+      dialog {
+        width: min(1000px, calc(100% - 48px));
+        height: min(680px, calc(100dvh - 64px));
+        max-width: none;
+        max-height: none;
+        margin: auto;
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: 0 24px 100px #28304433;
+      }
+      dialog[open] {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+      dialog::backdrop {
+        background: #28304466;
+        backdrop-filter: blur(5px);
+      }
+      .modal-header {
+        padding: 22px 28px;
+        border-bottom: 1px solid var(--border);
+      }
+      .modal-header p {
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .close {
+        white-space: nowrap;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 208px minmax(0, 1fr);
+        min-height: 0;
+      }
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        padding: 22px 14px;
+        background: var(--subtle);
+        border-right: 1px solid var(--border);
+        overflow: auto;
+      }
+      .sidebar [role="tablist"] {
+        display: grid;
+        gap: 6px;
+      }
+      .sidebar [role="tab"] {
+        text-align: left;
+        border-color: transparent;
+        background: transparent;
+        padding: 11px 14px;
+        white-space: nowrap;
+      }
+      [role="tab"][aria-selected="true"] {
+        color: var(--accent);
+        background: var(--selected);
+        font-weight: 650;
+      }
+      .sidebar-note {
+        margin: auto 14px 0;
+        padding-top: 24px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .detail {
+        min-width: 0;
+        overflow: auto;
+        padding: 28px 32px;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+      }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 8px;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+      }
+      .section {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
+      }
+      fieldset {
+        min-width: 0;
+        border: 0;
+        margin: 0;
+        padding: 0;
+      }
+      legend {
+        padding: 0;
+        font-weight: 650;
+        margin-bottom: 12px;
+      }
+      .palettes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .palette {
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        cursor: pointer;
+      }
+      .palette:has(:checked) {
+        outline: 2px solid var(--accent);
+        background: var(--selected);
+      }
+      .swatch {
+        display: block;
+        height: 78px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+      }
+      .mist {
+        background: linear-gradient(135deg, #e6edf3, #dcd9eb);
+      }
+      .sand {
+        background: linear-gradient(135deg, #f0e9e1, #e9d7d9);
+      }
+      .ice {
+        background: linear-gradient(135deg, #e9eef8, #d0ddf3);
+      }
+      .palette span:last-child {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        padding-left: 22px;
+      }
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .check input {
+        margin-top: 6px;
+        flex-shrink: 0;
+      }
+      .callout {
+        padding: 16px;
+        margin-top: 20px;
+        background: var(--subtle);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        font-size: 13px;
+      }
+      .callout p:first-child {
+        margin-top: 0;
+      }
+      .pills {
+        display: flex;
+        gap: 6px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+      }
+      .pills button {
+        font-size: 13px;
+      }
+      .primary {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .primary:hover {
+        background: var(--accent);
+        filter: brightness(0.92);
+      }
+      .danger {
+        color: #a13645;
+      }
+      .endpoint {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      code {
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 16px 0 0;
+      }
+      .list li {
+        padding: 16px 0;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+      .list p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        background: var(--subtle);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 140px;
+        gap: 16px;
+      }
+      .form-row label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        min-width: 0;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+      .permissions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 14px;
+        font-size: 13px;
+      }
+      .form-actions {
+        margin-top: 18px;
+        display: flex;
+        gap: 10px;
+      }
+      .policy {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .modal-footer {
+        padding: 10px 28px;
+        border-top: 1px solid var(--border);
+        background: var(--subtle);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .status {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--text);
+      }
+      .status:empty {
+        display: none;
+      }
+      #trash-dialog {
+        width: min(650px, calc(100% - 32px));
+        height: min(480px, calc(100dvh - 48px));
+      }
+      @media (max-width: 640px) {
+        dialog {
+          width: calc(100% - 16px);
+          height: calc(100dvh - 24px);
+          border-radius: 12px;
+        }
+        .modal-header {
+          padding: 16px 18px;
+        }
+        .modal-header p {
+          display: none;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        h2 {
+          font-size: 22px;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(0, 1fr);
+        }
+        .sidebar {
+          padding: 10px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        .sidebar [role="tablist"] {
+          display: flex;
+          overflow: auto;
+        }
+        .sidebar [role="tab"] {
+          flex-shrink: 0;
+          font-size: 13px;
+          padding: 8px 10px;
+        }
+        .sidebar-note {
+          display: none;
+        }
+        .detail {
+          padding: 22px 18px;
+        }
+        .palettes {
+          gap: 8px;
+        }
+        .palette {
+          padding: 8px;
+          font-size: 12px;
+        }
+        .swatch {
+          height: 58px;
+        }
+        .palette span:last-child {
+          padding-left: 0;
+          font-size: 11px;
+        }
+        .form-row,
+        .permissions {
+          grid-template-columns: 1fr;
+        }
+        .row {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .modal-header {
+          flex-wrap: nowrap;
+        }
+        .modal-footer {
+          padding: 10px 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="row">
+        <h1>Pinboard</h1>
+        <button id="open-settings" class="primary">打开 Settings 样稿</button>
+      </div>
+      <p class="muted">设计讨论 · 分类导航 + 详情视图</p>
+      <div class="backdrop-cards" aria-hidden="true">
+        <div>灵感收藏</div>
+        <div>项目资料</div>
+        <div>分享链接</div>
+      </div>
+    </main>
+    <dialog
+      id="settings"
+      aria-labelledby="settings-title"
+      aria-describedby="mock-note"
+    >
+      <header class="modal-header row">
+        <div>
+          <h1 id="settings-title">Settings</h1>
+          <p>偏好、连接与内容管理，各归其位。</p>
+        </div>
+        <button class="close" id="close-settings" aria-label="关闭 Settings">
+          关闭 ×
+        </button>
+      </header>
+      <div class="layout">
+        <aside class="sidebar">
+          <div
+            role="tablist"
+            aria-label="设置分类"
+            aria-orientation="vertical"
+            id="category-tabs"
+          >
+            <button
+              role="tab"
+              id="tab-browser"
+              aria-controls="browser"
+              aria-selected="true"
+              autofocus
+            >
+              浏览器偏好
+            </button>
+            <button
+              role="tab"
+              id="tab-agents"
+              aria-controls="agents"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Agent 与连接
+            </button>
+            <button
+              role="tab"
+              id="tab-deleted"
+              aria-controls="deleted"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              最近删除
+            </button>
+          </div>
+          <p class="sidebar-note">
+            偏好只属于当前浏览器。<br />连接与回收站属于账户。
+          </p>
+        </aside>
+        <div class="detail" id="detail">
+          <section
+            role="tabpanel"
+            id="browser"
+            aria-labelledby="tab-browser"
+            tabindex="0"
+          >
+            <span class="eyebrow">仅当前浏览器</span>
+            <h2>让 Pinboard 更像你的空间</h2>
+            <p class="muted">配色和上传提醒不随账户同步到其他设备。</p>
+            <div class="section">
+              <fieldset>
+                <legend>背景配色</legend>
+                <div class="palettes">
+                  <label class="palette"
+                    ><span class="swatch mist" aria-hidden="true"></span
+                    ><input type="radio" name="palette" value="mist" checked />
+                    晨光雾屿<span>蓝雾与淡紫</span></label
+                  >
+                  <label class="palette"
+                    ><span class="swatch sand" aria-hidden="true"></span
+                    ><input type="radio" name="palette" value="sand" />
+                    玫瑰沙丘<span>暖沙与玫瑰</span></label
+                  >
+                  <label class="palette"
+                    ><span class="swatch ice" aria-hidden="true"></span
+                    ><input type="radio" name="palette" value="ice" />
+                    晴空冰海<span>清透的天空蓝</span></label
+                  >
+                </div>
+              </fieldset>
+              <p>
+                <small
+                  >样稿仅即时预览；刷新后恢复默认，不写入浏览器存储。</small
+                >
+              </p>
+            </div>
+            <div class="section">
+              <label class="check"
+                ><input type="checkbox" id="public-reminder" checked /><span
+                  ><strong>上传前提醒我：内容是公开的</strong><br /><small
+                    >关闭提醒不会改变内容的公开属性。</small
+                  ></span
+                ></label
+              >
+              <div class="callout">
+                <p>
+                  IPFS 内容可能被其他节点、CDN
+                  或下载者保存。移除引用并不等于召回公开副本。
+                </p>
+              </div>
+            </div>
+          </section>
+          <section
+            role="tabpanel"
+            id="agents"
+            aria-labelledby="tab-agents"
+            tabindex="0"
+            hidden
+          >
+            <span class="eyebrow">当前账户</span>
+            <h2>Agent 与连接</h2>
+            <p class="muted">
+              授权有范围，访问可撤销。名称只是标签，不是身份。
+            </p>
+            <div class="endpoint">
+              <strong>MCP endpoint</strong><br /><code
+                >https://pinboard.example/mcp</code
+              >
+              <span class="badge">示例地址</span>
+            </div>
+            <div class="pills" role="tablist" aria-label="连接方式">
+              <button
+                role="tab"
+                id="tab-tokens"
+                aria-controls="tokens"
+                aria-selected="true"
+              >
+                Agent tokens
+              </button>
+              <button
+                role="tab"
+                id="tab-oauth"
+                aria-controls="oauth"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                OAuth 授权
+              </button>
+            </div>
+            <section
+              role="tabpanel"
+              id="tokens"
+              aria-labelledby="tab-tokens"
+              tabindex="0"
+            >
+              <div class="row">
+                <h3>Agent tokens <span class="badge">示例数据</span></h3>
+                <button
+                  class="primary"
+                  id="toggle-create"
+                  aria-expanded="false"
+                  aria-controls="create-form"
+                >
+                  创建 token
+                </button>
+              </div>
+              <form id="create-form" class="callout" hidden>
+                <div class="form-row">
+                  <label
+                    >Token 标签<input
+                      type="text"
+                      placeholder="我的助手"
+                      maxlength="200"
+                      required
+                  /></label>
+                  <label
+                    >有效天数<input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value="30"
+                      required
+                  /></label>
+                </div>
+                <fieldset class="section">
+                  <legend>权限范围</legend>
+                  <div class="permissions">
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="scope"
+                        value="pins:read"
+                        checked
+                      /><span
+                        >读取 pins<br /><code>pins:read</code></span
+                      ></label
+                    >
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="scope"
+                        value="pins:write"
+                      /><span
+                        >上传与编辑 pins<br /><code>pins:write</code></span
+                      ></label
+                    >
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="scope"
+                        value="pins:delete"
+                      /><span
+                        >移除与恢复 pins<br /><code>pins:delete</code></span
+                      ></label
+                    >
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="scope"
+                        value="publications:read"
+                      /><span
+                        >读取 publications<br /><code
+                          >publications:read</code
+                        ></span
+                      ></label
+                    >
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="scope"
+                        value="publications:write"
+                      /><span
+                        >创建与发布版本<br /><code
+                          >publications:write</code
+                        ></span
+                      ></label
+                    >
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="scope"
+                        value="publications:delete"
+                      /><span
+                        >关闭与恢复分享<br /><code
+                          >publications:delete</code
+                        ></span
+                      ></label
+                    >
+                  </div>
+                </fieldset>
+                <p class="policy">
+                  真实创建后密钥只展示一次；切换类别时应保留待复制提示。此样稿不生成密钥。
+                </p>
+                <div class="form-actions">
+                  <button class="primary" type="submit">演示创建</button
+                  ><button type="button" id="cancel-create">收起</button>
+                </div>
+              </form>
+              <div class="pills" role="tablist" aria-label="Token 列表">
+                <button
+                  role="tab"
+                  id="tab-active"
+                  aria-controls="active"
+                  aria-selected="true"
+                >
+                  有效 tokens
+                </button>
+                <button
+                  role="tab"
+                  id="tab-history"
+                  aria-controls="history"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  历史记录
+                </button>
+              </div>
+              <div
+                role="tabpanel"
+                id="active"
+                aria-labelledby="tab-active"
+                tabindex="0"
+              >
+                <ul class="list">
+                  <li>
+                    <div>
+                      <strong>资料整理助手</strong>
+                      <p>
+                        <code>pins:read · publications:read</code
+                        ><br />有效期：30 天（示例）
+                      </p>
+                    </div>
+                    <button type="button" class="danger" data-demo="撤销 token">
+                      撤销
+                    </button>
+                  </li>
+                  <li>
+                    <div>
+                      <strong>发布工作流</strong>
+                      <p>
+                        <code>publications:read · publications:write</code
+                        ><br />有效期：7 天（示例）
+                      </p>
+                    </div>
+                    <button type="button" class="danger" data-demo="撤销 token">
+                      撤销
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div
+                role="tabpanel"
+                id="history"
+                aria-labelledby="tab-history"
+                tabindex="0"
+                hidden
+              >
+                <ul class="list">
+                  <li>
+                    <div>
+                      <strong>旧测试助手</strong>
+                      <p><code>pins:read</code> · 示例历史记录</p>
+                    </div>
+                    <span class="badge">已撤销</span>
+                  </li>
+                  <li>
+                    <div>
+                      <strong>临时整理助手</strong>
+                      <p><code>pins:read</code> · 示例历史记录</p>
+                    </div>
+                    <span class="badge">已过期</span>
+                  </li>
+                </ul>
+              </div>
+              <p class="policy">
+                撤销和到期立即生效。历史从两者先发生的时间起保留 30
+                天，然后定时清理。
+              </p>
+            </section>
+            <section
+              role="tabpanel"
+              id="oauth"
+              aria-labelledby="tab-oauth"
+              tabindex="0"
+              hidden
+            >
+              <div class="row">
+                <h3>MCP 客户端授权 <span class="badge">示例数据</span></h3>
+                <button data-demo="刷新 OAuth 授权">刷新授权</button>
+              </div>
+              <p class="muted">
+                独立于 Agent token。撤销后，已经开始执行的操作仍可能完成。
+              </p>
+              <ul class="list">
+                <li>
+                  <div>
+                    <strong>示例 MCP 客户端</strong>
+                    <p>
+                      <code>pins:read · publications:read</code
+                      ><br />无固定到期时间，直到撤销（示例）
+                    </p>
+                  </div>
+                  <button class="danger" data-demo="撤销 OAuth 授权">
+                    撤销
+                  </button>
+                </li>
+              </ul>
+              <div class="callout">
+                <p>
+                  真实页面需分别展示加载中、无授权和加载失败状态，不把请求失败当成空列表。
+                </p>
+              </div>
+            </section>
+          </section>
+          <section
+            role="tabpanel"
+            id="deleted"
+            aria-labelledby="tab-deleted"
+            tabindex="0"
+            hidden
+          >
+            <span class="eyebrow">当前账户 · 内容管理</span>
+            <h2>给误删留一条退路</h2>
+            <p class="muted">
+              Pins 和 publications 可在 30 天内恢复，保留原来的身份与链接。
+            </p>
+            <div class="callout">
+              <h3>最近删除</h3>
+              <p>在独立回收站中查看和恢复内容，不把列表塞回 Settings。</p>
+              <p>
+                <button class="primary" id="open-trash">打开最近删除 →</button>
+              </p>
+            </div>
+            <div class="section">
+              <h3>恢复与公开内容</h3>
+              <p class="policy">
+                到期只释放被删除条目自己的引用；最后一个引用释放后，进入七天清理宽限。CDN、其他节点和已下载的副本可能仍然存在。Publication
+                引用及公开副本保持独立。没有永久删除操作。
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+      <footer class="modal-footer">
+        <output
+          class="status"
+          id="demo-status"
+          role="status"
+          aria-live="polite"
+        ></output>
+        <span id="mock-note"
+          >交互设计样稿 · 所有数据为示例，不调用 API、不保存设置。</span
+        >
+      </footer>
+    </dialog>
+    <dialog id="trash-dialog" aria-labelledby="trash-title">
+      <header class="modal-header row">
+        <h1 id="trash-title">最近删除</h1>
+        <button id="return-settings" autofocus>返回 Settings</button>
+      </header>
+      <div class="detail">
+        <span class="eyebrow">入口与返回路径演示</span>
+        <h2>回收站仍是独立视图</h2>
+        <p class="muted">
+          此处不展示真实数据，也不实现恢复操作。返回后仍定位 Settings
+          的「最近删除」。
+        </p>
+        <div class="callout">
+          真实页面保留 pins / publications 的恢复能力和 30 天保留规则。
+        </div>
+      </div>
+      <footer class="modal-footer">按 Escape 也可返回 Settings。</footer>
+    </dialog>
+    <script>
+      const settings = document.getElementById("settings");
+      const trash = document.getElementById("trash-dialog");
+      const detail = document.getElementById("detail");
+      const status = document.getElementById("demo-status");
+      const categoryTabs = document.getElementById("category-tabs");
+      const mobile = matchMedia("(max-width: 640px)");
+      function orientTabs() {
+        categoryTabs.setAttribute(
+          "aria-orientation",
+          mobile.matches ? "horizontal" : "vertical",
+        );
+      }
+      orientTabs();
+      mobile.addEventListener("change", orientTabs);
+      function activate(list, tab, focus = false) {
+        list.querySelectorAll(':scope > [role="tab"]').forEach((item) => {
+          const selected = item === tab;
+          item.setAttribute("aria-selected", String(selected));
+          item.tabIndex = selected ? 0 : -1;
+          document.getElementById(item.getAttribute("aria-controls")).hidden =
+            !selected;
+        });
+        if (list === categoryTabs) detail.scrollTop = 0;
+        if (focus) tab.focus();
+        tab.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      document.querySelectorAll('[role="tablist"]').forEach((list) => {
+        const tabs = [...list.querySelectorAll(':scope > [role="tab"]')];
+        tabs.forEach((tab, index) => {
+          tab.addEventListener("click", () => activate(list, tab));
+          tab.addEventListener("keydown", (event) => {
+            const vertical =
+              list.getAttribute("aria-orientation") === "vertical";
+            const previous = vertical ? "ArrowUp" : "ArrowLeft";
+            const next = vertical ? "ArrowDown" : "ArrowRight";
+            let target;
+            if (event.key === previous)
+              target = (index - 1 + tabs.length) % tabs.length;
+            else if (event.key === next) target = (index + 1) % tabs.length;
+            else if (event.key === "Home") target = 0;
+            else if (event.key === "End") target = tabs.length - 1;
+            else return;
+            event.preventDefault();
+            activate(list, tabs[target], true);
+          });
+        });
+      });
+      const opener = document.getElementById("open-settings");
+      function openSettings() {
+        activate(categoryTabs, document.getElementById("tab-browser"));
+        status.textContent = "";
+        settings.showModal();
+        document.getElementById("tab-browser").focus();
+      }
+      opener.addEventListener("click", openSettings);
+      document
+        .getElementById("close-settings")
+        .addEventListener("click", () => settings.close());
+      settings.addEventListener("close", () => {
+        if (!trash.open) opener.focus();
+      });
+      document.querySelectorAll('input[name="palette"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          document.documentElement.dataset.palette = radio.value;
+          status.textContent = "配色已在样稿中预览；未保存。";
+        });
+      });
+      document
+        .getElementById("public-reminder")
+        .addEventListener("change", () => {
+          status.textContent =
+            "提醒选项仅在样稿中切换；内容仍是公开的，未保存。";
+        });
+      const form = document.getElementById("create-form");
+      const create = document.getElementById("toggle-create");
+      function showForm(visible) {
+        form.hidden = !visible;
+        create.setAttribute("aria-expanded", String(visible));
+        if (visible) form.querySelector('input[type="text"]').focus();
+        else create.focus();
+      }
+      create.addEventListener("click", () => showForm(form.hidden));
+      document
+        .getElementById("cancel-create")
+        .addEventListener("click", () => showForm(false));
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        status.textContent = form.querySelector('input[name="scope"]:checked')
+          ? "仅演示创建入口：未创建 token、未生成密钥、未发送请求。"
+          : "请至少选择一项权限；样稿不会创建 token。";
+      });
+      document.querySelectorAll("[data-demo]").forEach((button) => {
+        button.addEventListener("click", () => {
+          status.textContent = `仅演示「${button.dataset.demo}」入口；未发送请求，未修改任何授权。`;
+        });
+      });
+      document.getElementById("open-trash").addEventListener("click", () => {
+        settings.close();
+        trash.showModal();
+      });
+      function returnSettings() {
+        trash.close();
+        settings.showModal();
+        activate(categoryTabs, document.getElementById("tab-deleted"), true);
+      }
+      document
+        .getElementById("return-settings")
+        .addEventListener("click", returnSettings);
+      trash.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        returnSettings();
+      });
+      openSettings();
+    </script>
+  </body>
+</html>
