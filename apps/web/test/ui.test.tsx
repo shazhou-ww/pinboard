@@ -179,7 +179,7 @@ describe("Pinboard interface", () => {
     expect(html.match(/<dialog/g)).toHaveLength(5);
     expect(html).toContain('aria-label="Pin details"');
     expect(html).not.toContain('class="intro"');
-    expect(html).toContain("Create Agent token");
+    expect(html).toContain("Create access token");
     expect(html).toContain("Background palette");
     expect(html).toContain("晨光雾屿 · Mist blue &amp; lavender");
     expect(html).toContain("玫瑰沙丘 · Sand &amp; rose");

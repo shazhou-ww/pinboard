@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Settings · 紧凑授权表格样稿</title>
+    <style>
+      :root {
+        --surface: #fafbfe;
+        --subtle: #eef0f7;
+        --border: #cbd0df;
+        --accent: #505c86;
+        --text: #283044;
+        --muted: #515971;
+        --background-start: #e6edf3;
+        --background-end: #e8e3ef;
+        --background-light: #f0f4f8;
+        --background-wash: #dcd9eb;
+        --hover: #e3e7f2;
+        --selected: #d9e0f0;
+        --accent-hover: #414d75;
+        --on-accent: #ffffff;
+        --success: #286044;
+        --success-bg: #edf6ef;
+        --error: #a13645;
+        --shadow: color-mix(in srgb, var(--text) 10%, transparent);
+        --backdrop: color-mix(in srgb, var(--text) 50%, transparent);
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        color: var(--text);
+        color-scheme: light;
+      }
+      :root[data-background="sand"] {
+        --background-start: #f0e9e1;
+        --background-end: #eddfdf;
+        --background-light: #f7f1e9;
+        --background-wash: #e9d7d9;
+        --surface: #fdfafb;
+        --subtle: #f5edef;
+        --hover: #eee1e6;
+        --selected: #e8d5df;
+        --border: #dfccd5;
+        --text: #3d3038;
+        --muted: #69555f;
+        --accent: #794c62;
+        --accent-hover: #70435a;
+      }
+      :root[data-background="ice"] {
+        --background-start: #e9eef8;
+        --background-end: #dce5f7;
+        --background-light: #f4f7fc;
+        --background-wash: #d0ddf3;
+        --surface: #f8faff;
+        --subtle: #edf1fa;
+        --hover: #e1e9f8;
+        --selected: #d2def5;
+        --border: #c7d4e8;
+        --text: #29344a;
+        --muted: #4e5e7d;
+        --accent: #425e96;
+        --accent-hover: #3c5588;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background:
+          radial-gradient(
+            ellipse at 12% 10%,
+            var(--background-light),
+            transparent 68%
+          ),
+          radial-gradient(
+            ellipse at 90% 92%,
+            var(--background-wash),
+            transparent 66%
+          ),
+          linear-gradient(
+            145deg,
+            var(--background-start),
+            var(--background-end)
+          );
+      }
+      body:has(dialog[open]) {
+        overflow: hidden;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+        accent-color: var(--accent);
+      }
+      button,
+      select,
+      input[type="search"],
+      input[type="text"],
+      input[type="number"] {
+        padding: 7px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+      button {
+        cursor: pointer;
+        border-radius: 999px;
+      }
+      button:hover {
+        background: var(--hover);
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .primary {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .primary:hover {
+        background: var(--accent-hover);
+      }
+      .danger {
+        color: var(--error);
+      }
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font:
+          30px/1.2 Georgia,
+          serif;
+      }
+      h2 {
+        font-size: 19px;
+      }
+      .muted,
+      small {
+        color: var(--muted);
+      }
+      code {
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+      main {
+        padding: 32px;
+      }
+      main button {
+        margin-top: 20px;
+      }
+      dialog {
+        width: min(1040px, calc(100% - 40px));
+        height: min(720px, calc(100dvh - 48px));
+        max-width: none;
+        max-height: none;
+        margin: auto;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--text);
+        overflow: hidden;
+        box-shadow: 0 24px 100px var(--shadow);
+      }
+      dialog[open] {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+      dialog::backdrop {
+        background: var(--backdrop);
+        backdrop-filter: blur(4px);
+      }
+      header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      #settings > header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      #settings-title {
+        font-size: clamp(22px, 4vw, 30px);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 196px minmax(0, 1fr);
+        min-height: 0;
+      }
+      nav {
+        background: var(--subtle);
+        padding: 16px 10px;
+        border-right: 1px solid var(--border);
+        overflow: auto;
+      }
+      nav [role="tablist"] {
+        display: grid;
+        gap: 6px;
+      }
+      nav button {
+        text-align: left;
+        border-color: transparent;
+        background: transparent;
+        white-space: nowrap;
+        padding: 10px 12px;
+        border-radius: 0;
+      }
+      nav [aria-selected="true"] {
+        background: var(--selected);
+        color: var(--accent);
+        font-weight: 650;
+      }
+      .detail {
+        min-height: 0;
+        min-width: 0;
+        display: grid;
+      }
+      .panel {
+        min-height: 0;
+        min-width: 0;
+        padding: 20px;
+        overflow: auto;
+      }
+      .authorization {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: hidden;
+      }
+      .heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .heading small {
+        font-size: 11px;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .toolbar input[type="search"] {
+        flex: 1;
+        width: 120px;
+        min-width: 80px;
+        border-radius: 999px;
+        padding-inline: 14px;
+      }
+      .filter-box {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+      }
+      .filter-box:focus-within {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .filter-box input[type="search"] {
+        width: 0;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        outline: none;
+      }
+      .filter-box > button {
+        margin: 2px;
+        flex-shrink: 0;
+      }
+      .filter-box:has(input[role="switch"]:checked) > button {
+        background: var(--selected);
+        color: var(--accent);
+      }
+      .filter-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 3;
+        padding: 14px;
+        width: 224px;
+        max-width: calc(100vw - 48px);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: 0 8px 24px var(--shadow);
+      }
+      .filter-menu small {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+      }
+      .toolbar label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .toolbar .switch-label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .switch-label input {
+        appearance: none;
+        width: 34px;
+        height: 20px;
+        margin: 0;
+        padding: 2px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--subtle);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .switch-label input::before {
+        content: "";
+        display: block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      .switch-label input:checked {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .switch-label input:checked::before {
+        transform: translateX(14px);
+        background: var(--on-accent);
+      }
+      .toolbar > button {
+        margin-left: auto;
+      }
+      .endpoint {
+        font-size: 12px;
+        background: var(--subtle);
+        padding: 8px 10px;
+        border-radius: 6px;
+        overflow-wrap: anywhere;
+      }
+      .table-scroll {
+        flex: 1;
+        min-height: 110px;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        overscroll-behavior: contain;
+      }
+      table {
+        width: 100%;
+        min-width: 610px;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+        font-size: 12px;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--border);
+        overflow-wrap: anywhere;
+      }
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--subtle);
+        font-weight: 600;
+        box-shadow: 0 1px var(--border);
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      tbody tr:hover td {
+        background: color-mix(in srgb, var(--hover) 45%, var(--surface));
+      }
+      th:nth-child(1) {
+        width: 25%;
+      }
+      th:nth-child(2) {
+        width: 28%;
+      }
+      th:nth-child(3) {
+        width: 22%;
+      }
+      th:nth-child(4) {
+        width: 13%;
+      }
+      th:nth-child(5) {
+        width: 12%;
+      }
+      td strong,
+      td small,
+      td code {
+        display: block;
+      }
+      td small {
+        font-size: 10px;
+        margin-top: 3px;
+      }
+      td button {
+        font-size: 12px;
+        padding: 3px 8px;
+        white-space: nowrap;
+      }
+      .glyph-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-color: transparent;
+        background: transparent;
+        border-radius: 50%;
+      }
+      .glyph-button:hover {
+        background: var(--hover);
+        border-color: var(--border);
+      }
+      .toolbar .glyph-button {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        border-color: var(--border);
+      }
+      .toolbar .glyph-button.primary {
+        background: var(--accent);
+        color: var(--on-accent);
+        border-color: var(--accent);
+      }
+      .toolbar .glyph-button.primary:hover {
+        background: var(--accent-hover);
+      }
+      .glyph-button svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 10px;
+        background: var(--subtle);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .badge.active {
+        color: var(--success);
+        background: var(--success-bg);
+      }
+      .table-summary {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .policy {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .empty td {
+        text-align: center;
+        padding: 30px;
+      }
+      .palettes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 20px 0;
+      }
+      .palette {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .palette:has(:checked) {
+        outline: 2px solid var(--accent);
+      }
+      .swatch {
+        display: block;
+        height: 144px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+      }
+      .mist {
+        background: linear-gradient(135deg, #e6edf3, #dcd9eb);
+      }
+      .sand {
+        background: linear-gradient(135deg, #f0e9e1, #e9d7d9);
+      }
+      .ice {
+        background: linear-gradient(135deg, #e9eef8, #d0ddf3);
+      }
+      .palette small {
+        display: block;
+      }
+      .preference {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+      .preference p {
+        margin-top: 12px;
+      }
+      footer {
+        padding: 8px 20px;
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--subtle);
+      }
+      #status:not(:empty) {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text);
+      }
+      #create-dialog {
+        width: min(520px, calc(100% - 32px));
+        height: min(540px, calc(100dvh - 64px));
+      }
+      #create-dialog header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      form {
+        display: grid;
+        gap: 16px;
+        padding: 20px;
+        overflow: auto;
+        align-content: start;
+      }
+      form label {
+        display: grid;
+        gap: 6px;
+      }
+      fieldset {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px;
+      }
+      fieldset label {
+        display: flex;
+        align-items: center;
+      }
+      @media (max-width: 640px) {
+        dialog {
+          width: calc(100% - 16px);
+          height: calc(100dvh - 24px);
+        }
+        header {
+          padding: 16px 18px;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(0, 1fr);
+        }
+        nav {
+          padding: 8px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        nav [role="tablist"] {
+          display: flex;
+          overflow: auto;
+        }
+        nav button {
+          flex-shrink: 0;
+          font-size: 12px;
+          padding: 8px 10px;
+        }
+        .panel {
+          padding: 14px;
+        }
+        .swatch {
+          height: 108px;
+        }
+        .palettes {
+          gap: 8px;
+        }
+        .palette {
+          padding: 8px;
+          font-size: 11px;
+        }
+        .table-summary {
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Pinboard</h1>
+      <p class="muted">Settings · 紧凑表格方案讨论</p>
+      <button id="opener">打开 Settings 样稿</button>
+    </main>
+    <dialog
+      id="settings"
+      aria-labelledby="settings-title"
+      aria-describedby="mock-note"
+    >
+      <header>
+        <h1 id="settings-title">Pinboard Settings</h1>
+        <button
+          class="glyph-button"
+          id="close-settings"
+          aria-label="关闭 Pinboard Settings"
+          title="关闭"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </header>
+      <div class="layout">
+        <nav aria-label="设置导航">
+          <div
+            role="tablist"
+            aria-label="设置分类"
+            id="tabs"
+            aria-orientation="vertical"
+          >
+            <button
+              role="tab"
+              id="tab-general"
+              aria-controls="general"
+              aria-selected="true"
+              autofocus
+            >
+              通用
+            </button>
+            <button
+              role="tab"
+              id="tab-tokens"
+              aria-controls="tokens"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              访问令牌
+            </button>
+            <button
+              role="tab"
+              id="tab-oauth"
+              aria-controls="oauth"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              OAuth 授权
+            </button>
+            <button
+              role="tab"
+              id="tab-deleted"
+              aria-controls="deleted"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              最近删除
+            </button>
+          </div>
+        </nav>
+        <div class="detail">
+          <section
+            class="panel"
+            id="general"
+            role="tabpanel"
+            aria-labelledby="tab-general"
+            tabindex="0"
+          >
+            <h2>通用</h2>
+            <p class="muted">仅当前浏览器 · 配色即时预览，不同步到其他设备。</p>
+            <div class="palettes">
+              <label class="palette"
+                ><span class="swatch mist" aria-hidden="true"></span
+                ><input name="palette" type="radio" value="mist" checked />
+                晨光雾屿<small>蓝雾与淡紫</small></label
+              >
+              <label class="palette"
+                ><span class="swatch sand" aria-hidden="true"></span
+                ><input name="palette" type="radio" value="sand" />
+                玫瑰沙丘<small>暖沙与玫瑰</small></label
+              >
+              <label class="palette"
+                ><span class="swatch ice" aria-hidden="true"></span
+                ><input name="palette" type="radio" value="ice" />
+                晴空冰海<small>清透天空蓝</small></label
+              >
+            </div>
+            <small
+              >色块高度：桌面 144px / 窄屏 108px；仅演示，不写入存储。</small
+            >
+            <div class="preference">
+              <label
+                ><input type="checkbox" id="reminder" checked />
+                上传前提醒我：内容是公开的</label
+              >
+              <p class="policy">
+                关闭提醒不改变公开属性。其他节点、CDN 和下载者可能保留副本。
+              </p>
+            </div>
+            <div class="preference">
+              <h2>配置 MCP</h2>
+              <p class="muted">
+                在支持 MCP 的客户端添加以下远程地址，然后从客户端发起 OAuth
+                连接，并在 Pinboard 确认授权。
+              </p>
+              <p class="endpoint">
+                MCP endpoint <code>https://pinboard.example/mcp</code> ·
+                示例地址
+              </p>
+              <p class="policy">
+                也可以使用访问令牌连接支持该方式的客户端。令牌名称只是标签；客户端名称不证明可信。密钥仅创建后展示一次，不出现在授权表格。
+              </p>
+              <p class="policy">
+                访问令牌历史按既有 30
+                天保留规则清理。过期或撤销的授权可在相应页勾选筛选项查看；过期授权不需再次撤销。
+              </p>
+            </div>
+          </section>
+          <section
+            class="panel authorization"
+            id="tokens"
+            role="tabpanel"
+            aria-labelledby="tab-tokens"
+            tabindex="0"
+            hidden
+          >
+            <div class="heading">
+              <h2>访问令牌</h2>
+              <small>账户授权 · 示例数据</small>
+            </div>
+            <div class="toolbar" role="toolbar" aria-label="访问令牌工具栏">
+              <div class="filter-box">
+                <input
+                  type="search"
+                  id="search-tokens"
+                  aria-label="搜索访问令牌"
+                  placeholder="搜索名称或权限"
+                />
+                <button
+                  class="glyph-button"
+                  id="filter-button-tokens"
+                  aria-label="访问令牌筛选选项"
+                  title="筛选选项"
+                  aria-expanded="false"
+                  aria-controls="filter-menu-tokens"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M7 12h10M10 17h4" />
+                  </svg>
+                </button>
+                <div class="filter-menu" id="filter-menu-tokens" hidden>
+                  <label class="switch-label"
+                    ><input type="checkbox" role="switch" id="invalid-tokens" />
+                    显示无效授权</label
+                  >
+                  <small>包含已过期和已撤销的记录</small>
+                </div>
+              </div>
+              <button
+                class="primary glyph-button"
+                id="create-token"
+                aria-label="新建访问令牌"
+                title="新建访问令牌"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
+            <div
+              class="table-scroll"
+              tabindex="0"
+              role="region"
+              aria-label="访问令牌表格（可滚动）"
+            >
+              <table aria-label="访问令牌">
+                <thead>
+                  <tr>
+                    <th scope="col">名称</th>
+                    <th scope="col">权限</th>
+                    <th scope="col">到期时间</th>
+                    <th scope="col">状态</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="rows-tokens"></tbody>
+              </table>
+            </div>
+            <div class="table-summary">
+              <output id="count-tokens"></output
+              ><span>固定表头 · 仅表格区滚动</span>
+            </div>
+          </section>
+          <section
+            class="panel authorization"
+            id="oauth"
+            role="tabpanel"
+            aria-labelledby="tab-oauth"
+            tabindex="0"
+            hidden
+          >
+            <div class="heading">
+              <h2>OAuth 授权</h2>
+              <small>账户授权 · 示例数据</small>
+            </div>
+            <div class="toolbar" role="toolbar" aria-label="OAuth 授权工具栏">
+              <div class="filter-box">
+                <input
+                  type="search"
+                  id="search-oauth"
+                  aria-label="搜索 OAuth 授权"
+                  placeholder="搜索客户端或权限"
+                />
+                <button
+                  class="glyph-button"
+                  id="filter-button-oauth"
+                  aria-label="OAuth 授权筛选选项"
+                  title="筛选选项"
+                  aria-expanded="false"
+                  aria-controls="filter-menu-oauth"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M7 12h10M10 17h4" />
+                  </svg>
+                </button>
+                <div class="filter-menu" id="filter-menu-oauth" hidden>
+                  <label class="switch-label"
+                    ><input type="checkbox" role="switch" id="invalid-oauth" />
+                    显示无效授权</label
+                  >
+                  <small>包含已过期和已撤销的记录</small>
+                </div>
+              </div>
+              <button
+                class="glyph-button"
+                data-demo="刷新 OAuth 授权"
+                aria-label="刷新 OAuth 授权"
+                title="刷新 OAuth 授权"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M20 7v5h-5M4 17v-5h5M19 12a7 7 0 0 0-12-5L4 10m1 2a7 7 0 0 0 12 5l3-3"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              class="table-scroll"
+              tabindex="0"
+              role="region"
+              aria-label="OAuth 授权表格（可滚动）"
+            >
+              <table aria-label="OAuth 授权">
+                <thead>
+                  <tr>
+                    <th scope="col">客户端</th>
+                    <th scope="col">权限</th>
+                    <th scope="col">到期时间</th>
+                    <th scope="col">状态</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="rows-oauth"></tbody>
+              </table>
+            </div>
+            <div class="table-summary">
+              <output id="count-oauth"></output
+              ><span>固定表头 · 仅表格区滚动</span>
+            </div>
+          </section>
+          <section
+            class="panel"
+            id="deleted"
+            role="tabpanel"
+            aria-labelledby="tab-deleted"
+            tabindex="0"
+            hidden
+          >
+            <h2>最近删除</h2>
+            <p class="muted">
+              Pins 和 publications 可在 30 天内恢复，保留身份与链接。
+            </p>
+            <div class="preference">
+              <button data-demo="打开现有回收站">打开最近删除</button>
+              <p class="policy">
+                沿用独立回收站。本轮不调整此视图。最后引用释放后有七天清理宽限；公开副本不可召回，无永久删除按钮。
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+      <footer>
+        <output id="status" role="status" aria-live="polite"></output
+        ><span id="mock-note"
+          >设计样稿 · 无 API / 无真实凭据 / 不保存 ·
+          窄屏可在表格内横向滚动查看所有列</span
+        >
+      </footer>
+    </dialog>
+    <dialog id="create-dialog" aria-labelledby="create-title">
+      <header>
+        <h2 id="create-title">新建访问令牌</h2>
+        <button id="cancel-create" aria-label="返回访问令牌">返回</button>
+      </header>
+      <form id="create-form">
+        <label
+          >名称<input
+            type="text"
+            required
+            maxlength="200"
+            placeholder="客户端访问"
+        /></label>
+        <label
+          >有效天数<input type="number" value="30" min="1" max="365" required
+        /></label>
+        <fieldset>
+          <legend>权限</legend>
+          <label><input type="checkbox" name="scope" checked /> pins:read</label
+          ><label><input type="checkbox" name="scope" /> pins:write</label
+          ><label
+            ><input type="checkbox" name="scope" /> publications:read</label
+          >
+        </fieldset>
+        <p class="policy">这是布局演示，权限仅示意；不会创建令牌或生成密钥。</p>
+        <button class="primary" type="submit">演示创建</button
+        ><output id="create-status" role="status"></output>
+      </form>
+      <footer>独立创建弹层，不挤占表格高度；返回后保留草稿。</footer>
+    </dialog>
+    <script>
+      const settings = document.getElementById("settings");
+      const opener = document.getElementById("opener");
+      const status = document.getElementById("status");
+      const createDialog = document.getElementById("create-dialog");
+      const tabs = [...document.querySelectorAll('#tabs [role="tab"]')];
+      const media = matchMedia("(max-width: 640px)");
+      const updateOrientation = () =>
+        document
+          .getElementById("tabs")
+          .setAttribute(
+            "aria-orientation",
+            media.matches ? "horizontal" : "vertical",
+          );
+      updateOrientation();
+      media.addEventListener("change", updateOrientation);
+      function activate(tab, focus = false) {
+        tabs.forEach((item) => {
+          const selected = item === tab;
+          item.setAttribute("aria-selected", String(selected));
+          item.tabIndex = selected ? 0 : -1;
+          document.getElementById(item.getAttribute("aria-controls")).hidden =
+            !selected;
+        });
+        if (focus) tab.focus();
+        tab.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => activate(tab));
+        tab.addEventListener("keydown", (event) => {
+          const previous = media.matches ? "ArrowLeft" : "ArrowUp";
+          const next = media.matches ? "ArrowRight" : "ArrowDown";
+          let target;
+          if (event.key === previous)
+            target = (index + tabs.length - 1) % tabs.length;
+          else if (event.key === next) target = (index + 1) % tabs.length;
+          else if (event.key === "Home") target = 0;
+          else if (event.key === "End") target = tabs.length - 1;
+          else return;
+          event.preventDefault();
+          activate(tabs[target], true);
+        });
+      });
+      const records = {};
+      function closeFilters(restoreFocus = false) {
+        for (const kind of ["tokens", "oauth"]) {
+          const menu = document.getElementById(`filter-menu-${kind}`);
+          const button = document.getElementById(`filter-button-${kind}`);
+          if (!menu.hidden && restoreFocus) button.focus();
+          menu.hidden = true;
+          button.setAttribute("aria-expanded", "false");
+        }
+      }
+      for (const kind of ["tokens", "oauth"]) {
+        const button = document.getElementById(`filter-button-${kind}`);
+        const menu = document.getElementById(`filter-menu-${kind}`);
+        button.addEventListener("click", () => {
+          const open = menu.hidden;
+          closeFilters();
+          menu.hidden = !open;
+          button.setAttribute("aria-expanded", String(open));
+          if (open) document.getElementById(`invalid-${kind}`).focus();
+        });
+      }
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".filter-box")) closeFilters();
+      });
+      settings.addEventListener("keydown", (event) => {
+        if (
+          event.key === "Escape" &&
+          document.querySelector(".filter-menu:not([hidden])")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeFilters(true);
+        }
+      });
+      document
+        .getElementById("close-settings")
+        .addEventListener("click", () => settings.close());
+      const labels = { active: "有效", expired: "已过期", revoked: "已撤销" };
+      for (const kind of ["tokens", "oauth"]) {
+        records[kind] = Array.from({ length: 24 }, (_, index) => ({
+          name: `${kind === "tokens" ? "访问令牌" : "MCP 客户端"} ${String(index + 1).padStart(2, "0")}`,
+          scopes:
+            index % 2
+              ? "publications:read · publications:write"
+              : "pins:read · publications:read",
+          expires:
+            kind === "oauth" && index % 3 === 0 ? "无到期时间" : "2026-12-08",
+          state: index < 16 ? "active" : index < 20 ? "expired" : "revoked",
+          id: `示例 ${kind}-${index + 1}`,
+        }));
+        document
+          .getElementById(`invalid-${kind}`)
+          .addEventListener("change", () => render(kind));
+        document
+          .getElementById(`search-${kind}`)
+          .addEventListener("input", () => render(kind));
+      }
+      function render(kind) {
+        const includeInvalid = document.getElementById(
+          `invalid-${kind}`,
+        ).checked;
+        const query = document
+          .getElementById(`search-${kind}`)
+          .value.trim()
+          .toLowerCase();
+        const visible = records[kind].filter(
+          (record) =>
+            (includeInvalid || record.state === "active") &&
+            `${record.name} ${record.scopes}`.toLowerCase().includes(query),
+        );
+        const body = document.getElementById(`rows-${kind}`);
+        body.replaceChildren();
+        visible.forEach((record) => {
+          const row = document.createElement("tr");
+          row.dataset.state = record.state;
+          const name = row.insertCell();
+          const strong = document.createElement("strong");
+          strong.textContent = record.name;
+          const identity = document.createElement("small");
+          identity.textContent = record.id;
+          name.append(strong, identity);
+          const permissions = document.createElement("code");
+          permissions.textContent = record.scopes;
+          row.insertCell().append(permissions);
+          row.insertCell().textContent =
+            record.state === "expired" ? "2026-10-08" : record.expires;
+          const badge = document.createElement("span");
+          badge.className = `badge ${record.state}`;
+          badge.textContent = labels[record.state];
+          row.insertCell().append(badge);
+          const action = row.insertCell();
+          if (record.state === "active") {
+            const button = document.createElement("button");
+            button.className = "danger glyph-button";
+            button.title = `撤销${record.name}`;
+            button.setAttribute("aria-label", `撤销${record.name}`);
+            const svg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("aria-hidden", "true");
+            svg.setAttribute("focusable", "false");
+            const circle = document.createElementNS(svg.namespaceURI, "circle");
+            circle.setAttribute("cx", "12");
+            circle.setAttribute("cy", "12");
+            circle.setAttribute("r", "8");
+            const cross = document.createElementNS(svg.namespaceURI, "path");
+            cross.setAttribute("d", "M9 9l6 6m0-6l-6 6");
+            svg.append(circle, cross);
+            button.append(svg);
+            button.addEventListener("click", () => {
+              status.textContent = `仅演示撤销「${record.name}」；未发送请求、未改变授权。`;
+            });
+            action.append(button);
+          } else action.textContent = "—";
+          body.append(row);
+        });
+        if (!visible.length) {
+          const row = body.insertRow();
+          row.className = "empty";
+          const cell = row.insertCell();
+          cell.colSpan = 5;
+          cell.textContent = "没有符合筛选条件的记录";
+        }
+        document.getElementById(`count-${kind}`).textContent =
+          `显示 ${visible.length} / ${records[kind].length} 条`;
+        body.closest(".table-scroll").scrollTop = 0;
+      }
+      render("tokens");
+      render("oauth");
+      opener.addEventListener("click", () => {
+        settings.showModal();
+        activate(tabs[0], true);
+      });
+      settings.addEventListener("close", () => {
+        closeFilters();
+        opener.focus();
+      });
+      let outsidePress = false;
+      function outside(event) {
+        const bounds = settings.getBoundingClientRect();
+        return (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        );
+      }
+      settings.addEventListener("pointerdown", (event) => {
+        outsidePress =
+          event.button === 0 && event.target === settings && outside(event);
+      });
+      settings.addEventListener("pointercancel", () => {
+        outsidePress = false;
+      });
+      settings.addEventListener("click", (event) => {
+        const dismiss =
+          outsidePress && event.target === settings && outside(event);
+        outsidePress = false;
+        if (dismiss) settings.close();
+      });
+      document
+        .getElementById("create-token")
+        .addEventListener("click", () => createDialog.showModal());
+      document
+        .getElementById("cancel-create")
+        .addEventListener("click", () => createDialog.close());
+      document
+        .getElementById("create-form")
+        .addEventListener("submit", (event) => {
+          event.preventDefault();
+          document.getElementById("create-status").textContent =
+            document.querySelector('#create-form input[name="scope"]:checked')
+              ? "仅演示；未创建令牌，未生成密钥。"
+              : "请至少选择一项权限。";
+        });
+      document.querySelectorAll("[data-demo]").forEach((button) =>
+        button.addEventListener("click", () => {
+          status.textContent = `仅演示「${button.dataset.demo}」；未发送请求。`;
+        }),
+      );
+      document.querySelectorAll('input[name="palette"]').forEach((radio) =>
+        radio.addEventListener("change", () => {
+          document.documentElement.dataset.background = radio.value;
+          status.textContent =
+            "整页主题已预览：背景、面板、按钮、表格及导航同步切换；未保存。";
+        }),
+      );
+      document.getElementById("reminder").addEventListener("change", () => {
+        status.textContent = "仅演示提醒切换，未保存；上传内容仍公开。";
+      });
+      settings.showModal();
+      activate(tabs[0], true);
+    </script>
+  </body>
+</html>

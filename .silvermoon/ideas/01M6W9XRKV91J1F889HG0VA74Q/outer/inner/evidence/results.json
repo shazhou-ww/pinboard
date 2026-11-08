@@ -1,0 +1,386 @@
+{
+  "origin": "http://localhost:5196",
+  "buildAssets": [
+    {
+      "path": "/assets/index-DQRLJeBs.css",
+      "sha256": "5534efa049daf82e9fc5b3e2f3ee6f704c7ae6c2be2f6b481f18e1d114534782"
+    },
+    {
+      "path": "/assets/index--j016cdQ.js",
+      "sha256": "e2a37f14f0d27dfe6b5bc3a11d86e1959bdcafd7f8c722b588b3e6978d77cf4d"
+    }
+  ],
+  "checks": [
+    {
+      "name": "桌面布局",
+      "detail": {
+        "viewport": 1280,
+        "pageWidth": 1280,
+        "dialog": {
+          "x": 140,
+          "y": 110,
+          "width": 1000,
+          "height": 680,
+          "top": 110,
+          "right": 1140,
+          "bottom": 790,
+          "left": 140
+        },
+        "detail": {
+          "x": 349,
+          "y": 185.59375,
+          "width": 790,
+          "height": 603.40625,
+          "top": 185.59375,
+          "right": 1139,
+          "bottom": 789,
+          "left": 349
+        },
+        "nav": {
+          "x": 141,
+          "y": 185.59375,
+          "width": 208,
+          "height": 603.40625,
+          "top": 185.59375,
+          "right": 349,
+          "bottom": 789,
+          "left": 141
+        },
+        "header": {
+          "x": 141,
+          "y": 111,
+          "width": 998,
+          "height": 74.59375,
+          "top": 111,
+          "right": 1139,
+          "bottom": 185.59375,
+          "left": 141
+        },
+        "detailOverflow": "auto",
+        "detailScrollWidth": 790,
+        "detailClientWidth": 790,
+        "orientation": "vertical"
+      }
+    },
+    {
+      "name": "桌面方向键与 Home/End",
+      "detail": "通过"
+    },
+    {
+      "name": "原生 modal 焦点约束",
+      "detail": "通过"
+    },
+    {
+      "name": "三种配色与仅本浏览器提醒",
+      "detail": "通过"
+    },
+    {
+      "name": "类别切换保留名称、权限和有效期草稿",
+      "detail": "通过"
+    },
+    {
+      "name": "创建错误、忙碌关闭限制及一次性密钥跨分类保留",
+      "detail": "通过"
+    },
+    {
+      "name": "访问令牌有效与只读历史列表、逐行撤销",
+      "detail": "通过"
+    },
+    {
+      "name": "OAuth 逐行撤销、忙碌及刷新失败与空列表区分",
+      "detail": "通过"
+    },
+    {
+      "name": "原有恢复弹层与返回最近删除分类",
+      "detail": "通过"
+    },
+    {
+      "name": "外侧与 Escape 关闭、内侧空白与双向跨边界拖动保护、焦点返回",
+      "detail": "通过"
+    },
+    {
+      "name": "390px 访问令牌布局",
+      "detail": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "dialog": {
+          "x": 12,
+          "y": 24,
+          "width": 366,
+          "height": 796,
+          "top": 24,
+          "right": 378,
+          "bottom": 820,
+          "left": 12
+        },
+        "detail": {
+          "x": 13,
+          "y": 156.1875,
+          "width": 364,
+          "height": 662.8125,
+          "top": 156.1875,
+          "right": 377,
+          "bottom": 819,
+          "left": 13
+        },
+        "nav": {
+          "x": 13,
+          "y": 91.59375,
+          "width": 364,
+          "height": 64.59375,
+          "top": 91.59375,
+          "right": 377,
+          "bottom": 156.1875,
+          "left": 13
+        },
+        "header": {
+          "x": 13,
+          "y": 25,
+          "width": 364,
+          "height": 66.59375,
+          "top": 25,
+          "right": 377,
+          "bottom": 91.59375,
+          "left": 13
+        },
+        "detailOverflow": "auto",
+        "detailScrollWidth": 364,
+        "detailClientWidth": 364,
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "name": "390px OAuth 列表布局与横向方向键",
+      "detail": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "dialog": {
+          "x": 12,
+          "y": 24,
+          "width": 366,
+          "height": 796,
+          "top": 24,
+          "right": 378,
+          "bottom": 820,
+          "left": 12
+        },
+        "detail": {
+          "x": 13,
+          "y": 156.1875,
+          "width": 364,
+          "height": 662.8125,
+          "top": 156.1875,
+          "right": 377,
+          "bottom": 819,
+          "left": 13
+        },
+        "nav": {
+          "x": 13,
+          "y": 91.59375,
+          "width": 364,
+          "height": 64.59375,
+          "top": 91.59375,
+          "right": 377,
+          "bottom": 156.1875,
+          "left": 13
+        },
+        "header": {
+          "x": 13,
+          "y": 25,
+          "width": 364,
+          "height": 66.59375,
+          "top": 25,
+          "right": 377,
+          "bottom": 91.59375,
+          "left": 13
+        },
+        "detailOverflow": "auto",
+        "detailScrollWidth": 364,
+        "detailClientWidth": 364,
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "name": "320px 访问令牌布局",
+      "detail": {
+        "viewport": 320,
+        "pageWidth": 320,
+        "dialog": {
+          "x": 12,
+          "y": 24,
+          "width": 296,
+          "height": 796,
+          "top": 24,
+          "right": 308,
+          "bottom": 820,
+          "left": 12
+        },
+        "detail": {
+          "x": 13,
+          "y": 156.1875,
+          "width": 294,
+          "height": 662.8125,
+          "top": 156.1875,
+          "right": 307,
+          "bottom": 819,
+          "left": 13
+        },
+        "nav": {
+          "x": 13,
+          "y": 91.59375,
+          "width": 294,
+          "height": 64.59375,
+          "top": 91.59375,
+          "right": 307,
+          "bottom": 156.1875,
+          "left": 13
+        },
+        "header": {
+          "x": 13,
+          "y": 25,
+          "width": 294,
+          "height": 66.59375,
+          "top": 25,
+          "right": 307,
+          "bottom": 91.59375,
+          "left": 13
+        },
+        "detailOverflow": "auto",
+        "detailScrollWidth": 294,
+        "detailClientWidth": 294,
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "name": "320px OAuth 列表布局与横向方向键",
+      "detail": {
+        "viewport": 320,
+        "pageWidth": 320,
+        "dialog": {
+          "x": 12,
+          "y": 24,
+          "width": 296,
+          "height": 796,
+          "top": 24,
+          "right": 308,
+          "bottom": 820,
+          "left": 12
+        },
+        "detail": {
+          "x": 13,
+          "y": 156.1875,
+          "width": 294,
+          "height": 662.8125,
+          "top": 156.1875,
+          "right": 307,
+          "bottom": 819,
+          "left": 13
+        },
+        "nav": {
+          "x": 13,
+          "y": 91.59375,
+          "width": 294,
+          "height": 64.59375,
+          "top": 91.59375,
+          "right": 307,
+          "bottom": 156.1875,
+          "left": 13
+        },
+        "header": {
+          "x": 13,
+          "y": 25,
+          "width": 294,
+          "height": 66.59375,
+          "top": 25,
+          "right": 307,
+          "bottom": 91.59375,
+          "left": 13
+        },
+        "detailOverflow": "auto",
+        "detailScrollWidth": 294,
+        "detailClientWidth": 294,
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "name": "低高度桌面独立详情滚动",
+      "detail": {
+        "viewport": 1280,
+        "pageWidth": 1280,
+        "dialog": {
+          "x": 140,
+          "y": 24,
+          "width": 1000,
+          "height": 432,
+          "top": 24,
+          "right": 1140,
+          "bottom": 456,
+          "left": 140
+        },
+        "detail": {
+          "x": 349,
+          "y": 99.59375,
+          "width": 790,
+          "height": 355.40625,
+          "top": 99.59375,
+          "right": 1139,
+          "bottom": 455,
+          "left": 349
+        },
+        "nav": {
+          "x": 141,
+          "y": 99.59375,
+          "width": 208,
+          "height": 355.40625,
+          "top": 99.59375,
+          "right": 349,
+          "bottom": 455,
+          "left": 141
+        },
+        "header": {
+          "x": 141,
+          "y": 25,
+          "width": 998,
+          "height": 74.59375,
+          "top": 25,
+          "right": 1139,
+          "bottom": 99.59375,
+          "left": 141
+        },
+        "detailOverflow": "auto",
+        "detailScrollWidth": 790,
+        "detailClientWidth": 790,
+        "orientation": "vertical"
+      }
+    },
+    {
+      "name": "访问令牌失败、重试与空列表区分",
+      "detail": "通过"
+    },
+    {
+      "name": "无浏览器运行错误、全部变更限于本地合成响应",
+      "detail": [
+        {
+          "path": "/api/tokens",
+          "method": "POST"
+        },
+        {
+          "path": "/api/tokens",
+          "method": "POST"
+        },
+        {
+          "path": "/api/tokens/active",
+          "method": "DELETE"
+        },
+        {
+          "path": "/api/oauth/grants/grant-0",
+          "method": "DELETE"
+        },
+        {
+          "path": "/api/pins/deleted-fixture/restore",
+          "method": "POST"
+        }
+      ]
+    }
+  ]
+}

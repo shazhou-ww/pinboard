@@ -5,6 +5,8 @@ export function Dialog({
   title,
   busy = false,
   dismissOnOutsideClick = false,
+  showClose = true,
+  className = "",
   onClose,
   children,
 }: {
@@ -12,6 +14,8 @@ export function Dialog({
   title: string;
   busy?: boolean;
   dismissOnOutsideClick?: boolean;
+  showClose?: boolean;
+  className?: string;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -40,7 +44,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className="canvas-dialog"
+      className={`canvas-dialog${className ? ` ${className}` : ""}`}
       aria-label={title}
       aria-busy={busy}
       onPointerDown={(event) => {
@@ -76,14 +80,16 @@ export function Dialog({
     >
       <div className="section-title">
         <h2>{title}</h2>
-        <button
-          type="button"
-          aria-label={`Close ${title}`}
-          disabled={busy}
-          onClick={onClose}
-        >
-          Close
-        </button>
+        {showClose && (
+          <button
+            type="button"
+            aria-label={`Close ${title}`}
+            disabled={busy}
+            onClick={onClose}
+          >
+            Close
+          </button>
+        )}
       </div>
       {children}
     </dialog>

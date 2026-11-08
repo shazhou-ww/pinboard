@@ -1,0 +1,29 @@
+{
+  "attempt": 2,
+  "conclusion": "success",
+  "headSha": "88df4ea67a9277710aeb220da183849b97d93e71",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "name": "windows-latest / Node.js 22.13.0",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "windows-latest / Node.js 24.11.1",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "ubuntu-latest / Node.js 24.11.1",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "ubuntu-latest / Node.js 22.13.0",
+      "status": "completed"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42436208346"
+}

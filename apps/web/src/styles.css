@@ -1563,6 +1563,133 @@ body:has(.canvas-dialog[open]) {
   border-radius: 6px;
   font-size: 13px;
 }
+.canvas-dialog.settings-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.canvas-dialog.settings-dialog {
+  width: min(1000px, calc(100% - 32px));
+  height: min(680px, calc(100dvh - 48px));
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.settings-dialog > .section-title {
+  position: static;
+  margin: 0;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-dialog > .section-title h2 {
+  margin: 0;
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 12px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.settings-nav button {
+  flex-shrink: 0;
+  text-align: left;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.settings-nav button[aria-selected="true"] {
+  background: var(--subtle);
+  border-color: var(--border);
+  font-weight: 600;
+}
+.settings-detail {
+  min-width: 0;
+  padding: 24px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+.settings-detail [hidden] {
+  display: none !important;
+}
+.settings-detail h2 {
+  margin-top: 0;
+}
+.settings-detail .token-list {
+  padding: 0;
+  list-style: none;
+}
+.settings-detail .token-list li {
+  margin: 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+  gap: 16px;
+  align-items: flex-start;
+}
+.settings-detail .token-list li > div:first-child {
+  min-width: 0;
+}
+.authorization-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.settings-detail .form-row > label {
+  min-width: 0;
+}
+.settings-detail input:not([type="checkbox"]) {
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .canvas-dialog.settings-dialog {
+    width: calc(100% - 24px);
+    height: calc(100dvh - 32px);
+  }
+  .settings-dialog > .section-title {
+    padding: 16px 18px;
+  }
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .settings-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 8px;
+  }
+  .settings-nav button {
+    white-space: nowrap;
+    padding: 10px;
+  }
+  .settings-detail {
+    padding: 20px 18px;
+  }
+  .settings-detail .token-list li,
+  .settings-detail .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .settings-detail .form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .authorization-actions {
+    flex-wrap: wrap;
+  }
+}
 .background-options {
   min-width: 0;
   margin: 0 0 20px;
