@@ -1,0 +1,31 @@
+{
+  "scope": "本轮已验收生产构建与本地验证；不代表生产登录或账户操作",
+  "implementationRevision": "32df5f993aa37a8c7dbe4878531cab076ba45921",
+  "contractCommit": "8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2",
+  "webSourceTree": "e40d947673736eede7e78524918d63cea3bf79f6",
+  "browserEvidence": "inner/evidence-refinement/results.json",
+  "browserVerifiedAt": "2026-11-08T03:36:16.911Z",
+  "realBrowserChecks": 21,
+  "browserErrors": 0,
+  "localCheck": {
+    "command": "pnpm check",
+    "exitCode": 0,
+    "turboTasksSuccessful": 20,
+    "turboTasksTotal": 20,
+    "turboTasksCached": 20,
+    "cliOfflineInstallTestsPassed": 1
+  },
+  "assets": [
+    {
+      "path": "/assets/index-SYMU66G7.css",
+      "sha256": "546bedf3a8df9c525226c6d8326f494bc5aacaf7352b9a7eab490881a4313007",
+      "matchesAcceptedEvidence": true
+    },
+    {
+      "path": "/assets/index-qf0X8Z_Y.js",
+      "sha256": "2c29df06c3dd3c06038941434197299031a90b356f33d5a474a9bb3b1861da4d",
+      "matchesAcceptedEvidence": true
+    }
+  ],
+  "limitations": "21 项真实 Chrome 检查来自已验收 Inner 的最终整合构建，本轮核对结果及本地重建指纹，没有重复伪造浏览器检查；合成账户仅在 localhost，不获提供合法生产会话"
+}

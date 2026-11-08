@@ -50,6 +50,48 @@ version。CI 若短暂失败，仅在检查失败原因后重跑失败任务，�
 `inner/evidence-refinement/results.json` 并写入当前
 `production-refinement-evidence.json`。
 
+## 当前发布结果
+
+2026-11-08 本轮授权发布已完成，等待协调 Agent 对准确 Outer revision 验收：
+
+- 契约先同步为 primary commit `8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2`
+  并重新观测，随后才进行本轮外部发布与验证。此 commit 的 `apps/web/src` tree 为
+  `e40d947673736eede7e78524918d63cea3bf79f6`，保留并发下载功能，未改变已验收实现。
+- `pnpm check` 成功：20/20 Turbo 任务（20 个缓存结果），CLI
+  tarball 离线安装测试通过。本地重建 JS/CSS 与已验收 21 项真实 Chrome 证据逐字匹配；见
+  [refinement-local-evidence.json](./refinement-local-evidence.json)。
+- [当前目标 CI](https://github.com/shazhou-ww/pinboard/actions/runs/42444233566)
+  四个 Windows/Ubuntu、Node.js 22.13.0/24.11.1 组合全部成功，无需重跑；见
+  [ci-refinement-evidence.json](./ci-refinement-evidence.json)。
+- 刷新远端 tags/runs，等待并发 `release-261108-4`
+  workflow 成功结束后，普通推送 annotated `release-261108-5`，tag object
+  `84350cc5141b9d5f15e6a01be854a9e394f60aa7`。Tagged commit
+  `8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2` 在创建 tag 前已证明可从
+  `origin/main` 到达。
+- [当前生产 release workflow](https://github.com/shazhou-ww/pinboard/actions/runs/42444608197)
+  / `Deploy production Worker` 实际成功，完成于
+  `2026-11-08T03:57:24Z`。日志记录 Worker version
+  `42b4455c-953a-42d0-baf9-0bff183ed4dd`；见
+  [release-refinement-evidence.json](./release-refinement-evidence.json)。
+- `2026-11-08T03:57:59.130Z`
+  [当前生产只读证据](./production-refinement-evidence.json)：主页 HTTP
+  200，实际引用 `/assets/index-qf0X8Z_Y.js` 与
+  `/assets/index-SYMU66G7.css`，两者 HTTP 200，SHA-256 分别为
+  `2c29df06c3dd3c06038941434197299031a90b356f33d5a474a9bb3b1861da4d` 与
+  `546bedf3a8df9c525226c6d8326f494bc5aacaf7352b9a7eab490881a4313007`，完全匹配本轮
+  `evidence-refinement/results.json`。无来源或构建差异。
+- 无 Cookie/Authorization 的三个匿名 GET 均返回 HTTP
+  401。没有合法生产测试会话，未执行登录后线上 UI 抽验、生产写操作或个人 Google 登录验证；证明范围严格限定为上述发布、精确资产、对应构建真实本地 UI 和匿名授权拒绝。
+
+复核命令（不会登录或修改账户）：
+
+```powershell
+$env:RELEASE_TAG = "release-261108-5"
+$env:RELEASE_COMMIT = "8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2"
+$env:RELEASE_WORKFLOW = "https://github.com/shazhou-ww/pinboard/actions/runs/42444608197"
+node .silvermoon\ideas\01M6W9XRKV91J1F889HG0VA74Q\outer\verify-production.mjs
+```
+
 ## 历史证据（不用于当前完成判定）
 
 上一轮列表版 `release-261108-3`，tagged commit

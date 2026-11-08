@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-11-08T03:57:59.130Z",
+  "origin": "https://pinboard.shazhou.work",
+  "scope": "仅公开 GET 与无 Cookie 的匿名 API；不登录、不创建授权、不变更账户数据",
+  "releaseTag": "release-261108-5",
+  "taggedCommit": "8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2",
+  "workflowUrl": "https://github.com/shazhou-ww/pinboard/actions/runs/42444608197",
+  "implementationRevision": "32df5f993aa37a8c7dbe4878531cab076ba45921",
+  "buildEvidence": "inner/evidence-refinement/results.json",
+  "homepage": {
+    "status": 200,
+    "entryPaths": ["/assets/index-qf0X8Z_Y.js", "/assets/index-SYMU66G7.css"]
+  },
+  "assets": [
+    {
+      "path": "/assets/index-SYMU66G7.css",
+      "status": 200,
+      "expectedSha256": "546bedf3a8df9c525226c6d8326f494bc5aacaf7352b9a7eab490881a4313007",
+      "actualSha256": "546bedf3a8df9c525226c6d8326f494bc5aacaf7352b9a7eab490881a4313007",
+      "referencedByHomepage": true,
+      "match": true
+    },
+    {
+      "path": "/assets/index-qf0X8Z_Y.js",
+      "status": 200,
+      "expectedSha256": "2c29df06c3dd3c06038941434197299031a90b356f33d5a474a9bb3b1861da4d",
+      "actualSha256": "2c29df06c3dd3c06038941434197299031a90b356f33d5a474a9bb3b1861da4d",
+      "referencedByHomepage": true,
+      "match": true
+    }
+  ],
+  "anonymousApi": [
+    {
+      "path": "/api/pins",
+      "status": 401,
+      "rejected": true
+    },
+    {
+      "path": "/api/tokens",
+      "status": 401,
+      "rejected": true
+    },
+    {
+      "path": "/api/oauth/grants",
+      "status": 401,
+      "rejected": true
+    }
+  ],
+  "limitations": "未提供合法生产测试会话；已验收构建的隔离浏览器证据不等同于生产登录后数据操作",
+  "errors": [],
+  "passed": true
+}

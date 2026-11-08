@@ -1,0 +1,53 @@
+{
+  "scope": "当前发布目标 CI 的 GitHub 实际结果，不使用历史运行",
+  "checkedAt": "2026-11-08T03:54:20.7950765Z",
+  "run": {
+    "conclusion": "success",
+    "databaseId": 42444233566,
+    "headSha": "8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2",
+    "jobs": [
+      {
+        "completedAt": "2026-11-08T03:51:10Z",
+        "conclusion": "success",
+        "databaseId": 128619693791,
+        "name": "ubuntu-latest / Node.js 24.11.1",
+        "startedAt": "2026-11-08T03:48:31Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444233566/job/128619693791"
+      },
+      {
+        "completedAt": "2026-11-08T03:50:52Z",
+        "conclusion": "success",
+        "databaseId": 128619693961,
+        "name": "ubuntu-latest / Node.js 22.13.0",
+        "startedAt": "2026-11-08T03:48:32Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444233566/job/128619693961"
+      },
+      {
+        "completedAt": "2026-11-08T03:52:40Z",
+        "conclusion": "success",
+        "databaseId": 128619693976,
+        "name": "windows-latest / Node.js 24.11.1",
+        "startedAt": "2026-11-08T03:48:32Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444233566/job/128619693976"
+      },
+      {
+        "completedAt": "2026-11-08T03:53:39Z",
+        "conclusion": "success",
+        "databaseId": 128619694167,
+        "name": "windows-latest / Node.js 22.13.0",
+        "startedAt": "2026-11-08T03:48:31Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444233566/job/128619694167"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444233566"
+  }
+}

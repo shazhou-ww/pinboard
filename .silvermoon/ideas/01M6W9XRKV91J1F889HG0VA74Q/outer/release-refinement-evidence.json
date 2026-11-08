@@ -1,0 +1,35 @@
+{
+  "scope": "当前授权发布实际 GitHub 结果与脱敏版本日志",
+  "checkedAt": "2026-11-08T03:58:27.5947753Z",
+  "releaseTag": "release-261108-5",
+  "tagObject": "84350cc5141b9d5f15e6a01be854a9e394f60aa7",
+  "taggedCommit": "8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2",
+  "workerVersion": "42b4455c-953a-42d0-baf9-0bff183ed4dd",
+  "run": {
+    "conclusion": "success",
+    "databaseId": 42444608197,
+    "headSha": "8ac1af7298f3ac941b6bfbf7457f8d8c86b3bcc2",
+    "jobs": [
+      {
+        "completedAt": "2026-11-08T03:57:24Z",
+        "conclusion": "success",
+        "databaseId": 128620796321,
+        "name": "Deploy production Worker",
+        "startedAt": "2026-11-08T03:54:12Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444608197/job/128620796321"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42444608197"
+  },
+  "versionLog": "Deploy production Worker\tUNKNOWN STEP\t2026-11-08T03:57:20.8222870Z Current Version ID: 42b4455c-953a-42d0-baf9-0bff183ed4dd",
+  "priorConcurrentRelease": {
+    "completedBeforeCurrentTag": true,
+    "workflowUrl": "https://github.com/shazhou-ww/pinboard/actions/runs/42444135892",
+    "tag": "release-261108-4",
+    "conclusion": "success"
+  },
+  "limitations": "未提供合法生产会话，仅只读公开 GET 与匿名 API 拒绝；没有生产账户写操作或额外 schema/secret/binding 变更"
+}
