@@ -1,0 +1,21 @@
+{
+  "origin": "https://pinboard.shazhou.work",
+  "httpsStatus": 200,
+  "httpRedirectStatus": 200,
+  "httpRedirectVerified": false,
+  "googleConfigured": true,
+  "assets": [
+    {
+      "path": "/assets/index-DQgHtPOW.js",
+      "sha256": "8ed5697276a345b693878e0ab46e3de0e45ff6645aa6af2269b5bed6f6375006",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "/assets/index-eqd7Qclp.css",
+      "sha256": "b81adf139790c30e7dc221f7e66a75c7f28abf84b4c89313669a0a3992955594",
+      "matchesTestedBuild": true
+    }
+  ],
+  "limitation": "只证明生产 assets 与已测试构建字节一致，不替代真实认证的所有者详情 UI 验收。",
+  "httpNote": "HTTP 返回 200，未强制跳转 HTTPS；此为现有域名配置，本次未修改。"
+}

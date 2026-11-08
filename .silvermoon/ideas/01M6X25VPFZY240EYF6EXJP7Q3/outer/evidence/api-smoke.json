@@ -1,0 +1,12 @@
+{
+  "run": "0749662f-5cfe-433f-af74-0e9102ba8e08",
+  "origin": "https://pinboard.shazhou.work",
+  "prefix": "reading-first-details-0749662f",
+  "assertions": [],
+  "fixtures": {},
+  "cleanup": {
+    "required": false,
+    "createdObjects": 0
+  },
+  "failure": "Error: Production API GET /api/publications: 403"
+}

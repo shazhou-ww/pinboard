@@ -1,0 +1,86 @@
+{
+  "release": {
+    "tagObject": "bd1bae22f0b719bac8b06025a4a3ff51ed13b86d",
+    "candidateCi": "https://github.com/shazhou-ww/pinboard/actions/runs/42465665953",
+    "activeDeployments": 0,
+    "target": "3867218c9d053646a3411fb2a53b6222fddb6099",
+    "approvedImplementation": "23cee2dfcec745592cde6ef6894e0415bd7ffdfd",
+    "existingIndexes": [1, 2, 3, 4, 5, 6],
+    "tag": "release-261108-7"
+  },
+  "noMigrationsOrResourceChanges": true,
+  "workflow": {
+    "status": "completed",
+    "runId": 42466094519,
+    "conclusion": "success",
+    "headSha": "3867218c9d053646a3411fb2a53b6222fddb6099",
+    "steps": [
+      {
+        "name": "Set up job",
+        "conclusion": "success"
+      },
+      {
+        "name": "Check out repository",
+        "conclusion": "success"
+      },
+      {
+        "name": "Validate release tag and main ancestry",
+        "conclusion": "success"
+      },
+      {
+        "name": "Set up pnpm",
+        "conclusion": "success"
+      },
+      {
+        "name": "Set up Node.js",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install dependencies",
+        "conclusion": "success"
+      },
+      {
+        "name": "Validate workspace",
+        "conclusion": "success"
+      },
+      {
+        "name": "Deploy Worker, assets and secrets",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Set up Node.js",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Set up pnpm",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Check out repository",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "conclusion": "success"
+      }
+    ],
+    "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42466094519"
+  },
+  "activeWorker": {
+    "deploymentId": "189f194c-1de2-4084-b7eb-fc3616cad4e1",
+    "versions": [
+      {
+        "id": "5a6558ca-1516-47db-8311-d879121797f9",
+        "percentage": 100
+      }
+    ],
+    "resourceKeys": ["script", "script_runtime", "bindings"],
+    "createdOn": "2026-11-08T09:14:16.106971Z",
+    "versionAnnotations": {
+      "workers/tag": "release-261108-7",
+      "workers/triggered_by": "version_upload"
+    },
+    "versionId": "5a6558ca-1516-47db-8311-d879121797f9"
+  },
+  "activeWorkerRecheckedAt": "2026-11-08T09:38:54.1736098Z"
+}

@@ -1,0 +1,37 @@
+{
+  "prefix": "reading-first-details-99f1b5c5",
+  "origin": "https://pinboard.shazhou.work",
+  "checks": [
+    "既有 credential 的 publications:read 缺失被明确拒绝",
+    "真实认证 Pin 1 上传成功",
+    "Pin 1 私人说明真实保存",
+    "Pin 1 说明并发冲突返回 409、保留已保存值",
+    "Pin 1 固定 CID 原文件下载字节一致",
+    "Pin 1 CAR 根绑定固定 CID",
+    "Pin 1 匿名私人说明不可读",
+    "真实认证 Pin 2 上传成功",
+    "Pin 2 私人说明真实保存",
+    "Pin 2 说明并发冲突返回 409、保留已保存值",
+    "Pin 2 固定 CID 原文件下载字节一致",
+    "Pin 2 CAR 根绑定固定 CID",
+    "Pin 2 匿名私人说明不可读",
+    "HTML/JS 原始路由为 attachment、nosniff 与 sandbox CSP",
+    "HTML 下载不以内联文档形式返回",
+    "节点查询拒绝授权根不可达的其他 CID",
+    "匿名账户列表被拒绝"
+  ],
+  "fixtures": [
+    {
+      "cid": "bafkreieyeljzo6snnkpn5rn6i7lm74axxvg2g4ofkm7g74qcfpixhwxp2i",
+      "size": 65,
+      "blocks": 1
+    },
+    {
+      "cid": "bafkreibiuewfmcr5mz2gnz43cpulneel6us5gszmbnt3psdyepvjhwtdji",
+      "size": 101,
+      "blocks": 1
+    }
+  ],
+  "publicationReadStatus": 403,
+  "limitation": "既有 cfg credential 缺少 publications:read/write/delete；标准 CLI 存储 credential 返回 401；浏览器无合法认证会话。Publication 生产合成场景和所有者详情 UI 未验证，未绕过认证或扩大权限。"
+}

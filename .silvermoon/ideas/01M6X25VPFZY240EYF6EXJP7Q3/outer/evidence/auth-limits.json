@@ -1,0 +1,20 @@
+{
+  "credentialSource": "cfg PINBOARD_AGENT_TOKEN",
+  "credentialValueRecorded": false,
+  "pinRead": 200,
+  "nonRecordPinDeleteProbe": 400,
+  "nonRecordPinDeleteProbeError": "Invalid CID",
+  "publicationRead": 403,
+  "publicationReadError": "Missing permission: publications:read",
+  "nonRecordPublicationPublishProbe": 403,
+  "publicationPublishError": "Missing permission: publications:write",
+  "nonRecordPublicationDeleteProbe": 403,
+  "publicationDeleteError": "Missing permission: publications:delete",
+  "alternateStandardCliCredential": 401,
+  "agentCreatesBrowserSession": false,
+  "browserToolClientConnected": false,
+  "existingBrowserDebugEndpointFound": false,
+  "authenticationBypassAttempted": false,
+  "existingCredentialScopesChanged": false,
+  "limitation": "真实认证的所有者详情 UI 与 Publication 生产场景未验证；不得把公共页面或本地 fixture 当作通过。"
+}

@@ -1,0 +1,39 @@
+{
+  "removed": [
+    {
+      "kind": "pin",
+      "id": "bafkreieyeljzo6snnkpn5rn6i7lm74axxvg2g4ofkm7g74qcfpixhwxp2i",
+      "status": 204
+    },
+    {
+      "kind": "pin",
+      "id": "bafkreibiuewfmcr5mz2gnz43cpulneel6us5gszmbnt3psdyepvjhwtdji",
+      "status": 204
+    }
+  ],
+  "existingPinsPreserved": true,
+  "existingPublicationsPreserved": null,
+  "baselinePinCount": 16,
+  "afterPinCount": 16,
+  "baselinePublicationCount": null,
+  "afterPublicationCount": null,
+  "baselinePinSetDigest": "2d4af0ab4b9207212f1b27cf0b7061a21abf8db16446fb166a96adab9fa76b86",
+  "afterPinSetDigest": "2d4af0ab4b9207212f1b27cf0b7061a21abf8db16446fb166a96adab9fa76b86",
+  "baselinePublicationSetDigest": null,
+  "afterPublicationSetDigest": null,
+  "retention": [
+    {
+      "kind": "pin",
+      "id": "bafkreibiuewfmcr5mz2gnz43cpulneel6us5gszmbnt3psdyepvjhwtdji",
+      "deletedAt": "2026-11-08T09:36:48.782Z",
+      "expiresAt": "2026-12-08T09:36:48.782Z"
+    },
+    {
+      "kind": "pin",
+      "id": "bafkreieyeljzo6snnkpn5rn6i7lm74axxvg2g4ofkm7g74qcfpixhwxp2i",
+      "deletedAt": "2026-11-08T09:36:47.294Z",
+      "expiresAt": "2026-12-08T09:36:47.294Z"
+    }
+  ],
+  "note": "仅删除本次创建的合成样本；进入 30 天最近删除，不永久擦除公开字节；未撤销既有共享 credential。"
+}

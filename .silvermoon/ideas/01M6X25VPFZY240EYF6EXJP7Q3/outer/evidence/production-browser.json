@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "1440px pin-share 真实固定 CID 公共分享页面、布局与私人信息隔离通过",
+    "390px pin-share 真实固定 CID 公共分享页面、布局与私人信息隔离通过",
+    "320px pin-share 真实固定 CID 公共分享页面、布局与私人信息隔离通过",
+    "隔离浏览器没有生产登录会话，所有者详情 UI 未认证；未伪造 session"
+  ],
+  "authenticatedOwnerUi": false,
+  "publicPagesVerified": 3,
+  "limitation": "浏览器工具客户端未连接；现有 Chrome/Edge 无调试端点。cfg Agent credential 仅授权真实 API，Auth.js 不把它转换为浏览器会话。"
+}
