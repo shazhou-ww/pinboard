@@ -160,14 +160,6 @@
         padding: 22px 28px;
         border-bottom: 1px solid var(--border);
       }
-      .modal-header p {
-        margin-top: 4px;
-        font-size: 13px;
-        color: var(--muted);
-      }
-      .close {
-        white-space: nowrap;
-      }
       .layout {
         display: grid;
         grid-template-columns: 208px minmax(0, 1fr);
@@ -410,9 +402,6 @@
         .modal-header {
           padding: 16px 18px;
         }
-        .modal-header p {
-          display: none;
-        }
         h1 {
           font-size: 26px;
         }
@@ -492,14 +481,8 @@
       aria-labelledby="settings-title"
       aria-describedby="mock-note"
     >
-      <header class="modal-header row">
-        <div>
-          <h1 id="settings-title">Settings</h1>
-          <p>偏好、连接与内容管理，各归其位。</p>
-        </div>
-        <button class="close" id="close-settings" aria-label="关闭 Settings">
-          关闭 ×
-        </button>
+      <header class="modal-header">
+        <h1 id="settings-title">Settings</h1>
       </header>
       <div class="layout">
         <aside class="sidebar">
@@ -520,12 +503,21 @@
             </button>
             <button
               role="tab"
-              id="tab-agents"
-              aria-controls="agents"
+              id="tab-tokens"
+              aria-controls="tokens"
               aria-selected="false"
               tabindex="-1"
             >
-              Agent 与连接
+              Agent tokens
+            </button>
+            <button
+              role="tab"
+              id="tab-oauth"
+              aria-controls="oauth"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              OAuth 授权
             </button>
             <button
               role="tab"
@@ -596,13 +588,13 @@
           </section>
           <section
             role="tabpanel"
-            id="agents"
-            aria-labelledby="tab-agents"
+            id="tokens"
+            aria-labelledby="tab-tokens"
             tabindex="0"
             hidden
           >
             <span class="eyebrow">当前账户</span>
-            <h2>Agent 与连接</h2>
+            <h2>Agent tokens</h2>
             <p class="muted">
               授权有范围，访问可撤销。名称只是标签，不是身份。
             </p>
@@ -612,249 +604,222 @@
               >
               <span class="badge">示例地址</span>
             </div>
-            <div class="pills" role="tablist" aria-label="连接方式">
+            <div class="row section">
+              <h3>Token 管理 <span class="badge">示例数据</span></h3>
+              <button
+                class="primary"
+                id="toggle-create"
+                aria-expanded="false"
+                aria-controls="create-form"
+              >
+                创建 token
+              </button>
+            </div>
+            <form id="create-form" class="callout" hidden>
+              <div class="form-row">
+                <label
+                  >Token 标签<input
+                    type="text"
+                    placeholder="我的助手"
+                    maxlength="200"
+                    required
+                /></label>
+                <label
+                  >有效天数<input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value="30"
+                    required
+                /></label>
+              </div>
+              <fieldset class="section">
+                <legend>权限范围</legend>
+                <div class="permissions">
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="scope"
+                      value="pins:read"
+                      checked
+                    /><span>读取 pins<br /><code>pins:read</code></span></label
+                  >
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="scope"
+                      value="pins:write"
+                    /><span
+                      >上传与编辑 pins<br /><code>pins:write</code></span
+                    ></label
+                  >
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="scope"
+                      value="pins:delete"
+                    /><span
+                      >移除与恢复 pins<br /><code>pins:delete</code></span
+                    ></label
+                  >
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="scope"
+                      value="publications:read"
+                    /><span
+                      >读取 publications<br /><code
+                        >publications:read</code
+                      ></span
+                    ></label
+                  >
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="scope"
+                      value="publications:write"
+                    /><span
+                      >创建与发布版本<br /><code>publications:write</code></span
+                    ></label
+                  >
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="scope"
+                      value="publications:delete"
+                    /><span
+                      >关闭与恢复分享<br /><code
+                        >publications:delete</code
+                      ></span
+                    ></label
+                  >
+                </div>
+              </fieldset>
+              <p class="policy">
+                真实创建后密钥只展示一次；切换类别时应保留待复制提示。此样稿不生成密钥。
+              </p>
+              <div class="form-actions">
+                <button class="primary" type="submit">演示创建</button
+                ><button type="button" id="cancel-create">收起</button>
+              </div>
+            </form>
+            <div class="pills" role="tablist" aria-label="Token 列表">
               <button
                 role="tab"
-                id="tab-tokens"
-                aria-controls="tokens"
+                id="tab-active"
+                aria-controls="active"
                 aria-selected="true"
               >
-                Agent tokens
+                有效 tokens
               </button>
               <button
                 role="tab"
-                id="tab-oauth"
-                aria-controls="oauth"
+                id="tab-history"
+                aria-controls="history"
                 aria-selected="false"
                 tabindex="-1"
               >
-                OAuth 授权
+                历史记录
               </button>
             </div>
-            <section
+            <div
               role="tabpanel"
-              id="tokens"
-              aria-labelledby="tab-tokens"
+              id="active"
+              aria-labelledby="tab-active"
               tabindex="0"
             >
-              <div class="row">
-                <h3>Agent tokens <span class="badge">示例数据</span></h3>
-                <button
-                  class="primary"
-                  id="toggle-create"
-                  aria-expanded="false"
-                  aria-controls="create-form"
-                >
-                  创建 token
-                </button>
-              </div>
-              <form id="create-form" class="callout" hidden>
-                <div class="form-row">
-                  <label
-                    >Token 标签<input
-                      type="text"
-                      placeholder="我的助手"
-                      maxlength="200"
-                      required
-                  /></label>
-                  <label
-                    >有效天数<input
-                      type="number"
-                      min="1"
-                      max="365"
-                      value="30"
-                      required
-                  /></label>
-                </div>
-                <fieldset class="section">
-                  <legend>权限范围</legend>
-                  <div class="permissions">
-                    <label class="check"
-                      ><input
-                        type="checkbox"
-                        name="scope"
-                        value="pins:read"
-                        checked
-                      /><span
-                        >读取 pins<br /><code>pins:read</code></span
-                      ></label
-                    >
-                    <label class="check"
-                      ><input
-                        type="checkbox"
-                        name="scope"
-                        value="pins:write"
-                      /><span
-                        >上传与编辑 pins<br /><code>pins:write</code></span
-                      ></label
-                    >
-                    <label class="check"
-                      ><input
-                        type="checkbox"
-                        name="scope"
-                        value="pins:delete"
-                      /><span
-                        >移除与恢复 pins<br /><code>pins:delete</code></span
-                      ></label
-                    >
-                    <label class="check"
-                      ><input
-                        type="checkbox"
-                        name="scope"
-                        value="publications:read"
-                      /><span
-                        >读取 publications<br /><code
-                          >publications:read</code
-                        ></span
-                      ></label
-                    >
-                    <label class="check"
-                      ><input
-                        type="checkbox"
-                        name="scope"
-                        value="publications:write"
-                      /><span
-                        >创建与发布版本<br /><code
-                          >publications:write</code
-                        ></span
-                      ></label
-                    >
-                    <label class="check"
-                      ><input
-                        type="checkbox"
-                        name="scope"
-                        value="publications:delete"
-                      /><span
-                        >关闭与恢复分享<br /><code
-                          >publications:delete</code
-                        ></span
-                      ></label
-                    >
-                  </div>
-                </fieldset>
-                <p class="policy">
-                  真实创建后密钥只展示一次；切换类别时应保留待复制提示。此样稿不生成密钥。
-                </p>
-                <div class="form-actions">
-                  <button class="primary" type="submit">演示创建</button
-                  ><button type="button" id="cancel-create">收起</button>
-                </div>
-              </form>
-              <div class="pills" role="tablist" aria-label="Token 列表">
-                <button
-                  role="tab"
-                  id="tab-active"
-                  aria-controls="active"
-                  aria-selected="true"
-                >
-                  有效 tokens
-                </button>
-                <button
-                  role="tab"
-                  id="tab-history"
-                  aria-controls="history"
-                  aria-selected="false"
-                  tabindex="-1"
-                >
-                  历史记录
-                </button>
-              </div>
-              <div
-                role="tabpanel"
-                id="active"
-                aria-labelledby="tab-active"
-                tabindex="0"
-              >
-                <ul class="list">
-                  <li>
-                    <div>
-                      <strong>资料整理助手</strong>
-                      <p>
-                        <code>pins:read · publications:read</code
-                        ><br />有效期：30 天（示例）
-                      </p>
-                    </div>
-                    <button type="button" class="danger" data-demo="撤销 token">
-                      撤销
-                    </button>
-                  </li>
-                  <li>
-                    <div>
-                      <strong>发布工作流</strong>
-                      <p>
-                        <code>publications:read · publications:write</code
-                        ><br />有效期：7 天（示例）
-                      </p>
-                    </div>
-                    <button type="button" class="danger" data-demo="撤销 token">
-                      撤销
-                    </button>
-                  </li>
-                </ul>
-              </div>
-              <div
-                role="tabpanel"
-                id="history"
-                aria-labelledby="tab-history"
-                tabindex="0"
-                hidden
-              >
-                <ul class="list">
-                  <li>
-                    <div>
-                      <strong>旧测试助手</strong>
-                      <p><code>pins:read</code> · 示例历史记录</p>
-                    </div>
-                    <span class="badge">已撤销</span>
-                  </li>
-                  <li>
-                    <div>
-                      <strong>临时整理助手</strong>
-                      <p><code>pins:read</code> · 示例历史记录</p>
-                    </div>
-                    <span class="badge">已过期</span>
-                  </li>
-                </ul>
-              </div>
-              <p class="policy">
-                撤销和到期立即生效。历史从两者先发生的时间起保留 30
-                天，然后定时清理。
-              </p>
-            </section>
-            <section
-              role="tabpanel"
-              id="oauth"
-              aria-labelledby="tab-oauth"
-              tabindex="0"
-              hidden
-            >
-              <div class="row">
-                <h3>MCP 客户端授权 <span class="badge">示例数据</span></h3>
-                <button data-demo="刷新 OAuth 授权">刷新授权</button>
-              </div>
-              <p class="muted">
-                独立于 Agent token。撤销后，已经开始执行的操作仍可能完成。
-              </p>
               <ul class="list">
                 <li>
                   <div>
-                    <strong>示例 MCP 客户端</strong>
+                    <strong>资料整理助手</strong>
                     <p>
-                      <code>pins:read · publications:read</code
-                      ><br />无固定到期时间，直到撤销（示例）
+                      <code>pins:read · publications:read</code><br />有效期：30
+                      天（示例）
                     </p>
                   </div>
-                  <button class="danger" data-demo="撤销 OAuth 授权">
+                  <button type="button" class="danger" data-demo="撤销 token">
+                    撤销
+                  </button>
+                </li>
+                <li>
+                  <div>
+                    <strong>发布工作流</strong>
+                    <p>
+                      <code>publications:read · publications:write</code
+                      ><br />有效期：7 天（示例）
+                    </p>
+                  </div>
+                  <button type="button" class="danger" data-demo="撤销 token">
                     撤销
                   </button>
                 </li>
               </ul>
-              <div class="callout">
-                <p>
-                  真实页面需分别展示加载中、无授权和加载失败状态，不把请求失败当成空列表。
-                </p>
-              </div>
-            </section>
+            </div>
+            <div
+              role="tabpanel"
+              id="history"
+              aria-labelledby="tab-history"
+              tabindex="0"
+              hidden
+            >
+              <ul class="list">
+                <li>
+                  <div>
+                    <strong>旧测试助手</strong>
+                    <p><code>pins:read</code> · 示例历史记录</p>
+                  </div>
+                  <span class="badge">已撤销</span>
+                </li>
+                <li>
+                  <div>
+                    <strong>临时整理助手</strong>
+                    <p><code>pins:read</code> · 示例历史记录</p>
+                  </div>
+                  <span class="badge">已过期</span>
+                </li>
+              </ul>
+            </div>
+            <p class="policy">
+              撤销和到期立即生效。历史从两者先发生的时间起保留 30
+              天，然后定时清理。
+            </p>
+          </section>
+          <section
+            role="tabpanel"
+            id="oauth"
+            aria-labelledby="tab-oauth"
+            tabindex="0"
+            hidden
+          >
+            <span class="eyebrow">当前账户</span>
+            <h2>OAuth 授权</h2>
+            <p class="muted">
+              管理通过 OAuth 连接的 MCP 客户端，不在此创建或管理 Agent token。
+            </p>
+            <div class="row section">
+              <h3>MCP 客户端授权 <span class="badge">示例数据</span></h3>
+              <button data-demo="刷新 OAuth 授权">刷新授权</button>
+            </div>
+            <p class="muted">
+              独立于 Agent token。撤销后，已经开始执行的操作仍可能完成。
+            </p>
+            <ul class="list">
+              <li>
+                <div>
+                  <strong>示例 MCP 客户端</strong>
+                  <p>
+                    <code>pins:read · publications:read</code
+                    ><br />无固定到期时间，直到撤销（示例）
+                  </p>
+                </div>
+                <button class="danger" data-demo="撤销 OAuth 授权">撤销</button>
+              </li>
+            </ul>
+            <div class="callout">
+              <p>
+                真实页面需分别展示加载中、无授权和加载失败状态，不把请求失败当成空列表。
+              </p>
+            </div>
           </section>
           <section
             role="tabpanel"
@@ -971,10 +936,31 @@
         document.getElementById("tab-browser").focus();
       }
       opener.addEventListener("click", openSettings);
-      document
-        .getElementById("close-settings")
-        .addEventListener("click", () => settings.close());
+      let outsidePress = false;
+      function isOutside(event) {
+        const bounds = settings.getBoundingClientRect();
+        return (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        );
+      }
+      settings.addEventListener("pointerdown", (event) => {
+        outsidePress =
+          event.button === 0 && event.target === settings && isOutside(event);
+      });
+      settings.addEventListener("pointercancel", () => {
+        outsidePress = false;
+      });
+      settings.addEventListener("click", (event) => {
+        const dismiss =
+          outsidePress && event.target === settings && isOutside(event);
+        outsidePress = false;
+        if (dismiss) settings.close();
+      });
       settings.addEventListener("close", () => {
+        outsidePress = false;
         if (!trash.open) opener.focus();
       });
       document.querySelectorAll('input[name="palette"]').forEach((radio) => {
