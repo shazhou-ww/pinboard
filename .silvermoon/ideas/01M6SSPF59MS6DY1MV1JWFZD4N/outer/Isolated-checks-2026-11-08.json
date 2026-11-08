@@ -1,0 +1,724 @@
+{
+  "schemaVersion": 1,
+  "authorization": {
+    "createdAndTestedNonproductionEnvironment": true,
+    "productionChangesAuthorized": false
+  },
+  "environment": {
+    "account": "92c3c4fdcc84a1590555bccf4f111de2",
+    "worker": "pinboard-pdf-verify-261108-f3b284c8",
+    "endpoint": "https://pinboard-pdf-verify-261108-f3b284c8.shazhou.workers.dev",
+    "database": "pinboard-pdf-verify-261108-f3b284c8",
+    "databaseId": "bf633f08-24cc-4fe4-8cd2-b999a8c0a20a",
+    "bucket": "pinboard-pdf-verify-261108-f3b284c8",
+    "migrationsApplied": 8,
+    "originAndProviderAreIndependent": true,
+    "activeTestTokens": 0,
+    "automaticCrons": false,
+    "productionBindingsUsed": false,
+    "retainedForReview": true
+  },
+  "revisions": {
+    "initialV3SourceCommit": "44c54b71baf08b89d7ef2f3463895091f42f32ff",
+    "currentTestSourceCommit": "5e1b187e10ac79f99a0700363f20f37f590346f2",
+    "currentApplicationCommit": "1e971e9150209b23ad46dbdb2593996dab309b96",
+    "previewVersion": 4,
+    "wranglerVersion": "4.157.0",
+    "compatibilityDate": "2026-10-14",
+    "applicationCodeModifiedForThisVerification": false,
+    "baselineVersion": "457365b0-f214-412a-9598-01342e60ae41",
+    "diagnosticVersion": "5752f84c-59a8-48af-9ca7-0f4aefb2efad",
+    "deployedVersions": [
+      {
+        "deployment": "462b093b-21eb-4aee-8c2e-553bed511aa9",
+        "observedAt": "2026-11-07T23:25:35.8839912Z",
+        "action": "baseline",
+        "version": "ca016dcd-dbfd-4a9e-95c6-6afd8982936c"
+      },
+      {
+        "action": "diagnostic",
+        "deployment": "07919014-4a36-4506-9b0e-a1f2db6804d9",
+        "observedAt": "2026-11-07T23:38:24.0062509Z",
+        "version": "9c519df7-8976-4c09-89c6-5944dfa60fae"
+      },
+      {
+        "deployment": "8b71a575-2614-4485-8fb4-4f7178ab45c9",
+        "version": "457365b0-f214-412a-9598-01342e60ae41",
+        "observedAt": "2026-11-08T00:10:37.4522289Z",
+        "previewVersion": 4,
+        "sourceCommit": "5e1b187e10ac79f99a0700363f20f37f590346f2",
+        "action": "baseline"
+      },
+      {
+        "action": "diagnostic",
+        "observedAt": "2026-11-08T00:12:34.1013133Z",
+        "version": "827ce061-4f43-4909-8982-160705681bbe",
+        "sourceCommit": "5e1b187e10ac79f99a0700363f20f37f590346f2",
+        "deployment": "26ced12b-1d71-47fa-a4ae-7bc3985322df",
+        "previewVersion": 4
+      },
+      {
+        "sourceCommit": "5e1b187e10ac79f99a0700363f20f37f590346f2",
+        "deployment": "af0549bf-64ec-4c98-9e39-b02729f73411",
+        "observedAt": "2026-11-08T00:15:57.621601Z",
+        "action": "diagnostic",
+        "previewVersion": 4,
+        "version": "5752f84c-59a8-48af-9ca7-0f4aefb2efad"
+      },
+      {
+        "observedAt": "2026-11-08T00:20:50.0877205Z",
+        "action": "rollback",
+        "previewVersion": 4,
+        "version": "457365b0-f214-412a-9598-01342e60ae41",
+        "sourceCommit": "5e1b187e10ac79f99a0700363f20f37f590346f2",
+        "deployment": "116121e8-8f0c-4b04-89f4-1046652626c2"
+      },
+      {
+        "observedAt": "2026-11-08T00:21:00.6988247Z",
+        "action": "restore",
+        "previewVersion": 4,
+        "version": "5752f84c-59a8-48af-9ca7-0f4aefb2efad",
+        "sourceCommit": "5e1b187e10ac79f99a0700363f20f37f590346f2",
+        "deployment": "d72c7f4d-27ca-45a7-b3fb-97f8a0c65835"
+      }
+    ],
+    "diagnosticSourceSha256": "579c3b54cb2fd0d772e52d02fb0ecd03bf87a3cf61257064c7c64494b8289dab"
+  },
+  "packaging": {
+    "originalEntryUploadKiB": 13341.31,
+    "originalEntryGzipKiB": 5555.25,
+    "originalEntryStartupMs": 50,
+    "diagnosticUploadKiB": 13353.1,
+    "diagnosticGzipKiB": 5558.19,
+    "diagnosticStartupMs": 48,
+    "platformUncompressedLimitMiB": 64,
+    "platformStartupLimitMs": 1000
+  },
+  "baseline": {
+    "passed": true,
+    "originalDownloadedAndSha256Matched": true,
+    "originalSha256": "017c3d7e46265c60b8013f69fc9bb76e68ebf6841fac95d5460774203f04f6d3"
+  },
+  "rendering": {
+    "partialFull": {
+      "partial": {
+        "isolateId": "89d1c278-8b4e-437c-92a3-676e552fe987",
+        "mode": "auto",
+        "width": 200,
+        "height": 150,
+        "rgbaHash": "43afd9f4a88bb8d6dda5d87b73204652fa3e83fe2de5f52d0128fac60c40fc32",
+        "webpHash": "3aabefd867b309683fefd023554fb0340de816649725865f6b97215fd3684948",
+        "source": {
+          "reads": 3,
+          "bytes": 519150,
+          "cachedBlocks": 3
+        },
+        "native": {
+          "nativeBytes": 33554432,
+          "generation": 1,
+          "owner": "pdf",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 4,
+          "logicalBytes": 124825,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        }
+      },
+      "full": {
+        "isolateId": "a64d0e2f-3241-4188-a5af-cab4ae0653b4",
+        "mode": "full",
+        "width": 200,
+        "height": 150,
+        "rgbaHash": "43afd9f4a88bb8d6dda5d87b73204652fa3e83fe2de5f52d0128fac60c40fc32",
+        "webpHash": "3aabefd867b309683fefd023554fb0340de816649725865f6b97215fd3684948",
+        "source": {
+          "reads": 23,
+          "bytes": 5762030,
+          "cachedBlocks": 23
+        },
+        "native": {
+          "nativeBytes": 33554432,
+          "generation": 1,
+          "owner": "pdf",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 0,
+          "logicalBytes": 5760921,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        }
+      },
+      "identicalPixels": true,
+      "independentRedBluePixels": true,
+      "byteSaving": 0.9099015451151764
+    },
+    "chineseViewport": {
+      "meanRgbDifference": 0.19309722222222223,
+      "inkIou": 0.9945866141732284,
+      "meanRgbDifferenceLimit": 5,
+      "minimumInkIou": 0.8,
+      "viewport": [400, 300],
+      "referenceTopCropOrWhitePadding": true
+    },
+    "rotatedViewport": {
+      "meanRgbDifference": 0,
+      "inkIou": 1,
+      "meanRgbDifferenceLimit": 5,
+      "minimumInkIou": 0.8,
+      "viewport": [200, 150],
+      "referenceTopCropOrWhitePadding": true
+    },
+    "landscapeWhitePadding": true,
+    "viewportRatio": "4:3",
+    "form": {
+      "version": 4,
+      "status": "unsupported",
+      "contentType": "application/pdf",
+      "preview": null,
+      "size": 511,
+      "truncated": false,
+      "reason": "PDF forms and XFA require static flattening"
+    },
+    "malformed": {
+      "version": 4,
+      "status": "unsupported",
+      "contentType": "application/pdf",
+      "preview": null,
+      "size": 19,
+      "truncated": false,
+      "reason": "PDF is damaged or unsupported"
+    },
+    "cacheBudget": {
+      "version": 4,
+      "status": "unsupported",
+      "contentType": "application/pdf",
+      "preview": null,
+      "size": 9437850,
+      "truncated": false,
+      "reason": "PDF exceeds 8 MiB logical cache budget"
+    },
+    "logicalBudget": {
+      "logicalBytes": 34603008,
+      "physicalPayloadBytes": 1050236,
+      "descriptor": {
+        "version": 4,
+        "status": "unsupported",
+        "contentType": "application/pdf",
+        "preview": null,
+        "size": 34603008,
+        "truncated": false,
+        "reason": "PDF exceeds 32 MiB logical file limit"
+      },
+      "malformedLogicalPdfRejectedBeforeParsing": true
+    }
+  },
+  "nativeRecovery": {
+    "png": {
+      "resumed": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "controlledFailure": false,
+        "deferredContender": true,
+        "reusedNativeArena": true,
+        "paused": {
+          "nativeBytes": 33554432,
+          "generation": 1,
+          "owner": "pdf",
+          "occupied": true
+        },
+        "final": {
+          "nativeBytes": 33554432,
+          "generation": 2,
+          "owner": "image/png",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 4,
+          "logicalBytes": 124825,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        },
+        "rgbaHash": "43afd9f4a88bb8d6dda5d87b73204652fa3e83fe2de5f52d0128fac60c40fc32",
+        "imageHash": "661245d6fc830b79f80f7b8dd1738bcabb500644ad07697f5320b9a29124f415",
+        "imageWidth": 2,
+        "imageHeight": 2,
+        "nativeAbortInjected": false
+      },
+      "controlledSourceFailure": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "controlledFailure": true,
+        "deferredContender": true,
+        "reusedNativeArena": true,
+        "paused": {
+          "nativeBytes": 33554432,
+          "generation": 3,
+          "owner": "pdf",
+          "occupied": true
+        },
+        "final": {
+          "nativeBytes": 33554432,
+          "generation": 4,
+          "owner": "image/png",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 1,
+          "logicalBytes": 65536,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        },
+        "rgbaHash": null,
+        "imageHash": "661245d6fc830b79f80f7b8dd1738bcabb500644ad07697f5320b9a29124f415",
+        "imageWidth": 2,
+        "imageHeight": 2,
+        "nativeAbortInjected": false
+      },
+      "declaredArenaGrowthFailure": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "growthRejected": true,
+        "reusedNativeArena": true,
+        "failureMode": "WebAssembly.Memory.grow at the 32 MiB maximum",
+        "afterFailure": {
+          "nativeBytes": 33554432,
+          "generation": 5,
+          "owner": "",
+          "occupied": false
+        },
+        "recovered": {
+          "nativeBytes": 33554432,
+          "generation": 6,
+          "owner": "image/png",
+          "occupied": false
+        },
+        "imageHash": "661245d6fc830b79f80f7b8dd1738bcabb500644ad07697f5320b9a29124f415",
+        "nativePdfiumAbortInjected": false
+      },
+      "actualPdfiumAbort": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "failure": "PDF native renderer aborted",
+        "poisoned": {
+          "rounds": 0,
+          "logicalBytes": 82279,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": true
+        },
+        "reusedNativeArena": true,
+        "imageHash": "661245d6fc830b79f80f7b8dd1738bcabb500644ad07697f5320b9a29124f415",
+        "normalRgbaHash": "43afd9f4a88bb8d6dda5d87b73204652fa3e83fe2de5f52d0128fac60c40fc32",
+        "recovered": {
+          "nativeBytes": 33554432,
+          "generation": 9,
+          "owner": "pdf",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 4,
+          "logicalBytes": 124825,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        },
+        "platformIsolateOomInjected": false
+      }
+    },
+    "jpeg": {
+      "resumed": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "controlledFailure": false,
+        "deferredContender": true,
+        "reusedNativeArena": true,
+        "paused": {
+          "nativeBytes": 33554432,
+          "generation": 9,
+          "owner": "pdf",
+          "occupied": true
+        },
+        "final": {
+          "nativeBytes": 33554432,
+          "generation": 10,
+          "owner": "image/jpeg",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 4,
+          "logicalBytes": 124825,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        },
+        "rgbaHash": "43afd9f4a88bb8d6dda5d87b73204652fa3e83fe2de5f52d0128fac60c40fc32",
+        "imageHash": "60dbf834e81c85ba9dcc20a03d03912d4fe346902d6e5eef8400b4738ae01e2c",
+        "imageWidth": 16,
+        "imageHeight": 16,
+        "nativeAbortInjected": false
+      },
+      "controlledSourceFailure": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "controlledFailure": true,
+        "deferredContender": true,
+        "reusedNativeArena": true,
+        "paused": {
+          "nativeBytes": 33554432,
+          "generation": 11,
+          "owner": "pdf",
+          "occupied": true
+        },
+        "final": {
+          "nativeBytes": 33554432,
+          "generation": 12,
+          "owner": "image/jpeg",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 1,
+          "logicalBytes": 65536,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        },
+        "rgbaHash": null,
+        "imageHash": "60dbf834e81c85ba9dcc20a03d03912d4fe346902d6e5eef8400b4738ae01e2c",
+        "imageWidth": 16,
+        "imageHeight": 16,
+        "nativeAbortInjected": false
+      },
+      "declaredArenaGrowthFailure": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "growthRejected": true,
+        "reusedNativeArena": true,
+        "failureMode": "WebAssembly.Memory.grow at the 32 MiB maximum",
+        "afterFailure": {
+          "nativeBytes": 33554432,
+          "generation": 13,
+          "owner": "",
+          "occupied": false
+        },
+        "recovered": {
+          "nativeBytes": 33554432,
+          "generation": 14,
+          "owner": "image/jpeg",
+          "occupied": false
+        },
+        "imageHash": "60dbf834e81c85ba9dcc20a03d03912d4fe346902d6e5eef8400b4738ae01e2c",
+        "nativePdfiumAbortInjected": false
+      },
+      "actualPdfiumAbort": {
+        "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+        "failure": "PDF native renderer aborted",
+        "poisoned": {
+          "rounds": 0,
+          "logicalBytes": 82279,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": true
+        },
+        "reusedNativeArena": true,
+        "imageHash": "60dbf834e81c85ba9dcc20a03d03912d4fe346902d6e5eef8400b4738ae01e2c",
+        "normalRgbaHash": "43afd9f4a88bb8d6dda5d87b73204652fa3e83fe2de5f52d0128fac60c40fc32",
+        "recovered": {
+          "nativeBytes": 33554432,
+          "generation": 17,
+          "owner": "pdf",
+          "occupied": false
+        },
+        "pdf": {
+          "rounds": 4,
+          "logicalBytes": 124825,
+          "windows": 0,
+          "tableSize": 3265,
+          "hasSession": false,
+          "poisoned": false
+        },
+        "platformIsolateOomInjected": false
+      }
+    }
+  },
+  "repeatedOneInvocation": {
+    "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+    "count": 18,
+    "distinctImageHashes": 1,
+    "reads": 54,
+    "bytes": 9344700,
+    "wallMs": 3953,
+    "native": {
+      "nativeBytes": 33554432,
+      "generation": 17,
+      "owner": "pdf",
+      "occupied": false
+    },
+    "pdf": {
+      "rounds": 4,
+      "logicalBytes": 124825,
+      "windows": 0,
+      "tableSize": 3265,
+      "hasSession": false,
+      "poisoned": false
+    },
+    "isolatePeakMemoryMeasured": false
+  },
+  "concurrentRequests": [
+    {
+      "cid": "bafybeiczbotzg552u4eiquaooyekqprqly7ftrrfax4ddwnowqg6do7fda",
+      "observations": [
+        {
+          "at": "2026-11-08T00:19:01.601Z",
+          "status": "ready",
+          "version": 4
+        }
+      ]
+    },
+    {
+      "cid": "bafybeibjox4ztlco4c52d52m6kozevzx7uju4iitnzvbcqnchunxhucbtm",
+      "observations": [
+        {
+          "at": "2026-11-08T00:19:02.741Z",
+          "status": "ready",
+          "version": 4
+        }
+      ]
+    },
+    {
+      "cid": "bafybeihj2mwnyjg3x674pwiqwhr6tefecccjklmmrcoox7dualhdqgfcmy",
+      "observations": [
+        {
+          "at": "2026-11-08T00:19:02.067Z",
+          "status": "ready",
+          "version": 4
+        }
+      ]
+    },
+    {
+      "cid": "bafybeibmiiosd222thyyg2bedmcbcujxy43hrdo6glzt7yohqi4wubt5ye",
+      "observations": [
+        {
+          "at": "2026-11-08T00:19:02.677Z",
+          "status": "ready",
+          "version": 4
+        }
+      ]
+    },
+    {
+      "cid": "bafybeifbsr3vwsttcliorcpvkbzzhd24e34arcdzlrsjytr6wpcdskmrdq",
+      "observations": [
+        {
+          "at": "2026-11-08T00:19:02.396Z",
+          "status": "ready",
+          "version": 4
+        }
+      ]
+    },
+    {
+      "cid": "bafybeih6ec6rbjtmqpkfhguuvistqbiompzkve2scx66ztlvw6jkntstbe",
+      "observations": [
+        {
+          "at": "2026-11-08T00:19:02.870Z",
+          "status": "ready",
+          "version": 4
+        }
+      ]
+    }
+  ],
+  "retention": {
+    "sourceCid": "bafkreibtxrrciubhyymafgz2cjscsjycmlr2fm7auey2u2kxpk2oylmtfq",
+    "thumbnailCid": "bafkreibgkz2pkctld6ctnepexb2zrfynjripuasy5by6kvj57yuzs3gp6q",
+    "collected": {
+      "isolateId": "d3a8ea6e-0c63-4127-a979-2d6d9f5a87b3",
+      "retention": {
+        "tokensDeleted": 0,
+        "backfilled": 0,
+        "backfillFailed": 0,
+        "discovered": 0,
+        "unknownObjects": 0,
+        "objectsDeleted": 1,
+        "objectsFailed": 0,
+        "blockedPins": 0
+      }
+    },
+    "sourceObjectDeleted": true,
+    "databaseThumbnailDeleted": true,
+    "referencedLargePdfRetained": true,
+    "immediateRestoreWorked": true,
+    "earlierSharedThumbnailWasCorrectlyRetained": true,
+    "clocksAdvancedOnlyInTestD1": true,
+    "realR2DeletionAndD1ThumbnailDeletionObserved": true,
+    "scheduledDeliveryExercised": false
+  },
+  "rollback": {
+    "passed": true,
+    "originalDownloadedAndSha256Matched": true,
+    "thumbnailCidUnchanged": true,
+    "diagnosticEndpointAbsentAfterRollback": true,
+    "restoredToDiagnosticVersion": true,
+    "boundDataWasNotRolledBack": true,
+    "productionRolledBack": false
+  },
+  "platformMetrics": {
+    "scope": "pinboard-pdf-verify-261108-f3b284c8",
+    "timeframe": {
+      "from": 1794093600000,
+      "to": 1794097326320
+    },
+    "maxCpuMs": 639,
+    "maxWallMs": 4526,
+    "cpuMetricRows": 244,
+    "configuredCpuLimitMs": 30000,
+    "outcomes": [
+      {
+        "outcome": "ok",
+        "count": 250,
+        "sampleInterval": 1
+      }
+    ],
+    "totalIsolateLimitMb": 128,
+    "totalIsolatePeakDirectlyMeasured": false,
+    "noTotalMemoryTelemetryKeyFound": true,
+    "nodeMemoryUsageProbe": {
+      "supported": true,
+      "isolateId": "d2904dfb-f90b-4758-9529-6de1fb5059c5",
+      "snapshot": {
+        "rss": 0,
+        "heapTotal": 0,
+        "heapUsed": 0,
+        "external": 0,
+        "arrayBuffers": 0
+      },
+      "native": {
+        "nativeBytes": 33554432,
+        "generation": 17,
+        "owner": "pdf",
+        "occupied": false
+      },
+      "nativeBackingIncluded": false,
+      "isolatePeakMemoryMeasured": false,
+      "reason": "A Node process snapshot is not a total isolate peak measurement"
+    },
+    "zeroNodeSnapshotIsNotAValidMemoryMeasurement": true,
+    "metricsCountsAreNotUniqueRequestCounts": true,
+    "observedPlatformResourceExceededOutcomes": 0
+  },
+  "production": {
+    "versions": [
+      {
+        "version_id": "ca264635-fb7f-4e3c-b4ad-bee82b1f44dd",
+        "percentage": 100
+      }
+    ],
+    "releasedByThisVerification": false,
+    "releaseCommit": "1e971e9150209b23ad46dbdb2593996dab309b96",
+    "workflowRun": 42427039155,
+    "deployment": "856accc8-9036-4920-a489-39cf5bdc3331",
+    "createdOn": "2026-11-07T23:59:04.943604Z",
+    "releaseTag": "release-261108-2",
+    "existingSyntheticSamples": [
+      {
+        "descriptor": {
+          "contentType": "application/pdf",
+          "preview": {
+            "kind": "image",
+            "image": {
+              "cid": "bafkreib2vpx5qz5tbfud736qenku7mbubxubmzexewdf624xefp5g2cjja",
+              "url": "/ipfs/bafkreib2vpx5qz5tbfud736qenku7mbubxubmzexewdf624xefp5g2cjja",
+              "width": 200,
+              "height": 150
+            }
+          },
+          "version": 4,
+          "status": "ready",
+          "truncated": false,
+          "size": 5760921
+        },
+        "observations": [
+          {
+            "at": "2026-11-08T00:26:09.8505976Z",
+            "version": 4,
+            "status": "ready"
+          }
+        ],
+        "sample": "09-ordinary",
+        "sourceCid": "bafybeibgocskxaj2xt6p6sbf6643dhn7pburgpctes4kxetctl4e5pw6ci"
+      },
+      {
+        "descriptor": {
+          "version": 4,
+          "status": "unsupported",
+          "contentType": "application/pdf",
+          "preview": null,
+          "size": 9437850,
+          "truncated": false,
+          "reason": "PDF exceeds 8 MiB logical cache budget"
+        },
+        "observations": [
+          {
+            "at": "2026-11-08T00:26:11.0135954Z",
+            "version": 4,
+            "status": "pending"
+          },
+          {
+            "at": "2026-11-08T00:26:13.7089795Z",
+            "version": 4,
+            "status": "unsupported"
+          }
+        ],
+        "sample": "10-budget",
+        "sourceCid": "bafybeietfysibfv7pz3edndhgfzfl3rzqdbtojvkkapyzw2rfcwpfypfqq"
+      },
+      {
+        "descriptor": {
+          "contentType": "application/pdf",
+          "preview": {
+            "kind": "image",
+            "image": {
+              "cid": "bafkreihngjrs3j5yojtgsalgylirbxw2lj7hpudxrenwwa5yijkl4hinhy",
+              "url": "/ipfs/bafkreihngjrs3j5yojtgsalgylirbxw2lj7hpudxrenwwa5yijkl4hinhy",
+              "width": 200,
+              "height": 150
+            }
+          },
+          "version": 4,
+          "status": "ready",
+          "truncated": false,
+          "size": 498
+        },
+        "observations": [
+          {
+            "at": "2026-11-08T00:26:14.9329922Z",
+            "version": 4,
+            "status": "ready"
+          }
+        ],
+        "sample": "11-normal",
+        "sourceCid": "bafkreiawxgr5cg3flh6pymal73mckbd5s23b4ennptrldveyhlff52qyzi"
+      }
+    ],
+    "readOnlyChecksOrNormalPreviewRegenerationOnly": true
+  },
+  "validation": {
+    "currentPnpmCheck": "passed",
+    "diagnosticTypecheck": "passed"
+  },
+  "limitations": {
+    "totalIsolatePeakUnmeasured": true,
+    "platform128MbOomNotInjected": true,
+    "noIndependentV1PdfUpgradeSample": true,
+    "initialCliImportNetworkFailureCauseUnidentified": true,
+    "initialImportDidNotCommitAndWasRetriedAfterInspection": true,
+    "temporaryHarnessAndFixtureIssuesCorrectedWithoutBusinessCodeChanges": true,
+    "fullOuterAcceptanceNotRecorded": true
+  }
+}

@@ -18,7 +18,7 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 在隔离环境验证资源与可用性
+- [x] **D-S01:** 在隔离环境验证资源与可用性
 - [ ] **D-S02:** 获准后发布并检查真实入口
 
 ### Deployment acceptance criteria
