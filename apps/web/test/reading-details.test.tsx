@@ -25,6 +25,22 @@ describe("reading details", () => {
     expect(html).not.toContain("Read node");
   });
 
+  it.each([{}, { publicationId: "publication", revision: 5 }])(
+    "reserves a scrollable preview before content loads: %j",
+    (props) => {
+      const html = renderToStaticMarkup(
+        <NodeDescriptionEditor rootCid="root" readingFirst {...props} />,
+      );
+      expect(html).toContain('class="pin-preview"');
+      expect(html).toContain('aria-label="Scrollable content preview"');
+      expect(html).toContain('tabindex="0"');
+      expect(html).toContain('aria-busy="true"');
+      expect(html).toMatch(
+        /class="pin-preview"[^>]*><p role="status">Loading content/u,
+      );
+    },
+  );
+
   it("keeps the selected publication snapshot read-only", () => {
     const html = renderToStaticMarkup(
       <NodeDescriptionEditor

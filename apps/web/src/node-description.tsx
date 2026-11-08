@@ -192,14 +192,28 @@ export function NodeDescriptionEditor({
         <div className="reading-layout">
           <section className="reading-content" aria-label="Content preview">
             <h4>Content</h4>
+            <div
+              className={previewClassName(data?.description.preview ?? null)}
+              tabIndex={0}
+              role="region"
+              aria-label="Scrollable content preview"
+              aria-busy={!data && !error}
+            >
+              {data ? (
+                <PreviewContent
+                  preview={data.description.preview}
+                  name={name ?? rootCid}
+                />
+              ) : (
+                <p role="status">
+                  {error
+                    ? "Content preview unavailable."
+                    : "Loading content..."}
+                </p>
+              )}
+            </div>
             {data ? (
               <>
-                <div className={previewClassName(data.description.preview)}>
-                  <PreviewContent
-                    preview={data.description.preview}
-                    name={name ?? rootCid}
-                  />
-                </div>
                 <p className="muted preview-scope">
                   {data.description.preview.status === "pending"
                     ? "Preview is being generated."
@@ -231,11 +245,7 @@ export function NodeDescriptionEditor({
                   </button>
                 ) : null}
               </>
-            ) : (
-              <p role="status">
-                {error ? "Content preview unavailable." : "Loading content..."}
-              </p>
-            )}
+            ) : null}
           </section>
           <aside className="reading-sidebar">
             <section

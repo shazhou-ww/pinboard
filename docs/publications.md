@@ -80,7 +80,11 @@ original, conflicts preserve the draft, and unsaved closing requires
 confirmation. **Advanced information and node query** retains
 root/reachable-child queries without putting a CID form ahead of the main
 content. Desktop content and description/history columns stack on narrow
-screens; Close and Share/Download remain accessible while scrolling.
+screens; Close and Share/Download remain accessible while scrolling. The content
+preview reserves the same height while loading and after content arrives (360px
+on desktop, 240px on narrow screens). Long text, code and directory previews
+scroll inside that keyboard-focusable region instead of resizing the details;
+images and PDF thumbnails fit within it.
 
 Settings → **Recently deleted** lists pins and publications with deletion and
 expiry times and a restore action.
