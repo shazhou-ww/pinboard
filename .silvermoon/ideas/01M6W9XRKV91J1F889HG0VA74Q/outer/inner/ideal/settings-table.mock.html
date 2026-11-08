@@ -255,10 +255,38 @@
         font-size: 12px;
         white-space: nowrap;
       }
-      .toolbar .filters {
+      .toolbar .switch-label {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         align-items: center;
+      }
+      .switch-label input {
+        appearance: none;
+        width: 34px;
+        height: 20px;
+        margin: 0;
+        padding: 2px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--subtle);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .switch-label input::before {
+        content: "";
+        display: block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      .switch-label input:checked {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .switch-label input:checked::before {
+        transform: translateX(14px);
+        background: var(--on-accent);
       }
       .toolbar > button {
         margin-left: auto;
@@ -337,7 +365,7 @@
         padding: 3px 8px;
         white-space: nowrap;
       }
-      td .glyph-button {
+      .glyph-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -348,9 +376,23 @@
         background: transparent;
         border-radius: 50%;
       }
-      td .glyph-button:hover {
+      .glyph-button:hover {
         background: var(--hover);
         border-color: var(--border);
+      }
+      .toolbar .glyph-button {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        border-color: var(--border);
+      }
+      .toolbar .glyph-button.primary {
+        background: var(--accent);
+        color: var(--on-accent);
+        border-color: var(--accent);
+      }
+      .toolbar .glyph-button.primary:hover {
+        background: var(--accent-hover);
       }
       .glyph-button svg {
         width: 18px;
@@ -660,15 +702,20 @@
                 aria-label="搜索访问令牌"
                 placeholder="搜索名称或权限"
               />
-              <div class="filters" role="group" aria-label="访问令牌状态筛选">
-                <label
-                  ><input type="checkbox" id="expired-tokens" /> 已过期</label
-                >
-                <label
-                  ><input type="checkbox" id="revoked-tokens" /> 已撤销</label
-                >
-              </div>
-              <button class="primary" id="create-token">新建令牌</button>
+              <label class="switch-label"
+                ><input type="checkbox" role="switch" id="invalid-tokens" />
+                显示无效授权</label
+              >
+              <button
+                class="primary glyph-button"
+                id="create-token"
+                aria-label="新建访问令牌"
+                title="新建访问令牌"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
             </div>
             <div
               class="table-scroll"
@@ -713,15 +760,22 @@
                 aria-label="搜索 OAuth 授权"
                 placeholder="搜索客户端或权限"
               />
-              <div class="filters" role="group" aria-label="OAuth 授权状态筛选">
-                <label
-                  ><input type="checkbox" id="expired-oauth" /> 已过期</label
-                >
-                <label
-                  ><input type="checkbox" id="revoked-oauth" /> 已撤销</label
-                >
-              </div>
-              <button data-demo="刷新 OAuth 授权">刷新</button>
+              <label class="switch-label"
+                ><input type="checkbox" role="switch" id="invalid-oauth" />
+                显示无效授权</label
+              >
+              <button
+                class="glyph-button"
+                data-demo="刷新 OAuth 授权"
+                aria-label="刷新 OAuth 授权"
+                title="刷新 OAuth 授权"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M20 7v5h-5M4 17v-5h5M19 12a7 7 0 0 0-12-5L4 10m1 2a7 7 0 0 0 12 5l3-3"
+                  />
+                </svg>
+              </button>
             </div>
             <div
               class="table-scroll"
@@ -863,28 +917,24 @@
           state: index < 16 ? "active" : index < 20 ? "expired" : "revoked",
           id: `示例 ${kind}-${index + 1}`,
         }));
-        for (const state of ["expired", "revoked"]) {
-          document
-            .getElementById(`${state}-${kind}`)
-            .addEventListener("change", () => render(kind));
-        }
+        document
+          .getElementById(`invalid-${kind}`)
+          .addEventListener("change", () => render(kind));
         document
           .getElementById(`search-${kind}`)
           .addEventListener("input", () => render(kind));
       }
       function render(kind) {
-        const includedStates = ["active"];
-        for (const state of ["expired", "revoked"]) {
-          if (document.getElementById(`${state}-${kind}`).checked)
-            includedStates.push(state);
-        }
+        const includeInvalid = document.getElementById(
+          `invalid-${kind}`,
+        ).checked;
         const query = document
           .getElementById(`search-${kind}`)
           .value.trim()
           .toLowerCase();
         const visible = records[kind].filter(
           (record) =>
-            includedStates.includes(record.state) &&
+            (includeInvalid || record.state === "active") &&
             `${record.name} ${record.scopes}`.toLowerCase().includes(query),
         );
         const body = document.getElementById(`rows-${kind}`);
