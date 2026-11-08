@@ -80,12 +80,18 @@ describe("original content downloads", () => {
       "default-src 'none'; sandbox",
     );
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
+    expect(
+      Buffer.compare(
+        Buffer.from(await response.arrayBuffer()),
+        Buffer.from(bytes),
+      ),
+    ).toBe(0);
     const car = await app.request(
       `http://example.test/api/public/${cid}/car`,
       undefined,
       env,
     );
+    expect(car.status).toBe(200);
     const reader = await CarReader.fromBytes(
       new Uint8Array(await car.arrayBuffer()),
     );
