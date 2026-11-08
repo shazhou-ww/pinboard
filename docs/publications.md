@@ -84,7 +84,9 @@ screens; Close and Share/Download remain accessible while scrolling. The content
 preview reserves the same height while loading and after content arrives (360px
 on desktop, 240px on narrow screens). Long text, code and directory previews
 scroll inside that keyboard-focusable region instead of resizing the details;
-images and PDF thumbnails fit within it.
+images and PDF thumbnails fit within it. Ready previews do not add explanatory
+footer lines. Generation status and failure retry actions stay inside this
+fixed-height area rather than pushing the content below it down.
 
 Settings → **Recently deleted** lists pins and publications with deletion and
 expiry times and a restore action.

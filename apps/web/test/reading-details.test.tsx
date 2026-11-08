@@ -1,5 +1,6 @@
 import { isValidElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DetailMenu, discardDetailsDraft } from "../src/detail-actions.js";
 import { NodeDescriptionEditor } from "../src/node-description.js";
@@ -7,6 +8,19 @@ import { NodeDescriptionEditor } from "../src/node-description.js";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("reading details", () => {
+  it("does not append scope explanations for any ready preview type", () => {
+    const source = readFileSync(
+      new URL("../src/node-description.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).not.toMatch(
+      /preview-scope|First-page preview only|Thumbnail only|Directory preview only|Limited content preview|Download the complete content or retry/u,
+    );
+    expect(source).toContain("Generating preview...");
+    expect(source).toContain("Preview generation failed.");
+    expect(source).toContain("Retry preview");
+  });
+
   it("keeps the root reading path free of edit and node query forms", () => {
     const html = renderToStaticMarkup(
       <NodeDescriptionEditor
@@ -32,6 +46,7 @@ describe("reading details", () => {
         <NodeDescriptionEditor rootCid="root" readingFirst {...props} />,
       );
       expect(html).toContain('class="pin-preview"');
+      expect(html).toContain('class="reading-preview-viewport"');
       expect(html).toContain('aria-label="Scrollable content preview"');
       expect(html).toContain('tabindex="0"');
       expect(html).toContain('aria-busy="true"');

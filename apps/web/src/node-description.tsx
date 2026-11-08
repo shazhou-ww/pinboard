@@ -192,50 +192,41 @@ export function NodeDescriptionEditor({
         <div className="reading-layout">
           <section className="reading-content" aria-label="Content preview">
             <h4>Content</h4>
-            <div
-              className={previewClassName(data?.description.preview ?? null)}
-              tabIndex={0}
-              role="region"
-              aria-label="Scrollable content preview"
-              aria-busy={!data && !error}
-            >
-              {data ? (
-                <PreviewContent
-                  preview={data.description.preview}
-                  name={name ?? rootCid}
-                />
-              ) : (
-                <p role="status">
-                  {error
-                    ? "Content preview unavailable."
-                    : "Loading content..."}
-                </p>
-              )}
-            </div>
-            {data ? (
-              <>
-                <p className="muted preview-scope">
-                  {data.description.preview.status === "pending"
-                    ? "Preview is being generated."
-                    : data.description.preview.status === "failed"
-                      ? "Preview generation failed. Download the complete content or retry."
-                      : data.description.preview.status === "unsupported"
-                        ? "Preview is not supported. Download the complete content."
-                        : data.description.preview.contentType ===
-                            "application/pdf"
-                          ? "First-page preview only. Download the complete PDF."
-                          : data.description.preview.contentType?.startsWith(
-                                "image/",
-                              )
-                            ? "Thumbnail only. Download the original image."
-                            : data.description.preview.preview?.kind ===
-                                "directory"
-                              ? "Directory preview only; entries are not navigation links."
-                              : "Limited content preview. Download for the complete content."}
-                </p>
-                {["pending", "failed"].includes(
-                  data.description.preview.status,
-                ) ? (
+            <div className="reading-preview-viewport">
+              <div
+                className={previewClassName(data?.description.preview ?? null)}
+                tabIndex={0}
+                role="region"
+                aria-label="Scrollable content preview"
+                aria-busy={!data && !error}
+              >
+                {data ? (
+                  <PreviewContent
+                    preview={data.description.preview}
+                    name={name ?? rootCid}
+                  />
+                ) : (
+                  <p role="status">
+                    {error
+                      ? "Content preview unavailable."
+                      : "Loading content..."}
+                  </p>
+                )}
+              </div>
+              {data &&
+              ["pending", "failed"].includes(
+                data.description.preview.status,
+              ) ? (
+                <div
+                  className="preview-details"
+                  tabIndex={0}
+                  aria-label="Preview information"
+                >
+                  <p className="muted" role="status">
+                    {data.description.preview.status === "pending"
+                      ? "Generating preview..."
+                      : "Preview generation failed."}
+                  </p>
                   <button
                     type="button"
                     disabled={busy || dirty || advancedBusy || advancedDirty}
@@ -243,9 +234,9 @@ export function NodeDescriptionEditor({
                   >
                     Retry preview
                   </button>
-                ) : null}
-              </>
-            ) : null}
+                </div>
+              ) : null}
+            </div>
           </section>
           <aside className="reading-sidebar">
             <section
