@@ -181,11 +181,15 @@ Click or tap a pin or publication card to open its details and management
 actions; keyboard users can activate the card's details button with Enter or
 Space. Cards have no custom right-click menu or overflow button, preserving the
 browser's native context menu. The bottom CID capsule remains a shortcut for
-copying the complete CID without opening details. Pin details include copying
-the share link, renaming, downloading, unpinning, adding to a publication,
-converting to a publication and converting with a file or folder upload.
-Publication details include links, history and file/folder version uploads.
-Unpin moves only that pin to recently deleted; publication references remain
+copying the complete CID without opening details. Details are reading-first:
+content on the left and descriptions/facts on the right, stacked on narrow
+screens. **Share** and **Download** remain primary; **More** holds independent
+management tasks. Private descriptions are read-only until **Edit description**;
+advanced node queries remain available in a collapsed section. Publication
+details distinguish the viewed version, public current and latest. Browsing
+history does not change current. Fixed-version links and downloads use the
+viewed CID; publishing and making a version current are explicit tasks. Unpin
+moves only that pin to recently deleted; publication references remain
 independent.
 
 The upload dialog's **After uploading** selector always offers **Create a
@@ -203,7 +207,8 @@ Pin details open immediately with the listed metadata and refresh in the
 background without inserting a loading row or resizing the panel. Click or tap
 outside the panel, press Escape or use Close to dismiss it, including while its
 details are loading. Closing cancels the read so late responses cannot reopen
-the panel. Pending writes still prevent dismissal. Upload and Settings dialogs
+the panel and returns focus to the card. Pending writes prevent dismissal;
+unsaved edits require confirmation before closing. Upload and Settings dialogs
 retain their explicit Close/Cancel behavior.
 
 Drop one file or folder anywhere on the wall to open the same **Make a pin**
@@ -334,8 +339,9 @@ opening details. Successful copies show "CID copied" and a checkmark inside the
 capsule for 1.5 seconds, then restore the CID; repeated copies restart the
 confirmation. Copy failures show an error instead of success. Touch users can
 also copy the full CID in the details dialog. Clicking anywhere else on the card
-(or using its keyboard action) opens a modal with the full CID, timestamp, block
-count, rename, share, original file/ZIP download, CAR export and Unpin actions.
+(or using its keyboard action) opens a reading-first modal with description,
+timestamp, block count, Share/Download menus and More management tasks. Complete
+CID and reachable-node queries are in **Advanced information and node query**.
 Renaming updates both the card and modal without changing the CID.
 
 PDF image material appears as a full, aspect-preserving floating paper on a

@@ -27,9 +27,10 @@ Pin by default.
 
 Dragging a fixed Pin onto a publication opens the link confirmation. It does not
 upload, move, remove or rename the source, or change the target title. The **Add
-to a publication**, **Convert to publication**, **Convert & upload file/folder**
-and **Upload file/folder to publication** card menus provide keyboard and touch
-equivalents (Shift+F10 or the options button).
+to a publication**, **Convert to publication** and **Convert & upload** tasks in
+details → **More** provide keyboard and touch equivalents. Publication details →
+**More** → **Publish new version** offers file/folder upload and an owned-Pin
+selector showing names and content facts; card context menus are not required.
 
 Explicit conversion needs no upload. It atomically replaces the Pin identity
 with a new random-ID publication and original-content v1. The source Pin is not
@@ -62,6 +63,24 @@ public history, make an old version current, or delete.
 Copy actions explicitly distinguish follow links, fixed-version links and CID.
 Previews use the existing safe text/image/directory renderers, not executable
 HTML. Downloads resolve one actual CID before reading the complete content.
+
+Details open on **current**, even when rollback leaves newer revisions in
+history. **View vN** changes only the local reading context: content, public
+description snapshot, size, date and CID. The header names **Viewing**, **Public
+current** and **Latest** independently. **Share** keeps the follow link tied to
+the publication identity, while its fixed link/CID and **Download** file/ZIP/CAR
+use the viewed revision. **Make viewed vN current** requires confirmation and
+the actual publication sequence; it does not create a revision. Publishing is a
+separate task using the current publication state, never the browsed snapshot as
+a write baseline.
+
+Public descriptions remain read-only immutable snapshots. Pin descriptions are
+private and shown read-only until explicit editing; cancel restores the
+original, conflicts preserve the draft, and unsaved closing requires
+confirmation. **Advanced information and node query** retains
+root/reachable-child queries without putting a CID form ahead of the main
+content. Desktop content and description/history columns stack on narrow
+screens; Close and Share/Download remain accessible while scrolling.
 
 Settings → **Recently deleted** lists pins and publications with deletion and
 expiry times and a restore action.

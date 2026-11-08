@@ -9,6 +9,7 @@ export function Dialog({
   showClose = true,
   glyphClose = false,
   className = "",
+  returnFocusKey,
   onClose,
   children,
 }: {
@@ -19,18 +20,89 @@ export function Dialog({
   showClose?: boolean;
   glyphClose?: boolean;
   className?: string;
+  returnFocusKey?: string | undefined;
   onClose: () => void;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const openerKey = useRef<string | null>(null);
+  if (returnFocusKey) openerKey.current = returnFocusKey;
   const outsidePress = useRef(false);
   useEffect(() => {
     outsidePress.current = false;
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    else if (!open && dialog.open) dialog.close();
-  }, [open]);
+    if (open && !dialog.open) {
+      opener.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      openerKey.current =
+        returnFocusKey ??
+        opener.current?.getAttribute("data-detail-key") ??
+        null;
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+      requestAnimationFrame(() => {
+        if (document.querySelector("dialog[open]")) return;
+        if (openerKey.current)
+          document
+            .querySelector<HTMLElement>(
+              `[data-detail-key="${CSS.escape(openerKey.current)}"]`,
+            )
+            ?.focus();
+        else if (opener.current?.isConnected) opener.current.focus();
+      });
+    }
+  }, [open, returnFocusKey]);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!open || !dialog) return;
+    if (busy && !dialog.contains(document.activeElement)) dialog.focus();
+    const escapeOutside = (event: KeyboardEvent) => {
+      if (
+        Array.from(document.querySelectorAll("dialog[open]")).at(-1) !== dialog
+      )
+        return;
+      if (event.key === "Tab") {
+        const controls = Array.from(
+          dialog.querySelectorAll<HTMLElement>(
+            "a[href], button, input, select, textarea, summary, [tabindex]",
+          ),
+        ).filter(
+          (element) =>
+            element.tabIndex >= 0 &&
+            !element.matches(":disabled") &&
+            !element.closest("[inert]") &&
+            element.getClientRects().length > 0,
+        );
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (
+          !first ||
+          !dialog.contains(document.activeElement) ||
+          (event.shiftKey && document.activeElement === first) ||
+          (!event.shiftKey && document.activeElement === last)
+        ) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
+          if (!first) dialog.focus();
+        }
+      }
+      if (
+        event.key === "Escape" &&
+        event.target instanceof Node &&
+        !dialog.contains(event.target)
+      ) {
+        event.preventDefault();
+        if (!busy) onClose();
+      }
+    };
+    document.addEventListener("keydown", escapeOutside);
+    return () => document.removeEventListener("keydown", escapeOutside);
+  }, [open, busy, onClose]);
   const isOutside = (event: {
     currentTarget: HTMLDialogElement;
     clientX: number;
@@ -50,6 +122,8 @@ export function Dialog({
       className={`canvas-dialog${className ? ` ${className}` : ""}`}
       aria-label={title}
       aria-busy={busy}
+      closedby="none"
+      tabIndex={-1}
       onPointerDown={(event) => {
         outsidePress.current =
           dismissOnOutsideClick &&

@@ -38,7 +38,7 @@ const publication: Publication = {
 const noop = () => {};
 afterEach(() => vi.unstubAllGlobals());
 describe("publication wall identity and management", () => {
-  it("keeps file and folder version uploads in publication details", () => {
+  it("keeps publication writes behind an explicit task entry", () => {
     const onUploadFile = vi.fn();
     const onUploadFolder = vi.fn();
     type ActionTree = { children?: ReactNode; onClick?: () => void };
@@ -75,16 +75,12 @@ describe("publication wall identity and management", () => {
     const html = renderToStaticMarkup(<Probe />);
     expect(html).toContain("Copy follow link");
     expect(html).toContain("Version history");
-    for (const label of [
-      "Upload file to publication",
-      "Upload folder to publication",
-    ]) {
-      const action = find(tree, label);
-      if (!action?.props.onClick) throw new Error(`Missing ${label} action.`);
-      action.props.onClick();
-    }
-    expect(onUploadFile).toHaveBeenCalledWith(publication);
-    expect(onUploadFolder).toHaveBeenCalledWith(publication);
+    expect(find(tree, "Publish new version")).toBeDefined();
+    expect(html).not.toContain("Upload file to publication");
+    expect(html).not.toContain("Upload folder to publication");
+    expect(html).not.toContain("Owned pin CID");
+    expect(onUploadFile).not.toHaveBeenCalled();
+    expect(onUploadFolder).not.toHaveBeenCalled();
   });
   it("routes external and internal card events without bubbling into document upload handlers", () => {
     type EventProps = {
@@ -321,7 +317,7 @@ describe("publication wall identity and management", () => {
     );
     expect(html).toContain("Copy follow link");
     expect(html).toContain("Copy fixed v3 link");
-    expect(html).toContain("Copy current CID");
+    expect(html).toContain("Copy selected CID");
     expect(html).toContain("5 versions");
     const deleted = renderToStaticMarkup(
       <DeletedDialog open onClose={noop} onChanged={async () => {}} />,

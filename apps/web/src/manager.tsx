@@ -40,6 +40,7 @@ import {
   tokenStatus,
 } from "./authorizations.js";
 import { NodeDescriptionEditor } from "./node-description.js";
+import { DetailMenu, discardDetailsDraft } from "./detail-actions.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
 import { LoadingIndicator, LoadingReveal } from "./loading.js";
@@ -137,6 +138,8 @@ export function AccountManager({
   tokenIncludeInactive.current = includeInactiveTokens;
   const [selected, setSelected] = useState<Pin | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [descriptionBusy, setDescriptionBusy] = useState(false);
+  const [descriptionDirty, setDescriptionDirty] = useState(false);
   const [renaming, setRenaming] = useState<{
     cid: string;
     name: string;
@@ -1061,9 +1064,12 @@ export function AccountManager({
       <Dialog
         open={!!selected}
         title="Pin details"
-        busy={busy}
+        className="reading-dialog"
+        returnFocusKey={selected ? `pin:${selected.cid}` : undefined}
+        busy={busy || descriptionBusy}
         dismissOnOutsideClick
         onClose={() => {
+          if (!discardDetailsDraft(descriptionDirty || !!renaming)) return;
           setSelected(null);
           setDetailsLoading(false);
           setRenaming(null);
@@ -1071,96 +1077,126 @@ export function AccountManager({
       >
         {selected ? (
           <div className="pin-detail" aria-busy={busy || detailsLoading}>
+            {error ? <p role="alert">{error}</p> : null}
             <h3>{selected.name}</h3>
-            <NodeDescriptionEditor
-              key={selected.cid}
-              rootCid={selected.cid}
-              onChanged={lists.refresh}
-            />
-            <button
-              className="detail-cid"
-              title="Copy full CID"
-              aria-label={`Copy CID ${selected.cid}`}
-              disabled={busy || detailsLoading}
-              onClick={() => {
-                void copy(selected.cid);
-              }}
-            >
-              <code className="cid">{selected.cid}</code>
-            </button>
             <p className="muted">
-              {formatSize(selected.size)} · {selected.blocks} blocks ·{" "}
-              {new Date(selected.createdAt).toLocaleString()}
+              Fixed content · {formatSize(selected.size)} · Private Pin ·{" "}
+              <code>
+                {selected.cid.slice(0, 12)}…{selected.cid.slice(-6)}
+              </code>
             </p>
-            <div className="actions">
-              <button
-                disabled={busy || detailsLoading}
-                onClick={() => {
-                  setConverting(false);
-                  setLinkTarget("");
-                  setPublishingPin(selected);
-                  setSelected(null);
-                }}
-              >
-                Add to a publication
-              </button>
-              <button
-                disabled={busy || detailsLoading}
-                onClick={() => {
-                  setConverting(true);
-                  setLinkTarget("");
-                  setPublishingPin(selected);
-                  setSelected(null);
-                }}
-              >
-                Convert to publication
-              </button>
-              <button
-                disabled={busy || detailsLoading}
-                onClick={() => pickFor(selected, false)}
-              >
-                Convert &amp; upload file
-              </button>
-              <button
-                disabled={busy || detailsLoading}
-                onClick={() => pickFor(selected, true)}
-              >
-                Convert &amp; upload folder
-              </button>
-              <button
-                disabled={busy || detailsLoading}
-                onClick={() =>
-                  setRenaming({ cid: selected.cid, name: selected.name })
-                }
-              >
-                Rename
-              </button>
-              <button
-                disabled={busy || detailsLoading}
-                onClick={() => {
-                  void copy(`${location.origin}/share/${selected.cid}`);
-                }}
-              >
-                Copy link
-              </button>
-              <a href={`/share/${selected.cid}`}>
-                Open share <Icon name="externalLink" size={16} />
-              </a>
-              <a
-                href={`/api/public/${selected.cid}/download?name=${encodeURIComponent(selected.name)}`}
-              >
-                Download file / ZIP <Icon name="download" size={16} />
-              </a>
-              <a href={`/api/public/${selected.cid}/car`}>
-                Download complete CAR <Icon name="download" size={16} />
-              </a>
-              <button
-                className="danger"
-                disabled={busy || detailsLoading}
-                onClick={() => unpin(selected)}
-              >
-                Unpin
-              </button>
+            <div
+              className="actions detail-toolbar"
+              aria-label="Pin actions"
+              inert={busy || descriptionBusy || descriptionDirty || !!renaming}
+            >
+              <DetailMenu label="Share">
+                <button
+                  disabled={busy || detailsLoading}
+                  onClick={() => {
+                    void copy(`${location.origin}/share/${selected.cid}`);
+                  }}
+                >
+                  Copy fixed content link
+                </button>
+                <button
+                  disabled={busy || detailsLoading}
+                  onClick={() => {
+                    void copy(selected.cid);
+                  }}
+                >
+                  Copy CID
+                </button>
+                <a href={`/share/${selected.cid}`}>
+                  Open share <Icon name="externalLink" size={16} />
+                </a>
+                <p className="muted">
+                  Fixed content link. Private name and description are not
+                  shared.
+                </p>
+              </DetailMenu>
+              <DetailMenu label="Download">
+                <a
+                  href={`/api/public/${selected.cid}/download?name=${encodeURIComponent(selected.name)}`}
+                >
+                  Download file / ZIP <Icon name="download" size={16} />
+                </a>
+                <a href={`/api/public/${selected.cid}/car`}>
+                  Download complete CAR <Icon name="download" size={16} />
+                </a>
+              </DetailMenu>
+              <DetailMenu label="More">
+                <button
+                  disabled={busy || detailsLoading}
+                  onClick={() => {
+                    void perform(async () => {
+                      const pin = await requestJson<Pin>(
+                        `/api/pins/${selected.cid}`,
+                      );
+                      setSelected(pin);
+                    });
+                  }}
+                >
+                  Refresh pin details
+                </button>
+                <button
+                  disabled={busy || detailsLoading}
+                  onClick={() => {
+                    setConverting(false);
+                    setLinkTarget("");
+                    setPublishingPin(selected);
+                    setSelected(null);
+                  }}
+                >
+                  Add to a publication
+                </button>
+                <button
+                  disabled={busy || detailsLoading}
+                  onClick={() => {
+                    setConverting(true);
+                    setLinkTarget("");
+                    setPublishingPin(selected);
+                    setSelected(null);
+                  }}
+                >
+                  Convert to publication
+                </button>
+                <details>
+                  <summary>Convert &amp; upload</summary>
+                  <button
+                    disabled={busy || detailsLoading}
+                    onClick={() => pickFor(selected, false)}
+                  >
+                    Choose file for conversion
+                  </button>
+                  <button
+                    disabled={busy || detailsLoading}
+                    onClick={() => pickFor(selected, true)}
+                  >
+                    Choose folder for conversion
+                  </button>
+                </details>
+                <button
+                  disabled={busy || detailsLoading}
+                  onClick={() =>
+                    setRenaming({ cid: selected.cid, name: selected.name })
+                  }
+                >
+                  Rename
+                </button>
+                <button
+                  className="danger"
+                  disabled={busy || detailsLoading}
+                  onClick={() => unpin(selected)}
+                >
+                  Move to recently deleted
+                </button>
+                <p className="muted policy">
+                  Restore within 30 days. Publication references remain
+                  independent; public CID bytes and external copies cannot be
+                  recalled.
+                </p>
+              </DetailMenu>
             </div>
             {renaming ? (
               <form onSubmit={rename} aria-label={`Rename ${selected.name}`}>
@@ -1190,18 +1226,38 @@ export function AccountManager({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => setRenaming(null)}
+                    onClick={() => {
+                      setRenaming(null);
+                      requestAnimationFrame(() =>
+                        document
+                          .querySelector<HTMLElement>(
+                            "dialog[open] .detail-toolbar > .detail-menu:last-child > summary",
+                          )
+                          ?.focus(),
+                      );
+                    }}
                   >
                     Cancel
                   </button>
                 </div>
               </form>
             ) : null}
-            <p className="muted policy">
-              Unpinning moves this pin to recently deleted for 30 days. Restore
-              before expiry. Publication references remain independent; public
-              CID bytes and external copies cannot be recalled.
-            </p>
+            <NodeDescriptionEditor
+              key={selected.cid}
+              rootCid={selected.cid}
+              name={selected.name}
+              readingFirst
+              onChanged={lists.refresh}
+              onBusyChange={setDescriptionBusy}
+              onDirtyChange={setDescriptionDirty}
+              facts={
+                <p className="muted">
+                  {formatSize(selected.size)} · {selected.blocks} blocks
+                  <br />
+                  Added {new Date(selected.createdAt).toLocaleString()}
+                </p>
+              }
+            />
           </div>
         ) : null}
       </Dialog>
@@ -1683,6 +1739,9 @@ export function PinCard({
         type="button"
         className="pin-open"
         aria-label={`View details for ${publication ? "publication " : ""}${pin.name}`}
+        data-detail-key={
+          publication ? `publication:${publication.id}` : `pin:${pin.cid}`
+        }
         disabled={busy}
         onClick={onOpen}
       />
