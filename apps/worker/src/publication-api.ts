@@ -13,6 +13,7 @@ import { listDeleted, restorePin } from "./recently-deleted.js";
 import { boundedBody } from "./content.js";
 import { publishedDescription } from "./descriptions.js";
 import { getCar } from "./storage.js";
+import { downloadContent } from "./download.js";
 import { getPreview, processPreview } from "./previews.js";
 import {
   itemFilterSchema,
@@ -146,6 +147,19 @@ publicationApi.get(
       c.req.param("id"),
       fixed ? Number(fixed) : undefined,
     );
+    const format = c.req.query("format");
+    if (format !== undefined && format !== "car" && format !== "original")
+      throw new HTTPException(400, { message: "Unsupported download format" });
+    if (format === "original") {
+      const response = await downloadContent(
+        c.env,
+        revision.cid,
+        c.req.raw,
+        c.req.query("name"),
+      );
+      response.headers.set("Cache-Control", "public, no-cache");
+      return response;
+    }
     const car = await getCar(c.env, revision.cid);
     if (!car)
       throw new HTTPException(503, { message: "Revision content unavailable" });

@@ -15,6 +15,7 @@ import { api } from "./api.js";
 import { gateway } from "./gateway.js";
 import { key, parseCid } from "./content.js";
 import { getCar } from "./storage.js";
+import { downloadContent } from "./download.js";
 import { runRetention } from "./retention.js";
 import { runPreviews } from "./previews.js";
 import { oauth } from "./oauth.js";
@@ -36,6 +37,9 @@ app.onError((error, context) => {
   return context.json({ error: "Internal server error" }, 500);
 });
 app.route("/", gateway);
+app.get("/api/public/:cid/download", (c) =>
+  downloadContent(c.env, c.req.param("cid"), c.req.raw, c.req.query("name")),
+);
 app.get("/api/public/:cid/car", async (c) => {
   const root = parseCid(c.req.param("cid"));
   const car = await getCar(c.env, key(root));

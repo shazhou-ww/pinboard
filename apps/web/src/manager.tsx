@@ -1146,6 +1146,11 @@ export function AccountManager({
               <a href={`/share/${selected.cid}`}>
                 Open share <Icon name="externalLink" size={16} />
               </a>
+              <a
+                href={`/api/public/${selected.cid}/download?name=${encodeURIComponent(selected.name)}`}
+              >
+                Download file / ZIP <Icon name="download" size={16} />
+              </a>
               <a href={`/api/public/${selected.cid}/car`}>
                 Download complete CAR <Icon name="download" size={16} />
               </a>

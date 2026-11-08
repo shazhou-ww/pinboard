@@ -247,13 +247,15 @@ export function SharePage({ cid }: { readonly cid: string }) {
           <h2>Retrieve this content</h2>
           <code className="cid">{cid}</code>
           <p>
-            Download the complete DAG as a CAR archive, or read with a
-            configured Kubo client.
+            Download the original file or a folder as ZIP. You can also export
+            the complete DAG as a CAR archive, or read with a configured Kubo
+            client.
           </p>
           <div className="actions">
-            <a className="primary" href={`/api/public/${cid}/car`}>
-              Download CAR
+            <a className="primary" href={`/api/public/${cid}/download`}>
+              Download file / ZIP
             </a>
+            <a href={`/api/public/${cid}/car`}>Download CAR</a>
             <a href={`/ipfs/${cid}?format=raw`}>Download root block</a>
           </div>
           <pre>ipfs get {cid}</pre>

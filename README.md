@@ -335,8 +335,8 @@ capsule for 1.5 seconds, then restore the CID; repeated copies restart the
 confirmation. Copy failures show an error instead of success. Touch users can
 also copy the full CID in the details dialog. Clicking anywhere else on the card
 (or using its keyboard action) opens a modal with the full CID, timestamp, block
-count, rename, share, CAR download and Unpin actions. Renaming updates both the
-card and modal without changing the CID.
+count, rename, share, original file/ZIP download, CAR export and Unpin actions.
+Renaming updates both the card and modal without changing the CID.
 
 PDF image material appears as a full, aspect-preserving floating paper on a
 neutral backdrop, with a light border/shadow and a small upper-left PDF badge.
@@ -383,6 +383,7 @@ selection and public-content acknowledgement before uploading.
 | `/ipfs/:thumbnailCid`                             | Public GET/HEAD        | Independently cacheable generated WebP image                              |
 | `/routing/v1/providers/:cid`                      | Public GET             | Delegated Routing JSON or NDJSON                                          |
 | `/api/public/:cid/car`                            | Public GET             | Complete DAG as an attachment                                             |
+| `/api/public/:cid/download?name=...`              | Public GET             | Original raw/UnixFS file, or UnixFS directory as ZIP                      |
 | `/share/:cid`                                     | Public                 | Safe share page; no content preview/execution                             |
 | `/api/pins`                                       | Session or Agent token | List or pin an already stored DAG                                         |
 | `/api/pins/upload?kind=file\|car\|block&name=...` | Session or Agent token | Upload; block mode also requires `cid`                                    |

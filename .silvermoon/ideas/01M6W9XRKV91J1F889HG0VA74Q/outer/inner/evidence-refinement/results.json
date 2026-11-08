@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-11-08T03:30:17.870Z",
+  "verifiedAt": "2026-11-08T03:36:16.911Z",
   "build": "production Vite preview",
   "scope": "localhost synthetic API only; no production requests or credentials",
   "checks": [
@@ -447,8 +447,8 @@
       "sha256": "546bedf3a8df9c525226c6d8326f494bc5aacaf7352b9a7eab490881a4313007"
     },
     {
-      "path": "/assets/index-_QD3GMS1.js",
-      "sha256": "783b069feaad0dddf1d7ed7773a2435f826e539d70889b923b3c96af75fe553b"
+      "path": "/assets/index-qf0X8Z_Y.js",
+      "sha256": "2c29df06c3dd3c06038941434197299031a90b356f33d5a474a9bb3b1861da4d"
     }
   ],
   "mutations": [

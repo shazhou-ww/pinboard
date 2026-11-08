@@ -49,12 +49,16 @@ Escape 优先与焦点返回、所有关闭 busy 保护、回收站返回及 Set
 
 - `pnpm --filter @shazhou/pinboard-web exec vitest run test\dialog.test.tsx test\settings.test.tsx test\oauth.test.tsx test\authorizations.test.tsx`：4 文件、31 测试通过。
 - `pnpm check`：格式、45 个 release 校验、20/20
-  Turbo 任务及 CLI 离线安装测试通过；web 17 文件/236 测试，worker
-  259 通过/1 既有跳过，CLI 161 通过/2 既有跳过，contracts 13、encoding 14 通过。
+  Turbo 任务及 CLI 离线安装测试通过；最终整合后的 web 18 文件/237 测试，worker
+  284 通过/1 既有跳过，CLI 161 通过/2 既有跳过，contracts 13、encoding 14 通过。
 - `pnpm --filter @shazhou/pinboard-web exec vite preview --host localhost --port 5196 --strictPort`
   返回 HTTP 200，服务实际 Vite 生产构建。
 - 设置 `SETTINGS_EVIDENCE` 为本目录的 `evidence-refinement` 后运行
   `node apps\web\test\settings-browser.mjs`：21 项真实 Chrome 检查通过，页面错误 0。脚本退出后关闭 Chrome 并删除专用 profile；预览进程也在验证后停止。
+
+同步期间普通 merge 保留 primary `42e131697bb95c6335803be52832ebc57f4f60ab`
+的并发下载功能；未覆写或撤销其改动。整合后重新运行
+`pnpm check`，并用整合后的生产构建重新采集全部新浏览器证据和资产 SHA-256，未以整合前结果代替最终证明。
 
 源码：[分类面板](../../../../../apps/web/src/settings.tsx)、[授权工具栏/表格/状态与检索辅助](../../../../../apps/web/src/authorizations.tsx)、[token 与 General 接线](../../../../../apps/web/src/manager.tsx)、[OAuth 表格](../../../../../apps/web/src/oauth.tsx)、[样式](../../../../../apps/web/src/styles.css)。
 
