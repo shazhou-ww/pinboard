@@ -1568,8 +1568,8 @@ body:has(.canvas-dialog[open]) {
   flex-direction: column;
 }
 .canvas-dialog.settings-dialog {
-  width: min(1000px, calc(100% - 32px));
-  height: min(680px, calc(100dvh - 48px));
+  width: min(1040px, calc(100% - 32px));
+  height: min(720px, calc(100dvh - 48px));
   max-width: none;
   padding: 0;
   overflow: hidden;
@@ -1586,7 +1586,7 @@ body:has(.canvas-dialog[open]) {
 }
 .settings-layout {
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr);
+  grid-template-columns: 196px minmax(0, 1fr);
   flex: 1;
   min-height: 0;
 }
@@ -1604,7 +1604,7 @@ body:has(.canvas-dialog[open]) {
   padding: 12px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 0;
 }
 .settings-nav button[aria-selected="true"] {
   background: var(--subtle);
@@ -1613,10 +1613,231 @@ body:has(.canvas-dialog[open]) {
 }
 .settings-detail {
   min-width: 0;
-  padding: 24px 28px;
-  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   overscroll-behavior: contain;
   overflow-wrap: anywhere;
+}
+.settings-detail > .notice,
+.settings-detail > [role="status"] {
+  flex-shrink: 0;
+  margin: 8px 20px;
+}
+.settings-detail > [role="tabpanel"] {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  padding: 20px;
+}
+.settings-general-panel {
+  overflow: auto;
+}
+.settings-authorization-panel {
+  display: flex;
+  overflow: hidden;
+}
+.authorization {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+.authorization h2,
+.authorization .section-title {
+  margin: 0;
+  flex-shrink: 0;
+}
+.authorization-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.authorization-filter {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.authorization-filter:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.settings-detail .authorization-filter input {
+  flex: 1;
+  width: 0;
+  border: 0;
+  outline: none;
+  padding-inline: 14px;
+  background: transparent;
+}
+.glyph-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.authorization-toolbar > .glyph-button {
+  width: 36px;
+  height: 36px;
+}
+.authorization-filter > .glyph-button {
+  margin: 2px;
+  border-color: transparent;
+  background: transparent;
+}
+.authorization-filter > .filter-active {
+  background: var(--selected);
+  color: var(--accent);
+}
+.authorization-filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  width: 264px;
+  max-width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+.authorization-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.authorization-switch input {
+  appearance: none;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--subtle);
+  flex-shrink: 0;
+}
+.authorization-switch input::before {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.authorization-switch input:checked {
+  background: var(--accent);
+}
+.authorization-switch input:checked::before {
+  transform: translateX(14px);
+  background: var(--on-accent);
+}
+.authorization-filter-menu small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+.authorization-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overscroll-behavior: contain;
+}
+.authorization-table-scroll table {
+  width: 100%;
+  min-width: 610px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 12px;
+}
+.authorization-table-scroll th,
+.authorization-table-scroll td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.authorization-table-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--subtle);
+}
+.authorization-table-scroll th:nth-child(1) {
+  width: 25%;
+}
+.authorization-table-scroll th:nth-child(2) {
+  width: 28%;
+}
+.authorization-table-scroll th:nth-child(3) {
+  width: 22%;
+}
+.authorization-table-scroll th:nth-child(4) {
+  width: 13%;
+}
+.authorization-table-scroll th:nth-child(5) {
+  width: 12%;
+}
+.authorization-table-scroll td strong,
+.authorization-table-scroll td small,
+.authorization-table-scroll td code {
+  display: block;
+}
+.authorization-table-scroll td small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.authorization-table-scroll .authorization-empty {
+  text-align: center;
+  padding: 30px;
+}
+.authorization-badge {
+  padding: 2px 6px;
+  border-radius: 12px;
+  background: var(--subtle);
+  color: var(--muted);
+  font-size: 10px;
+}
+.authorization-badge.active {
+  color: var(--accent);
+  background: var(--selected);
+}
+.authorization-count {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.settings-mcp {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.token-create-dialog {
+  width: min(520px, calc(100% - 32px));
+  max-height: calc(100dvh - 64px);
+}
+.settings-general-panel .background-swatch {
+  height: 144px;
 }
 .settings-detail [hidden] {
   display: none !important;
@@ -1675,8 +1896,11 @@ body:has(.canvas-dialog[open]) {
     white-space: nowrap;
     padding: 10px;
   }
-  .settings-detail {
-    padding: 20px 18px;
+  .settings-detail > [role="tabpanel"] {
+    padding: 14px;
+  }
+  .settings-general-panel .background-swatch {
+    height: 108px;
   }
   .settings-detail .token-list li,
   .settings-detail .form-row {

@@ -155,7 +155,7 @@ describe("MCP consent and grant management interface", () => {
       expect(html).toContain("<strong>future:scope</strong>");
     },
   );
-  it("distinguishes active, expired, pending and revoked grants; exposes only non-revoked revoke actions", () => {
+  it("distinguishes active, expired, pending and revoked grants; exposes only usable revoke actions", () => {
     const grant = {
       id: "1",
       clientId: "client",
@@ -194,11 +194,13 @@ describe("MCP consent and grant management interface", () => {
       "Revoked",
     ])
       expect(html).toContain(status);
-    expect(html.match(/Revoke client authorization/g)).toHaveLength(5);
-    expect(html.match(/class="muted">Expired/g)).toHaveLength(2);
-    expect(html.match(/class="muted">Active/g)).toHaveLength(2);
-    expect(html).toContain('class="token-list"');
-    expect(html.match(/class="authorization-actions"/g)).toHaveLength(6);
+    expect(html.match(/aria-label="Revoke client authorization/g)).toHaveLength(
+      3,
+    );
+    expect(html.match(/authorization-badge">Expired/g)).toHaveLength(2);
+    expect(html.match(/authorization-badge active">Active/g)).toHaveLength(2);
+    expect(html).toContain('<table aria-label="OAuth authorizations">');
+    expect(html.match(/scope="col"/g)).toHaveLength(5);
     expect(html).toContain("Never expires");
     expect(html).toContain("&lt;client&gt;");
     expect(html).not.toContain("access_token");

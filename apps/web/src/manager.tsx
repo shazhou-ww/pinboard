@@ -32,6 +32,13 @@ import {
 } from "./publications.js";
 import { BackgroundSettings } from "./background.js";
 import { SettingsDialog, type SettingsCategory } from "./settings.js";
+import {
+  AuthorizationTable,
+  AuthorizationToolbar,
+  authorizationMatches,
+  fetchTokenViews,
+  tokenStatus,
+} from "./authorizations.js";
 import { NodeDescriptionEditor } from "./node-description.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
@@ -123,7 +130,11 @@ export function AccountManager({
   const [uploadPublication, setUploadPublication] = useState("");
   const [uploadPublicTitle, setUploadPublicTitle] = useState("");
   const [tokens, setTokens] = useState<AgentToken[]>([]);
-  const [tokenView, setTokenView] = useState<"active" | "history">("active");
+  const [includeInactiveTokens, setIncludeInactiveTokens] = useState(false);
+  const [tokenQuery, setTokenQuery] = useState("");
+  const tokenRequest = useRef(0);
+  const tokenIncludeInactive = useRef(false);
+  tokenIncludeInactive.current = includeInactiveTokens;
   const [selected, setSelected] = useState<Pin | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [renaming, setRenaming] = useState<{
@@ -141,9 +152,8 @@ export function AccountManager({
   const folderPicker = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsOpener = useRef<HTMLElement | null>(null);
-  const [settingsCategory, setSettingsCategory] = useState<SettingsCategory>(
-    "Browser preferences",
-  );
+  const [settingsCategory, setSettingsCategory] =
+    useState<SettingsCategory>("General");
   const [tokenFormOpen, setTokenFormOpen] = useState(false);
   const [oauthBusy, setOauthBusy] = useState(false);
   const [tokensLoading, setTokensLoading] = useState(true);
@@ -215,12 +225,28 @@ export function AccountManager({
     }
   }, []);
   const refresh = async () => {
-    const [, list] = await Promise.all([
-      lists.refresh(),
-      requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`),
-    ]);
-    setTokens(list.tokens);
+    await Promise.all([lists.refresh(), loadTokens()]);
+  };
+  const loadTokens = async () => {
+    const revision = ++tokenRequest.current;
+    setTokensLoading(true);
     setTokensError("");
+    try {
+      const records = await fetchTokenViews(
+        (view) =>
+          requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${view}`),
+        tokenIncludeInactive.current,
+      );
+      if (revision === tokenRequest.current) setTokens(records);
+    } catch (failure) {
+      if (revision === tokenRequest.current)
+        setTokensError(
+          failure instanceof Error ? failure.message : String(failure),
+        );
+      throw failure;
+    } finally {
+      if (revision === tokenRequest.current) setTokensLoading(false);
+    }
   };
   const perform = async (operation: () => Promise<void>) => {
     setBusy(true);
@@ -237,28 +263,11 @@ export function AccountManager({
     }
   };
   useEffect(() => {
-    let active = true;
-    setTokensLoading(true);
-    setTokensError("");
-    void requestJson<{ tokens: AgentToken[] }>(`/api/tokens?view=${tokenView}`)
-      .then((list) => {
-        if (active) {
-          setTokens(list.tokens);
-        }
-      })
-      .catch((failure: unknown) => {
-        if (active)
-          setTokensError(
-            failure instanceof Error ? failure.message : String(failure),
-          );
-      })
-      .finally(() => {
-        if (active) setTokensLoading(false);
-      });
+    void loadTokens().catch(() => {});
     return () => {
-      active = false;
+      tokenRequest.current++;
     };
-  }, [tokenView]);
+  }, [includeInactiveTokens]);
 
   const copy = (text: string, onCopied?: () => void) =>
     perform(async () => {
@@ -561,6 +570,7 @@ export function AccountManager({
   };
   const createAgent = (event: FormEvent) => {
     event.preventDefault();
+    if (busy || oauthBusy || newToken || !tokenScopes.length) return;
     void perform(async () => {
       const issued = await requestJson<AgentToken & { token: string }>(
         "/api/tokens",
@@ -630,6 +640,15 @@ export function AccountManager({
       : uploadSelection
         ? 1
         : 0;
+  const visibleTokens = tokens.filter((token) =>
+    authorizationMatches(
+      token.name,
+      token.scopes,
+      tokenStatus(token),
+      tokenQuery,
+      includeInactiveTokens,
+    ),
+  );
   return (
     <div
       className={`manager canvas${dragging ? " drag-active" : ""}`}
@@ -641,7 +660,7 @@ export function AccountManager({
             document.activeElement instanceof HTMLElement
               ? document.activeElement
               : null;
-          setSettingsCategory("Browser preferences");
+          setSettingsCategory("General");
           setSettingsOpen(true);
         },
         busy ||
@@ -1190,6 +1209,7 @@ export function AccountManager({
         open={settingsOpen}
         busy={busy || oauthBusy}
         onClose={() => {
+          if (busy || oauthBusy || tokenFormOpen) return;
           setSettingsOpen(false);
           requestAnimationFrame(() => settingsOpener.current?.focus());
         }}
@@ -1227,170 +1247,202 @@ export function AccountManager({
           ),
           "Access tokens": (
             <>
-              <section>
+              <section className="authorization">
                 <div className="section-title">
                   <h2>Access tokens</h2>
                 </div>
-                <p className="muted">
-                  Account-bound, scoped, revocable. A name is a label, never an
-                  identity.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setTokenFormOpen(!tokenFormOpen)}
-                  aria-expanded={tokenFormOpen}
-                >
-                  {tokenFormOpen ? "Hide token form" : "Create token"}
-                </button>
-                <form onSubmit={createAgent} hidden={!tokenFormOpen}>
-                  <div className="form-row">
-                    <label>
-                      Token label
-                      <input
-                        value={tokenName}
-                        onChange={(e) => setTokenName(e.target.value)}
-                        required
-                        maxLength={200}
-                        placeholder="My assistant"
-                      />
-                    </label>
-                    <label>
-                      Expires in days
-                      <input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={expires}
-                        onChange={(e) => setExpires(e.target.valueAsNumber)}
-                        required
-                      />
-                    </label>
-                  </div>
-                  <fieldset>
-                    <legend>Permissions</legend>
-                    {[
-                      "pins:read",
-                      "pins:write",
-                      "pins:delete",
-                      "publications:read",
-                      "publications:write",
-                      "publications:delete",
-                    ].map((scope) => (
-                      <label className="check" key={scope}>
-                        <input
-                          type="checkbox"
-                          checked={tokenScopes.includes(scope)}
-                          onChange={(e) =>
-                            setTokenScopes((previous) =>
-                              e.target.checked
-                                ? [...previous, scope]
-                                : previous.filter((item) => item !== scope),
-                            )
-                          }
-                        />
-                        {scope}
-                      </label>
-                    ))}
-                  </fieldset>
+                <AuthorizationToolbar
+                  name="access tokens"
+                  query={tokenQuery}
+                  onQuery={setTokenQuery}
+                  includeInactive={includeInactiveTokens}
+                  onIncludeInactive={setIncludeInactiveTokens}
+                  disabled={busy || oauthBusy}
+                  action={
+                    <button
+                      type="button"
+                      className="primary glyph-button"
+                      title={
+                        newToken
+                          ? "Copy new access token"
+                          : "Create access token"
+                      }
+                      aria-label={
+                        newToken
+                          ? "Copy new access token"
+                          : "Create access token"
+                      }
+                      disabled={busy || oauthBusy}
+                      onClick={() => setTokenFormOpen(true)}
+                    >
+                      <Icon name={newToken ? "copy" : "add"} />
+                    </button>
+                  }
+                />
+                {newToken && (
                   <button
-                    disabled={
-                      busy || oauthBusy || !tokenScopes.length || !!newToken
-                    }
-                    className="secondary"
+                    type="button"
+                    className="settings-secret-reminder"
+                    onClick={() => setTokenFormOpen(true)}
                   >
-                    Create access token
-                  </button>
-                </form>
-                {newToken ? (
-                  <div className="token-secret">
-                    <label>
-                      Copy now — shown only once
-                      <input readOnly value={newToken} />
-                    </label>
-                    <div className="actions">
-                      <button
-                        disabled={busy || oauthBusy}
-                        onClick={() => {
-                          void copy(newToken);
-                        }}
-                      >
-                        Copy token
-                      </button>
-                      <button
-                        disabled={busy || oauthBusy}
-                        onClick={() => setNewToken("")}
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                <label>
-                  Token view
-                  <select
-                    value={tokenView}
-                    disabled={busy || oauthBusy}
-                    onChange={(event) => {
-                      setTokens([]);
-                      setTokenView(
-                        event.target.value === "history" ? "history" : "active",
-                      );
-                    }}
-                  >
-                    <option value="active">Active tokens</option>
-                    <option value="history">
-                      History (revoked or expired)
-                    </option>
-                  </select>
-                </label>
-                <p className="muted">
-                  Revocation and expiry take effect immediately. History is kept
-                  for 30 days from whichever happens first, then removed by
-                  scheduled cleanup.
-                </p>
-                {tokensLoading ? (
-                  <p role="status">Loading access tokens...</p>
-                ) : tokensError ? (
-                  <p role="alert">{tokensError}</p>
-                ) : !tokens.length ? (
-                  <p>
-                    No {tokenView === "active" ? "active" : "historical"}{" "}
-                    tokens.
-                  </p>
-                ) : null}
-                {tokensError && (
-                  <button
-                    disabled={busy || oauthBusy}
-                    onClick={() => {
-                      void perform(refresh);
-                    }}
-                  >
-                    Retry access tokens
+                    A new token is still shown only once. Return to copy token
                   </button>
                 )}
-                <ul className="token-list">
-                  {tokens.map((token) => (
-                    <li key={token.id}>
-                      <div>
-                        <strong>{token.name}</strong>
-                        <p>
-                          <code>{token.prefix}…</code> · {token.scopes} ·
-                          expires{" "}
-                          {new Date(token.expiresAt).toLocaleDateString()}
-                        </p>
+                <Dialog
+                  open={settingsOpen && tokenFormOpen}
+                  title="Create access token"
+                  busy={busy || oauthBusy}
+                  dismissOnOutsideClick
+                  glyphClose
+                  className="token-create-dialog"
+                  onClose={() => {
+                    if (!busy && !oauthBusy) setTokenFormOpen(false);
+                  }}
+                >
+                  {error && (
+                    <p role="alert" className="notice">
+                      {error}
+                    </p>
+                  )}
+                  <form onSubmit={createAgent}>
+                    <div className="form-row">
+                      <label>
+                        Token label
+                        <input
+                          value={tokenName}
+                          onChange={(e) => setTokenName(e.target.value)}
+                          required
+                          maxLength={200}
+                          placeholder="My assistant"
+                        />
+                      </label>
+                      <label>
+                        Expires in days
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={expires}
+                          onChange={(e) => setExpires(e.target.valueAsNumber)}
+                          required
+                        />
+                      </label>
+                    </div>
+                    <fieldset>
+                      <legend>Permissions</legend>
+                      {[
+                        "pins:read",
+                        "pins:write",
+                        "pins:delete",
+                        "publications:read",
+                        "publications:write",
+                        "publications:delete",
+                      ].map((scope) => (
+                        <label className="check" key={scope}>
+                          <input
+                            type="checkbox"
+                            checked={tokenScopes.includes(scope)}
+                            onChange={(e) =>
+                              setTokenScopes((previous) =>
+                                e.target.checked
+                                  ? [...previous, scope]
+                                  : previous.filter((item) => item !== scope),
+                              )
+                            }
+                          />
+                          {scope}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <button
+                      disabled={
+                        busy || oauthBusy || !tokenScopes.length || !!newToken
+                      }
+                      className="secondary"
+                    >
+                      Create access token
+                    </button>
+                  </form>
+                  {newToken ? (
+                    <div className="token-secret">
+                      <label>
+                        Copy now — shown only once
+                        <input readOnly value={newToken} />
+                      </label>
+                      <div className="actions">
+                        <button
+                          disabled={busy || oauthBusy}
+                          onClick={() => {
+                            void copy(newToken);
+                          }}
+                        >
+                          Copy token
+                        </button>
+                        <button
+                          disabled={busy || oauthBusy}
+                          onClick={() => setNewToken("")}
+                        >
+                          Dismiss
+                        </button>
                       </div>
-                      {token.revokedAt ? (
-                        <span className="muted">Revoked</span>
-                      ) : token.expiresAt <= new Date().toISOString() ? (
-                        <span className="muted">Expired</span>
-                      ) : (
-                        <div className="authorization-actions">
-                          <span className="muted">Active</span>
-                          {tokenView === "active" && (
+                    </div>
+                  ) : null}
+                </Dialog>
+                <AuthorizationTable
+                  name="access tokens"
+                  firstColumn="Name"
+                  loading={tokensLoading}
+                  error={tokensError}
+                  empty={
+                    !visibleTokens.length
+                      ? tokenQuery.trim()
+                        ? "No matching access tokens."
+                        : includeInactiveTokens
+                          ? "No access tokens."
+                          : "No active access tokens."
+                      : ""
+                  }
+                  retry={
+                    <button
+                      disabled={busy || oauthBusy}
+                      onClick={() => {
+                        void perform(loadTokens);
+                      }}
+                    >
+                      Retry access tokens
+                    </button>
+                  }
+                >
+                  {visibleTokens.map((token) => {
+                    const status = tokenStatus(token);
+                    return (
+                      <tr key={token.id}>
+                        <td>
+                          <strong>{token.name}</strong>
+                          <small>{token.prefix}…</small>
+                        </td>
+                        <td>
+                          <code>{token.scopes}</code>
+                        </td>
+                        <td>{new Date(token.expiresAt).toLocaleString()}</td>
+                        <td>
+                          <span
+                            className={`authorization-badge${status === "Active" ? " active" : ""}`}
+                          >
+                            {status}
+                          </span>
+                        </td>
+                        <td>
+                          {status === "Active" ? (
                             <button
+                              type="button"
+                              className="glyph-button danger"
+                              title={`Revoke ${token.name}`}
+                              aria-label={`Revoke ${token.name}`}
                               disabled={busy || oauthBusy}
                               onClick={() => {
                                 void perform(async () => {
+                                  if (tokenStatus(token) !== "Active") return;
                                   await requestJson(`/api/tokens/${token.id}`, {
                                     method: "DELETE",
                                   });
@@ -1399,23 +1451,30 @@ export function AccountManager({
                                 });
                               }}
                             >
-                              Revoke
+                              <Icon name="revoke" />
                             </button>
+                          ) : (
+                            "—"
                           )}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </AuthorizationTable>
+                <output className="authorization-count">
+                  {tokensLoading || tokensError
+                    ? "Records unavailable"
+                    : `Showing ${visibleTokens.length} / ${tokens.length} records`}
+                </output>
               </section>
             </>
           ),
           "OAuth authorizations": (
             <OAuthGrants disabled={busy} onBusyChange={setOauthBusy} />
           ),
-          "Browser preferences": (
+          General: (
             <section>
-              <h2>Browser preferences</h2>
+              <h2>General</h2>
               <BackgroundSettings
                 disabled={busy || oauthBusy}
                 onError={setError}
@@ -1444,6 +1503,40 @@ export function AccountManager({
                 Saved only in this browser. Not synced to your account or other
                 devices.
               </p>
+              <p className="muted policy">
+                Disabling reminders does not make uploads private. Other nodes,
+                CDN and downloaded copies may remain.
+              </p>
+              <section className="settings-mcp">
+                <h2>Configure MCP</h2>
+                <p>
+                  Add this remote address in an MCP-compatible client, start its
+                  OAuth connection, then confirm permissions in Pinboard.
+                </p>
+                <p>
+                  MCP endpoint{" "}
+                  <code>
+                    {typeof location === "undefined"
+                      ? "/mcp"
+                      : `${location.origin}/mcp`}
+                  </code>
+                </p>
+                <p>
+                  Access tokens can also connect clients that support them.
+                  Token names are labels, not identity; client names are not
+                  proof of trust. Copy new keys when created: they are shown
+                  only once and never appear in authorization tables.
+                </p>
+                <p>
+                  Revocation and expiry take effect immediately; operations
+                  already in flight may finish. Token history is kept for 30
+                  days from revocation or expiry, whichever happens first, then
+                  removed by scheduled cleanup. Enable Show inactive
+                  authorizations on either authorization page to see retained
+                  expired and revoked records. Expired authorizations do not
+                  need to be revoked again.
+                </p>
+              </section>
             </section>
           ),
         }}

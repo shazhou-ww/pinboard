@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Dialog } from "./dialog.js";
 
 export const settingsCategories = [
-  "Browser preferences",
+  "General",
   "Access tokens",
   "OAuth authorizations",
   "Recently deleted",
@@ -57,11 +57,11 @@ export function SettingsDialog({
   return (
     <Dialog
       open={open}
-      title="Settings"
+      title="Pinboard Settings"
       busy={busy}
       onClose={onClose}
       dismissOnOutsideClick
-      showClose={false}
+      glyphClose
       className="settings-dialog"
     >
       <div className="settings-layout">
@@ -126,6 +126,11 @@ export function SettingsDialog({
               id={`${id}-panel-${index}`}
               aria-labelledby={`${id}-tab-${index}`}
               hidden={category !== name}
+              className={
+                name === "Access tokens" || name === "OAuth authorizations"
+                  ? "settings-authorization-panel"
+                  : "settings-general-panel"
+              }
               tabIndex={0}
             >
               {panels[name]}

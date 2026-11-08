@@ -9,6 +9,12 @@ import {
 } from "@shazhou/pinboard-contracts";
 import { apiFetch } from "./api.js";
 import { Icon } from "./icon.js";
+import {
+  AuthorizationTable,
+  AuthorizationToolbar,
+  authorizationMatches,
+  grantStatus,
+} from "./authorizations.js";
 
 type Consent = {
   accountId: string;
@@ -313,56 +319,82 @@ export function GrantList({
   grants,
   busy,
   onRevoke,
+  loading = false,
+  error = "",
+  empty = "",
 }: {
   grants: OAuthGrant[];
   busy: boolean;
   onRevoke: (id: string) => void;
+  loading?: boolean;
+  error?: string;
+  empty?: string;
 }) {
   return (
-    <ul className="token-list">
+    <AuthorizationTable
+      name="OAuth authorizations"
+      firstColumn="Client"
+      loading={loading}
+      error={error}
+      empty={empty}
+    >
       {grants.map((grant) => {
-        const status =
-          grant.revokedAt !== null
-            ? "Revoked"
-            : !grant.tokenIssued
-              ? grant.codeExpiresAt <= Date.now()
-                ? "Expired"
-                : "Awaiting code exchange"
-              : grant.expiresAt !== null && grant.expiresAt <= Date.now()
-                ? "Expired"
-                : "Active";
+        const status = grantStatus(grant);
         return (
-          <li key={grant.id}>
-            <div>
+          <tr key={grant.id}>
+            <td>
               <strong>{grant.clientName}</strong>
-              <p>
-                <code>{grant.clientId}</code> · {grant.scopes}
-              </p>
-              <p>
+              <small>
+                <code>{grant.clientId}</code>
+              </small>
+              <small>
                 Created {new Date(grant.createdAt).toLocaleString()}
-                {grant.expiresAt !== null
-                  ? ` · Expires ${new Date(grant.expiresAt).toLocaleString()}`
-                  : grant.tokenIssued
-                    ? " · Never expires"
-                    : ` · Code expires ${new Date(grant.codeExpiresAt).toLocaleString()}`}
-              </p>
-            </div>
-            <div className="authorization-actions">
-              <span className="muted">{status}</span>
-              {grant.revokedAt === null && (
+              </small>
+            </td>
+            <td>
+              <code>{grant.scopes}</code>
+            </td>
+            <td>
+              {grant.expiresAt !== null
+                ? new Date(grant.expiresAt).toLocaleString()
+                : grant.tokenIssued
+                  ? "Never expires"
+                  : `Code expires ${new Date(grant.codeExpiresAt).toLocaleString()}`}
+            </td>
+            <td>
+              <span
+                className={`authorization-badge${status === "Active" ? " active" : ""}`}
+              >
+                {status}
+              </span>
+            </td>
+            <td>
+              {status === "Active" || status === "Awaiting code exchange" ? (
                 <button
                   type="button"
+                  className="glyph-button danger"
+                  title={`Revoke client authorization: ${grant.clientName}`}
+                  aria-label={`Revoke client authorization: ${grant.clientName}`}
                   disabled={busy}
-                  onClick={() => onRevoke(grant.id)}
+                  onClick={() => {
+                    const current = grantStatus(grant);
+                    if (
+                      current === "Active" ||
+                      current === "Awaiting code exchange"
+                    )
+                      onRevoke(grant.id);
+                  }}
                 >
-                  Revoke client authorization
+                  <Icon name="revoke" />
                 </button>
+              ) : (
+                "—"
               )}
-            </div>
-          </li>
+            </td>
+          </tr>
         );
       })}
-    </ul>
+    </AuthorizationTable>
   );
 }
 
@@ -377,6 +409,8 @@ export function OAuthGrants({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [includeInactive, setIncludeInactive] = useState(false);
   useEffect(() => {
     onBusyChange?.(busy);
     return () => onBusyChange?.(false);
@@ -400,38 +434,65 @@ export function OAuthGrants({
       .catch(() => setError("Unable to revoke authorization. Try again."))
       .finally(() => setBusy(false));
   }
+  const visible = grants.filter((grant) =>
+    authorizationMatches(
+      grant.clientName,
+      grant.scopes,
+      grantStatus(grant),
+      query,
+      includeInactive,
+    ),
+  );
   return (
-    <section>
+    <section className="authorization">
       <h2>OAuth authorizations</h2>
-      <p>
-        Separate from API tokens. Revoke access anytime. Operations already in
-        flight may finish. Client names are labels, not proof of trust.
-      </p>
-      <p>
-        MCP endpoint{" "}
-        <code>
-          {typeof location === "undefined" ? "/mcp" : `${location.origin}/mcp`}
-        </code>
-      </p>
-      {error && <p role="alert">{error}</p>}
-      {loading && <p role="status">Loading OAuth authorizations...</p>}
-      {!loading && !error && !grants.length && <p>No OAuth authorizations.</p>}
-      {!!grants.length && (
-        <GrantList grants={grants} busy={busy || disabled} onRevoke={revoke} />
-      )}
-      <button
-        type="button"
+      <AuthorizationToolbar
+        name="OAuth authorizations"
+        query={query}
+        onQuery={setQuery}
+        includeInactive={includeInactive}
+        onIncludeInactive={setIncludeInactive}
         disabled={busy || disabled}
-        onClick={() => {
-          setBusy(true);
-          setError("");
-          void load()
-            .catch(() => setError("Unable to load MCP authorizations."))
-            .finally(() => setBusy(false));
-        }}
-      >
-        Refresh authorizations
-      </button>
+        action={
+          <button
+            type="button"
+            className="glyph-button"
+            aria-label="Refresh authorizations"
+            title="Refresh authorizations"
+            disabled={busy || disabled}
+            onClick={() => {
+              setBusy(true);
+              setError("");
+              void load()
+                .catch(() => setError("Unable to load MCP authorizations."))
+                .finally(() => setBusy(false));
+            }}
+          >
+            <Icon name="refresh" />
+          </button>
+        }
+      />
+      <GrantList
+        grants={visible}
+        busy={busy || disabled}
+        onRevoke={revoke}
+        loading={loading}
+        error={error}
+        empty={
+          !visible.length
+            ? query.trim()
+              ? "No matching OAuth authorizations."
+              : grants.length
+                ? "No active OAuth authorizations."
+                : "No OAuth authorizations."
+            : ""
+        }
+      />
+      <output className="authorization-count">
+        {loading || error
+          ? "Records unavailable"
+          : `Showing ${visible.length} / ${grants.length} records`}
+      </output>
     </section>
   );
 }
