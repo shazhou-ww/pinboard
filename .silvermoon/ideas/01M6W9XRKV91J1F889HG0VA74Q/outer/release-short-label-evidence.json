@@ -1,0 +1,23 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-11-08T07:46:24Z",
+  "databaseId": 42460144406,
+  "headBranch": "release-261108-6",
+  "headSha": "a4fe7bf7b86d20f365d1967c01089583a98b5e8a",
+  "jobs": [
+    {
+      "databaseId": 128667478617,
+      "name": "Deploy production Worker",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-08T07:46:26Z",
+      "completedAt": "2026-11-08T07:49:29Z",
+      "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42460144406/job/128667478617"
+    }
+  ],
+  "status": "completed",
+  "updatedAt": "2026-11-08T07:49:30Z",
+  "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42460144406",
+  "tagObject": "05f9fa8dc97e2f5b558c14c31916e10239edf108",
+  "workerVersionLog": "Deploy production Worker\tDeploy Worker, assets and secrets\t2026-11-08T07:49:27.1560138Z Current Version ID: e1e601ac-6ccf-47a6-8eba-cfc5d1046d91"
+}

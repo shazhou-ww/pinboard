@@ -62,10 +62,44 @@ version。CI 若短暂失败，仅在检查失败原因后重跑失败任务，�
 
 ## 当前短标签发布结果
 
-本轮部署契约先同步到 primary，随后进行最终构建浏览器检查、成功 CI、annotated
-release
-tag 及线上只读验证；当前尚未发布。发布完成后在此记录本轮 tag、目标 commit、CI/release
-workflow、Worker version 及线上精确指纹。
+2026-11-08 本轮短标签部署及线上只读验证已完成，等待协调 Agent 验收准确 Outer
+revision：
+
+- 部署契约先同步到 primary `a4fe7bf7b86d20f365d1967c01089583a98b5e8a`
+  并重新观测；其 web 源码 tree 为
+  `741c2ecdc032fc8b56fe9563d596f045b2958e62`，无并发源码变化，未改动已验收 Inner。
+- `pnpm check` 成功，包括 CLI tarball 离线安装验证。最终生产构建 preview HTTP
+  200；`2026-11-08T07:41:55.707Z`
+  [真实 Chrome 结果](./short-label-browser-evidence.json)记录 21 项检查通过、页面错误零及当前 JS/CSS 指纹，覆盖桌面、390/320px、短标签单行 Range 边界和既有操作。仅 localhost 合成账户；Chrome 与 preview 验证后关闭。
+- [目标 CI](https://github.com/shazhou-ww/pinboard/actions/runs/42459786862)四个 Windows/Ubuntu、Node.js
+  22.13.0/24.11.1 组合全部成功，见 [CI 证据](./ci-short-label-evidence.json)。
+- 刷新远端 tags/runs，确认无进行中的生产发布，采用当天未占用的下一个 annotated
+  `release-261108-6`，tag object
+  `05f9fa8dc97e2f5b558c14c31916e10239edf108`；tagged commit
+  `a4fe7bf7b86d20f365d1967c01089583a98b5e8a` 在普通推送 tag 前已证明位于
+  `origin/main` 且目标 CI 成功。
+- [实际生产 release workflow](https://github.com/shazhou-ww/pinboard/actions/runs/42460144406)成功；日志记录 Worker
+  version `e1e601ac-6ccf-47a6-8eba-cfc5d1046d91`，见
+  [发布证据](./release-short-label-evidence.json)。
+- `2026-11-08T07:49:54.978Z`
+  [线上只读结果](./production-short-label-evidence.json)：[主页](https://pinboard.shazhou.work)
+  HTTP 200，正在引用 `/assets/index-BP2DwIGo.js` 和
+  `/assets/index-Cn2h5Svz.css`，均 HTTP
+  200；SHA-256 精确匹配上文已验收短标签构建，无构建来源差异。匿名
+  `/api/pins`、`/api/tokens`、`/api/oauth/grants` 均 HTTP 401。
+- 未提供合法生产测试会话；没有生产登录后 UI、个人 Google 登录或账户数据变更验证，不搜索凭据、不伪造认证、不迁移 D1。用户通过正常登录查看 Settings。
+
+本轮只读复核命令：
+
+```powershell
+$env:RELEASE_TAG = "release-261108-6"
+$env:RELEASE_COMMIT = "a4fe7bf7b86d20f365d1967c01089583a98b5e8a"
+$env:RELEASE_WORKFLOW = "https://github.com/shazhou-ww/pinboard/actions/runs/42460144406"
+$env:IMPLEMENTATION_REVISION = "b0d96a5642a0f45ea9875ff190e0aa6b5ef94a86"
+$env:BUILD_EVIDENCE = "short-label-browser-evidence.json"
+$env:PRODUCTION_EVIDENCE = "production-short-label-evidence.json"
+node .silvermoon\ideas\01M6W9XRKV91J1F889HG0VA74Q\outer\verify-production.mjs
+```
 
 ## 历史表格版发布结果（不证明短标签）
 

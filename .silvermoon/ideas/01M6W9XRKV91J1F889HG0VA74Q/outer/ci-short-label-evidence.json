@@ -1,0 +1,45 @@
+{
+  "conclusion": "success",
+  "databaseId": 42459786862,
+  "headSha": "a4fe7bf7b86d20f365d1967c01089583a98b5e8a",
+  "jobs": [
+    {
+      "databaseId": 128666459058,
+      "name": "ubuntu-latest / Node.js 24.11.1",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-08T07:41:23Z",
+      "completedAt": "2026-11-08T07:44:22Z",
+      "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42459786862/job/128666459058"
+    },
+    {
+      "databaseId": 128666459210,
+      "name": "windows-latest / Node.js 22.13.0",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-08T07:41:27Z",
+      "completedAt": "2026-11-08T07:45:20Z",
+      "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42459786862/job/128666459210"
+    },
+    {
+      "databaseId": 128666459272,
+      "name": "windows-latest / Node.js 24.11.1",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-08T07:41:23Z",
+      "completedAt": "2026-11-08T07:45:37Z",
+      "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42459786862/job/128666459272"
+    },
+    {
+      "databaseId": 128666459338,
+      "name": "ubuntu-latest / Node.js 22.13.0",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-08T07:41:23Z",
+      "completedAt": "2026-11-08T07:44:33Z",
+      "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42459786862/job/128666459338"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/shazhou-ww/pinboard/actions/runs/42459786862"
+}

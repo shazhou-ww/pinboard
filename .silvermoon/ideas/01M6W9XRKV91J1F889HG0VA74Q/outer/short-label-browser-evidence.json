@@ -1,0 +1,476 @@
+{
+  "verifiedAt": "2026-11-08T07:41:55.707Z",
+  "build": "production Vite preview",
+  "scope": "localhost synthetic API only; no production requests or credentials",
+  "checks": [
+    {
+      "name": "General 配置归属、144px 色块、配色与本浏览器提醒",
+      "detail": "通过"
+    },
+    {
+      "name": "桌面键盘分类",
+      "detail": "通过"
+    },
+    {
+      "name": "1280px token 表格独立滚动与固定表头",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 337,
+            "y": 290.78125,
+            "width": 802,
+            "height": 468.625,
+            "top": 290.78125,
+            "right": 1139,
+            "bottom": 759.40625,
+            "left": 337
+          },
+          "header": {
+            "x": 338,
+            "y": 291.78125,
+            "width": 200,
+            "height": 40.1875,
+            "top": 291.78125,
+            "right": 538,
+            "bottom": 331.96875,
+            "left": 338
+          },
+          "toolbar": {
+            "x": 337,
+            "y": 231.1875,
+            "width": 802,
+            "height": 47.59375,
+            "top": 231.1875,
+            "right": 1139,
+            "bottom": 278.78125,
+            "left": 337
+          },
+          "pageWidth": 1280,
+          "viewport": 1280,
+          "scrollHeight": 1934,
+          "clientHeight": 467,
+          "scrollWidth": 800,
+          "clientWidth": 800
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 291.78125,
+          "toolbarTop": 231.1875
+        }
+      }
+    },
+    {
+      "name": "token 搜索与筛选组合、无效行无撤销、密钥不参与搜索",
+      "detail": "通过"
+    },
+    {
+      "name": "token 请求竞争不回写陈旧历史",
+      "detail": "通过"
+    },
+    {
+      "name": "active/history 任一请求失败不伪装空列表，重试恢复",
+      "detail": "通过"
+    },
+    {
+      "name": "独立创建弹层、6 scopes/有效期、草稿跨分类、失败/忙碌保护与一次性密钥不覆盖",
+      "detail": "通过"
+    },
+    {
+      "name": "两页筛选状态独立保留",
+      "detail": "通过"
+    },
+    {
+      "name": "OAuth 有效/待兑换/无效状态、逐行撤销、忙碌关闭与刷新失败",
+      "detail": "通过"
+    },
+    {
+      "name": "1280px Access tokens 表头与工具栏固定/内部横向滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 337,
+            "y": 290.78125,
+            "width": 802,
+            "height": 468.625,
+            "top": 290.78125,
+            "right": 1139,
+            "bottom": 759.40625,
+            "left": 337
+          },
+          "header": {
+            "x": 338,
+            "y": 291.78125,
+            "width": 200,
+            "height": 40.1875,
+            "top": 291.78125,
+            "right": 538,
+            "bottom": 331.96875,
+            "left": 338
+          },
+          "toolbar": {
+            "x": 337,
+            "y": 231.1875,
+            "width": 802,
+            "height": 47.59375,
+            "top": 231.1875,
+            "right": 1139,
+            "bottom": 278.78125,
+            "left": 337
+          },
+          "pageWidth": 1280,
+          "viewport": 1280,
+          "scrollHeight": 1934,
+          "clientHeight": 467,
+          "scrollWidth": 800,
+          "clientWidth": 800
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 291.78125,
+          "toolbarTop": 231.1875
+        }
+      }
+    },
+    {
+      "name": "1280px OAuth authorizations 表头与工具栏固定/内部横向滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 337,
+            "y": 290.78125,
+            "width": 802,
+            "height": 468.625,
+            "top": 290.78125,
+            "right": 1139,
+            "bottom": 759.40625,
+            "left": 337
+          },
+          "header": {
+            "x": 338,
+            "y": 291.78125,
+            "width": 200,
+            "height": 40.1875,
+            "top": 291.78125,
+            "right": 538,
+            "bottom": 331.96875,
+            "left": 338
+          },
+          "toolbar": {
+            "x": 337,
+            "y": 231.1875,
+            "width": 802,
+            "height": 47.59375,
+            "top": 231.1875,
+            "right": 1139,
+            "bottom": 278.78125,
+            "left": 337
+          },
+          "pageWidth": 1280,
+          "viewport": 1280,
+          "scrollHeight": 2970,
+          "clientHeight": 467,
+          "scrollWidth": 800,
+          "clientWidth": 800
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 291.78125,
+          "toolbarTop": 231.1875
+        }
+      }
+    },
+    {
+      "name": "390px Access tokens 表头与工具栏固定/内部横向滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 27,
+            "y": 275.375,
+            "width": 336,
+            "height": 556.03125,
+            "top": 275.375,
+            "right": 363,
+            "bottom": 831.40625,
+            "left": 27
+          },
+          "header": {
+            "x": 28,
+            "y": 276.375,
+            "width": 152.5,
+            "height": 40.1875,
+            "top": 276.375,
+            "right": 180.5,
+            "bottom": 316.5625,
+            "left": 28
+          },
+          "toolbar": {
+            "x": 27,
+            "y": 215.78125,
+            "width": 336,
+            "height": 47.59375,
+            "top": 215.78125,
+            "right": 363,
+            "bottom": 263.375,
+            "left": 27
+          },
+          "pageWidth": 390,
+          "viewport": 390,
+          "scrollHeight": 2548,
+          "clientHeight": 554,
+          "scrollWidth": 610,
+          "clientWidth": 334
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 276.375,
+          "toolbarTop": 215.78125
+        }
+      }
+    },
+    {
+      "name": "390px OAuth authorizations 表头与工具栏固定/内部横向滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 27,
+            "y": 275.375,
+            "width": 336,
+            "height": 556.03125,
+            "top": 275.375,
+            "right": 363,
+            "bottom": 831.40625,
+            "left": 27
+          },
+          "header": {
+            "x": 28,
+            "y": 276.375,
+            "width": 152.5,
+            "height": 40.1875,
+            "top": 276.375,
+            "right": 180.5,
+            "bottom": 316.5625,
+            "left": 28
+          },
+          "toolbar": {
+            "x": 27,
+            "y": 215.78125,
+            "width": 336,
+            "height": 47.59375,
+            "top": 215.78125,
+            "right": 363,
+            "bottom": 263.375,
+            "left": 27
+          },
+          "pageWidth": 390,
+          "viewport": 390,
+          "scrollHeight": 3584,
+          "clientHeight": 554,
+          "scrollWidth": 610,
+          "clientWidth": 334
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 276.375,
+          "toolbarTop": 215.78125
+        }
+      }
+    },
+    {
+      "name": "320px Access tokens 表头与工具栏固定/内部横向滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 27,
+            "y": 275.375,
+            "width": 266,
+            "height": 556.03125,
+            "top": 275.375,
+            "right": 293,
+            "bottom": 831.40625,
+            "left": 27
+          },
+          "header": {
+            "x": 28,
+            "y": 276.375,
+            "width": 152.5,
+            "height": 40.1875,
+            "top": 276.375,
+            "right": 180.5,
+            "bottom": 316.5625,
+            "left": 28
+          },
+          "toolbar": {
+            "x": 27,
+            "y": 215.78125,
+            "width": 266,
+            "height": 47.59375,
+            "top": 215.78125,
+            "right": 293,
+            "bottom": 263.375,
+            "left": 27
+          },
+          "pageWidth": 320,
+          "viewport": 320,
+          "scrollHeight": 2548,
+          "clientHeight": 554,
+          "scrollWidth": 610,
+          "clientWidth": 264
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 276.375,
+          "toolbarTop": 215.78125
+        }
+      }
+    },
+    {
+      "name": "320px OAuth authorizations 表头与工具栏固定/内部横向滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 27,
+            "y": 275.375,
+            "width": 266,
+            "height": 556.03125,
+            "top": 275.375,
+            "right": 293,
+            "bottom": 831.40625,
+            "left": 27
+          },
+          "header": {
+            "x": 28,
+            "y": 276.375,
+            "width": 152.5,
+            "height": 40.1875,
+            "top": 276.375,
+            "right": 180.5,
+            "bottom": 316.5625,
+            "left": 28
+          },
+          "toolbar": {
+            "x": 27,
+            "y": 215.78125,
+            "width": 266,
+            "height": 47.59375,
+            "top": 215.78125,
+            "right": 293,
+            "bottom": 263.375,
+            "left": 27
+          },
+          "pageWidth": 320,
+          "viewport": 320,
+          "scrollHeight": 3584,
+          "clientHeight": 554,
+          "scrollWidth": 610,
+          "clientWidth": 264
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 276.375,
+          "toolbarTop": 215.78125
+        }
+      }
+    },
+    {
+      "name": "1280/390/320px popup 适配、外侧收起与 Escape 恢复焦点",
+      "detail": "通过"
+    },
+    {
+      "name": "1280x480 低窗口仍可独立滚动",
+      "detail": {
+        "before": {
+          "table": {
+            "x": 337,
+            "y": 224.78125,
+            "width": 802,
+            "height": 180.625,
+            "top": 224.78125,
+            "right": 1139,
+            "bottom": 405.40625,
+            "left": 337
+          },
+          "header": {
+            "x": 338,
+            "y": 225.78125,
+            "width": 200,
+            "height": 40.1875,
+            "top": 225.78125,
+            "right": 538,
+            "bottom": 265.96875,
+            "left": 338
+          },
+          "toolbar": {
+            "x": 337,
+            "y": 165.1875,
+            "width": 802,
+            "height": 47.59375,
+            "top": 165.1875,
+            "right": 1139,
+            "bottom": 212.78125,
+            "left": 337
+          },
+          "pageWidth": 1280,
+          "viewport": 1280,
+          "scrollHeight": 1934,
+          "clientHeight": 179,
+          "scrollWidth": 800,
+          "clientWidth": 800
+        },
+        "after": {
+          "scrollTop": 250,
+          "headerTop": 225.78125,
+          "toolbarTop": 165.1875
+        }
+      }
+    },
+    {
+      "name": "恢复独立弹层与返回分类、关闭焦点回入口",
+      "detail": "通过"
+    },
+    {
+      "name": "真正空列表、筛选无匹配、加载与错误状态分别可辨",
+      "detail": "通过"
+    },
+    {
+      "name": "双向跨边界拖动不误关闭，关闭图标可用",
+      "detail": "通过"
+    },
+    {
+      "name": "Escape 首次关闭 popup、再次关闭 Settings，外侧关闭保留",
+      "detail": "通过"
+    }
+  ],
+  "errors": [],
+  "assets": [
+    {
+      "path": "/assets/index-Cn2h5Svz.css",
+      "sha256": "e45dc9cff8582dc1075ed8c31a99853355897d6fd43e596a8a290901539b37de"
+    },
+    {
+      "path": "/assets/index-BP2DwIGo.js",
+      "sha256": "afe4b626386bddcf3a472ddb61f7dec040eb69065098813ce3332b9b2eb6273d"
+    }
+  ],
+  "mutations": [
+    {
+      "path": "/api/tokens",
+      "method": "POST"
+    },
+    {
+      "path": "/api/tokens",
+      "method": "POST"
+    },
+    {
+      "path": "/api/tokens/token-0",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/oauth/grants/grant-0",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/pins/deleted-fixture/restore",
+      "method": "POST"
+    }
+  ]
+}
