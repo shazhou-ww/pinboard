@@ -1,94 +1,61 @@
 # Deployment
 
-本轮状态：表格与组合 Filter 的实现已验收，尚未部署。用户本轮只要求按样稿更新，未要求再次生产发布；停留在待发布状态，不创建 release
-tag。下文 `release-261108-3`
-及其证据仅为上一轮列表版的历史记录，不证明当前实现已上线。后续发布须使用当前验收构建重新验证，并明确获得本轮发布授权。
+当前发布范围为已验收 Inner `32df5f993aa37a8c7dbe4878531cab076ba45921`
+的表格、组合 Filter、General/MCP、关闭保护及高色块版本。用户于 2026-11-08 明确指示“部署吧”，授权本轮生产发布；协调 Agent 负责阶段审批，执行 Agent 不自行验收 Outer。
+
+仅使用[部署指南](../../../../docs/deployment.md)的既有 annotated release
+tag 流程，不改变应用源码、认证、触发器、版本、绑定、密钥或 D1
+schema，不写生产账户数据。保留 main 已整合的并发下载功能。先将本契约同步到 primary 并重新观测，再开展外部验证。
 
 ## Steps
 
 ### D-S01: 在预览环境验证设置操作
 
-实施验收后，在隔离预览环境通过真实浏览器核对设置及授权操作，仅使用专用测试数据。
+核对本轮[真实浏览器结果](./inner/evidence-refinement/results.json)及[实施记录](./inner/Implementation.md)，确认 21 项真实 Chrome 检查来自最终整合后的 Vite 生产构建，而非首轮列表版或 HTML 样稿。使用其当前 JS/CSS
+SHA-256 作为生产精确匹配基准。
 
-使用已验收实现对应的构建，核对四个分类、两种授权列表、OAuth 页的 MCP
-endpoint、浏览器偏好、回收站返回路径及外侧关闭；桌面和窄屏均记录证据。
-
-已核对已验收的 Inner `46195d43e4c2a7b14e83a71ee117153dd5975c75`：
-[真实浏览器结果](./inner/evidence/results.json)包含 17 项通过记录，地址
-`http://localhost:5196`
-服务的是生产构建而非 HTML 样稿。发布目标 commit 与实现 commit 的 `apps/web/src`
-tree 均为
-`89d709956d48360e8a11a7d8297135fb8bfef2a3`，此后没有应用代码变更。本地构建的 JS/CSS
-SHA-256 与已验收证据逐字一致。预览进程已关闭；账户响应由 localhost 浏览器路由合成，不连接生产账户。
+检查覆盖四分类、语义授权表格与 sticky 表头、组合搜索/无效筛选、独立创建弹层与跨分类状态、MCP
+endpoint、General 偏好、外侧及 Escape/关闭忙碌保护、回收站恢复/返回和 1280/390/320px 布局。所有账户响应仅在 localhost 合成，预览与专用浏览器进程已关闭；不将本地写操作声称为生产账户验证。
 
 ### D-S02: 经授权后发布并抽验
 
-用户已于本轮明确授权 subagent 实现并部署，要求部署到线上供查看，并委托协调 Agent 负责阶段门限审批，无需再次询问。实施验收后遵循[部署指南](../../../../docs/deployment.md)的 tag 流程发布到现有生产站点，不仅停留在本地或预览环境。
+目标 commit 必须已在 `origin/main` 且其 CI 成功。刷新远端 tags 和 release
+runs，等待任何现有生产发布完成后，选择当天未占用的下一个
+`release-261108-INDEX`，普通推送 annotated tag。记录 tag/object、tagged
+commit、目标 CI 与实际 release workflow URL/结论、日志可见 Worker
+version。CI 若短暂失败，仅在检查失败原因后重跑失败任务，不绕过要求。
 
-等待目标 primary commit 的 CI 成功，使用当天未占用的下一个 annotated release
-tag。记录 tag、主分支 commit、workflow 结果和线上地址；不更改部署触发器、密钥、绑定、账户数据或 D1
-schema。
-
-2026-11-08 已完成授权发布：
-
-- Tagged commit：`88df4ea67a9277710aeb220da183849b97d93e71`，打 tag 前已在
-  `origin/main`。
-- [目标 commit CI](https://github.com/shazhou-ww/pinboard/actions/runs/42436208346)
-  四个 Windows/Ubuntu、Node.js 22.13.0/24.11.1 组合最终全部成功。首次 Windows
-  Node.js
-  22 原生 CLI 权限测试的 PowerShell 子进程超时；仅重跑失败任务，第二次通过，未修改代码、放宽检查或绕过 CI。机器结果见
-  [ci-evidence.json](./ci-evidence.json)。
-- 刷新远端 tags 与 release runs 后，当天只有 `-1`、`-2`，创建并普通推送annotated
-  `release-261108-3`；tag object 为 `217fdd4690fe2eeacfdaf9bfaa4f17600ca9c463`。
-- [生产 release workflow](https://github.com/shazhou-ww/pinboard/actions/runs/42436950404)
-  `Deploy to Cloudflare` / `Deploy production Worker`
-  成功，包含 workspace 校验及实际部署步骤；结果见
-  [release-evidence.json](./release-evidence.json)。
-- Wrangler 输出的实际 Worker version：
-  `5837bccd-0668-487d-a864-1486876ce0e4`，部署完成于 `2026-11-08T02:07:34Z`。
-- 线上地址：[https://pinboard.shazhou.work](https://pinboard.shazhou.work)。
-
-仅通过既有 tag
-workflow 发布，沿用现有配置及生产 secret 值，没有直接部署、迁移 D1、更改 secret 值/绑定、修改触发器或执行生产账户写操作。
+获取线上主页正在引用的当前 JS/CSS，比较其字节 SHA-256 与本轮
+`evidence-refinement/results.json`；验证无 Cookie/Authorization 的
+`GET /api/pins`、`GET /api/tokens`、`GET /api/oauth/grants`
+被拒绝。指纹不一致时调查 commit/build 来源，不能改用旧证据宣称通过。
 
 ## Acceptance criteria
 
 ### D-AC01: 预览环境行为正确
 
-记录预览地址及浏览器证据，证明分类可达、浏览器偏好不影响其他设备，测试授权可撤销，测试回收站可进入及恢复。
-
-已验收构建的 17 项真实 Chrome 检查覆盖四个分类、token 有效与只读历史列表、两种授权的逐行撤销、本地偏好、测试恢复及返回、忙碌关闭保护、双向拖动保护与焦点返回。桌面面板实测 1000×680
-/ 导航 208px，390px 与 320px 均无页面横向溢出。证据：[桌面 OAuth](./inner/evidence/desktop-oauth.png)、
-[桌面 token](./inner/evidence/desktop-tokens.png)、
-[390px OAuth](./inner/evidence/mobile-390-oauth.png)、
-[320px token](./inner/evidence/mobile-320-tokens.png)。这些授权撤销与恢复仅作用于本地合成响应，不声称验证生产账户写操作。
+本轮 21 项真实 Chrome 检查通过且页面错误为零；对应最终整合后的生产构建资产作为匹配基准。桌面/窄屏表格滚动、Filter、General/MCP、关闭及操作状态由本轮[结果](./inner/evidence-refinement/results.json)和[截图索引](./inner/Implementation.md)证明，不使用旧
+`inner/evidence/`。
 
 ### D-AC02: 授权发布后的入口可用
 
-生产 release
-workflow 成功，线上主页与发布构建的静态资源可获取，匿名受保护 API 仍拒绝访问。以发布资源版本及 Settings 相关代码/样式指纹证明新版已上线，并结合对应构建的桌面/窄屏浏览器证据证明 Settings 分类与关闭行为。
+实际生产 release workflow 成功，线上
+[https://pinboard.shazhou.work](https://pinboard.shazhou.work)
+主页及其引用的精确本轮 JS/CSS 均 HTTP
+200，三个匿名受保护 API 返回 401/403。将当前真实 GET、SHA-256、tag/commit、CI/release 结果及局限保存在 Outer 支持证据，不仅记录 tag 推送。
 
-如已有合法生产测试会话，可追加登录后的线上只读抽验；不得为了验收伪造会话或绕过认证。没有生产测试会话时明确记录这一证据限制，提供线上地址让用户通过正常登录查看，不声称完成个人 Google 登录或线上数据变更验证。
+只有已合法提供的生产会话才可追加登录后的只读抽验；不搜索个人凭据、不伪造会话、不绕过认证。未获合法会话时明确限定为成功发布、线上精确资产匹配、对应构建真实本地 UI 证据和匿名 API 拒绝，不声称生产登录后 UI、个人 Google 登录或数据变更验证。用户通过正常 Google 登录查看 Settings。
 
-`2026-11-08T02:07:57Z` 的[生产 HTTP 证据](./production-evidence.json)已证明：
+可复核的只读脚本为 [verify-production.mjs](./verify-production.mjs)，读取本轮
+`inner/evidence-refinement/results.json` 并写入当前
+`production-refinement-evidence.json`。
 
-- 主页 HTTP 200，并实际引用已验收的 JS/CSS，而非仅能访问历史资源。
-- `/assets/index-DQRLJeBs.css` HTTP 200，SHA-256
-  `5534efa049daf82e9fc5b3e2f3ee6f704c7ae6c2be2f6b481f18e1d114534782`。
-- `/assets/index--j016cdQ.js` HTTP 200，SHA-256
-  `e2a37f14f0d27dfe6b5bc3a11d86e1959bdcafd7f8c722b588b3e6978d77cf4d`。
-- 两个线上资源指纹均与已验收构建的浏览器证据完全一致，未出现来源或构建差异。
-- 无 Cookie、无 Authorization 的 `GET /api/pins`、`GET /api/tokens`、
-  `GET /api/oauth/grants` 全部返回 HTTP 401。
+## 历史证据（不用于当前完成判定）
 
-可用[只读验证脚本](./verify-production.mjs)复核相同指纹及匿名拒绝行为：
+上一轮列表版 `release-261108-3`，tagged commit
+`88df4ea67a9277710aeb220da183849b97d93e71`，Worker version
+`5837bccd-0668-487d-a864-1486876ce0e4`：
+[历史 CI](https://github.com/shazhou-ww/pinboard/actions/runs/42436208346)、[历史 release](https://github.com/shazhou-ww/pinboard/actions/runs/42436950404)、[ci-evidence.json](./ci-evidence.json)、[release-evidence.json](./release-evidence.json)、[production-evidence.json](./production-evidence.json)。其 17 项浏览器结果和旧资产不能证明本轮表格/Filter 版本。
 
-```powershell
-$env:RELEASE_TAG = "release-261108-3"
-$env:RELEASE_COMMIT = "88df4ea67a9277710aeb220da183849b97d93e71"
-$env:RELEASE_WORKFLOW = "https://github.com/shazhou-ww/pinboard/actions/runs/42436950404"
-node .silvermoon\ideas\01M6W9XRKV91J1F889HG0VA74Q\outer\verify-production.mjs
-# 生产主页、精确 JS/CSS SHA-256 和三项匿名 API 拒绝验证通过。
-```
-
-本轮没有获提供合法生产测试会话，因此未执行生产登录后 UI 抽验，也未伪造会话、创建令牌、撤销授权或恢复生产对象。证明范围为成功发布、线上正在引用的精确构建、同构建隔离浏览器行为及线上匿名访问拒绝；用户可通过正常 Google 登录在上述线上地址查看 Settings。
+本轮开始时已观测到其他发布者创建 `release-261108-4`，指向
+`27cde05b36186b94741ad61225702e122d8c75ba`，发布说明为原文件与 ZIP 下载。此并发发布保留并等待其结果，不覆盖 tag，也不将其未经核实的结果当作本轮完成证据。
