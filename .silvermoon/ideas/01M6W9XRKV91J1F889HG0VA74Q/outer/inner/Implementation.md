@@ -7,6 +7,18 @@ World，也不发布生产。
 
 ## Steps
 
+导航文字修正：左侧使用 General / Tokens / OAuth /
+Trash 短标签并保持单行；右侧完整标题、分类标识及行为不变。此修正尚未部署，既有生产证据不涵盖新导航文字。
+
+2026-11-08 短标签修正验证：Settings 组件 4 项测试及 `pnpm check`
+通过；真实生产构建 Chrome
+21 项检查通过、页面错误为零，包含四个短标签及文本 Range 单行且不超出按钮边界的断言。1280/390/320px 使用 localhost 合成账户，不声称生产登录后验证。当前构建
+`/assets/index-BP2DwIGo.js` SHA-256 为
+`afe4b626386bddcf3a472ddb61f7dec040eb69065098813ce3332b9b2eb6273d`，
+`/assets/index-Cn2h5Svz.css` SHA-256 为
+`e45dc9cff8582dc1075ed8c31a99853355897d6fd43e596a8a290901539b37de`。这两项指纹只适用于本次短标签构建，不以既有
+`evidence-refinement/` 的旧指纹替代。
+
 ### I-S01: 拆分分类详情
 
 采用 General、Access tokens、OAuth authorizations、Recently

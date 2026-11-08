@@ -1600,6 +1600,7 @@ body:has(.canvas-dialog[open]) {
 }
 .settings-nav button {
   flex-shrink: 0;
+  white-space: nowrap;
   text-align: left;
   padding: 12px;
   background: transparent;

@@ -8,6 +8,12 @@ export const settingsCategories = [
   "Recently deleted",
 ] as const;
 export type SettingsCategory = (typeof settingsCategories)[number];
+export const settingsTabLabels: Record<SettingsCategory, string> = {
+  General: "General",
+  "Access tokens": "Tokens",
+  "OAuth authorizations": "OAuth",
+  "Recently deleted": "Trash",
+};
 
 export function settingsTabTarget(
   key: string,
@@ -96,7 +102,7 @@ export function SettingsDialog({
                 });
               }}
             >
-              {name}
+              {settingsTabLabels[name]}
             </button>
           ))}
         </div>

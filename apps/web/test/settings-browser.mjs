@@ -199,7 +199,16 @@ const settings = page.getByRole("dialog", {
   name: "Pinboard Settings",
   exact: true,
 });
-const tab = (name) => settings.getByRole("tab", { name, exact: true });
+const tab = (name) =>
+  settings.getByRole("tab", {
+    name:
+      {
+        "Access tokens": "Tokens",
+        "OAuth authorizations": "OAuth",
+        "Recently deleted": "Trash",
+      }[name] ?? name,
+    exact: true,
+  });
 const panel = () => settings.locator('[role="tabpanel"]:visible');
 const form = page.getByRole("dialog", {
   name: "Create access token",
@@ -279,6 +288,27 @@ try {
   await page.goto(origin);
   await openSettings();
   assert.equal(await settings.getByRole("tab").count(), 4);
+  assert.deepEqual(await settings.getByRole("tab").allTextContents(), [
+    "General",
+    "Tokens",
+    "OAuth",
+    "Trash",
+  ]);
+  assert(
+    await settings.getByRole("tab").evaluateAll((buttons) =>
+      buttons.every((button) => {
+        const range = document.createRange();
+        range.selectNodeContents(button);
+        const text = range.getBoundingClientRect();
+        const bounds = button.getBoundingClientRect();
+        return (
+          range.getClientRects().length === 1 &&
+          text.left >= bounds.left &&
+          text.right <= bounds.right
+        );
+      }),
+    ),
+  );
   assert.equal(
     await settings.locator("> .section-title h2").innerText(),
     "Pinboard Settings",

@@ -30,6 +30,13 @@ describe("Settings categories", () => {
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
     expect(html.match(/hidden=""/g)).toHaveLength(3);
     expect(html.match(/role="tab"[^>]*tabindex="0"/g)).toHaveLength(1);
+    expect(
+      [...html.matchAll(/role="tab"[^>]*>([^<]+)<\/button>/g)].map(
+        (match) => match[1],
+      ),
+    ).toEqual(["General", "Tokens", "OAuth", "Trash"]);
+    expect(html).toContain("OAuth content");
+    expect(html).toContain("Recovery content");
     expect(html).toContain("fixture-only-secret");
     expect(html).toContain("Return to copy token");
     expect(html).toContain("Example request failure");
