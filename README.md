@@ -221,12 +221,14 @@ the wall; success messages dismiss after five seconds. Errors remain visible for
 recovery, and progress remains until the operation completes.
 
 Pin details open immediately with the listed metadata and refresh in the
-background without inserting a loading row or resizing the panel. Click or tap
-outside the panel, press Escape or use Close to dismiss it, including while its
-details are loading. Closing cancels the read so late responses cannot reopen
-the panel and returns focus to the card. Pending writes prevent dismissal;
-unsaved edits require confirmation before closing. Upload and Settings dialogs
-retain their explicit Close/Cancel behavior.
+background without inserting a loading row or resizing the panel. Publication
+reading details likewise keep action-choice loading and errors in publishing
+tasks, not above the content. Click or tap outside the panel, press Escape or
+use Close to dismiss it, including while its details are loading. Closing
+cancels the read so late responses cannot reopen the panel and returns focus to
+the card. Pending writes prevent dismissal; unsaved edits require confirmation
+before closing. Upload and Settings dialogs retain their explicit Close/Cancel
+behavior.
 
 Drop one file or folder anywhere on the wall to open the same **Make a pin**
 dialog. Review the selection and optionally edit its pin name before confirming.

@@ -39,6 +39,47 @@ const publication: Publication = {
 const noop = () => {};
 afterEach(() => vi.unstubAllGlobals());
 describe("publication wall identity and management", () => {
+  it.each([
+    { choicesLoading: true },
+    { choicesError: "Could not load action choices." },
+  ])(
+    "does not insert action-choice status into reading details: %j",
+    (choices) => {
+      const html = renderToStaticMarkup(
+        <PublicationDialog
+          publication={publication}
+          pin={null}
+          pins={[]}
+          publications={[]}
+          onClose={noop}
+          onChanged={async () => {}}
+          {...choices}
+        />,
+      );
+      expect(html).not.toContain("Loading action choices...");
+      expect(html).not.toContain("Could not load action choices.");
+      expect(html).not.toContain("Retry action choices");
+      expect(html).toContain("Public field notes");
+    },
+  );
+
+  it("keeps action-choice loading and recovery visible for publishing tasks", () => {
+    const html = renderToStaticMarkup(
+      <PublicationDialog
+        publication={null}
+        pin={pin}
+        pins={[]}
+        publications={[]}
+        choicesLoading
+        choicesError="Could not load action choices."
+        onClose={noop}
+        onChanged={async () => {}}
+      />,
+    );
+    expect(html).toContain("Loading action choices...");
+    expect(html).toContain("Could not load action choices.");
+    expect(html).toContain("Retry action choices");
+  });
   it("keeps publication writes behind an explicit task entry", () => {
     const onUploadFile = vi.fn();
     const onUploadFolder = vi.fn();

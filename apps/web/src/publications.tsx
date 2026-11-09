@@ -250,8 +250,10 @@ export function PublicationDialog({
         </p>
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
-      {choicesLoading ? <p role="status">Loading action choices...</p> : null}
-      {choicesError ? (
+      {(task || (pin && !convert)) && choicesLoading ? (
+        <p role="status">Loading action choices...</p>
+      ) : null}
+      {(task || (pin && !convert)) && choicesError ? (
         <div role="alert">
           <p>{choicesError}</p>
           <button type="button" onClick={onRetryChoices}>
