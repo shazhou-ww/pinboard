@@ -1,10 +1,16 @@
 # react-engraved-background
 
 A React background with seamlessly tiled, shallow-engraved SVG icons. No icon
-library, stylesheet, browser storage, or global theme is required. This package
-is developed in the Pinboard workspace. npm releases use independent
-`react-engraved-background@x.y.z` tags and GitHub Actions trusted publishing.
-See the repository's
+library, stylesheet, browser storage, or global theme is required.
+
+![Shallow paper engraving in the Mist blue and lavender palette](https://raw.githubusercontent.com/shazhou-ww/pinboard/main/packages/react-engraved-background/preview.png)
+
+The default `paper` style with `mistPalette`, using a fixed seed and custom SVG
+icons. The preview is captured from the actual React component.
+
+This package is developed in the Pinboard workspace. npm releases use
+independent `react-engraved-background@x.y.z` tags and GitHub Actions trusted
+publishing. See the repository's
 [npm release guide](https://github.com/shazhou-ww/pinboard/blob/main/docs/npm-release.md).
 
 ```tsx

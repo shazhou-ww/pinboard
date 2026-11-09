@@ -112,6 +112,7 @@ test(
         "dist/index.d.ts",
         "LICENSE",
         "README.md",
+        "preview.png",
       ]) {
         assert.ok(
           existsSync(join(installed, path)),

@@ -41,7 +41,7 @@ await mkdir(join(output, "dist"), { recursive: true });
 for (const name of compiled) {
   await copyFile(join(source, "dist", name), join(output, "dist", name));
 }
-for (const name of ["README.md", "LICENSE"]) {
+for (const name of ["README.md", "LICENSE", "preview.png"]) {
   await copyFile(join(source, name), join(output, name));
 }
 await writeFile(
