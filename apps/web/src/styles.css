@@ -2238,6 +2238,8 @@ body:has(.canvas-dialog[open]) {
   color: var(--accent);
 }
 .detail-type-icon .preview-type-cover {
+  place-content: center;
+  gap: 0;
   min-height: 0;
   height: 100%;
   padding: 0;
@@ -2441,12 +2443,6 @@ body:has(.canvas-dialog[open]) {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.detail-advanced {
-  margin-top: 24px;
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-}
-.detail-advanced summary,
 .detail-menu summary {
   cursor: pointer;
   padding: 10px 14px;

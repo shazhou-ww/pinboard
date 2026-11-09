@@ -86,17 +86,16 @@ never the browsed snapshot as a write baseline.
 Public descriptions remain read-only immutable snapshots. Pin descriptions are
 private and shown read-only until explicit editing; cancel restores the
 original, conflicts preserve the draft, and unsaved closing requires
-confirmation. **Advanced information and node query** retains
-root/reachable-child queries without putting a CID form ahead of the main
-content. Desktop content and description/history columns stack on narrow
-screens; copying lives below the title and downloads below the sidebar facts.
-The content preview reserves the same height while loading and after content
-arrives (360px on desktop, 240px on narrow screens). Long text, code and
-directory previews scroll inside that keyboard-focusable region instead of
-resizing the details; images and PDF thumbnails fit within it. Ready previews do
-not add explanatory footer lines. Generation status and failure retry actions
-stay inside this fixed-height area rather than pushing the content below it
-down.
+confirmation. Technical root/reachable-child queries are available through API,
+CLI and MCP, not in the detail panel. Desktop content and description/history
+columns stack on narrow screens; copying lives below the title and downloads
+below the sidebar facts. The content preview reserves the same height while
+loading and after content arrives (360px on desktop, 240px on narrow screens).
+Long text, code and directory previews scroll inside that keyboard-focusable
+region instead of resizing the details; images and PDF thumbnails fit within it.
+Ready previews do not add explanatory footer lines. Generation status and
+failure retry actions stay inside this fixed-height area rather than pushing the
+content below it down.
 
 Settings → **Trash** directly lists pins and publications in the same compact
 table style as Tokens and OAuth, with deletion and expiry times and a restore

@@ -43,27 +43,24 @@ export function NodeDescriptionEditor({
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [advanced, setAdvanced] = useState(false);
-  const [advancedDirty, setAdvancedDirty] = useState(false);
-  const [advancedBusy, setAdvancedBusy] = useState(false);
   const dirty = editing && text !== (data?.description.user.text ?? "");
   useEffect(() => {
-    if (!dirty && !advancedDirty) return;
+    if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty, advancedDirty]);
+  }, [dirty]);
   useEffect(() => {
-    onDirtyChange?.(dirty || advancedDirty);
+    onDirtyChange?.(dirty);
     return () => onDirtyChange?.(false);
-  }, [dirty, advancedDirty, onDirtyChange]);
+  }, [dirty, onDirtyChange]);
   useEffect(() => {
-    onBusyChange?.(busy || advancedBusy);
+    onBusyChange?.(busy);
     return () => onBusyChange?.(false);
-  }, [busy, advancedBusy, onBusyChange]);
+  }, [busy, onBusyChange]);
   const path = publicationId
     ? `/api/public/publications/${publicationId}/versions/${revision}/nodes/${selectedNode}/description`
     : `/api/pins/${rootCid}/nodes/${selectedNode}/description`;
@@ -235,7 +232,7 @@ export function NodeDescriptionEditor({
                   </p>
                   <button
                     type="button"
-                    disabled={busy || dirty || advancedBusy || advancedDirty}
+                    disabled={busy || dirty}
                     onClick={() => setReload((value) => value + 1)}
                   >
                     Retry preview
@@ -262,7 +259,7 @@ export function NodeDescriptionEditor({
                     className={heading ? "detail-description-edit" : undefined}
                     aria-label="Edit description"
                     title="Edit description"
-                    disabled={busy || advancedDirty || advancedBusy}
+                    disabled={busy}
                     onClick={() => setEditing(true)}
                   >
                     {heading ? (
@@ -344,42 +341,6 @@ export function NodeDescriptionEditor({
             {sidebar}
           </aside>
         </div>
-        <details
-          className="detail-advanced"
-          onToggle={(event) => setAdvanced(event.currentTarget.open)}
-        >
-          <summary
-            onClick={(event) => {
-              if (!advanced && (busy || dirty)) {
-                event.preventDefault();
-                return;
-              }
-              if (
-                advanced &&
-                (advancedBusy ||
-                  (advancedDirty &&
-                    !window.confirm("Discard unsaved node changes?")))
-              )
-                event.preventDefault();
-            }}
-          >
-            Advanced information and node query
-          </summary>
-          <code className="cid">{rootCid}</code>
-          {advanced ? (
-            <NodeDescriptionEditor
-              rootCid={rootCid}
-              publicationId={publicationId}
-              revision={revision}
-              onChanged={async () => {
-                await onChanged?.();
-                setReload((value) => value + 1);
-              }}
-              onDirtyChange={setAdvancedDirty}
-              onBusyChange={setAdvancedBusy}
-            />
-          ) : null}
-        </details>
       </>
     );
   return (

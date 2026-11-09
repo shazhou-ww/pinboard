@@ -88,7 +88,7 @@ describe("reading details", () => {
       html.indexOf("reading-sidebar"),
     );
     expect(html).toContain("Private description");
-    expect(html).toContain("Advanced information and node query");
+    expect(html).not.toContain("Advanced information and node query");
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("Read node");
   });
@@ -125,7 +125,7 @@ describe("reading details", () => {
     expect(html).not.toContain("Save description");
   });
 
-  it("preserves reachable node queries in the advanced view", () => {
+  it("preserves the standalone node editor without exposing it in reading details", () => {
     const html = renderToStaticMarkup(<NodeDescriptionEditor rootCid="root" />);
     expect(html).toContain("Node CID (root or reachable child)");
     expect(html).toContain("Read node");

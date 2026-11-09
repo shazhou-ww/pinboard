@@ -182,8 +182,8 @@ try {
   await mkdir(output, { recursive: true });
   await open();
   await check(
-    "普通 Pin 默认只读说明、内容优先、高级查询折叠",
-    `document.querySelector('dialog[open] .reading-content').textContent.includes('Private content excerpt') && !document.querySelector('dialog[open] textarea') && !document.querySelector('dialog[open] .detail-advanced').open`,
+    "普通 Pin 默认只读说明、内容优先、无高级查询区",
+    `document.querySelector('dialog[open] .reading-content').textContent.includes('Private content excerpt') && !document.querySelector('dialog[open] textarea') && !document.querySelector('dialog[open] .detail-advanced')`,
   );
   await screenshot("pin-desktop.png");
   await click("Edit description");
@@ -255,23 +255,10 @@ try {
     "CID 与复制图标为同一个点击区域、类型图标正方形",
     `(() => { const d=document.querySelector('dialog[open]'); const r=d.querySelector('.detail-type-icon').getBoundingClientRect(); return d.querySelector('.detail-cid-copy code').textContent === window.__readingTest.pins[0].cid && Math.abs(r.width-r.height) < 1; })()`,
   );
-  await click("Advanced information and node query", "summary");
-  await wait(
-    `document.querySelector('dialog[open] .node-description-editor input')`,
-  );
-  await setValue(
-    "dialog[open] .node-description-editor input",
-    "baf-unreachable",
-  );
-  await click("Read node");
-  await wait(
-    `document.querySelector('dialog[open]').textContent.includes('not reachable')`,
-  );
   await check(
-    "高级查询保留授权根约束、失败不覆盖主内容",
-    `document.querySelector('dialog[open] .reading-content').textContent.includes('Private content excerpt')`,
+    "类型图标在正方形内纵向居中",
+    `(() => { const box=document.querySelector('dialog[open] .detail-type-icon').getBoundingClientRect(); const icon=document.querySelector('dialog[open] .detail-type-icon svg').getBoundingClientRect(); return Math.abs((box.top+box.bottom)/2-(icon.top+icon.bottom)/2) < 1; })()`,
   );
-  await click("Advanced information and node query", "summary");
   await key("Escape");
   await check(
     "详情 Escape 关闭且焦点返回触发卡片",
@@ -283,6 +270,10 @@ try {
     `document.querySelector('dialog[open] .detail-version-badge').textContent.includes('v3 · Current') && document.querySelector('dialog[open]').textContent.includes('Public snapshot v3') && !document.querySelector('dialog[open] .publication-history')`,
   );
   await screenshot("publication-desktop.png");
+  await check(
+    "Publication 无高级查询区",
+    `!document.querySelector('dialog[open] .detail-advanced') && !document.querySelector('dialog[open]').textContent.includes('Advanced information and node query')`,
+  );
   await versions();
   await check(
     "版本 drawer 限制在详情面板内且无关闭图标",
@@ -457,6 +448,11 @@ try {
       `${kind} 预览不增加解释行、空说明可识别`,
       `document.querySelector('dialog[open]').textContent.includes('No private description') && !document.querySelector('dialog[open] .preview-scope')`,
     );
+    await check(
+      `${kind} 类型图标中心偏差小于 1px`,
+      `(() => { const box=document.querySelector('dialog[open] .detail-type-icon').getBoundingClientRect(); const icon=document.querySelector('dialog[open] .detail-type-icon svg').getBoundingClientRect(); return Math.abs((box.top+box.bottom)/2-(icon.top+icon.bottom)/2) < 1 && Math.abs((box.left+box.right)/2-(icon.left+icon.right)/2) < 1; })()`,
+    );
+    if (kind === "image") await screenshot("image-icon-centered.png");
     await key("Escape");
   }
   await evaluate("window.__readingTest.descriptionFailure = true");
