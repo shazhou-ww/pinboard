@@ -330,9 +330,11 @@ create account pins on their own. Cached copies cannot be recalled after
 collection.
 
 Cards remain preview-first, with a translucent, frosted-glass bottom strip
-showing the name and size by default. Hovering over a card or focusing it with
-the keyboard raises the strip to reveal a single-line CID copy capsule, with a
-copy icon instead of link styling. Long CIDs are visually ellipsized, while the
+showing the name and size by default. The strip covers the card's bottom border
+and redraws that edge, preventing a thin preview-colored seam at fractional card
+heights without shifting its text. Hovering over a card or focusing it with the
+keyboard raises the strip to reveal a single-line CID copy capsule, with a copy
+icon instead of link styling. Long CIDs are visually ellipsized, while the
 tooltip and copied value retain the complete CID. The transition respects
 reduced-motion preferences. Clicking the capsule copies the full CID without
 opening details. Successful copies show "CID copied" and a checkmark inside the
