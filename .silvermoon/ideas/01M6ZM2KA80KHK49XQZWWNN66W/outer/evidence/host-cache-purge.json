@@ -1,0 +1,9 @@
+﻿{
+  "success": true,
+  "host": "pinboard.shazhou.work",
+  "verifiedAt": "2026-11-09T11:41:00.1154751Z",
+  "queryAndCidAliasesCovered": true,
+  "method": "single host purge",
+  "otherHostsPurged": false,
+  "origin": "https://pinboard.shazhou.work"
+}

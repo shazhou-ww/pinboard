@@ -36,8 +36,8 @@ fixture 验证存量兼容；只清理本次创建的项，不修改其他生产
 supporting evidence。
 
 实际发布、迁移、双账号请求、Web／CLI／MCP 与清理结果见
-[生产验收记录](ProductionAcceptance.md)。旧 CDN 精确 URL
-purge 尚因主 Token 权限被拒绝，补齐并验证之前不宣告 complete。
+[生产验收记录](ProductionAcceptance.md)。主 Token 的缓存清理权限补齐后，本服务精确 URL 与单 host
+purge 已成功，11 项清理后 HTTP 检查通过；外部副本不作撤回承诺。
 
 ## Acceptance criteria
 

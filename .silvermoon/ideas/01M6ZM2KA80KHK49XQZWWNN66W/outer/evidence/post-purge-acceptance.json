@@ -1,0 +1,75 @@
+﻿{
+  "checks": [
+    {
+      "expected": 200,
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "expected": 200,
+      "path": "/api/bootstrap",
+      "status": 200
+    },
+    {
+      "expected": 401,
+      "path": "/api/pins",
+      "status": 401
+    },
+    {
+      "expected": 401,
+      "path": "/api/publications",
+      "status": 401
+    },
+    {
+      "path": "/ipfs/bafkreieojckmtzcgc7jxoswj67b6og3utnpslvorlixns3bbt24hq3575q?format=raw",
+      "cdnHit": false,
+      "status": 404,
+      "cacheControl": "private, no-store",
+      "method": "GET"
+    },
+    {
+      "path": "/ipfs/bafkreieojckmtzcgc7jxoswj67b6og3utnpslvorlixns3bbt24hq3575q?format=raw",
+      "cdnHit": false,
+      "status": 404,
+      "cacheControl": "private, no-store",
+      "method": "HEAD"
+    },
+    {
+      "path": "/ipfs/bafybeihlxnjpfn7ge2dnacijmjpo4nobkacjcrfuyil52wafxocq7fztky?format=raw",
+      "cdnHit": false,
+      "status": 404,
+      "cacheControl": "private, no-store",
+      "method": "GET"
+    },
+    {
+      "path": "/ipfs/bafybeihlxnjpfn7ge2dnacijmjpo4nobkacjcrfuyil52wafxocq7fztky?format=raw",
+      "cdnHit": false,
+      "status": 404,
+      "cacheControl": "private, no-store",
+      "method": "HEAD"
+    },
+    {
+      "path": "/ipfs/bafkreic46yyl2mx6cgbn22mt7cqrvazyok2myhuqiyswmdtmywfo5k2moa?format=raw",
+      "cdnHit": false,
+      "status": 404,
+      "cacheControl": "private, no-store",
+      "method": "GET"
+    },
+    {
+      "path": "/ipfs/bafkreic46yyl2mx6cgbn22mt7cqrvazyok2myhuqiyswmdtmywfo5k2moa?format=raw",
+      "cdnHit": false,
+      "status": 404,
+      "cacheControl": "private, no-store",
+      "method": "HEAD"
+    },
+    {
+      "path": "/ipfs/\u003cexisting-public-control\u003e?format=raw",
+      "mutated": false,
+      "status": 200,
+      "cacheControl": "private, no-store"
+    }
+  ],
+  "status": "passed",
+  "verifiedAt": "2026-11-09T11:44:39.8233975Z",
+  "origin": "https://pinboard.shazhou.work"
+}

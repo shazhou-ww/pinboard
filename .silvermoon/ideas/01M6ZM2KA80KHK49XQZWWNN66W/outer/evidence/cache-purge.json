@@ -1,0 +1,11 @@
+﻿{
+  "verifiedAt": "2026-11-09T11:40:28.4536148Z",
+  "otherHostsPurged": false,
+  "origin": "https://pinboard.shazhou.work",
+  "method": "exact URL purge",
+  "urlCount": 1224,
+  "batches": 25,
+  "success": true,
+  "cidCount": 408,
+  "externalCopiesRecalled": false
+}

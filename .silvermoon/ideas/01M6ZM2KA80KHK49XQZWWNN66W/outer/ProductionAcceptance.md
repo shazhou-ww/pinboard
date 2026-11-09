@@ -1,6 +1,6 @@
 # 逐项访问权限生产验证
 
-本文支持 [Deployment.md](Deployment.md)，区分实际发布、功能验证和未完成前提。
+本文支持 [Deployment.md](Deployment.md)，分别记录实际发布、功能验证及缓存清理。
 
 ## 发布及 schema
 
@@ -80,12 +80,29 @@ API 创建，结束后全部通过 DELETE 撤销；记录包括
 [首次补充试验](evidence/additional-first-attempt.json)
 因 exporter 夹具接口应返回 iterable 而失败，修正验收工具后文件／目录／版本断言通过。未因此修改或弱化服务器授权。
 
-## 缓存清理仍未完成
+## 缓存清理与最终复核
 
 cfg 主 `CLOUDFLARE_API_TOKEN` 可操作目标 D1，但精确 URL Cache
 Purge 实际返回 401／Authentication
 error。已再次从 cfg 远端获取主 Token 核对，拒绝依旧；没有擅自扩权或清理整个共享 zone。仅要求
 `shazhou.work` 的 Cache Purge → Purge 权限。
 
-新的响应均为 `private, no-store`，新匿名读取／条件请求及旧 legacy
-URL 已验证拒绝；但这不能证明所有旧 CDN 表示已清空。因此 D-S02、D-AC01、D-AC02 尚不宣告完成，也不记录 submitOuter／acceptOuter。获得必要权限后须仅对 Pinboard 精确 URL 清理并保留结果，外部下载、浏览器缓存和其他节点副本始终不承诺撤回。
+2026-11-09 用户明确确认已补充权限。重新读取 cfg 远端主 Token 后，
+[精确 URL purge](evidence/cache-purge.json)
+全部成功：408 个已存储块／预览 CID，1224 个本服务 raw、默认预览及 providers
+URL，分 25 个有界批次清理。随后 [单 host purge](evidence/host-cache-purge.json)
+也成功，严格限定 `pinboard.shazhou.work`，覆盖原 URL
+query 和 CID 别名，不清理其他 host 或整个共享 zone。
+
+[清理后复核](evidence/post-purge-acceptance.json)
+的 11 项真实 HTTP 检查全部通过：health／bootstrap
+200，匿名 Pin／Publication 列表 401；三个本次私有／删除 fixture 的旧 raw
+URL 在 GET 和 HEAD、`If-None-Match: *` 下均 404，
+`Cache-Control: private, no-store` 且无 CDN
+HIT；一个既有公开控制项仍返回 200，未修改该项。
+
+首次复核工具错误地以 curl `-X HEAD`
+请求，导致等待不存在的响应体；中止该进程并清理其特定临时 header 文件，改用真正
+`-I` 和 30 秒超时后完成。这不是应用读取失败，不将中止工具冒充通过。
+
+公开响应和权限撤销的服务端边界、可控旧 CDN 清理及功能验证现均已有独立证据，D-S02、D-AC01、D-AC02 已完成。外部下载、浏览器缓存和其他节点副本仍不承诺撤回；真实第二账号完整 Publication 范围试验的限制保留如上，不扩大通过范围。
