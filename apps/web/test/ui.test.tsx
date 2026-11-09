@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   Children,
   isValidElement,
+  type ComponentProps,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -28,7 +29,63 @@ function findButton(
   }
   return undefined;
 }
+function findImage(
+  node: ReactNode,
+): ReactElement<ComponentProps<"img">> | undefined {
+  if (!isValidElement<ComponentProps<"img">>(node)) return undefined;
+  if (node.type === "img") return node;
+  for (const child of Children.toArray(node.props.children)) {
+    const image = findImage(child);
+    if (image) return image;
+  }
+  return undefined;
+}
 describe("Pinboard interface", () => {
+  it("prefers the OAuth avatar and reveals initials if it fails to load", () => {
+    let header: ReactNode = null;
+    function HeaderProbe() {
+      header = HomeHeader({
+        user: {
+          name: "Alice",
+          image: " https://lh3.googleusercontent.com/avatar ",
+        },
+      });
+      return header;
+    }
+    const html = renderToStaticMarkup(<HeaderProbe />);
+    expect(html).toContain('src="https://lh3.googleusercontent.com/avatar"');
+    expect(html).toContain('alt=""');
+    expect(html).toContain('referrerPolicy="no-referrer"');
+    expect(html).toContain('class="account-avatar" aria-hidden="true">A<img');
+    expect(html).toContain('aria-label="Account options for Alice"');
+    const image = findImage(header);
+    if (!image?.props.onError) throw new Error("Missing avatar error handler.");
+    const target = { hidden: false } as HTMLImageElement;
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      image.props.onError({
+        currentTarget: target,
+      } as Parameters<NonNullable<ComponentProps<"img">["onError"]>>[0]);
+      expect(target.hidden).toBe(true);
+      expect(warning).toHaveBeenCalledWith("Account avatar failed to load.");
+    } finally {
+      warning.mockRestore();
+    }
+  });
+  it.each([undefined, null, "", "   "])(
+    "keeps initials when the OAuth avatar is %s",
+    (image) => {
+      const html = renderToStaticMarkup(
+        <HomeHeader
+          user={{ name: "Alice", ...(image === undefined ? {} : { image }) }}
+        />,
+      );
+      expect(html).toContain(
+        'class="account-avatar" aria-hidden="true">A</span>',
+      );
+      expect(html).not.toContain("<img");
+    },
+  );
   it("renders floating success feedback without a layout notice", () => {
     const html = renderToStaticMarkup(
       <Snackbar
