@@ -202,6 +202,7 @@ describe("item filter lifecycle", () => {
     id: "existing-publication",
     title: "Existing destination",
     currentRevision: 1,
+    visibility: "public",
     revisionCount: 1,
     sequence: 7,
     createdAt: "2026-11-01",
@@ -534,6 +535,7 @@ describe("item filter lifecycle", () => {
       const tree = PublicationDialog({
         publication: null,
         pin: {
+          visibility: "private",
           cid: "owned-pin",
           name: "Private name",
           size: 1,
@@ -696,6 +698,6 @@ describe("item filter lifecycle", () => {
     expect(stopPropagation).toHaveBeenCalled();
     expect(state.filtered).toBe(false);
     expect(host.fetch.mock.calls.at(-1)?.[0]).toBe("/api/publications?q=");
-    expect((state.filter.props.children as unknown[])[1]).toBeNull();
+    expect((state.filter.props.children as unknown[])[2]).toBeNull();
   });
 });

@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./icon.js";
-import { TypeCover } from "./pin-preview.js";
+import type { Visibility } from "@shazhou/pinboard-contracts";
 
 export function detailCopyLinks(
   cid: string,
   name: string,
   origin: string,
   publication?: { id: string; revision: number },
+  visibility: Visibility = "public",
 ) {
   return [
     {
-      label: "Copy HTTP download link",
-      value: `${origin}/api/public/${cid}/download?name=${encodeURIComponent(name)}`,
+      label:
+        visibility === "private"
+          ? "Copy personal access link"
+          : "Copy HTTP download link",
+      value:
+        visibility === "private"
+          ? `${origin}/share/${cid}`
+          : `${origin}/api/public/${cid}/download?name=${encodeURIComponent(name)}`,
     },
     { label: "Copy IPFS link", value: `ipfs://${cid}` },
     ...(publication
@@ -32,8 +39,9 @@ export function detailCopyLinks(
 export function DetailHeading({
   name,
   cid,
-  contentType,
   disabled,
+  visibility,
+  onAccess,
   publication,
   badge,
   onCopy,
@@ -41,6 +49,8 @@ export function DetailHeading({
   name: string;
   cid: string;
   contentType: string | null;
+  visibility: Visibility;
+  onAccess?: () => void;
   disabled: boolean;
   publication?: { id: string; revision: number };
   badge?: ReactNode;
@@ -55,11 +65,29 @@ export function DetailHeading({
   }, [cid]);
   return (
     <header className="detail-heading">
-      <div className="detail-type-icon">
-        <TypeCover contentType={contentType} />
-      </div>
       <div className="detail-identity">
         <div className="detail-title">
+          {onAccess ? (
+            <button
+              className="detail-access"
+              aria-label={`${visibility === "private" ? "Private" : "Public"}. Access and sharing`}
+              title="Access and sharing"
+              aria-haspopup="dialog"
+              disabled={disabled}
+              onClick={onAccess}
+            >
+              <Icon name={visibility === "private" ? "lock" : "globe"} />
+            </button>
+          ) : (
+            <span
+              className="detail-access"
+              role="img"
+              aria-label={visibility === "private" ? "Private" : "Public"}
+              title={visibility === "private" ? "Private" : "Public"}
+            >
+              <Icon name={visibility === "private" ? "lock" : "globe"} />
+            </span>
+          )}
           <h3>{name}</h3>
           {badge}
         </div>
@@ -87,6 +115,7 @@ export function DetailHeading({
               name,
               typeof location === "undefined" ? "" : location.origin,
               publication,
+              visibility,
             ).map((link) => (
               <button
                 key={link.label}

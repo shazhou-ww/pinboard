@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import type { Bindings } from "./env.js";
+import type { AppEnv } from "./identity.js";
+import { authorizeBlock, canReadBlock, optionalIdentity } from "./access.js";
 import { key, parseCid, PROBE_CID } from "./content.js";
 import {
   acceptsMedia,
@@ -9,10 +10,16 @@ import {
 } from "./gateway-http.js";
 import { blobBytes, getBlock, headBlock, type D1Blob } from "./storage.js";
 
-export const gateway = new Hono<{ Bindings: Bindings }>();
+export const gateway = new Hono<AppEnv>();
+gateway.use("*", async (c, next) => {
+  c.header("Cache-Control", "private, no-store");
+  await next();
+});
 
 gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
   const cid = parseCid(c.req.param("cid"));
+  if (key(cid) !== PROBE_CID)
+    await authorizeBlock(c.env, key(cid), await optionalIdentity(c));
   const format = c.req.query("format");
   const accept = c.req.header("accept");
   if (
@@ -34,7 +41,7 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
       const headers = {
         "Content-Type": "image/webp",
         "Content-Length": String(bytes.length),
-        "Cache-Control": "public, max-age=29030400, immutable",
+        "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
         "Content-Security-Policy": "default-src 'none'; sandbox",
         ETag: `"${key(cid)}.webp"`,
@@ -70,7 +77,7 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
     "Content-Disposition": `attachment; filename="${key(cid)}.bin"`,
     "X-Content-Type-Options": "nosniff",
     "Content-Security-Policy": "default-src 'none'; sandbox",
-    "Cache-Control": "public, max-age=29030400, immutable",
+    "Cache-Control": "private, no-store",
     ETag: `"${key(cid)}.raw"`,
     "Access-Control-Allow-Origin": "*",
     "X-Ipfs-Path": `/ipfs/${c.req.param("cid")}`,
@@ -103,7 +110,10 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
 
 gateway.get("/routing/v1/providers/:cid", async (c) => {
   const cid = parseCid(c.req.param("cid"));
-  const exists = key(cid) === PROBE_CID || (await headBlock(c.env, key(cid)));
+  const exists =
+    key(cid) === PROBE_CID ||
+    ((await canReadBlock(c.env, key(cid), await optionalIdentity(c))) &&
+      (await headBlock(c.env, key(cid))));
   const providers = exists
     ? [
         {
@@ -114,7 +124,7 @@ gateway.get("/routing/v1/providers/:cid", async (c) => {
         },
       ]
     : [];
-  c.header("Cache-Control", "public, max-age=60");
+  c.header("Cache-Control", "private, no-store");
   c.header("Access-Control-Allow-Origin", "*");
   if (c.req.header("accept")?.includes("application/x-ndjson")) {
     return c.body(

@@ -4,6 +4,7 @@ import {
   recentlyDeletedPageSize,
   type DeletedItem,
   type DeletedPage,
+  type Visibility,
 } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { requireScope, type Principal } from "./identity.js";
@@ -25,9 +26,9 @@ export async function listDeleted(
   if (!kinds.length) requireScope(principal, "pins:read");
   const now = new Date().toISOString();
   const source = `(
-    SELECT 'pin' AS kind, p.cid AS id, p.name AS title, d.deleted_at AS deletedAt, d.expires_at AS expiresAt
+    SELECT 'pin' AS kind, p.cid AS id, p.name AS title, p.visibility, d.deleted_at AS deletedAt, d.expires_at AS expiresAt
     FROM deleted_pins d JOIN pins p ON p.account_id = d.account_id AND p.cid = d.cid WHERE d.account_id = ?
-    UNION ALL SELECT 'publication', id, title, deleted_at, expires_at FROM publications WHERE account_id = ? AND deleted_at IS NOT NULL
+    UNION ALL SELECT 'publication', id, title, visibility, deleted_at, expires_at FROM publications WHERE account_id = ? AND deleted_at IS NOT NULL
   ) WHERE expiresAt > ? AND kind IN (SELECT value FROM json_each(?))`;
   const bindings = [
     principal.accountId,
@@ -67,15 +68,16 @@ export async function restorePin(
   env: Bindings,
   principal: Principal,
   cid: string,
-): Promise<void> {
+): Promise<{ restored: true; visibility: Visibility }> {
   requireScope(principal, "pins:delete");
   const result = await env.DB.prepare(
-    "DELETE FROM deleted_pins WHERE account_id = ? AND cid = ? AND expires_at > ?",
+    "DELETE FROM deleted_pins WHERE account_id = ? AND cid = ? AND expires_at > ? RETURNING (SELECT visibility FROM pins p WHERE p.account_id = deleted_pins.account_id AND p.cid = deleted_pins.cid) AS visibility",
   )
     .bind(principal.accountId, key(parseCid(cid)), new Date().toISOString())
-    .run();
-  if (!result.meta.changes)
+    .first<{ visibility: Visibility }>();
+  if (!result)
     throw new HTTPException(404, { message: "Recoverable pin not found" });
+  return { restored: true, visibility: result.visibility };
 }
 
 export async function expireDeleted(

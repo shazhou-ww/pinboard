@@ -2,10 +2,10 @@
 
 **Pin blocks. Share by CID.**
 
-A deliberately small public IPFS content store: Cloudflare Workers + R2 for
-verified CAR archives, D1 for block locations, Google account identities, pin
-references and Agent token hashes. React and Hono reuse the fullstack template's
-same-origin/Auth.js setup.
+A deliberately small access-controlled IPFS content store: Cloudflare Workers +
+R2 for verified CAR archives, D1 for block locations, Google account identities,
+pin references and Agent token hashes. React and Hono reuse the fullstack
+template's same-origin/Auth.js setup.
 
 Production origin: `https://pinboard.shazhou.work`. Releases are tag-driven; see
 the [deployment guide](docs/deployment.md) for acceptance requirements.
@@ -20,8 +20,8 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
   list, inspect, rename and remove account pins without installing Kubo or
   running a daemon.
 - Validate CID hashes and complete DAG closure before accepting a pin.
-- Share by CID without authentication, through raw block responses or CAR
-  export.
+- Share public content by CID without authentication, or keep new content
+  private.
 - Sign in with Google to list, inspect and unpin your own content.
 - Rename an account's pin from Web, CLI or `PATCH /api/pins/:cid`, without
   changing its CID or re-uploading public content.
@@ -39,17 +39,21 @@ the [deployment guide](docs/deployment.md) for acceptance requirements.
   migration/release).
 - Use explicitly configured Kubo clients as readers, without a server-side Kubo.
 
-All uploaded bytes are **public**, including bytes in failed partial writes.
-Account lists, labels, and tokens are private. Publication titles and their
-complete revision histories are public. Unpin and publication deletion remove
-the object from normal lists and retain its references for a 30-day recovery
-window in **Recently deleted**. Expiry releases only that object's references;
-the last account, DAG or publication reference then starts seven days of cleanup
-grace. Shared CARs may remain longer; CDN, other nodes and downloaded copies are
-not erased. There is no permanent-delete action. Revoked/expired Agent tokens
-stop authenticating immediately; their management records are kept for 30 days
-from the earlier invalidation time. The Web token list defaults to active
-entries, with a separate history view.
+New Pins and Publications are **private**; owners explicitly share from details.
+Existing items remain public through additive migration
+`0009_item_visibility.sql`. CID knowledge grants no private access. Publication
+visibility includes its title, descriptions, preview and all history. Failed
+unreferenced writes are not an anonymous gateway source. See
+[item access](docs/access-control.md) for scopes, shared-byte overlap,
+confirmation, cache revocation and migration requirements. Unpin and publication
+deletion remove the object from normal lists and retain its references for a
+30-day recovery window in **Recently deleted**. Expiry releases only that
+object's references; the last account, DAG or publication reference then starts
+seven days of cleanup grace. Shared CARs may remain longer; CDN, other nodes and
+downloaded copies are not erased. There is no permanent-delete action.
+Revoked/expired Agent tokens stop authenticating immediately; their management
+records are kept for 30 days from the earlier invalidation time. The Web token
+list defaults to active entries, with a separate history view.
 
 New uploads use one CAR object and a CID-to-object/offset/length index, with
 legacy independent-block fallback. Complete indexed CAR downloads stream one
@@ -192,27 +196,30 @@ Space. Cards have no custom right-click menu or overflow button, preserving the
 browser's native context menu. The bottom CID capsule remains a shortcut for
 copying the complete CID without opening details. Details are reading-first:
 content on the left and descriptions/facts on the right, stacked on narrow
-screens. A square type icon accompanies the title; the complete CID and copy
-icon below it form one click target with shared hover feedback. The adjacent
-copy dropdown offers a direct HTTP file/ZIP download link and `ipfs://` link,
-plus follow and fixed-version links for publications. Downloads and management
-actions live beneath the right-side facts, without a separate toolbar. Private
-descriptions are read-only until **Edit description**. Technical node queries
-remain available through API, CLI and MCP rather than the detail panel.
-Publication details distinguish the viewed version, public current and latest.
-Browsing history in a panel-contained drawer opened from the version badge does
-not change current. The drawer closes on selection, outside click or Escape and
-has no close glyph. Fixed-version links and downloads use the viewed CID;
-publishing and making a version current are explicit tasks. Unpin moves only
-that pin to recently deleted; publication references remain independent. A Pin's
-**Publish new version** first confirms conversion to publication v1 with an
-explicit public title, then opens the new-version task. Canceling that task
-retains the confirmed publication and v1.
+screens. A leftmost inline lock/globe replaces the type icon; owners open
+**Access and sharing**, while visitor icons are readonly. Private card locks
+precede the name in the existing information strip; Publication upper-right
+badges show current vN, not history count. The complete CID and copy icon below
+it form one click target with shared hover feedback. The adjacent copy dropdown
+offers a direct HTTP file/ZIP download link and `ipfs://` link, plus follow and
+fixed-version links for publications. Downloads and management actions live
+beneath the right-side facts, without a separate toolbar. Private descriptions
+are read-only until **Edit description**. Technical node queries remain
+available through API, CLI and MCP rather than the detail panel. Publication
+details distinguish the viewed version, public current and latest. Browsing
+history in a panel-contained drawer opened from the version badge does not
+change current. The drawer closes on selection, outside click or Escape and has
+no close glyph. Fixed-version links and downloads use the viewed CID; publishing
+and making a version current are explicit tasks. Unpin moves only that pin to
+recently deleted; publication references remain independent. A Pin's **Publish
+new version** first confirms conversion to publication v1 with an explicit
+publication title and inherited visibility, then opens the new-version task.
+Canceling that task retains the confirmed publication and v1.
 
 The upload dialog's **After uploading** selector always offers **Create a
 publication**, including for an account with no existing publications. Enter a
-separate **Public title** to publish; **Keep as a pin only** remains the
-default.
+separate **Publication title** to create privately; **Keep as a pin only**
+remains the default.
 
 On desktop, the bottom information strip expands only when hovered or focused
 itself, not when hovering the rest of the card. Touch devices keep the CID
@@ -235,12 +242,10 @@ dialog. Review the selection and optionally edit its pin name before confirming.
 **Settings** opens a dialog for Agent tokens, MCP authorizations and local
 browser preferences.
 
-The public-content reminder appears in the upload dialog, not as a permanent
-checkbox on the homepage. **Do not remind me in this browser** is saved in this
-origin's `localStorage` only when confirming an upload, never on cancellation.
-It is not synced to the account or other devices. Clearing site data or enabling
-the reminder in Settings restores it. Upload confirmation remains required, and
-all uploads still explicitly acknowledge public content to the server.
+The upload dialog has a readonly default-private note, not a visibility picker
+or dismissible public reminder. Successful uploads open details. Access changes
+are launched only from details with fresh confirmation; private-source updates
+to public Publications explicitly acknowledge byte/description exposure.
 
 Cards load small, typed preview descriptions as they enter the viewport; the
 wall never downloads original CARs to build previews. The existing Worker
@@ -249,11 +254,11 @@ extensions. JPEG, PNG and WebP images use bundled WebAssembly codecs (no Images
 binding or external image service), capped at 8 MiB input and 2 million decoded
 pixels. Actual aspect-preserving WebP thumbnails have a 480-pixel maximum edge
 and 64 KiB maximum size. D1 stores their binary BLOBs under SHA2-256 raw CIDs;
-the browser separately loads immutable `/ipfs/:thumbnailCid` images. PDF nodes
-use the same image material for their first page, rendered on white by bundled
-PDFium with licensed Chinese font fallback. There is no PDF reader, document
-scripting, external resource fetch or new download/Range endpoint. See
-[PDF preview limits and build provenance](docs/pdf-previews.md).
+the browser separately loads authorization-aware `/ipfs/:thumbnailCid?access=v1`
+images. PDF nodes use the same image material for their first page, rendered on
+white by bundled PDFium with licensed Chinese font fallback. There is no PDF
+reader, document scripting, external resource fetch or new download/Range
+endpoint. See [PDF preview limits and build provenance](docs/pdf-previews.md).
 
 After loading the current account's authorized Pin list, visible cards first
 reuse preview descriptions from memory or account-scoped IndexedDB. Ready
@@ -433,9 +438,9 @@ additions require migration `0004_mcp_oauth.sql` in an explicitly authorized
 environment; they are not a claim that the current production deployment
 supports OAuth.
 
-Uploads require `X-Pinboard-Public: true`. JSON pin requests require
-`{"cid":"...","name":"...","public":true}`. Cookie-authenticated mutations also
-require an Origin matching `AUTH_URL` (or `PUBLIC_ORIGIN`). Agent names are
+Uploads default private and require no public header. JSON pin requests accept
+`{"cid":"...","name":"..."}` for accessible DAGs. Cookie-authenticated mutations
+also require an Origin matching `AUTH_URL` (or `PUBLIC_ORIGIN`). Agent names are
 labels, not credentials. Web and MCP use the same `PinService`, accountId and
 scopes.
 
@@ -461,9 +466,9 @@ retrieval. Select raw with `?format=raw` or an `Accept` header:
   invalid media ranges, parameters, duplicate parameter names and quality
   values; quoted quality values are rejected.
 - Successful responses retain raw bytes and length, attachment disposition,
-  CORS, browser safety headers and immutable caching. GET and HEAD share the
-  ETag `"<normalized-CIDv1>.raw"`; equivalent CIDv0/v1 inputs share this ETag.
-  `X-Ipfs-Path` preserves the requested CID.
+  CORS, browser safety headers and private/no-store caching. GET and HEAD share
+  the ETag `"<normalized-CIDv1>.raw"`; equivalent CIDv0/v1 inputs share this
+  ETag. `X-Ipfs-Path` preserves the requested CID.
 - `If-None-Match` uses weak comparison, supports validator lists and `*`, and
   returns a bodyless 304 only after local availability is confirmed. Malformed
   validator lists are ignored. HEAD and matching conditional requests use
@@ -475,9 +480,9 @@ retrieval. Select raw with `?format=raw` or an `Accept` header:
 
 Generated thumbnail CIDs additionally serve WebP at `/ipfs/:cid` when the client
 accepts images (or sends no `Accept`). Explicit raw requests still deliver the
-exact CID-encoded block bytes. Images have their own `.webp` ETag, immutable
-caching, `nosniff` and sandbox headers; conditional GET/HEAD work independently
-of the private, non-cacheable preview description.
+exact CID-encoded block bytes. Images have their own `.webp` ETag,
+private/no-store caching, `nosniff` and sandbox headers; conditional GET/HEAD
+work independently of the private, non-cacheable preview description.
 
 This is a non-recursive gateway, not a general UnixFS rendering service.
 Standard CAR negotiation, IPNS, gateway path traversal and byte-range responses

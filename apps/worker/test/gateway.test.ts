@@ -58,6 +58,15 @@ beforeAll(async () => {
   legacyCid = CID.createV0(await sha256.digest(dagBytes));
   await env.BLOCKS.put(cid, bytes);
   await env.BLOCKS.put(legacyCid.toV1().toString(), dagBytes);
+  await env.DB.prepare(
+    "INSERT INTO accounts (id, provider, subject) VALUES ('gateway-owner', 'google', 'gateway-owner')",
+  ).run();
+  for (const root of [cid, legacyCid.toV1().toString()])
+    await env.DB.prepare(
+      "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES ('gateway-owner', ?, 'Protocol fixture', ?, 1, 'public')",
+    )
+      .bind(root, bytes.length)
+      .run();
   const bucket = env.BLOCKS;
   // Snapshot RPC methods so spies can observe and inject storage failures.
   env = {
@@ -96,9 +105,7 @@ describe("raw gateway protocol", () => {
         );
         expect(response.headers.get("x-content-type-options")).toBe("nosniff");
         expect(response.headers.get("access-control-allow-origin")).toBe("*");
-        expect(response.headers.get("cache-control")).toBe(
-          "public, max-age=29030400, immutable",
-        );
+        expect(response.headers.get("cache-control")).toBe("private, no-store");
         expect(response.headers.get("x-ipfs-path")).toBe(`/ipfs/${root}`);
         expect(new Uint8Array(await response.arrayBuffer())).toEqual(
           method === "HEAD" || root === PROBE_CID ? new Uint8Array() : bytes,
@@ -143,7 +150,9 @@ describe("raw gateway protocol", () => {
           expect(response.body).toBeNull();
           expect(await response.text()).toBe("");
           expect(response.headers.get("etag")).toBe(etag(root));
-          expect(response.headers.get("cache-control")).toContain("immutable");
+          expect(response.headers.get("cache-control")).toBe(
+            "private, no-store",
+          );
           expect(response.headers.get("content-type")).toBe(
             "application/vnd.ipld.raw",
           );
@@ -320,7 +329,7 @@ describe("raw gateway protocol", () => {
         expect(
           (await request(missing, method, { "cache-control": directive }))
             .status,
-        ).toBe(412);
+        ).toBe(404);
         expect(
           (
             await request(missing, method, {
@@ -328,7 +337,7 @@ describe("raw gateway protocol", () => {
               "if-none-match": "*",
             })
           ).status,
-        ).toBe(412);
+        ).toBe(404);
         for (const root of [cid, PROBE_CID]) {
           const response = await request(root, method, {
             "cache-control": directive,

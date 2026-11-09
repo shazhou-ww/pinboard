@@ -14,8 +14,9 @@ import { PinService } from "./service.js";
 import { itemFilterSchema, nameSchema, validate } from "./schemas.js";
 import { getCar, storeDag } from "./storage.js";
 import { matchesItemFilter } from "./item-filter.js";
+import { authorizePublication } from "./access.js";
 
-const fields = `p.id, p.title, p.current_revision AS currentRevision,
+const fields = `p.id, p.title, p.visibility, p.current_revision AS currentRevision,
   p.sequence, p.created_at AS createdAt, p.updated_at AS updatedAt,
   (SELECT count(*) FROM publication_revisions WHERE publication_id = p.id) AS revisionCount`;
 const revisionFields =
@@ -45,15 +46,18 @@ const conflict = () =>
 export async function readPublication(
   env: Bindings,
   id: string,
+  principal?: Principal,
 ): Promise<Publication> {
-  return (await resolvePublication(env, id)).publication;
+  return (await resolvePublication(env, id, undefined, principal)).publication;
 }
 
 export async function resolvePublication(
   env: Bindings,
   id: string,
   revision?: number,
+  principal?: Principal,
 ): Promise<{ publication: Publication; revision: PublicationRevision }> {
+  await authorizePublication(env, id, principal);
   if (
     revision !== undefined &&
     (!Number.isSafeInteger(revision) || revision < 1)
@@ -92,6 +96,7 @@ export async function resolvePublication(
     publication: {
       id: row.id,
       title: row.title,
+      visibility: row.visibility,
       currentRevision: row.currentRevision,
       revisionCount: row.revisionCount,
       sequence: row.sequence,
@@ -123,7 +128,9 @@ export async function resolvePublication(
 export async function publicationHistory(
   env: Bindings,
   id: string,
+  principal?: Principal,
 ): Promise<PublicationHistory> {
+  await authorizePublication(env, id, principal);
   // One D1 batch is a consistent snapshot, including the deletion check.
   const rows = await env.DB.batch<
     | Row
@@ -178,7 +185,11 @@ export class PublicationService {
     private readonly principal: Principal,
   ) {}
 
-  async list(cursor = "", query = "") {
+  async list(
+    cursor = "",
+    query = "",
+    visibility: Publication["visibility"] | "all" = "all",
+  ) {
     requireScope(this.principal, "publications:read");
     validate(itemFilterSchema, query);
     const filtered = query.trim().length > 0;
@@ -188,10 +199,10 @@ export class PublicationService {
           (SELECT j.value FROM json_each(r.descriptions) j WHERE j.key = r.cid) AS rootDescription
           FROM publications p JOIN publication_revisions r
           ON r.publication_id = p.id AND r.revision = p.current_revision
-          WHERE p.account_id = ? AND p.deleted_at IS NULL AND p.id > ? ORDER BY p.id`
-        : "SELECT id FROM publications WHERE account_id = ? AND deleted_at IS NULL AND id > ? ORDER BY id LIMIT 51",
+          WHERE p.account_id = ? AND p.deleted_at IS NULL AND p.id > ? AND (? = 'all' OR p.visibility = ?) ORDER BY p.id`
+        : "SELECT id FROM publications WHERE account_id = ? AND deleted_at IS NULL AND id > ? AND (? = 'all' OR visibility = ?) ORDER BY id LIMIT 51",
     )
-      .bind(this.principal.accountId, cursor)
+      .bind(this.principal.accountId, cursor, visibility, visibility)
       .all<{ id: string; title: string; rootDescription: string | null }>();
     const matches = filtered
       ? rows.results.filter((row) =>
@@ -200,7 +211,7 @@ export class PublicationService {
       : rows.results;
     const page = matches.slice(0, 50);
     const publications = await Promise.all(
-      page.map(({ id }) => readPublication(this.env, id)),
+      page.map(({ id }) => readPublication(this.env, id, this.principal)),
     );
     return {
       publications,
@@ -211,7 +222,7 @@ export class PublicationService {
   async owned(id: string): Promise<Publication> {
     requireScope(this.principal, "publications:read");
     await this.owner(id);
-    return readPublication(this.env, id);
+    return readPublication(this.env, id, this.principal);
   }
 
   private async owner(id: string): Promise<void> {
@@ -230,17 +241,29 @@ export class PublicationService {
     requestId: string,
     payload: string,
   ): Promise<PublicationResult | null> {
+    const reference = await this.env.DB.prepare(
+      "SELECT json_extract(result, '$.publication.id') AS id FROM publication_requests WHERE account_id = ? AND request_id = ?",
+    )
+      .bind(this.principal.accountId, requestId)
+      .first<{ id: string }>();
+    if (!reference) return null;
+    const visibility = await authorizePublication(
+      this.env,
+      reference.id,
+      this.principal,
+    );
     const row = await this.env.DB.prepare(
       "SELECT payload, result FROM publication_requests WHERE account_id = ? AND request_id = ?",
     )
       .bind(this.principal.accountId, requestId)
       .first<RequestRow>();
-    if (!row) return null;
+    if (!row) throw conflict();
     if (row.payload !== payload)
       throw new HTTPException(409, {
         message: "Request ID was already used with a different payload",
       });
-    return JSON.parse(row.result) as PublicationResult;
+    const result = JSON.parse(row.result) as PublicationResult;
+    return { ...result, publication: { ...result.publication, visibility } };
   }
 
   async create(
@@ -250,6 +273,7 @@ export class PublicationService {
     convert = false,
   ): Promise<PublicationResult> {
     requireScope(this.principal, "publications:write");
+    requireScope(this.principal, "publications:read");
     if (convert) requireScope(this.principal, "pins:delete");
     title = validate(nameSchema, title);
     cid = key(parseCid(cid));
@@ -285,6 +309,7 @@ export class PublicationService {
       publication: {
         id,
         title,
+        visibility: convert ? pin.visibility : "private",
         currentRevision: 1,
         sequence: 1,
         revisionCount: 1,
@@ -298,7 +323,7 @@ export class PublicationService {
       "EXISTS (SELECT 1 FROM publication_requests WHERE attempt_id = ?)";
     await this.env.DB.batch([
       this.env.DB.prepare(
-        `INSERT OR IGNORE INTO publication_requests (account_id, request_id, payload, attempt_id, result) SELECT ?, ?, ?, ?, ? WHERE ${availablePin}`,
+        `INSERT OR IGNORE INTO publication_requests (account_id, request_id, payload, attempt_id, result) SELECT ?, ?, ?, ?, ? WHERE ${availablePin} AND EXISTS (SELECT 1 FROM pins WHERE account_id = ? AND cid = ? AND visibility = ?)`,
       ).bind(
         this.principal.accountId,
         requestId,
@@ -307,10 +332,21 @@ export class PublicationService {
         JSON.stringify(result),
         this.principal.accountId,
         cid,
+        this.principal.accountId,
+        cid,
+        pin.visibility,
       ),
       this.env.DB.prepare(
-        `INSERT INTO publications (id, account_id, title, current_revision, sequence, created_at, updated_at) SELECT ?, ?, ?, 1, 1, ?, ? WHERE ${guard}`,
-      ).bind(id, this.principal.accountId, title, now, now, attempt),
+        `INSERT INTO publications (id, account_id, title, visibility, current_revision, sequence, created_at, updated_at) SELECT ?, ?, ?, ?, 1, 1, ?, ? WHERE ${guard}`,
+      ).bind(
+        id,
+        this.principal.accountId,
+        title,
+        result.publication.visibility,
+        now,
+        now,
+        attempt,
+      ),
       this.env.DB.prepare(
         `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at, descriptions) SELECT ?, 1, ?, ?, ?, ?, ${descriptionSnapshot} WHERE ${guard}`,
       ).bind(
@@ -366,10 +402,12 @@ export class PublicationService {
     write: PublicationWrite,
   ): Promise<PublicationResult> {
     requireScope(this.principal, "publications:write");
+    requireScope(this.principal, "publications:read");
     const payload = JSON.stringify({
       id,
       ...target,
       expectedSequence: write.expectedSequence,
+      acknowledgePublicExposure: write.acknowledgePublicExposure,
     });
     const replay = await this.replay(write.requestId, payload);
     if (replay) return replay;
@@ -377,6 +415,7 @@ export class PublicationService {
     const { publication: before, revisions } = await publicationHistory(
       this.env,
       id,
+      this.principal,
     );
     if (before.sequence !== write.expectedSequence) throw conflict();
     const rollback = "revision" in target;
@@ -395,6 +434,18 @@ export class PublicationService {
       : rollback
         ? previous!
         : await new PinService(this.env, this.principal).detail(cid);
+    if (
+      !rollback &&
+      !nop &&
+      before.visibility === "public" &&
+      "visibility" in pin &&
+      pin.visibility === "private" &&
+      !write.acknowledgePublicExposure
+    )
+      throw new HTTPException(400, {
+        message:
+          "Confirm that private source bytes and descriptions will become public; the source Pin remains private",
+      });
     if (!nop) await this.prepareTarget(cid);
     const now = new Date().toISOString();
     const current = nop
@@ -428,7 +479,7 @@ export class PublicationService {
       this.env.DB.prepare(
         `INSERT OR IGNORE INTO publication_requests (account_id, request_id, payload, attempt_id, result)
         SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM publications WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND sequence = ?)
-        ${rollback || nop ? "" : `AND ${availablePin}`}`,
+        ${rollback || nop ? "" : `AND ${availablePin} AND (? OR EXISTS (SELECT 1 FROM publications p JOIN pins pin ON pin.account_id = p.account_id WHERE p.id = ? AND pin.cid = ? AND (p.visibility = 'private' OR pin.visibility = 'public')))`}`,
       ).bind(
         this.principal.accountId,
         write.requestId,
@@ -438,7 +489,15 @@ export class PublicationService {
         id,
         this.principal.accountId,
         write.expectedSequence,
-        ...(rollback || nop ? [] : [this.principal.accountId, cid]),
+        ...(rollback || nop
+          ? []
+          : [
+              this.principal.accountId,
+              cid,
+              write.acknowledgePublicExposure ? 1 : 0,
+              id,
+              cid,
+            ]),
       ),
     ];
     if (!nop) {
@@ -535,6 +594,7 @@ export class PublicationService {
 
   async restore(id: string): Promise<Publication> {
     requireScope(this.principal, "publications:delete");
+    requireScope(this.principal, "publications:read");
     const row = await this.env.DB.prepare(
       "UPDATE publications SET deleted_at = NULL, expires_at = NULL, sequence = sequence + 1 WHERE id = ? AND account_id = ? AND expires_at > ? RETURNING id",
     )
@@ -544,7 +604,25 @@ export class PublicationService {
       throw new HTTPException(404, {
         message: "Recoverable publication not found",
       });
-    return (await publicationHistory(this.env, id)).publication;
+    return (await publicationHistory(this.env, id, this.principal)).publication;
+  }
+
+  async setVisibility(
+    id: string,
+    visibility: Publication["visibility"],
+  ): Promise<Publication> {
+    requireScope(this.principal, "publications:write");
+    requireScope(this.principal, "publications:read");
+    const row = await this.env.DB.prepare(
+      "UPDATE publications SET visibility = ?, sequence = sequence + 1, updated_at = ? WHERE id = ? AND account_id = ? AND deleted_at IS NULL RETURNING id",
+    )
+      .bind(visibility, new Date().toISOString(), id, this.principal.accountId)
+      .first();
+    if (!row)
+      throw new HTTPException(404, {
+        message: "Publication not found in your account",
+      });
+    return readPublication(this.env, id, this.principal);
   }
 
   async upload(

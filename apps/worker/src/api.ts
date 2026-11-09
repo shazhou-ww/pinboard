@@ -15,6 +15,7 @@ import {
   jsonBody,
   pinSchema,
   renamePinSchema,
+  visibilitySchema,
   validate,
 } from "./schemas.js";
 import { createToken, listTokens, revokeToken } from "./tokens.js";
@@ -26,6 +27,7 @@ import { DescriptionService, descriptionWriteSchema } from "./descriptions.js";
 
 export const api = new Hono<AppEnv>();
 api.use("*", async (c, next) => {
+  c.header("Cache-Control", "private, no-store");
   // MCP never accepts cookies; anonymous initialization must reach its 401 challenge.
   checkOrigin(c, c.req.path !== "/mcp");
   await next();
@@ -39,6 +41,10 @@ api.get("/api/pins", async (c) => {
     await new PinService(c.env, c.get("principal")).list(
       validate(z.string().max(256).optional(), c.req.query("cursor")),
       validate(itemFilterSchema, c.req.query("q")),
+      validate(
+        z.enum(["all", "private", "public"]).default("all"),
+        c.req.query("visibility"),
+      ),
     ),
   );
 });
@@ -79,10 +85,6 @@ api.post("/api/pins", async (c) => {
   );
 });
 api.post("/api/pins/upload", async (c) => {
-  if (c.req.header("x-pinboard-public") !== "true")
-    throw new HTTPException(400, {
-      message: "Acknowledge public content with X-Pinboard-Public: true",
-    });
   const kind = validate(z.enum(["file", "car", "block"]), c.req.query("kind"));
   const name = validate(
     z.string().trim().min(1).max(200).default("Untitled"),
@@ -93,6 +95,15 @@ api.post("/api/pins/upload", async (c) => {
       c.executionCtx.waitUntil(work);
     }).upload(await boundedBody(c.req.raw), kind, name, c.req.query("cid")),
     201,
+  );
+});
+api.patch("/api/pins/:cid/visibility", async (c) => {
+  const input = validate(visibilitySchema, await jsonBody(c.req.raw));
+  return c.json(
+    await new PinService(c.env, c.get("principal")).setVisibility(
+      c.req.param("cid"),
+      input.visibility,
+    ),
   );
 });
 api.get("/api/pins/:cid", async (c) =>

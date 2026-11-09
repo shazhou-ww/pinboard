@@ -1,0 +1,79 @@
+{
+  "scope": "真实 Chrome、本地只读 UI 预览；不代表生产认证或保存成功验证",
+  "results": [
+    {
+      "viewport": 1280,
+      "result": "通过",
+      "card": {
+        "width": 1280,
+        "overflow": false,
+        "firstLock": true,
+        "lockBeforeName": true,
+        "before": 48.390625,
+        "without": 48.390625,
+        "padding": "12px",
+        "paddingWithout": "12px"
+      },
+      "detail": {
+        "first": true,
+        "sameRow": true,
+        "oldIcon": false,
+        "focused": true,
+        "overflow": false
+      },
+      "saveFailure": "只读预览拒绝保存，原私有状态保留；关闭分享对话框后焦点返回权限按钮"
+    },
+    {
+      "viewport": 390,
+      "result": "通过",
+      "card": {
+        "width": 390,
+        "overflow": false,
+        "firstLock": true,
+        "lockBeforeName": true,
+        "before": 48.390625,
+        "without": 48.390625,
+        "padding": "0px",
+        "paddingWithout": "0px"
+      },
+      "detail": {
+        "first": true,
+        "sameRow": true,
+        "oldIcon": false,
+        "focused": true,
+        "overflow": false
+      },
+      "saveFailure": "只读预览拒绝保存，原私有状态保留；关闭分享对话框后焦点返回权限按钮"
+    },
+    {
+      "viewport": 320,
+      "result": "通过",
+      "card": {
+        "width": 320,
+        "overflow": false,
+        "firstLock": true,
+        "lockBeforeName": true,
+        "before": 48.390625,
+        "without": 48.390625,
+        "padding": "0px",
+        "paddingWithout": "0px"
+      },
+      "detail": {
+        "first": true,
+        "sameRow": true,
+        "oldIcon": false,
+        "focused": true,
+        "overflow": false
+      },
+      "saveFailure": "只读预览拒绝保存，原私有状态保留；关闭分享对话框后焦点返回权限按钮"
+    },
+    {
+      "result": "通过",
+      "publicCard": "公开卡片不显示锁；访客只读图标由组件交互测试另行验证"
+    }
+  ],
+  "publication": {
+    "badge": "v3",
+    "current": "Current v3 · 5 versions"
+  }
+}

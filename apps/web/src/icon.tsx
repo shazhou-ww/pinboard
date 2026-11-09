@@ -19,6 +19,8 @@ import { PushPinIcon } from "@phosphor-icons/react/dist/csr/PushPin";
 import { QuestionIcon } from "@phosphor-icons/react/dist/csr/Question";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
+import { LockSimpleIcon } from "@phosphor-icons/react/dist/csr/LockSimple";
+import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { FunnelSimpleIcon } from "@phosphor-icons/react/dist/csr/FunnelSimple";
@@ -28,6 +30,8 @@ import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import type { IconProps } from "@phosphor-icons/react";
 
 const icons = {
+  lock: LockSimpleIcon,
+  globe: GlobeIcon,
   add: PlusIcon,
   addFolder: FolderPlusIcon,
   brand: PushPinIcon,

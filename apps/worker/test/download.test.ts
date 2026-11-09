@@ -42,6 +42,12 @@ afterAll(() => mf.dispose());
 
 async function save(dag: Dag) {
   await storeDag(env, dag);
+  const accountId = await accountForGoogle(env.DB, "public-download-fixtures");
+  await env.DB.prepare(
+    "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, 'Public download fixture', ?, ?, 'public') ON CONFLICT(account_id, cid) DO NOTHING",
+  )
+    .bind(accountId, key(dag.root), dag.size, dag.blocks.size)
+    .run();
   return key(dag.root);
 }
 
@@ -171,6 +177,12 @@ describe("original content downloads", () => {
     const dag = await importFile(text("legacy"));
     const root = await directory([{ name: "legacy.txt", dag }]);
     for (const [cid, bytes] of root.blocks) await env.BLOCKS.put(cid, bytes);
+    const accountId = await accountForGoogle(env.DB, "legacy-download-owner");
+    await env.DB.prepare(
+      "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, 'Legacy public root', ?, ?, 'public')",
+    )
+      .bind(accountId, key(root.root), root.size, root.blocks.size)
+      .run();
     const legacy = CID.createV0(
       await sha256.digest(root.blocks.get(key(root.root))!),
     ).toString();
@@ -324,6 +336,7 @@ describe("original content downloads", () => {
       expectedSequence: created.publication.sequence,
       requestId: "download-publish",
     });
+    await service.setVisibility(created.publication.id, "public");
     const path = `http://example.test/api/public/publications/${created.publication.id}/download`;
     const fixed = await app.request(
       path + "/1?format=original&name=first.txt",

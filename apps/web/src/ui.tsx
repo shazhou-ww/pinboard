@@ -2,11 +2,20 @@ import type {
   BootstrapResponse,
   SessionResponse,
   SessionUser,
+  Visibility,
 } from "@shazhou/pinboard-contracts";
-import { useRef, type MouseEventHandler, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  type MouseEventHandler,
+  type ReactNode,
+} from "react";
+import { apiFetch } from "./api.js";
 import { AccountManager } from "./manager.js";
 import { Icon } from "./icon.js";
 import { LoadingReveal } from "./loading.js";
+import { DetailHeading } from "./detail-actions.js";
 
 export type DashboardState =
   | { readonly kind: "loading" }
@@ -199,8 +208,8 @@ export function Dashboard({
             <section className="panel signin" id="signin" tabIndex={-1}>
               <h2>Keep something worth keeping.</h2>
               <p>
-                Sign in to upload and manage your pins. Reading by CID is always
-                public.
+                Sign in to upload and manage private content. Public links can
+                be read by anyone; knowing a CID grants no private access.
               </p>
               {state.bootstrap.providers.length ? (
                 <div
@@ -239,8 +248,50 @@ export function Dashboard({
   );
 }
 
+export function ContentDownloads({ cid }: { readonly cid: string }) {
+  return (
+    <div className="actions">
+      <a className="primary" href={`/api/public/${cid}/download?access=v1`}>
+        Download file / ZIP
+      </a>
+      <a href={`/api/public/${cid}/car?access=v1`}>Download CAR</a>
+      <a href={`/ipfs/${cid}?format=raw&access=v1`}>Download root block</a>
+    </div>
+  );
+}
+
 export function SharePage({ cid }: { readonly cid: string }) {
   const valid = /^[A-Za-z0-9]{10,256}$/.test(cid);
+  const [access, setAccess] = useState<"loading" | "allowed" | "unavailable">(
+    "loading",
+  );
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [copyError, setCopyError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    setAccess("loading");
+    setCopyError("");
+    if (!valid) {
+      setAccess("unavailable");
+      return;
+    }
+    void apiFetch(`/api/public/${cid}/access`, { signal: controller.signal })
+      .then((response) => {
+        if (!controller.signal.aborted) {
+          if (response.ok)
+            setVisibility(
+              response.headers.get("x-pinboard-byte-access") === "private"
+                ? "private"
+                : "public",
+            );
+          setAccess(response.ok ? "allowed" : "unavailable");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAccess("unavailable");
+      });
+    return () => controller.abort();
+  }, [cid, valid]);
   return (
     <main className="shell">
       <header className="masthead">
@@ -250,34 +301,62 @@ export function SharePage({ cid }: { readonly cid: string }) {
         <span>Shared by CID</span>
       </header>
       <section className="intro">
-        <p className="eyebrow">Public content</p>
+        <p className="eyebrow">Content link</p>
         <h1>
           A pin, <em>not a platform.</em>
         </h1>
       </section>
-      {valid ? (
+      {valid && access === "allowed" ? (
         <section className="panel">
-          <h2>Retrieve this content</h2>
-          <code className="cid">{cid}</code>
+          <DetailHeading
+            name="Content"
+            cid={cid}
+            contentType={null}
+            visibility={visibility}
+            disabled={false}
+            onCopy={(value, onCopied) => {
+              void navigator.clipboard
+                .writeText(value)
+                .then(() => onCopied?.())
+                .catch(() =>
+                  setCopyError(
+                    "Could not copy the link or CID. Retry copying.",
+                  ),
+                );
+            }}
+          />
+          {copyError && <p role="alert">{copyError}</p>}
           <p>
             Download the original file or a folder as ZIP. You can also export
-            the complete DAG as a CAR archive, or read with a configured Kubo
-            client.
+            the complete DAG as a CAR archive. Public bytes can also be read
+            with a configured Kubo client.
           </p>
-          <div className="actions">
-            <a className="primary" href={`/api/public/${cid}/download`}>
-              Download file / ZIP
-            </a>
-            <a href={`/api/public/${cid}/car`}>Download CAR</a>
-            <a href={`/ipfs/${cid}?format=raw`}>Download root block</a>
-          </div>
-          <pre>ipfs get {cid}</pre>
-          <p className="muted">
-            Kubo must use this service as a delegated router with HTTP retrieval
-            enabled. This link does not announce content to the public IPFS
-            network. Uploaded pages are never rendered here.
-          </p>
+          <ContentDownloads cid={cid} />
+          {visibility === "public" ? (
+            <>
+              <pre>ipfs get {cid}</pre>
+              <p className="muted">
+                Kubo must use this service as a delegated router with HTTP
+                retrieval enabled. This link does not announce content to the
+                public IPFS network. Uploaded pages are never rendered here.
+              </p>
+            </>
+          ) : (
+            <p className="muted">
+              Private bytes require an authorized browser session, API Agent
+              token or scoped MCP block_get. Copying a link or CID grants no
+              access. This CID view does not change any item's visibility.
+            </p>
+          )}
         </section>
+      ) : valid && access === "loading" ? (
+        <p role="status">Checking access...</p>
+      ) : valid ? (
+        <p role="alert">
+          Content unavailable.{" "}
+          <a href="/">Sign in to check access or switch accounts</a>. Signing in
+          does not guarantee permission.
+        </p>
       ) : (
         <p role="alert">Invalid CID link.</p>
       )}

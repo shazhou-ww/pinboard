@@ -97,6 +97,13 @@ export function RecentlyDeleted({
   };
   const restore = async (item: DeletedItem) => {
     if (busy || disabled) return;
+    if (
+      item.visibility === "public" &&
+      !window.confirm(
+        "Restore this public item? Its links and all publication history will reopen for anonymous reading and downloads. Existing access settings are preserved.",
+      )
+    )
+      return;
     setBusy(true);
     setRestoreError("");
     setStatus("");
@@ -202,6 +209,9 @@ export function RecentlyDeleted({
           <tr key={`${item.kind}:${item.id}`}>
             <td>
               <strong>{item.title}</strong>
+              <small>
+                {item.visibility === "private" ? "Private" : "Public"}
+              </small>
             </td>
             <td>
               <span className="authorization-badge">

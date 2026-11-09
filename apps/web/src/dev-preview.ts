@@ -152,6 +152,7 @@ export async function previewRequest(
     const deleted: DeletedItem[] = [
       {
         kind: "pin",
+        visibility: "private",
         id: data[0]!.pin.cid,
         title: "Archived coast study",
         deletedAt: "2026-11-01T10:00:00Z",
@@ -159,6 +160,7 @@ export async function previewRequest(
       },
       {
         kind: "publication",
+        visibility: "public",
         id: "preview-deleted-publication",
         title: "Previous field notes",
         deletedAt: "2026-11-03T10:00:00Z",
@@ -300,6 +302,8 @@ export async function previewRequest(
       }));
       return {
         publication: {
+          visibility:
+            fixture.id === "preview-publication-first" ? "public" : "private",
           id: fixture.id,
           title: fixture.title,
           currentRevision: fixture.current,

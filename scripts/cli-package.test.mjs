@@ -203,6 +203,7 @@ test(
         ),
         blocks: fixtureDag.blocks.size,
         createdAt: "2026-11-04T00:00:00Z",
+        visibility: "private",
       };
       let removed = false;
       let serverError;
@@ -210,7 +211,7 @@ test(
         const handle = async () => {
           const url = new URL(request.url, "http://127.0.0.1");
           if (url.pathname === `/api/public/${fixture.root}/car`) {
-            assert.equal(request.headers.authorization, undefined);
+            assert.ok(request.headers.authorization?.startsWith("Bearer "));
             response.writeHead(200, {
               "content-type": "application/vnd.ipld.car; version=1",
             });

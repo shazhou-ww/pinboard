@@ -24,7 +24,9 @@ function pin(value: unknown): Pin {
     !("blocks" in value) ||
     typeof value.blocks !== "number" ||
     !("createdAt" in value) ||
-    typeof value.createdAt !== "string"
+    typeof value.createdAt !== "string" ||
+    !("visibility" in value) ||
+    (value.visibility !== "private" && value.visibility !== "public")
   )
     throw new CliError("INVALID_RESPONSE", "Server returned an invalid pin.");
   let cid: string;
@@ -39,6 +41,7 @@ function pin(value: unknown): Pin {
     size: value.size,
     blocks: value.blocks,
     createdAt: value.createdAt,
+    visibility: value.visibility,
   };
 }
 
@@ -54,8 +57,21 @@ export class Client {
     return this.request(
       `/api/pins/${canonicalCid(cid)}/convert`,
       "POST",
-      JSON.stringify({ title, requestId, public: true }),
+      JSON.stringify({ title, requestId }),
       `Retry conversion with the same CID, public title and request ID ${requestId}.`,
+    );
+  }
+
+  async access(
+    kind: "pin" | "publication",
+    id: string,
+    visibility: "private" | "public",
+  ) {
+    return this.request(
+      `/api/${kind === "pin" ? "pins" : "publications"}/${kind === "pin" ? canonicalCid(id) : encodeURIComponent(id)}/visibility`,
+      "PATCH",
+      JSON.stringify({ visibility, acknowledge: true }),
+      "Inspect the item before retrying an uncertain access change.",
     );
   }
 
@@ -96,14 +112,14 @@ export class Client {
     try {
       this.signal.throwIfAborted();
       dispatched = true;
-      const response = await this.fetcher(new URL(path, this.origin), {
+      const url = new URL(path, this.origin);
+      if (binary) url.searchParams.set("access", "v1");
+      const response = await this.fetcher(url, {
         method,
         signal: this.signal,
         redirect: "manual",
         headers: {
-          ...(!binary && this.token
-            ? { Authorization: `Bearer ${this.token}` }
-            : {}),
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
           ...(binary ? { Accept: "application/vnd.ipld.car" } : {}),
           ...(body !== undefined
             ? {

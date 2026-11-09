@@ -175,7 +175,7 @@ async function cli(args: string[], credential = token, target = runtimeOrigin) {
       ...process.env,
       LOCALAPPDATA: directory,
       XDG_CONFIG_HOME: directory,
-      PINBOARD_AGENT_TOKEN: credential,
+      PINBOARD_AGENT_TOKEN: credential || undefined,
     },
     input: Readable.from([]),
     out: capture((text) => {
@@ -192,10 +192,16 @@ const pinResult = (result: { code: number; out: string; err: string }): Pin => {
   expect(result.code, result.err).toBe(0);
   return JSON.parse(result.out) as Pin;
 };
-async function raw(cid: string) {
-  const response = await fetch(`${runtimeOrigin}/ipfs/${cid}?format=raw`);
+async function raw(cid: string, credential = token) {
+  const response = await ownedFetch(
+    `${runtimeOrigin}/ipfs/${cid}?format=raw`,
+    credential,
+  );
   expect(response.status).toBe(200);
   return new Uint8Array(await response.arrayBuffer());
+}
+async function ownedFetch(url: string, credential = token) {
+  return fetch(url, { headers: { authorization: `Bearer ${credential}` } });
 }
 
 describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)", () => {
@@ -263,7 +269,10 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     const reader = await CarReader.fromBytes(
       new Uint8Array(
         await (
-          await fetch(`${runtimeOrigin}/api/public/${pin.cid}/car`)
+          await ownedFetch(
+            `${runtimeOrigin}/api/public/${pin.cid}/car`,
+            credential,
+          )
         ).arrayBuffer(),
       ),
     );
@@ -340,7 +349,7 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     ).toMatchObject({
       description: { user: { text: "CLI child sidecar", version: 1 } },
     });
-    expect(await raw(child)).toEqual(
+    expect(await raw(child, credential)).toEqual(
       new TextEncoder().encode("Compiled child bytes"),
     );
     expect(
@@ -598,6 +607,7 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     await writeFile(path, bytes);
     const first = pinResult(await cli(["upload", path]));
     expect(first.name).toBe("普通 file.bin");
+    expect(first.visibility).toBe("private");
     expect(first.cid).toBe((await importFile(bytes)).root.toString());
     expect(await raw(first.cid)).toEqual(bytes);
     const update = pinResult(
@@ -625,7 +635,10 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     );
     expect((await cli(["remove", first.cid])).code).toBe(0);
     expect((await cli(["inspect", first.cid])).code).toBe(1);
-    expect(await raw(first.cid)).toEqual(bytes); // Removing an account reference is not erasure.
+    expect(
+      (await ownedFetch(`${runtimeOrigin}/ipfs/${first.cid}?format=raw`))
+        .status,
+    ).toBe(404);
   });
 
   it("matches the browser directory CID, preserves CAR roots and reconstructs every binary byte from the public gateway", async () => {
@@ -654,7 +667,7 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     expect(uploaded.cid).toBe(root.toString());
     expect(uploaded.name).toBe("目录 space");
     const directoryNode = dagPb.decode(await raw(uploaded.cid));
-    const exportedResponse = await fetch(
+    const exportedResponse = await ownedFetch(
       `${runtimeOrigin}/api/public/${uploaded.cid}/car`,
     );
     expect(exportedResponse.status).toBe(200);
@@ -715,7 +728,10 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
       await writeFile(join(source, ...entry.path.split("/")), entry.data);
     const pin = pinResult(await cli(["upload", source]));
     const target = join(directory, "retrieval-target");
-    const downloaded = await cli(["download", pin.cid, "--output", target], "");
+    const denied = await cli(["download", pin.cid, "--output", target], "");
+    expect(denied.code).toBe(1);
+    expect(denied.err).toContain('"status":404');
+    const downloaded = await cli(["download", pin.cid, "--output", target]);
     expect(downloaded.code, downloaded.err).toBe(0);
     expect(JSON.parse(downloaded.out)).toEqual({
       cid: pin.cid,
@@ -730,7 +746,7 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
     expect(pinResult(await cli(["upload", target])).cid).toBe(pin.cid);
 
     const archive = join(directory, "retrieval-export.car");
-    const exported = await cli(["export", pin.cid, "--output", archive], "");
+    const exported = await cli(["export", pin.cid, "--output", archive]);
     expect(exported.code, exported.err).toBe(0);
     const car = await CarReader.fromBytes(
       new Uint8Array(await readFile(archive)),
@@ -742,14 +758,16 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
       await cli(["upload", join(source, "nested", "\u6587\u4ef6.bin")]),
     );
     const restoredFile = join(directory, "retrieval-file.bin");
-    const restored = await cli(
-      ["download", file.cid, "--output", restoredFile],
-      "",
-    );
+    const restored = await cli([
+      "download",
+      file.cid,
+      "--output",
+      restoredFile,
+    ]);
     expect(restored.code, restored.err).toBe(0);
     expect(new Uint8Array(await readFile(restoredFile))).toEqual(large);
 
-    const duplicate = await cli(["download", pin.cid, "--output", target], "");
+    const duplicate = await cli(["download", pin.cid, "--output", target]);
     expect(duplicate.code).toBe(1);
     expect(duplicate.out).toBe("");
     expect(duplicate.err).toContain("OUTPUT_EXISTS");
@@ -874,6 +892,7 @@ describe("CLI against real local Worker API, D1 and R2 (synthetic authorization)
         body: "not acknowledged",
       },
     );
-    expect(direct.status).toBe(400);
+    expect(direct.status).toBe(201);
+    expect(await direct.json()).toMatchObject({ visibility: "private" });
   });
 });

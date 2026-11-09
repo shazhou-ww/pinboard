@@ -22,6 +22,7 @@ const record = {
   size: 3,
   blocks: 1,
   createdAt: "2026-01-01",
+  visibility: "private",
 };
 describe("publication and recovery commands", () => {
   it.each([
@@ -115,7 +116,7 @@ describe("publication and recovery commands", () => {
     const result = await invoke([...args, "--json"], { fetcher });
     expect(result.code).toBe(0);
     if (path.includes("/api/public/"))
-      expect(new Headers(captured?.headers).has("authorization")).toBe(false);
+      expect(new Headers(captured?.headers).has("authorization")).toBe(true);
     else
       expect(new Headers(captured?.headers).get("authorization")).toBe(
         `Bearer ${token}`,
@@ -347,15 +348,15 @@ describe("top-level command and output contracts", () => {
       expect(text).toContain("--endpoint ORIGIN");
       expect(text).toContain("All commands: --json, --help.");
       expect(text).toContain(
-        "Anyone knowing the CID can read uploads/imports.",
+        "Private reads use scoped credentials; copying a CID or link grants no access.",
       );
       expect(text).toContain(
-        "Removing a pin does not erase public blocks, caches or other copies.",
+        "Public bytes shared by another public reference and external copies cannot be recalled.",
       );
       expect(text).toContain(
         "Directories include hidden and empty files; empty directories are ignored, all-empty rejected.",
       );
-      expect(text.trim().split("\n").length).toBeLessThanOrEqual(30);
+      expect(text.trim().split("\n").length).toBeLessThanOrEqual(40);
       expect(text).not.toContain("pinboard pins");
       expect(text).not.toContain("PUBLIC");
       expect(text).not.toContain("NOT erased");
@@ -536,9 +537,9 @@ describe("top-level command and output contracts", () => {
     expect(result.code).toBe(0);
     expect(result.err).toBe("");
     expect(result.out).toBe(
-      `${"NAME".padEnd(30)}  ${"SIZE".padStart(8)}  CID\n` +
-        `${"test".padEnd(30)}  54.8 KiB  ${cid}\n` +
-        `production-acceptance-261104-1   3.0 MiB  ${cid}\n\nNext cursor: next\n`,
+      `${"NAME".padEnd(30)}  ${"SIZE".padStart(8)}  CID  ACCESS\n` +
+        `${"test".padEnd(30)}  54.8 KiB  ${cid}  private\n` +
+        `production-acceptance-261104-1   3.0 MiB  ${cid}  private\n\nNext cursor: next\n`,
     );
     expect(result.out).not.toContain("/share/");
   });
@@ -558,7 +559,7 @@ describe("top-level command and output contracts", () => {
     const [header, row] = result.out.trimEnd().split("\n");
     expect(row!.startsWith(shown + "  ")).toBe(true);
     expect(stringWidth(shown)).toBeLessThanOrEqual(32);
-    expect(row!.endsWith(cid)).toBe(true);
+    expect(row!.endsWith(cid + "  private")).toBe(true);
     expect(stringWidth(header!.slice(0, header!.indexOf("CID")))).toBe(
       stringWidth(row!.slice(0, row!.indexOf(cid))),
     );
@@ -577,7 +578,7 @@ describe("top-level command and output contracts", () => {
     expect(result.code).toBe(0);
     expect(result.err).toBe("");
     expect(result.out).toBe(
-      `Name     test\nSize     3 B\nCID      ${cid}\nBlocks   1\nCreated  2026-01-01\nShare    https://pinboard.shazhou.work/share/${cid}\n`,
+      `Name     test\nSize     3 B\nCID      ${cid}\nBlocks   1\nCreated  2026-01-01\nAccess   private\nShare    https://pinboard.shazhou.work/share/${cid}\n`,
     );
     const json = await invoke(["inspect", cid, "--json"], { fetcher });
     expect(json.code).toBe(0);
@@ -668,12 +669,12 @@ describe("top-level command and output contracts", () => {
     const fetcher: typeof fetch = () =>
       Promise.resolve(Response.json({ pins: [record], nextCursor: null }));
     const result = await invoke(["list"], { fetcher, tty: true });
-    const top = `┌──────┬──────┬${"─".repeat(cid.length + 2)}┐`;
-    const middle = `├──────┼──────┼${"─".repeat(cid.length + 2)}┤`;
-    const bottom = `└──────┴──────┴${"─".repeat(cid.length + 2)}┘`;
+    const top = `┌──────┬──────┬${"─".repeat(cid.length + 2)}┬─────────┐`;
+    const middle = `├──────┼──────┼${"─".repeat(cid.length + 2)}┼─────────┤`;
+    const bottom = `└──────┴──────┴${"─".repeat(cid.length + 2)}┴─────────┘`;
     expect(result.code).toBe(0);
     expect(result.out).toBe(
-      `${top}\n│ NAME │ SIZE │ ${"CID".padEnd(cid.length)} │\n${middle}\n│ test │  3 B │ ${cid} │\n${bottom}\n`,
+      `${top}\n│ NAME │ SIZE │ ${"CID".padEnd(cid.length)} │ ACCESS  │\n${middle}\n│ test │  3 B │ ${cid} │ private │\n${bottom}\n`,
     );
     const plain = await invoke(["list"], { fetcher });
     expect(plain.out).not.toMatch(/[┌┬┐─│├┼┤└┴┘]/u);
@@ -716,6 +717,7 @@ describe("top-level command and output contracts", () => {
         `│ CID     │ ${cid.padEnd(share.length)} │`,
         `│ Blocks  │ ${"1".padEnd(share.length)} │`,
         `│ Created │ ${"2026-01-01".padEnd(share.length)} │`,
+        `│ Access  │ ${"private".padEnd(share.length)} │`,
         `│ Share   │ ${share} │`,
         bottom,
         "",

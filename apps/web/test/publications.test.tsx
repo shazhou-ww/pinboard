@@ -14,6 +14,7 @@ import {
 import { NodeDescriptionEditor } from "../src/node-description.js";
 
 const pin = {
+  visibility: "public" as const,
   cid: "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
   name: "Private label",
   size: 100,
@@ -21,6 +22,7 @@ const pin = {
   createdAt: "2026-11-01T10:00:00Z",
 };
 const publication: Publication = {
+  visibility: "public",
   id: "publication-a",
   title: "Public field notes",
   currentRevision: 3,
@@ -225,10 +227,10 @@ describe("publication wall identity and management", () => {
       />,
     );
     expect(html).toContain("original content becomes v1");
-    expect(html).toContain("Public title");
+    expect(html).toContain("Publication title");
     expect(html).not.toContain('value="Private label"');
     expect(html).not.toContain("Create a publication</option>");
-    expect(html).toContain("draft description changes");
+    expect(html).toContain("does not apply description changes");
     const editor = renderToStaticMarkup(
       <NodeDescriptionEditor rootCid={pin.cid} />,
     );
@@ -270,7 +272,6 @@ describe("publication wall identity and management", () => {
     expect(JSON.parse(init.body)).toEqual({
       cid: pin.cid,
       title: "Public title",
-      public: true,
       requestId: expect.any(String),
     });
     expect(init.body).not.toContain(pin.name);
@@ -286,6 +287,7 @@ describe("publication wall identity and management", () => {
     expect(JSON.parse(init.body)).toEqual({
       cid: pin.cid,
       expectedSequence: publication.sequence,
+      acknowledgePublicExposure: true,
       requestId: expect.any(String),
     });
   });
@@ -324,9 +326,9 @@ describe("publication wall identity and management", () => {
     expect(fixed).not.toContain("publication-badge");
     expect(published).toContain('class="publication-badge"');
     expect(published).toContain(
-      'class="publication-badge" role="img" aria-label="Publication">',
+      'class="publication-badge" aria-label="Current v3">v3',
     );
-    expect(published).toContain(
+    expect(published).not.toContain(
       renderToStaticMarkup(<Icon name="publication" size={14} />),
     );
     expect(published).not.toContain("</svg> Publication");
@@ -366,11 +368,9 @@ describe("publication wall identity and management", () => {
         onChanged={async () => {}}
       />,
     );
-    expect(html).toContain("complete version history are visible to everyone");
-    expect(html).toContain(
-      "private pin label and account identity stay private",
-    );
-    expect(html).toContain("Public title");
+    expect(html).toContain("New publications are private");
+    expect(html).toContain("Updates preserve the target&#x27;s access");
+    expect(html).toContain("Publication title");
     expect(html).toContain("Create a publication");
     expect(html).toContain("current v3");
   });

@@ -83,7 +83,8 @@ beforeAll(async () => {
 afterAll(() => mf.dispose());
 
 async function preview(value: Uint8Array, name = "private label.png") {
-  const pin = await service.upload(value, "file", name);
+  const uploaded = await service.upload(value, "file", name);
+  const pin = await service.setVisibility(uploaded.cid, "public");
   await processPreview(env, pin.cid);
   return { pin, value: await getPreview(env, pin.cid) };
 }
@@ -787,10 +788,10 @@ describe("real images, CID delivery and retention references", () => {
     );
     const bytes = new Uint8Array(await image.arrayBuffer());
     expect(image.headers.get("content-type")).toBe("image/webp");
-    expect(image.headers.get("cache-control")).toContain("immutable");
+    expect(image.headers.get("cache-control")).toBe("private, no-store");
     expect(CID.createV1(0x55, await sha256.digest(bytes)).toString()).toBe(cid);
     expect(cid).not.toBe(pin.cid);
-    expect(value.preview.image.url).toBe(`/ipfs/${cid}`);
+    expect(value.preview.image.url).toBe(`/ipfs/${cid}?access=v1`);
     const etag = image.headers.get("etag")!;
     expect(
       (
@@ -864,7 +865,7 @@ describe("real images, CID delivery and retention references", () => {
       .run();
     // A repin concurrent with collection must win a serializable D1 recheck.
     await Promise.all([
-      second.pin(a.pin.cid, "racing reference"),
+      second.upload(source, "file", "racing reference"),
       runPreviews(env, future + 16 * 86400000),
     ]);
     await enqueuePreview(env, a.pin.cid);
@@ -909,7 +910,11 @@ describe("real images, CID delivery and retention references", () => {
       .bind(cid)
       .first<{ unreferenced_at: string }>();
     expect(typeof orphan!.unreferenced_at).toBe("string");
-    await service.pin(pin.cid, "new private name");
+    await service.upload(
+      await readFile(new URL("fixtures/transparent.png", import.meta.url)),
+      "file",
+      "new private name",
+    );
     expect(
       await env.DB.prepare(
         "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
@@ -932,6 +937,7 @@ describe("real images, CID delivery and retention references", () => {
     );
     if (value.preview?.kind !== "image") throw new Error("not image");
     const cid = value.preview.image.cid;
+    const suppliedBytes = (await readBlock(env, cid))!;
     await releasePin(service, pin.cid);
     await env.DB.prepare(
       "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
@@ -955,9 +961,11 @@ describe("real images, CID delivery and retention references", () => {
         return originalPut(...args);
       });
     try {
-      const pinning = new PinService(env, other).pin(
-        cid,
+      const pinning = new PinService(env, other).upload(
+        suppliedBytes,
+        "block",
         "direct pin during collection",
+        cid,
       );
       await entered;
       await runPreviews(env);
@@ -968,6 +976,7 @@ describe("real images, CID delivery and retention references", () => {
       ).toBeNull();
       release();
       await pinning;
+      await new PinService(env, other).setVisibility(cid, "public");
       expect(
         await env.DB.prepare(
           "SELECT unreferenced_at FROM preview_images WHERE cid = ?",
@@ -1013,6 +1022,21 @@ describe("real images, CID delivery and retention references", () => {
       const dag = await readCar(car.bytes);
       if (kind !== "car") await storeDag(env, dag);
       await releasePin(service, pin.cid);
+      if (kind !== "car") {
+        const denied = new PinService(env, other);
+        await expect(
+          denied.pin(key(dag.root), "unreferenced DAG"),
+        ).rejects.toMatchObject({ status: 404 });
+        await expect(
+          denied.upload(
+            dag.blocks.get(key(dag.root))!,
+            "block",
+            "omitted private member",
+            key(dag.root),
+          ),
+        ).rejects.toMatchObject({ status: 404 });
+        return;
+      }
       await env.DB.prepare(
         "UPDATE preview_images SET unreferenced_at = '2000-01-01' WHERE cid = ?",
       )
@@ -1037,15 +1061,11 @@ describe("real images, CID delivery and retention references", () => {
       const second = new PinService(env, other);
       let directoryCid: string | undefined;
       try {
-        const importing =
-          kind === "pin"
-            ? second.pin(key(dag.root), "indirect thumbnail reference")
-            : second.upload(
-                kind === "car" ? car.bytes : dag.blocks.get(key(dag.root))!,
-                kind,
-                "indirect thumbnail reference",
-                kind === "block" ? key(dag.root) : undefined,
-              );
+        const importing = second.upload(
+          car.bytes,
+          "car",
+          "indirect thumbnail reference",
+        );
         await entered;
         await runPreviews(env);
         expect(
@@ -1055,6 +1075,7 @@ describe("real images, CID delivery and retention references", () => {
         ).toBeNull();
         release();
         directoryCid = (await importing).cid;
+        await second.setVisibility(directoryCid, "public");
         expect(
           await count(
             "SELECT count(*) AS n FROM dag_members WHERE root = ? AND cid = ?",

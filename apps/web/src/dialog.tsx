@@ -46,7 +46,14 @@ export function Dialog({
     } else if (!open && dialog.open) {
       dialog.close();
       requestAnimationFrame(() => {
-        if (document.querySelector("dialog[open]")) return;
+        if (document.querySelector("dialog[open]")) {
+          if (
+            opener.current?.isConnected &&
+            opener.current.closest("dialog[open]")
+          )
+            opener.current.focus();
+          return;
+        }
         if (openerKey.current)
           document
             .querySelector<HTMLElement>(

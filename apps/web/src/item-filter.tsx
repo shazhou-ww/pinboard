@@ -22,6 +22,8 @@ async function page<T>(path: string, signal: AbortSignal): Promise<T> {
 
 export function useItemLists(accountId?: string) {
   const [input, setInput] = useState("");
+  const [visibility, setVisibility] = useState("all");
+  const desiredVisibility = useRef("all");
   const [pins, setPins] = useState<Pin[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -47,6 +49,8 @@ export function useItemLists(accountId?: string) {
     cancel();
     const current = request.current;
     const query = new URLSearchParams({ q: desired.current.trim() });
+    if (desiredVisibility.current !== "all")
+      query.set("visibility", desiredVisibility.current);
     setLoading(true);
     setError("");
     try {
@@ -95,6 +99,8 @@ export function useItemLists(accountId?: string) {
       q: desired.current.trim(),
       cursor: next,
     });
+    if (desiredVisibility.current !== "all")
+      query.set("visibility", desiredVisibility.current);
     setLoading(true);
     try {
       if (kind === "pins") {
@@ -126,6 +132,8 @@ export function useItemLists(accountId?: string) {
   };
   const inputRef = useRef<HTMLInputElement>(null);
   const clear = () => {
+    desiredVisibility.current = "all";
+    setVisibility("all");
     composing.current = false;
     change("", true);
     inputRef.current?.focus();
@@ -160,6 +168,19 @@ export function useItemLists(accountId?: string) {
           }
         }}
       />
+      <select
+        aria-label="Filter by access"
+        value={visibility}
+        onChange={(event) => {
+          desiredVisibility.current = event.target.value;
+          setVisibility(event.target.value);
+          void refresh();
+        }}
+      >
+        <option value="all">All access</option>
+        <option value="private">Private</option>
+        <option value="public">Public</option>
+      </select>
       {input ? (
         <button type="button" aria-label="Clear filter" onClick={clear}>
           <Icon name="close" size={16} />
@@ -179,6 +200,6 @@ export function useItemLists(accountId?: string) {
     loadMore,
     filter,
     clear,
-    filtered: !!input.trim(),
+    filtered: !!input.trim() || visibility !== "all",
   };
 }

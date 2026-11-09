@@ -201,6 +201,7 @@ describe("content retention", () => {
 
   it("counts seven days from the last account reference, not archive creation, and removes all indexes", async () => {
     const pin = await service.upload(text("accounts"), "file", "Alice");
+    await service.setVisibility(pin.cid, "public");
     const other = new PinService(env, bob);
     await other.pin(pin.cid, "Bob");
     at(BASE + 20 * DAY);
@@ -236,9 +237,15 @@ describe("content retention", () => {
     const second = await parent(first, "second");
     const firstKey = await storeDag(env, first);
     const secondKey = await storeDag(env, second);
+    await env.DB.prepare(
+      "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, 'Public nested fixture', ?, ?, 'public')",
+    )
+      .bind(alice.accountId, key(second.root), second.size, second.blocks.size)
+      .run();
     const other = new PinService(env, bob);
     await other.pin(key(second.root), "nested");
     await service.pin(key(leaf.root), "child");
+    await releasePin(service, key(second.root));
     expect((await sweep(BASE + 20 * DAY)).objectsDeleted).toBe(0);
     expect(await env.BLOCKS.head(firstKey)).not.toBeNull();
     expect(await env.BLOCKS.head(secondKey)).not.toBeNull();
@@ -255,7 +262,7 @@ describe("content retention", () => {
     const pin = await service.upload(text("repin"), "file", "first");
     await releasePin(service, pin.cid);
     at(BASE + WEEK - 1);
-    await service.pin(pin.cid, "again");
+    await service.upload(text("repin"), "file", "again");
     expect((await sweep(BASE + 2 * WEEK)).objectsDeleted).toBe(0);
     await releasePin(service, pin.cid);
     expect((await sweep(BASE + 3 * WEEK - 1)).objectsDeleted).toBe(0);
@@ -281,7 +288,7 @@ describe("content retention", () => {
       await paused;
       return put(...args);
     });
-    const repin = service.pin(pin.cid, "repinned");
+    const repin = service.upload(text("concurrent-repin"), "file", "repinned");
     await entered;
     expect((await runRetention(env)).objectsDeleted).toBe(1);
     expect(await env.BLOCKS.head(oldKey)).toBeNull();

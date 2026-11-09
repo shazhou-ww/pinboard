@@ -64,7 +64,17 @@ export interface SessionUser {
   readonly name?: string | null;
 }
 
+export type Visibility = "private" | "public";
+export interface BlockRead {
+  readonly cid: string;
+  readonly size: number;
+  readonly byteAccess: Visibility;
+  readonly encoding: "base64";
+  readonly contentBase64: string;
+}
+
 export interface Pin {
+  readonly visibility: Visibility;
   readonly cid: string;
   readonly name: string;
   readonly size: number;
@@ -82,6 +92,7 @@ export interface PublicationRevision {
 }
 
 export interface Publication {
+  readonly visibility: Visibility;
   readonly id: string;
   readonly title: string;
   readonly currentRevision: number;
@@ -93,6 +104,7 @@ export interface Publication {
 }
 
 export interface PublicationWrite {
+  readonly acknowledgePublicExposure?: boolean | undefined;
   readonly expectedSequence: number;
   readonly requestId: string;
 }
@@ -115,6 +127,7 @@ export interface PublicationHistory {
 }
 
 export interface DeletedItem {
+  readonly visibility: Visibility;
   readonly kind: "pin" | "publication";
   readonly id: string;
   readonly title: string;

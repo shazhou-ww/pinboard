@@ -41,6 +41,7 @@ export function isContentPreview(
         /^[a-zA-Z0-9]+$/u.test(image.cid) &&
         typeof image.url === "string" &&
         (image.url === `/ipfs/${image.cid}` ||
+          image.url === `/ipfs/${image.cid}?access=v1` ||
           (allowObjectUrls && image.url.startsWith("blob:"))) &&
         integer(image.width) &&
         image.width > 0 &&

@@ -9,6 +9,7 @@ import type { PreviewAsset } from "../src/dev-preview-data.js";
 
 const demo = vi.hoisted(() => {
   const pin = {
+    visibility: "private" as const,
     cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
     name: "demo.png",
     size: 3,

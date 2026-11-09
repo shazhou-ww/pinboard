@@ -507,10 +507,11 @@ describe("public download/export command contracts", () => {
                   size: data.length,
                   blocks: 1,
                   createdAt: "2026-01-01",
+                  visibility: "private",
                 }),
               );
             }
-            expect(authorization).toBeNull();
+            expect(authorization).not.toBeNull();
             return Promise.resolve(response(car([raw])));
           },
           stored ? {} : { env: { PINBOARD_AGENT_TOKEN: token } },
@@ -554,6 +555,7 @@ describe("public download/export command contracts", () => {
                       size: raw.bytes.length,
                       blocks: 1,
                       createdAt: "2026-01-01",
+                      visibility: "private",
                     })
                   : new Response(null, { status }),
               );
@@ -591,6 +593,7 @@ describe("public download/export command contracts", () => {
                   size: 1,
                   blocks: 1,
                   createdAt: "2026-01-01",
+                  visibility: "private",
                 })
               : new Response(null, { status }),
           );
@@ -607,7 +610,7 @@ describe("public download/export command contracts", () => {
       expect(calls).toBe(1);
     },
   );
-  it("does not consult credentials or private pin metadata with --output", async () => {
+  it("skips private filename metadata with --output while using supplied byte credentials", async () => {
     const raw = await block(data);
     const path = join(directory, "explicit-output");
     const tokenRead = vi
@@ -617,12 +620,12 @@ describe("public download/export command contracts", () => {
       ["download", raw.cid.toString(), "--output", path, "--json"],
       (url, init) => {
         expect(url instanceof Request ? url.url : url.toString()).toBe(
-          `${origin}/api/public/${raw.cid.toString()}/car`,
+          `${origin}/api/public/${raw.cid.toString()}/car?access=v1`,
         );
-        expect(new Headers(init!.headers).has("authorization")).toBe(false);
+        expect(new Headers(init!.headers).has("authorization")).toBe(true);
         return Promise.resolve(response(car([raw])));
       },
-      { env: { PINBOARD_AGENT_TOKEN: "" } },
+      { env: { PINBOARD_AGENT_TOKEN: "synthetic-byte-read-token" } },
     );
     expect(result.code, result.err).toBe(0);
     expect(result.err).toBe("");
@@ -639,7 +642,7 @@ describe("public download/export command contracts", () => {
         [command, raw.cid.toString(), "--output", path, "--json"],
         (url, init) => {
           expect(url instanceof Request ? url.url : url.toString()).toBe(
-            `${origin}/api/public/${raw.cid.toString()}/car`,
+            `${origin}/api/public/${raw.cid.toString()}/car?access=v1`,
           );
           expect(new Headers(init!.headers).has("authorization")).toBe(false);
           expect(init!.redirect).toBe("manual");

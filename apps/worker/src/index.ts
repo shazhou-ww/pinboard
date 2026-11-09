@@ -19,11 +19,16 @@ import { downloadContent } from "./download.js";
 import { runRetention } from "./retention.js";
 import { runPreviews } from "./previews.js";
 import { oauth } from "./oauth.js";
-import { requireSessionAccount } from "./identity.js";
+import { requireSessionAccount, type AppEnv } from "./identity.js";
+import { authorizeBlock, canReadBlock, optionalIdentity } from "./access.js";
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<AppEnv>();
 
 app.use("*", secureHeaders());
+app.use(
+  "*",
+  initAuthConfig((context) => createAuthConfig(context.env as Bindings)),
+);
 app.onError((error, context) => {
   if (error instanceof HTTPException)
     return context.json({ error: error.message }, error.status);
@@ -37,16 +42,38 @@ app.onError((error, context) => {
   return context.json({ error: "Internal server error" }, 500);
 });
 app.route("/", gateway);
-app.get("/api/public/:cid/download", (c) =>
-  downloadContent(c.env, c.req.param("cid"), c.req.raw, c.req.query("name")),
-);
+app.use("/api/public/*", async (c, next) => {
+  c.header("Cache-Control", "private, no-store");
+  await next();
+});
+app.get("/api/public/:cid/access", async (c) => {
+  await authorizeBlock(c.env, c.req.param("cid"), await optionalIdentity(c));
+  c.header(
+    "X-Pinboard-Byte-Access",
+    (await canReadBlock(c.env, c.req.param("cid"))) ? "public" : "private",
+  );
+  return c.body(null, 204);
+});
+app.get("/api/public/:cid/download", async (c) => {
+  await authorizeBlock(c.env, c.req.param("cid"), await optionalIdentity(c));
+  const response = await downloadContent(
+    c.env,
+    c.req.param("cid"),
+    c.req.raw,
+    c.req.query("name"),
+  );
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+});
 app.get("/api/public/:cid/car", async (c) => {
   const root = parseCid(c.req.param("cid"));
+  await authorizeBlock(c.env, key(root), await optionalIdentity(c));
   const car = await getCar(c.env, key(root));
   if (!car) return c.json({ error: "DAG not found" }, 404);
   return new Response(car.body, {
     headers: {
       "Content-Type": "application/vnd.ipld.car; version=1",
+      "Cache-Control": "private, no-store",
       "Content-Length": String(car.size),
       "Content-Disposition": `attachment; filename="${key(root)}.car"`,
       "Content-Security-Policy": "default-src 'none'; sandbox",
@@ -54,11 +81,6 @@ app.get("/api/public/:cid/car", async (c) => {
     },
   });
 });
-app.use(
-  "*",
-  initAuthConfig((context) => createAuthConfig(context.env as Bindings)),
-);
-
 app.use("/api/auth/*", authHandler());
 app.route("/", oauth);
 

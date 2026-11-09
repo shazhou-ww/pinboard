@@ -57,6 +57,7 @@ const fixture: DeletedPage = {
   items: [
     {
       kind: "pin",
+      visibility: "private",
       id: "fixture-cid",
       title: "Old pin",
       deletedAt: "2026-11-01T10:00:00Z",

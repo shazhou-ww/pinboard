@@ -5,12 +5,17 @@ import { z } from "zod";
 import type { Bindings } from "./env.js";
 import type { Principal } from "./identity.js";
 import { PinService } from "./service.js";
+import { authorizeBlock, canReadBlock } from "./access.js";
+import { getBlock } from "./storage.js";
+import { key, parseCid } from "./content.js";
+import { uploadLimits, type BlockRead } from "@shazhou/pinboard-contracts";
 import {
   nameSchema,
   publicationCreateSchema,
   publicationWriteSchema,
   publicationPublishSchema,
   publicationRollbackSchema,
+  visibilitySchema,
 } from "./schemas.js";
 import { PublicationService, publicationHistory } from "./publications.js";
 import { listDeleted, restorePin } from "./recently-deleted.js";
@@ -59,6 +64,52 @@ export async function handleMcp(
     }
   };
   server.registerTool(
+    "block_get",
+    {
+      description:
+        "Read an accessible raw DAG block as base64 (max 2 MiB). Private blocks require the owner's matching pin/publication read scope. OAuth stays MCP-only; traverse verified CID links to read complete private DAGs. Verify returned bytes against the CID. byteAccess reflects live public root overlap, not a private item's metadata.",
+      inputSchema: { cid: z.string().min(1).max(256) },
+      annotations: { readOnlyHint: true },
+    },
+    ({ cid }) =>
+      result(async (): Promise<BlockRead> => {
+        cid = key(parseCid(cid));
+        await authorizeBlock(env, cid, principal);
+        const byteAccess = (await canReadBlock(env, cid))
+          ? "public"
+          : "private";
+        const block = await getBlock(env, cid);
+        if (!block)
+          throw new HTTPException(404, { message: "Content unavailable" });
+        if (block.size > uploadLimits.maxBlockBytes) {
+          await block.body.cancel();
+          throw new HTTPException(413, {
+            message:
+              "MCP inline block exceeds 2 MiB; use an HTTP API Agent token for this block",
+          });
+        }
+        const bytes = new Uint8Array(
+          await new Response(block.body).arrayBuffer(),
+        );
+        if (bytes.length !== block.size)
+          throw new HTTPException(503, {
+            message: "Stored block is unavailable",
+          });
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 32768)
+          binary += String.fromCharCode(
+            ...bytes.subarray(offset, offset + 32768),
+          );
+        return {
+          cid,
+          size: bytes.length,
+          byteAccess,
+          encoding: "base64",
+          contentBase64: btoa(binary),
+        };
+      }),
+  );
+  server.registerTool(
     "publication_description",
     {
       description:
@@ -71,13 +122,15 @@ export async function handleMcp(
       annotations: { readOnlyHint: true },
     },
     ({ id, revision, nodeCid }) =>
-      result(() => publishedDescription(env, id, revision, nodeCid, schedule)),
+      result(() =>
+        publishedDescription(env, id, revision, nodeCid, schedule, principal),
+      ),
   );
   server.registerTool(
     "publication_convert",
     {
       description:
-        "Atomically convert an owned fixed Pin in place into a publication with its original content and description snapshot as v1. Explicit public title required. The Pin is replaced, not trashed. Retry the identical request ID safely.",
+        "Convert an owned Pin to a publication, preserving visibility and descriptions. The Pin is replaced, not trashed. Retry the identical request ID safely.",
       inputSchema: publicationCreateSchema.shape,
     },
     ({ title, cid, requestId }) =>
@@ -143,11 +196,11 @@ export async function handleMcp(
     "pin",
     {
       description:
-        "Reference an already stored complete DAG. No remote CID fetching. All bytes are public.",
+        "Reference an accessible complete DAG as a private Pin. CID knowledge grants no access. No remote CID fetching.",
       inputSchema: {
         cid: z.string().max(256),
         name: nameSchema,
-        public: z.literal(true),
+        public: z.literal(true).optional(),
       },
     },
     ({ cid, name }) => result(() => service.pin(cid, name)),
@@ -177,10 +230,16 @@ export async function handleMcp(
         name: nameSchema,
         cid: z.string().max(256).optional(),
         contentBase64: z.string().max(2796204),
-        public: z.literal(true),
+        public: z.literal(true).optional(),
         publicationId: z.string().max(128).optional(),
         publicationWrite: publicationWriteSchema.optional(),
       },
+      ...Object.fromEntries([
+        [
+          "description",
+          "Upload a PRIVATE file, block or complete CAR (inline max 2 MiB). Omitted DAG blocks require existing read access. OAuth credentials support inline MCP uploads only; HTTP uploads require a separate API token (max 32 MiB). Public-target updates require publicationWrite.acknowledgePublicExposure:true; private links grant nothing.",
+        ],
+      ]),
     },
     ({ kind, name, cid, contentBase64, publicationId, publicationWrite }) =>
       result(async () => {
@@ -219,7 +278,7 @@ export async function handleMcp(
     "publication_create",
     {
       description:
-        "Create a stable public publication from an owned active pin. Title and all revisions are public; private labels and account identity are not.",
+        "Create a private publication from an owned active Pin. Creation does not make content public.",
       inputSchema: publicationCreateSchema.shape,
     },
     ({ title, cid, requestId }) =>
@@ -238,7 +297,7 @@ export async function handleMcp(
     "publication_get",
     {
       description:
-        "Resolve a public publication, optionally at a fixed revision. Same public metadata for everyone.",
+        "Resolve an accessible publication. Private metadata requires owner publications:read; OAuth credentials remain MCP-only.",
       inputSchema: {
         id: z.string().max(128),
         revision: z.number().int().positive().optional(),
@@ -247,7 +306,7 @@ export async function handleMcp(
     },
     ({ id, revision }) =>
       result(async () => {
-        const history = await publicationHistory(env, id);
+        const history = await publicationHistory(env, id, principal);
         if (!revision) return history.publication;
         const fixed = history.revisions.find(
           (item) => item.revision === revision,
@@ -260,11 +319,12 @@ export async function handleMcp(
   server.registerTool(
     "publication_history",
     {
-      description: "Read the complete public revision and pointer history.",
+      description:
+        "Read accessible revision and pointer history under the publication's visibility.",
       inputSchema: { id: z.string().max(128) },
       annotations: { readOnlyHint: true },
     },
-    ({ id }) => result(() => publicationHistory(env, id)),
+    ({ id }) => result(() => publicationHistory(env, id, principal)),
   );
   server.registerTool(
     "publication_publish",
@@ -307,6 +367,24 @@ export async function handleMcp(
       }),
   );
   server.registerTool(
+    "access_set",
+    {
+      description:
+        "Change an owned item's visibility with read and write scopes. acknowledge:true confirms all history exposure and irreversible downloads/copies, or revocation with public-byte overlap. Private links grant no access.",
+      inputSchema: {
+        kind: z.enum(["pin", "publication"]),
+        id: z.string().max(256),
+        ...visibilitySchema.shape,
+      },
+    },
+    ({ kind, id, visibility }) =>
+      result(() =>
+        kind === "pin"
+          ? service.setVisibility(id, visibility)
+          : publications.setVisibility(id, visibility),
+      ),
+  );
+  server.registerTool(
     "recently_deleted",
     {
       description: "List recoverable pins and publications with expiry times.",
@@ -319,7 +397,7 @@ export async function handleMcp(
     "restore",
     {
       description:
-        "Restore the original pin or publication before its 30-day expiry. No revision is created.",
+        "Restore before 30-day expiry, preserving visibility. Public restores reopen anonymous links and ALL history/downloads. Existing copies cannot be recalled. No revision is created.",
       inputSchema: {
         kind: z.enum(["pin", "publication"]),
         id: z.string().max(256),
@@ -328,8 +406,7 @@ export async function handleMcp(
     ({ kind, id }) =>
       result(async () => {
         if (kind === "publication") return publications.restore(id);
-        await restorePin(env, principal, id);
-        return { restored: true };
+        return restorePin(env, principal, id);
       }),
   );
   const transport = new WebStandardStreamableHTTPServerTransport({

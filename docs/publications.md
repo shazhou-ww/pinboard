@@ -1,29 +1,31 @@
 # Publications and recently deleted
 
-A publication gives public immutable content a stable identity. Its random ID
-does not depend on a title, email or private pin label. Publishing does not
-convert or remove the source pin unless **Convert to publication** is explicitly
-selected. Multiple publications may use the same CID. The title and **complete
-revision and pointer history are public**; account identities and private pin
-labels are not included.
+A publication gives immutable content a stable identity. Its random ID does not
+depend on a title, email or private pin label. Publishing does not convert or
+remove the source pin unless **Convert to publication** is explicitly selected.
+Multiple publications may use the same CID. New publications default private;
+their title, descriptions and **complete revision and pointer history** share
+one visibility setting. Account identities and private pin labels are not
+included. See [item access](access-control.md) for authorization, sharing and
+migration.
 
 ## Web
 
 Use a pin's **Publish new version** sidebar action to confirm conversion to a
-new publication with an explicit public title. Original content becomes v1; the
-next task chooses an owned Pin or file/folder upload for v2. Canceling the next
-task does not undo the confirmed conversion. To publish a Pin into an existing
-publication without converting it, drag it onto that publication or select it in
-the publication's **Publish new version** task. The upload dialog also lets you
-**Create a publication** with a separate explicit **Public title**, even when
-you have no publications yet, or select an existing publication. The default
-**Keep as a pin only** does not publish. Upload always finishes first; if
-publication fails, the uploaded pin remains and the UI reports that partial
-success.
+new publication with an explicit title and inherited Pin visibility. Original
+content becomes v1; the next task chooses an owned Pin or file/folder upload for
+v2. Canceling the next task does not undo the confirmed conversion. To publish a
+Pin into an existing publication without converting it, drag it onto that
+publication or select it in the publication's **Publish new version** task. The
+upload dialog also lets you **Create a publication** with a separate explicit
+**Publication title**, even when you have no publications yet, or select an
+existing publication. The default **Keep as a pin only** does not publish.
+Upload always finishes first; if publication fails, the uploaded pin remains and
+the UI reports that partial success.
 
 Drop a file or folder **onto a publication card** to highlight that target and
 confirm upload/publish. Drop onto a fixed Pin to confirm **conversion** with a
-separate, required public title: original content becomes v1, then uploaded
+separate, required publication title: original content becomes v1, then uploaded
 content becomes v2. Cancel does not upload, convert or publish. If conversion
 succeeds but upload/publish fails, the new publication and original v1 remain;
 the error identifies this partial success. Dropping on blank space still makes a
@@ -44,21 +46,23 @@ card. Original CID links remain readable through publication retention. Ordinary
 link and creation remain separate, non-destructive operations.
 
 Pins and publications share the same 4:3 wall cards, preview spacing and
-single-line name/size summary. A publication has a floating icon-only identity
-badge in the top-right corner. Non-image wall previews use compact 12px top
-padding while retaining 24px side padding; ordinary image previews remain
-edge-to-edge. PDF image material instead uses the shared floating-paper layout:
-full aspect ratio, upper-left PDF badge and a separate bottom information row,
-including on touch and keyboard expansion. PDF cards have a 280px minimum height
-so expanded metadata does not squeeze the page to an unrecognizable sliver on
-narrow screens; ordinary cards retain their existing ratio. The Publication
-badge stays at upper right. Unknown source types still display valid material;
-missing material or an image-load failure uses the ordinary source-type icon,
-not an error screen. The publication's **Current v3** and **5 versions**
-information appears with the CID when the information strip expands on hover or
-keyboard focus; touch devices keep that information visible. Rollback does not
-erase later history. Open details to publish another owned pin, inspect the
-public history, make an old version current, or delete.
+single-line name/size summary. Only private cards have a readonly lock
+immediately before the name. A publication has a floating current-vN badge in
+the top-right corner, replacing the Stack icon without changing the card frame.
+Non-image wall previews use compact 12px top padding while retaining 24px side
+padding; ordinary image previews remain edge-to-edge. PDF image material instead
+uses the shared floating-paper layout: full aspect ratio, upper-left PDF badge
+and a separate bottom information row, including on touch and keyboard
+expansion. PDF cards have a 280px minimum height so expanded metadata does not
+squeeze the page to an unrecognizable sliver on narrow screens; ordinary cards
+retain their existing ratio. The Publication badge stays at upper right. Unknown
+source types still display valid material; missing material or an image-load
+failure uses the ordinary source-type icon, not an error screen. The
+publication's **Current v3** and **5 versions** information appears with the CID
+when the information strip expands on hover or keyboard focus; touch devices
+keep that information visible. Rollback does not erase later history. Open
+details to publish another owned pin, inspect the public history, make an old
+version current, or delete.
 
 - `/p/<id>` follows current.
 - `/p/<id>/v/3` identifies fixed revision 3.
@@ -114,19 +118,19 @@ Management endpoints use existing same-origin session or Agent-token checks.
 OAuth credentials remain restricted to `/mcp`. JSON writes use
 `Content-Type: application/json`.
 
-| Method | Route                                    | Input / result                                                   |
-| ------ | ---------------------------------------- | ---------------------------------------------------------------- |
-| POST   | `/api/publications`                      | `{title,cid,public:true,requestId}`; first revision              |
-| POST   | `/api/pins/:cid/convert`                 | `{title,public:true,requestId}`; atomic in-place conversion      |
-| GET    | `/api/publications?cursor=...&q=...`     | owned active publications, `nextCursor`                          |
-| GET    | `/api/publications/:id`                  | owned active publication                                         |
-| POST   | `/api/publications/:id/publish`          | `{cid,expectedSequence,requestId}`                               |
-| POST   | `/api/publications/:id/rollback`         | `{revision,expectedSequence,requestId}`                          |
-| DELETE | `/api/publications/:id`                  | move entire publication to recently deleted                      |
-| POST   | `/api/publications/:id/restore`          | restore before expiry                                            |
-| GET    | `/api/recently-deleted?cursor=...&q=...` | owned recoverable `items`, `nextCursor`, `total`, `matchedTotal` |
-| DELETE | `/api/pins/:cid`                         | move pin to recently deleted                                     |
-| POST   | `/api/pins/:cid/restore`                 | restore before expiry                                            |
+| Method | Route                                    | Input / result                                                        |
+| ------ | ---------------------------------------- | --------------------------------------------------------------------- |
+| POST   | `/api/publications`                      | `{title,cid,requestId}`; private first revision                       |
+| POST   | `/api/pins/:cid/convert`                 | `{title,requestId}`; atomic in-place conversion, inherited visibility |
+| GET    | `/api/publications?cursor=...&q=...`     | owned active publications, `nextCursor`                               |
+| GET    | `/api/publications/:id`                  | owned active publication                                              |
+| POST   | `/api/publications/:id/publish`          | `{cid,expectedSequence,requestId}`                                    |
+| POST   | `/api/publications/:id/rollback`         | `{revision,expectedSequence,requestId}`                               |
+| DELETE | `/api/publications/:id`                  | move entire publication to recently deleted                           |
+| POST   | `/api/publications/:id/restore`          | restore before expiry                                                 |
+| GET    | `/api/recently-deleted?cursor=...&q=...` | owned recoverable `items`, `nextCursor`, `total`, `matchedTotal`      |
+| DELETE | `/api/pins/:cid`                         | move pin to recently deleted                                          |
+| POST   | `/api/pins/:cid/restore`                 | restore before expiry                                                 |
 
 `publications:read` permits private publication listing and recovery listing.
 Recovery counts exclude expired items and other accounts, respect read scopes,
@@ -300,7 +304,7 @@ public representation.
 | `/api/public/publications/:id/download`   | CAR for current resolved once              |
 | `/api/public/publications/:id/download/3` | CAR for fixed revision                     |
 
-These responses use `Cache-Control: public, no-cache` and
+These responses use `Cache-Control: private, no-store` and
 representation-specific ETags. `If-None-Match` can return 304, but activity is
 checked first: deleted publications return 404 for current, fixed, preview,
 download and history reads, even with an old validator. Metadata and preview

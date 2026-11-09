@@ -311,6 +311,7 @@ it("publishes the generic WebP descriptor through protected, public publication 
     throw new Error("Expected image descriptor");
   const image = await runtime.dispatchFetch(
     `https://pdf.test${descriptor.preview.image.url}`,
+    { headers },
   );
   expect(image.status).toBe(200);
   expect(image.headers.get("content-type")).toBe("image/webp");
@@ -323,6 +324,10 @@ it("publishes the generic WebP descriptor through protected, public publication 
       true,
     )
   ).publication;
+  await new PublicationService(env, owner).setVisibility(
+    publication.id,
+    "public",
+  );
   expect(
     await env.DB.prepare("SELECT count(*) AS n FROM pins WHERE cid = ?")
       .bind(pin.cid)

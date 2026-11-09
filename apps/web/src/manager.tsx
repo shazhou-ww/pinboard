@@ -42,9 +42,21 @@ import { DetailHeading, discardDetailsDraft } from "./detail-actions.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
 import { LoadingIndicator, LoadingReveal } from "./loading.js";
+import { AccessDialog, confirmPublicSource } from "./access.js";
 
 const pinDragType = "application/x-pinboard-pin";
 type UploadTarget = Pin | Publication;
+function publicationTargetVisibility(
+  id: string,
+  publications: readonly Publication[],
+  target: UploadTarget | null,
+) {
+  return id === "create"
+    ? "private"
+    : id === "convert"
+      ? target?.visibility
+      : publications.find((item) => item.id === id)?.visibility;
+}
 
 export const publicReminderKey = "pinboard:skip-public-upload-reminder";
 export async function requestJson<T>(
@@ -73,6 +85,10 @@ export async function publishUploadedPin(
   target: Publication | { title: string },
 ): Promise<PublicationResult> {
   const existing = "id" in target;
+  if (existing && !confirmPublicSource(pin.visibility, target.visibility))
+    throw new Error(
+      "Publication canceled. The uploaded private Pin is preserved.",
+    );
   const requestId = crypto.randomUUID();
   try {
     return await requestJson<PublicationResult>(
@@ -82,11 +98,15 @@ export async function publishUploadedPin(
         headers: { "content-type": "application/json" },
         body: JSON.stringify(
           existing
-            ? { cid: pin.cid, expectedSequence: target.sequence, requestId }
+            ? {
+                cid: pin.cid,
+                expectedSequence: target.sequence,
+                requestId,
+                acknowledgePublicExposure: target.visibility === "public",
+              }
             : {
                 cid: pin.cid,
                 title: target.title.trim(),
-                public: true,
                 requestId,
               },
         ),
@@ -140,6 +160,7 @@ export function AccountManager({
   const tokenIncludeInactive = useRef(false);
   tokenIncludeInactive.current = includeInactiveTokens;
   const [selected, setSelected] = useState<Pin | null>(null);
+  const [accessOpen, setAccessOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [descriptionBusy, setDescriptionBusy] = useState(false);
   const [descriptionDirty, setDescriptionDirty] = useState(false);
@@ -166,8 +187,6 @@ export function AccountManager({
   const [oauthBusy, setOauthBusy] = useState(false);
   const [tokensLoading, setTokensLoading] = useState(true);
   const [tokensError, setTokensError] = useState("");
-  const [skipReminder, setSkipReminder] = useState(false);
-  const [rememberReminder, setRememberReminder] = useState(false);
   const [uploadName, setUploadName] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [tokenScopes, setTokenScopes] = useState(["pins:read"]);
@@ -189,6 +208,7 @@ export function AccountManager({
 
   const selectedCid = selected?.cid;
   useEffect(() => {
+    setAccessOpen(false);
     if (!selectedCid) {
       setDetailsLoading(false);
       return;
@@ -222,15 +242,6 @@ export function AccountManager({
     return () => clearTimeout(timer);
   }, [notice]);
 
-  useEffect(() => {
-    try {
-      setSkipReminder(localStorage.getItem(publicReminderKey) === "true");
-    } catch {
-      setError(
-        "Browser preferences are unavailable. Public upload reminders will remain enabled.",
-      );
-    }
-  }, []);
   const refresh = async () => {
     await Promise.all([lists.refresh(), loadTokens()]);
   };
@@ -293,7 +304,6 @@ export function AccountManager({
       return;
     }
     setUploadSelection(null);
-    setRememberReminder(false);
     void perform(async () => {
       setProgress("Reading selection...");
       const selection = await prepare();
@@ -464,17 +474,6 @@ export function AccountManager({
         await lists.refresh();
       }
       try {
-        if (!skipReminder && rememberReminder) {
-          try {
-            localStorage.setItem(publicReminderKey, "true");
-            setSkipReminder(true);
-          } catch {
-            setRememberReminder(false);
-            throw new Error(
-              "Could not save the browser preference. Uncheck 'Do not remind me in this browser' and try again.",
-            );
-          }
-        }
         let body: Blob;
         let kind: "file" | "car";
         if (uploadSelection.kind === "folder") {
@@ -498,11 +497,11 @@ export function AccountManager({
               kind === "car"
                 ? "application/vnd.ipld.car"
                 : "application/octet-stream",
-            "x-pinboard-public": "true",
           },
           body,
         });
         setUploadSelection(null);
+        setSelected(pin);
         if (uploadPublication) {
           const target =
             converted ??
@@ -514,6 +513,8 @@ export function AccountManager({
               `Upload succeeded (${pin.cid}); publication no longer selected. Pin preserved.`,
             );
           const result = await publishUploadedPin(pin, target);
+          setSelected(null);
+          setSelectedPublication(result.publication);
           setNotice(
             (result.status === "nop"
               ? "Uploaded. Already current; no version was created and draft description changes were not applied."
@@ -526,8 +527,8 @@ export function AccountManager({
         await refresh();
         setNotice(
           lists.filtered
-            ? "Pinned. These bytes are now public. Clear the filter to see all items."
-            : "Pinned. These bytes are now public.",
+            ? "Pinned privately. Clear the filter to see all items."
+            : "Pinned privately. Manage access from details.",
         );
       } catch (failure) {
         await lists.refresh();
@@ -890,7 +891,7 @@ export function AccountManager({
           {uploadPublication === "create" || uploadPublication === "convert" ? (
             <>
               <label>
-                Public title
+                Publication title
                 <input
                   value={uploadPublicTitle}
                   disabled={busy}
@@ -900,9 +901,9 @@ export function AccountManager({
                 />
               </label>
               <p className="muted">
-                This title and the complete version history will be public. Your
-                private pin name stays private. If publication fails, your
-                uploaded pin is preserved.
+                New publications are private. Conversion keeps the source's
+                access setting. If publication fails, your uploaded private Pin
+                is preserved.
               </p>
             </>
           ) : uploadPublication ? (
@@ -911,27 +912,30 @@ export function AccountManager({
               the same. If publication fails, your uploaded pin is preserved.
             </p>
           ) : null}
-          {!skipReminder ? (
-            <div className="public-reminder">
-              <strong>Uploaded content will be public</strong>
+          <div className="public-reminder">
+            <strong>New content is private</strong>
+            <p>
+              New items are readable by your account and appropriately
+              authorized Agents. Existing items keep their access setting, and
+              shared bytes may remain public through other public references.
+              After upload, manage access and sharing from details.
+            </p>
+            {publicationTargetVisibility(
+              uploadPublication,
+              actionItems.publications,
+              uploadTarget,
+            ) && (
               <p>
-                Anyone with the CID can read these bytes, even after unpinning.
-                Downloaded or cached copies cannot be recalled. Do not upload
-                sensitive information.
+                Publication access:{" "}
+                {publicationTargetVisibility(
+                  uploadPublication,
+                  actionItems.publications,
+                  uploadTarget,
+                )}
+                . Updates keep this setting; return to details to change it.
               </p>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  disabled={busy}
-                  checked={rememberReminder}
-                  onChange={(event) =>
-                    setRememberReminder(event.target.checked)
-                  }
-                />
-                Do not remind me in this browser
-              </label>
-            </div>
-          ) : null}
+            )}
+          </div>
           <div className="actions">
             <button
               type="button"
@@ -1031,6 +1035,7 @@ export function AccountManager({
                     size: publication.current.size,
                     blocks: publication.current.blocks,
                     createdAt: publication.createdAt,
+                    visibility: publication.visibility,
                   }}
                   publication={publication}
                   busy={busy}
@@ -1140,6 +1145,8 @@ export function AccountManager({
               heading={(contentType) => (
                 <DetailHeading
                   name={selected.name}
+                  visibility={selected.visibility}
+                  onAccess={() => setAccessOpen(true)}
                   cid={selected.cid}
                   contentType={contentType}
                   disabled={
@@ -1214,6 +1221,19 @@ export function AccountManager({
           </div>
         ) : null}
       </Dialog>
+      {selected && (
+        <AccessDialog
+          open={accessOpen}
+          kind="pin"
+          id={selected.cid}
+          item={selected}
+          onClose={() => setAccessOpen(false)}
+          onSaved={(pin) => {
+            setSelected(pin);
+            void lists.refresh();
+          }}
+        />
+      )}
       <SettingsDialog
         open={settingsOpen}
         busy={busy || oauthBusy}
@@ -1469,33 +1489,13 @@ export function AccountManager({
                 disabled={busy || oauthBusy}
                 onError={setError}
               />
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={!skipReminder}
-                  disabled={busy || oauthBusy}
-                  onChange={(event) => {
-                    try {
-                      if (event.target.checked)
-                        localStorage.removeItem(publicReminderKey);
-                      else localStorage.setItem(publicReminderKey, "true");
-                      setSkipReminder(!event.target.checked);
-                    } catch {
-                      setError(
-                        "Could not save browser preferences. Try enabling browser storage.",
-                      );
-                    }
-                  }}
-                />
-                Remind me that uploaded content is public
-              </label>
               <p className="muted">
-                Saved only in this browser. Not synced to your account or other
-                devices.
+                New content is private. Manage access and sharing from item
+                details.
               </p>
               <p className="muted policy">
-                Disabling reminders does not make uploads private. Other nodes,
-                CDN and downloaded copies may remain.
+                Making previously public content private cannot recall copies
+                from other nodes, caches or downloads.
               </p>
               <section className="settings-mcp">
                 <h2>Configure MCP</h2>
@@ -1665,8 +1665,11 @@ export function PinCard({
         <PinPreview pin={pin} client={previews} />
       )}
       {publication ? (
-        <span className="publication-badge" role="img" aria-label="Publication">
-          <Icon name="publication" size={14} />
+        <span
+          className="publication-badge"
+          aria-label={`Current v${publication.currentRevision}`}
+        >
+          v{publication.currentRevision}
         </span>
       ) : null}
       <button
@@ -1703,6 +1706,16 @@ export function PinCard({
         }}
       >
         <div className="pin-info-summary">
+          {(publication?.visibility ?? pin.visibility) === "private" && (
+            <span
+              className="pin-lock"
+              role="img"
+              aria-label="Private"
+              title="Private"
+            >
+              <Icon name="lock" size={14} />
+            </span>
+          )}
           <strong className="pin-name" title={pin.name}>
             {pin.name}
           </strong>

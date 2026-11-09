@@ -23,11 +23,14 @@ apply draft description changes. See [publication semantics](publications.md).
 
 ## Publications and recovery
 
-Publication titles and the complete revision history are public. Private pin
-labels and account identity are not. Existing pin-write tokens do not gain
-publication authority: explicitly grant the appropriate `publications:read`,
-`publications:write` or `publications:delete` scopes. Publishing an existing pin
-also needs `pins:read`; uploading needs `pins:write`.
+Publication titles and complete history share item visibility; new items are
+private. Existing items remain public after the additive visibility migration.
+Private pin labels and account identity are not exposed by public byte overlap.
+See [access control](access-control.md) for explicit sharing commands and
+scopes. Existing pin-write tokens do not gain publication authority: explicitly
+grant the appropriate `publications:read`, `publications:write` or
+`publications:delete` scopes. Publishing an existing pin also needs `pins:read`;
+uploading needs `pins:write`.
 
 ```powershell
 pinboard publication create <CID> --title "Field notes" --request-id create-notes
@@ -47,13 +50,15 @@ pinboard remove <CID>
 pinboard restore <CID>
 ```
 
-Public get/history/download/export commands send no token. Publication downloads
-resolve once and verify/download only that actual CID for the whole operation.
-Omit `--revision` to resolve current. `--sequence` is the current publication
-sequence, not a revision number. Retry an uncertain operation with the same
-`--request-id` and identical payload to get its persisted result. Outdated
-sequence or request-ID payload reuse yields 409. Current-CID publish is NOP;
-noncurrent historical CID creates a new revision. Rollback creates none.
+Read commands use optional configured/supplied credentials for private access,
+including get/history/download/export. Public reads need no credential.
+Publication downloads resolve once and verify/download only that actual CID for
+the whole operation. Omit `--revision` to resolve current. `--sequence` is the
+current publication sequence, not a revision number. Retry an uncertain
+operation with the same `--request-id` and identical payload to get its
+persisted result. Outdated sequence or request-ID payload reuse yields 409.
+Current-CID publish is NOP; noncurrent historical CID creates a new revision.
+Rollback creates none.
 
 Upload/import with `--publication` preserves the successful pin if publication
 fails, emits `{pin,partialSuccess:true,publicationError}` (also with `--json`)
@@ -107,12 +112,14 @@ Running `pinboard` or `pinboard --help` shows a concise command and option
 reference. Detailed behavior, endpoint resolution and credential handling are
 documented below.
 
-## Public uploads
+## Private uploads and explicit sharing
 
-**Every upload/import publishes public content. Anyone knowing the CID can read
-the blocks. Removing your pin does not erase public blocks, CDN caches, or other
-people's copies.** There is no private mode, public flag, or confirmation
-prompt. Review the input, especially hidden files, before running an upload.
+**Every new upload/import is private. Knowing the CID grants no access.**
+`pinboard access pin|publication ID private|public --acknowledge` changes
+access; public exposes all history and downloads, private cannot recall external
+copies or bytes with other public references. There is no upload visibility
+picker or confirmation prompt. Review the input, especially hidden files, before
+running an upload.
 
 ```powershell
 pinboard config set endpoint https://pinboard.shazhou.work
@@ -185,20 +192,21 @@ pinboard export CID --output .\archive.car
 pinboard import .\archive.car
 ```
 
-Both fetch content from the selected endpoint's public CAR API, without an
-Authorization header. Endpoint and timeout options still apply; redirects are
-refused. No pin is created by either command.
+Both fetch content from the selected endpoint's authorization-aware CAR API,
+using an optional scoped Agent credential. Endpoint and timeout options still
+apply; redirects are refused. No pin is created by either command.
 
-`--output` always wins and skips credentials and private metadata entirely.
+`--output` always wins and skips filename metadata, not byte authorization.
 Otherwise, an available `PINBOARD_AGENT_TOKEN` or endpoint-bound stored token is
-used only to inspect the pin's name (`pins:read` required). Download uses that
-name as-is; export appends `.car` unless the name already ends in `.car`
-(case-insensitive). Names are treated as a single portable filename, never a
-path. Missing credentials, HTTP 401/403/404 for metadata, or an unsafe/overlong
-name cause an explicit warning and fallback to `.\CID` or `.\CID.car`. Invalid
-local credentials/configuration, network errors, server failures and malformed
-metadata remain errors, not silent fallbacks. `--token-stdin` is not accepted by
-these public read commands.
+used for private byte reads and to inspect the pin's name (`pins:read`
+required). Download uses that name as-is; export appends `.car` unless the name
+already ends in `.car` (case-insensitive). Names are treated as a single
+portable filename, never a path. Missing credentials, HTTP 401/403/404 for
+metadata, or an unsafe/overlong name cause an explicit warning and fallback to
+`.\CID` or `.\CID.car`. Invalid local credentials/configuration, network errors,
+server failures and malformed metadata remain errors, not silent fallbacks.
+`--token-stdin` is accepted by these read commands; OAuth credentials remain
+MCP-only.
 
 The destination must not exist, and its parent must already be a real directory.
 Existing files, directories and links are never overwritten or merged.

@@ -15,8 +15,9 @@ export async function publishedDescription(
   version: number,
   node: string,
   schedule?: (work: Promise<void>) => void,
+  principal?: Principal,
 ): Promise<NodeDescription> {
-  const { revision } = await resolvePublication(env, id, version);
+  const { revision } = await resolvePublication(env, id, version, principal);
   const nodeCid = key(parseCid(node));
   const reachable = await env.DB.prepare(
     "SELECT 1 FROM dag_members WHERE root = ? AND cid = ?",

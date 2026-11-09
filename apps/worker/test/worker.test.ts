@@ -431,7 +431,7 @@ describe("identity and HTTP boundaries", () => {
 });
 
 describe("pins and immutable public reads", () => {
-  it("requires explicit public consent, then imports a file", async () => {
+  it("imports privately without public consent, then shares explicitly", async () => {
     expect(
       (
         await request("/api/pins/upload?kind=file", {
@@ -440,7 +440,7 @@ describe("pins and immutable public reads", () => {
           body: bytes,
         })
       ).status,
-    ).toBe(400);
+    ).toBe(201);
     const response = await request(
       "/api/pins/upload?kind=file&name=page.html",
       {
@@ -452,6 +452,10 @@ describe("pins and immutable public reads", () => {
     expect(response.status).toBe(201);
     const pin = await response.json<{ cid: string; blocks: number }>();
     cid = pin.cid;
+    expect(await new PinService(env, alice).detail(cid)).toMatchObject({
+      visibility: "private",
+    });
+    await new PinService(env, alice).setVisibility(cid, "public");
     expect(pin.blocks).toBe(1);
   });
   it("provides raw HEAD/GET, probe and routing in both standard formats", async () => {
@@ -527,6 +531,7 @@ describe("pins and immutable public reads", () => {
       "Bob's pin",
     );
     expect(receipt.cid).toBe(cid);
+    await new PinService(env, bob).setVisibility(cid, "public");
     await new PinService(env, alice).pin(cid, "renamed");
     await new PinService(env, alice).unpin(cid);
     expect((await new PinService(env, bob).detail(cid)).name).toBe("Bob's pin");
@@ -542,7 +547,7 @@ describe("pins and immutable public reads", () => {
     const missing = (await importFile(new Uint8Array([100]))).root.toString();
     await expect(
       new PinService(env, alice).pin(missing, "Missing"),
-    ).rejects.toMatchObject({ status: 400 });
+    ).rejects.toMatchObject({ status: 404 });
   });
   it("supports raw block uploads and denies missing or mismatched CIDs", async () => {
     const service = new PinService(env, alice);
@@ -589,6 +594,10 @@ describe("independent account-scoped pin rename API", () => {
       content,
       "file",
       "Original",
+    );
+    original = await new PinService(env, alice).setVisibility(
+      original.cid,
+      "public",
     );
     await new PinService(env, bob).pin(original.cid, "Bob's independent name");
   });
@@ -845,6 +854,10 @@ describe("Agent credentials and MCP share account authorization", () => {
     expect(await (await rpc("unpin", { cid: pin.cid })).json()).toMatchObject({
       result: { content: [{ text: '{"unpinned":true}' }] },
     });
+    expect(
+      await rpcText(await rpc("pin", { cid: pin.cid, name: "denied" })),
+    ).toContain("404");
+    await rpc("restore", { kind: "pin", id: pin.cid });
     expect(
       await rpcText(
         await rpc("pin", { cid: pin.cid, name: "repinned", public: true }),

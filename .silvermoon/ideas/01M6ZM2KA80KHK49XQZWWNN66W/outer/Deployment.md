@@ -6,13 +6,34 @@
 
 按仓库部署指南确认存量策略、回退风险及旧公开缓存处理，取得独立的生产发布与 D1 迁移授权；构想验收不授权部署。
 
+本次用户已明确授权由父任务代审所有门限、触发生产部署和执行 smoke／新增功能验证，并单独批准必要的加性 D1 权限字段及索引；保留全部数据和存量公开状态，不清库、不扩权。目标为
+`pinboard.shazhou.work`、Worker `pinboard`、D1
+`9f15fd50-e103-459f-9f3f-9db3036f91de`。先完成精确候选的四项 CI 矩阵；发布前核对只剩
+`0009_item_visibility.sql`
+待应用、所有存活根已验证，并检查字段缺失和迁移账本，防止重复回填覆盖后续私有设置。
+
 ### D-S02: 执行授权发布与缓存处理
 
 获准后分别执行必要迁移、标签驱动发布和可控 CDN 清理，告知已有浏览器缓存及外部副本无法收回。
 
+仅执行 `0009_item_visibility.sql` 的加性迁移，再发布指向已经在 `origin/main`
+的受验候选的下一枚 annotated `release-YYMMDD-INDEX` 标签。核对实际 Worker
+version、精确工作流、静态资源以及 D1 字段／索引／外键检查。旧版 `/ipfs/*`
+与 providers 缓存必须处理：仅清理本服务 origin 的缓存，不清理整个共享 zone；若 origin 级 purge 不可用，改用已枚举的本服务精确 URL。不回退到忽略私有权限的旧版应用，故障优先前向修复。
+
 ### D-S03: 验收真实访问与交互
 
 在获准环境以两个账号、匿名请求和受限 Agent 验证私有下载、公开分享、共享内容和历史；确认最终界面并留存可复核证据。
+
+通过真实已登录的 Chrome 会话为所属账号创建一天有效的专用全权限、只读和仅上传 Agent
+Token；凭证只保存在进程内，验收后通过真实浏览器 API 撤销。第二账号使用用户提供的 cfg
+`PINBOARD_ACCEPTANCE_OTHER_TOKEN`，确认账号不同，用完后删除且仅删除该 cfg
+key。不提取 Cookie、不伪造登录、不插入合成数据库账号。
+
+运行 `scripts/access-http-check.mjs`
+完整模式，要求匿名／第二账号／仅上传私有 GET、HEAD、ETag、下载和引用被拒绝，作者只读可读不可改，公开重叠元数据仍隔离，撤销最后公开引用与恢复不意外开放。补充原文件和完整 CAR 独立重建、更新／回滚当前版本及真实 Web 锁位置／详情操作。使用本次独立随机 fixture，以及发布前记录的 legacy-public
+fixture 验证存量兼容；只清理本次创建的项，不修改其他生产内容。所有结果记录在 Outer
+supporting evidence。
 
 ## Acceptance criteria
 

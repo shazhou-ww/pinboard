@@ -258,7 +258,7 @@ it("generates through the real authenticated API and MCP, with no preview-only a
   if (descriptor!.preview?.kind !== "image") throw new Error("not image");
   const image = await runtime.dispatchFetch(
     `https://local.test${descriptor!.preview.image.url}`,
-    { headers: { accept: "image/webp,*/*" } },
+    { headers: { accept: "image/webp,*/*", authorization } },
   );
   expect(image.headers.get("content-type")).toBe("image/webp");
   const imageBytes = new Uint8Array(await image.arrayBuffer());

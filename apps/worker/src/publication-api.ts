@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { AppEnv } from "./identity.js";
@@ -14,6 +14,7 @@ import { boundedBody } from "./content.js";
 import { publishedDescription } from "./descriptions.js";
 import { getCar } from "./storage.js";
 import { downloadContent } from "./download.js";
+import { optionalIdentity, authorizePublication } from "./access.js";
 import { getPreview, processPreview } from "./previews.js";
 import {
   itemFilterSchema,
@@ -23,13 +24,21 @@ import {
   publicationRollbackSchema,
   publicationWriteSchema,
   validate,
+  visibilitySchema,
 } from "./schemas.js";
 
 export const publicationApi = new Hono<AppEnv>();
-publicationApi.use("/api/public/publications/*", async (c, next) => {
-  c.header("Cache-Control", "public, no-cache");
-  await next();
-});
+publicationApi.use(
+  "/api/public/publications/*",
+  async (c: Context<AppEnv>, next) => {
+    c.header("Cache-Control", "private, no-store");
+    const principal = await optionalIdentity(c);
+    if (principal) c.set("principal", principal);
+    const id = c.req.path.split("/")[4];
+    if (id) await authorizePublication(c.env, id, principal);
+    await next();
+  },
+);
 publicationApi.get(
   "/api/public/publications/:id/versions/:revision/nodes/:node/description",
   async (c) => {
@@ -38,6 +47,8 @@ publicationApi.get(
       c.req.param("id"),
       Number(c.req.param("revision")),
       c.req.param("node"),
+      undefined,
+      c.get("principal"),
     );
     const preview = result.description.preview;
     if (preview.status === "pending" || preview.status === "failed")
@@ -66,13 +77,14 @@ publicationApi.get(
       c.env,
       c.req.param("id"),
       Number(c.req.param("revision")),
+      c.get("principal"),
     );
     const preview = await getPreview(c.env, revision.cid);
     if (preview.status === "pending" || preview.status === "failed")
       c.executionCtx.waitUntil(processPreview(c.env, revision.cid));
     const body = JSON.stringify(preview);
     const etag = `"${await hashToken(`publication-preview-v1:${publication.sequence}:` + body)}"`;
-    c.header("Cache-Control", "public, no-cache");
+    c.header("Cache-Control", "private, no-store");
     c.header("ETag", etag);
     c.header("Content-Type", "application/json; charset=UTF-8");
     if (
@@ -93,11 +105,11 @@ publicationApi.get("/api/public/publications/:id/:view?", async (c, next) => {
   if (view && view !== "history") return next();
   const body = JSON.stringify(
     view === "history"
-      ? await publicationHistory(c.env, c.req.param("id"))
-      : await readPublication(c.env, c.req.param("id")),
+      ? await publicationHistory(c.env, c.req.param("id"), c.get("principal"))
+      : await readPublication(c.env, c.req.param("id"), c.get("principal")),
   );
   const etag = `"${await hashToken("publication-json-v1:" + body)}"`;
-  c.header("Cache-Control", "public, no-cache");
+  c.header("Cache-Control", "private, no-store");
   c.header("ETag", etag);
   c.header("Content-Type", "application/json; charset=UTF-8");
   if (
@@ -119,10 +131,11 @@ publicationApi.get(
       c.env,
       c.req.param("id"),
       Number(c.req.param("revision")),
+      c.get("principal"),
     );
     const body = JSON.stringify(resolved);
     const etag = `"${await hashToken("publication-fixed-json-v1:" + body)}"`;
-    c.header("Cache-Control", "public, no-cache");
+    c.header("Cache-Control", "private, no-store");
     c.header("ETag", etag);
     c.header("Content-Type", "application/json; charset=UTF-8");
     if (
@@ -146,6 +159,7 @@ publicationApi.get(
       c.env,
       c.req.param("id"),
       fixed ? Number(fixed) : undefined,
+      c.get("principal"),
     );
     const format = c.req.query("format");
     if (format !== undefined && format !== "car" && format !== "original")
@@ -157,7 +171,7 @@ publicationApi.get(
         c.req.raw,
         c.req.query("name"),
       );
-      response.headers.set("Cache-Control", "public, no-cache");
+      response.headers.set("Cache-Control", "private, no-store");
       return response;
     }
     const car = await getCar(c.env, revision.cid);
@@ -176,12 +190,12 @@ publicationApi.get(
       if (car.body instanceof ReadableStream) await car.body.cancel();
       return new Response(null, {
         status: 304,
-        headers: { ETag: etag, "Cache-Control": "public, no-cache" },
+        headers: { ETag: etag, "Cache-Control": "private, no-store" },
       });
     }
     return new Response(car.body, {
       headers: {
-        "Cache-Control": "public, no-cache",
+        "Cache-Control": "private, no-store",
         "Content-Type": "application/vnd.ipld.car; version=1",
         "Content-Length": String(car.size),
         "Content-Disposition": `attachment; filename="${revision.cid}.car"`,
@@ -201,6 +215,10 @@ publicationApi.get("/api/publications", async (c) => {
     await new PublicationService(c.env, c.get("principal")).list(
       validate(z.string().max(256).optional(), c.req.query("cursor")),
       validate(itemFilterSchema, c.req.query("q")),
+      validate(
+        z.enum(["all", "private", "public"]).default("all"),
+        c.req.query("visibility"),
+      ),
     ),
   );
 });
@@ -235,6 +253,15 @@ publicationApi.get("/api/publications/:id", async (c) => {
   return c.json(
     await new PublicationService(c.env, c.get("principal")).owned(
       c.req.param("id"),
+    ),
+  );
+});
+publicationApi.patch("/api/publications/:id/visibility", async (c) => {
+  const input = validate(visibilitySchema, await jsonBody(c.req.raw));
+  return c.json(
+    await new PublicationService(c.env, c.get("principal")).setVisibility(
+      c.req.param("id"),
+      input.visibility,
     ),
   );
 });
@@ -283,11 +310,9 @@ publicationApi.get("/api/recently-deleted", async (c) => {
   );
 });
 publicationApi.post("/api/publications/:id/upload", async (c) => {
-  if (c.req.header("x-pinboard-public") !== "true")
-    throw new HTTPException(400, {
-      message: "Acknowledge public content with X-Pinboard-Public: true",
-    });
   const write = validate(publicationWriteSchema, {
+    acknowledgePublicExposure:
+      c.req.header("x-pinboard-public-exposure") === "true",
     requestId: c.req.header("idempotency-key"),
     expectedSequence: Number(c.req.header("if-publication-sequence")),
   });
@@ -310,6 +335,7 @@ publicationApi.post("/api/publications/:id/upload", async (c) => {
   return c.json(result, "partialSuccess" in result ? 207 : 201);
 });
 publicationApi.post("/api/pins/:cid/restore", requireIdentity, async (c) => {
-  await restorePin(c.env, c.get("principal"), c.req.param("cid"));
-  return c.json({ restored: true });
+  return c.json(
+    await restorePin(c.env, c.get("principal"), c.req.param("cid")),
+  );
 });

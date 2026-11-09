@@ -11,7 +11,10 @@ import {
 import { migrate } from "./migrations.js";
 import type { Bindings } from "../src/env.js";
 import { accountForGoogle, type Principal } from "../src/identity.js";
-import { PublicationService, publicationHistory } from "../src/publications.js";
+import {
+  PublicationService,
+  publicationHistory as accessibleHistory,
+} from "../src/publications.js";
 import { PinService } from "../src/service.js";
 import {
   expireDeleted,
@@ -20,7 +23,7 @@ import {
   restorePin,
 } from "../src/recently-deleted.js";
 import { runRetention, CONTENT_RETENTION_MS } from "../src/retention.js";
-import { readBlock, getCar } from "../src/storage.js";
+import { readBlock, getCar, storeDag } from "../src/storage.js";
 import app from "../src/index.js";
 import { handleMcp } from "../src/mcp.js";
 import { scopes, type Scope } from "../src/schemas.js";
@@ -53,16 +56,20 @@ let owner: Principal;
 let pins: PinService;
 let publications: PublicationService;
 let counter = 0;
+const publicationHistory = (bindings: Bindings, id: string) =>
+  accessibleHistory(bindings, id, owner);
 const write = (expectedSequence: number) => ({
   expectedSequence,
   requestId: `request-${++counter}`,
 });
-const upload = async () =>
-  pins.upload(
+const upload = async () => {
+  const pin = await pins.upload(
     new TextEncoder().encode(`publication content ${++counter}`),
     "file",
     "Private label",
   );
+  return pins.setVisibility(pin.cid, "public");
+};
 async function legacyPin() {
   const child = await importFile(
     new TextEncoder().encode(`legacy publication ${++counter}`),
@@ -75,7 +82,7 @@ async function legacyPin() {
   for (const [cid, bytes] of dag.blocks) await env.BLOCKS.put(cid, bytes);
   const cid = key(dag.root);
   await env.DB.prepare(
-    "INSERT INTO pins (account_id, cid, name, size, blocks) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, ?, ?, ?, 'public')",
   )
     .bind(
       owner.accountId,
@@ -270,11 +277,22 @@ describe("scoped node descriptions and conversion", () => {
         ...owner,
         accountId: await accountForGoogle(local.DB, "old-migration-account"),
       };
-      const pin = await new PinService(local, principal).upload(
+      const dag = await importFile(
         new TextEncoder().encode("Legacy bytes stay fixed"),
-        "file",
-        "Old private name",
       );
+      await storeDag(local, dag);
+      const pin = await local.DB.prepare(
+        "INSERT INTO pins (account_id, cid, name, size, blocks) VALUES (?, ?, 'Old private name', ?, ?) RETURNING cid, name, size, blocks, created_at AS createdAt",
+      )
+        .bind(principal.accountId, key(dag.root), dag.size, dag.blocks.size)
+        .first<{
+          cid: string;
+          name: string;
+          size: number;
+          blocks: number;
+          createdAt: string;
+        }>();
+      if (!pin) throw new Error("Legacy fixture missing");
       const now = new Date().toISOString();
       await local.DB.batch([
         local.DB.prepare(
@@ -292,9 +310,10 @@ describe("scoped node descriptions and conversion", () => {
         (await publicationHistory(local, "old-publication")).revisions[0]!
           .descriptions,
       ).toEqual({});
-      expect(await new PinService(local, principal).detail(pin.cid)).toEqual(
-        pin,
-      );
+      expect(await new PinService(local, principal).detail(pin.cid)).toEqual({
+        ...pin,
+        visibility: "public",
+      });
       const descriptions = new DescriptionService(local, principal);
       await descriptions.write(pin.cid, pin.cid, {
         text: "New private sidecar",
@@ -389,6 +408,7 @@ describe("scoped node descriptions and conversion", () => {
     await expect(otherService.read(pin.cid, node)).rejects.toMatchObject({
       status: 404,
     });
+    await pins.setVisibility(pin.cid, "public");
     await new PinService(env, other).pin(pin.cid, "Different private label");
     expect(
       (await otherService.read(pin.cid, node)).description.user.text,
@@ -1177,11 +1197,16 @@ describe("publication HTTP boundaries", () => {
       write(1).requestId,
     );
     await publications.publish(publication.id, b.cid, write(1));
+    await env.DB.prepare(
+      "UPDATE publications SET visibility = 'public' WHERE id = ?",
+    )
+      .bind(publication.id)
+      .run();
     const path = `/api/public/publications/${publication.id}`;
     for (const suffix of ["", "/history", "/versions/1"]) {
       const current = await httpRequest(path + suffix);
       expect(current.status).toBe(200);
-      expect(current.headers.get("cache-control")).toBe("public, no-cache");
+      expect(current.headers.get("cache-control")).toBe("private, no-store");
       const etag = current.headers.get("etag")!;
       for (const value of [`"unrelated", W/${etag}`, "*"]) {
         const cached = await httpRequest(path + suffix, {
@@ -1239,7 +1264,7 @@ describe("publication HTTP boundaries", () => {
         headers: { "if-none-match": "*" },
       });
       expect(deleted.status).toBe(404);
-      expect(deleted.headers.get("cache-control")).toBe("public, no-cache");
+      expect(deleted.headers.get("cache-control")).toBe("private, no-store");
     }
   });
 
@@ -1250,6 +1275,11 @@ describe("publication HTTP boundaries", () => {
       pin.cid,
       write(1).requestId,
     );
+    await env.DB.prepare(
+      "UPDATE publications SET visibility = 'public' WHERE id = ?",
+    )
+      .bind(publication.id)
+      .run();
     const path = `/api/public/publications/${publication.id}/preview/1`;
     const initial = await httpRequest(path);
     expect(await initial.json()).toMatchObject({ status: "pending" });
@@ -1283,6 +1313,11 @@ describe("publication HTTP boundaries", () => {
       broken.cid,
       write(1).requestId,
     );
+    await env.DB.prepare(
+      "UPDATE publications SET visibility = 'public' WHERE id = ?",
+    )
+      .bind(second.publication.id)
+      .run();
     const archive = (await env.DB.prepare(
       "SELECT object_key FROM car_dags WHERE root = ?",
     )
@@ -1404,6 +1439,7 @@ describe("publication HTTP boundaries", () => {
         kind: "pin",
         id: source.cid,
         title: "Private pagination label",
+        visibility: "private",
         deletedAt: page.items[0]!.deletedAt,
         expiresAt: page.items[0]!.expiresAt,
       },
@@ -1491,9 +1527,9 @@ describe("publication HTTP boundaries", () => {
         })
       ).status,
     ).toBe(200);
-    expect(
-      (await httpRequest(`/api/public/publications/${target.id}`)).status,
-    ).toBe(200);
+    expect((await call(`/api/public/publications/${target.id}`)).status).toBe(
+      200,
+    );
     await call("/api/publications/" + target.id, { method: "DELETE" });
     await env.DB.prepare("UPDATE publications SET expires_at = ? WHERE id = ?")
       .bind(new Date(0).toISOString(), target.id)
@@ -1950,11 +1986,16 @@ describe("publications and recovery", () => {
       a.cid,
       write(1).requestId,
     );
+    await env.DB.prepare(
+      "UPDATE publications SET visibility = 'public' WHERE id = ?",
+    )
+      .bind(initial.id)
+      .run();
     const path = `/api/public/publications/${initial.id}`;
     const get = (suffix = "", headers?: HeadersInit) =>
       app.request(origin + path + suffix, headers ? { headers } : {}, env);
     const current = await get();
-    expect(current.headers.get("cache-control")).toBe("public, no-cache");
+    expect(current.headers.get("cache-control")).toBe("private, no-store");
     const etag = current.headers.get("etag")!;
     const body = await current.text();
     expect(body).not.toContain(owner.accountId);
@@ -1963,7 +2004,7 @@ describe("publications and recovery", () => {
       await (
         await get("", { authorization: "Bearer deliberately-invalid" })
       ).text(),
-    ).toBe(body);
+    ).not.toBe(body);
     expect((await get("", { "if-none-match": etag })).status).toBe(304);
     expect((await get("/history")).headers.get("etag")).not.toBe(etag);
     expect((await get("/versions/1")).headers.get("etag")).not.toBe(etag);
@@ -2000,6 +2041,11 @@ describe("publications and recovery", () => {
       a.cid,
       write(1).requestId,
     );
+    await env.DB.prepare(
+      "UPDATE publications SET visibility = 'public' WHERE id = ?",
+    )
+      .bind(publication.id)
+      .run();
     const archive = await env.DB.prepare(
       "SELECT object_key FROM car_dags WHERE root = ?",
     )
@@ -2055,7 +2101,7 @@ describe("publications and recovery", () => {
       env,
     );
     expect(deleted.status).toBe(404);
-    expect(deleted.headers.get("cache-control")).toBe("public, no-cache");
+    expect(deleted.headers.get("cache-control")).toBe("private, no-store");
   });
 
   it("keeps successful upload and explicitly reports a failed publication", async () => {
@@ -2488,6 +2534,11 @@ describe("publications and recovery", () => {
       write(1).requestId,
     );
     await publications.publish(publication.id, large.cid, write(1));
+    await env.DB.prepare(
+      "UPDATE publications SET visibility = 'public' WHERE id = ?",
+    )
+      .bind(publication.id)
+      .run();
     const aliasNop = await publications.publish(
       publication.id,
       CID.parse(large.cid).toV0().toString(),

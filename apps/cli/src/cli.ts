@@ -8,8 +8,9 @@ import { canonicalCid, Client } from "./client.js";
 import { prepareInput } from "./input.js";
 import { pinFilename, saveContent } from "./retrieval.js";
 
-export const help = `Pinboard — public IPFS storage. Anyone knowing the CID can read uploads/imports.
-Removing a pin does not erase public blocks, caches or other copies.
+export const help = `Pinboard — content-addressed storage. New content defaults private.
+Private reads use scoped credentials; copying a CID or link grants no access.
+Public bytes shared by another public reference and external copies cannot be recalled.
 pinboard upload <file|directory> [--name LABEL]
 pinboard import <archive.car> [--name LABEL]
 pinboard download <CID> [--output PATH]
@@ -18,6 +19,7 @@ pinboard list [--cursor CURSOR] [--all]
 pinboard inspect <CID>
 pinboard rename <CID> <NAME>
 pinboard remove|restore <CID>
+pinboard access pin|publication <ID> private|public --acknowledge
 pinboard deleted [--cursor CURSOR]
 pinboard publication create|convert <CID> --title TITLE --request-id KEY
 pinboard description get|set|clear <ROOT_CID> <NODE_CID> [--text TEXT --version N]
@@ -30,6 +32,9 @@ pinboard publication publish <ID> <CID> --sequence N --request-id KEY
 pinboard publication rollback <ID> <REVISION> --sequence N --request-id KEY
 pinboard publication remove|restore <ID>
 Upload/import options: --publication ID --sequence N --request-id KEY
+Public target updates from private sources require --acknowledge-public-exposure.
+Access changes require --acknowledge every time: public exposes all history and irreversible downloads;
+private stops new anonymous reads but other public references and external copies remain.
 Current-CID publish is NOP; draft description changes are not applied.
 pinboard config get [endpoint]
 pinboard config set endpoint <ORIGIN>
@@ -48,7 +53,14 @@ interface Options {
 function parse(args: string[]): Options {
   const words: string[] = [];
   const flags = new Map<string, string | true>();
-  const booleans = new Set(["json", "help", "all", "token-stdin"]);
+  const booleans = new Set([
+    "json",
+    "help",
+    "all",
+    "token-stdin",
+    "acknowledge",
+    "acknowledge-public-exposure",
+  ]);
   const values = new Set([
     "name",
     "endpoint",
@@ -151,6 +163,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       "deleted",
       "restore",
       "description",
+      "access",
     ].includes(command);
     const allowed = new Set(["json", "help"]);
     if (
@@ -160,11 +173,12 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
     )
       allowed.add("endpoint");
     if (network || configAction === "set-token") {
-      if (!publicRead) allowed.add("token-stdin");
+      allowed.add("token-stdin");
       allowed.add("timeout");
     }
     if (command === "download" || command === "export") allowed.add("output");
     if (command === "upload" || command === "import") {
+      allowed.add("acknowledge-public-exposure");
       for (const flag of ["name", "publication", "sequence", "request-id"])
         allowed.add(flag);
     }
@@ -200,9 +214,22 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         allowed.add("revision");
       if (action === "download" || action === "export") allowed.add("output");
       if (action === "publish" || action === "rollback") {
+        if (action === "publish") allowed.add("acknowledge-public-exposure");
         allowed.add("sequence");
         allowed.add("request-id");
       }
+    }
+    if (command === "access") {
+      allowed.add("acknowledge");
+      if (
+        words.length !== 4 ||
+        !["pin", "publication"].includes(words[1] ?? "") ||
+        !["private", "public"].includes(words[3] ?? "") ||
+        !flags.has("acknowledge")
+      )
+        return usage(
+          "Use access pin|publication ID private|public --acknowledge. Public exposes all history and irreversible downloads; private cannot recall external copies or overlapping public bytes.",
+        );
     }
     if (command === "description") {
       const action = words[1];
@@ -227,6 +254,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       (network &&
         command !== "publication" &&
         command !== "description" &&
+        command !== "access" &&
         words.length !==
           (command === "list" || command === "deleted"
             ? 1
@@ -249,7 +277,13 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         return usage(
           "--request-id requires 1-128 characters; reuse it only for identical retries.",
         );
-      return { expectedSequence, requestId };
+      return {
+        expectedSequence,
+        requestId,
+        ...(flags.has("acknowledge-public-exposure")
+          ? { acknowledgePublicExposure: true }
+          : {}),
+      };
     };
     if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 3600000)
       return usage(
@@ -293,18 +327,24 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         result = { removed: true, endpoint: origin, revoked: false };
       } else return usage("Invalid config command. See --help.");
     } else {
-      const token = publicRead
-        ? undefined
-        : await credentials(
-            store,
-            origin,
-            runtime.env,
-            flags.has("token-stdin"),
-            runtime.input,
-            signal,
-          );
+      const token = await credentials(
+        store,
+        origin,
+        runtime.env,
+        flags.has("token-stdin"),
+        runtime.input,
+        signal,
+        publicRead,
+      );
       const client = new Client(origin, token, signal, runtime.fetcher);
       switch (command) {
+        case "access":
+          result = await client.access(
+            words[1] as "pin" | "publication",
+            words[2]!,
+            words[3] as "private" | "public",
+          );
+          break;
         case "description": {
           const action = words[1];
           if (action === "export")
@@ -422,15 +462,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
           let output = value("output");
           let filenameWarning: string | undefined;
           if (output === undefined) {
-            const namingToken = await credentials(
-              store,
-              origin,
-              runtime.env,
-              false,
-              runtime.input,
-              signal,
-              true,
-            );
+            const namingToken = token;
             if (namingToken === undefined) {
               filenameWarning =
                 "No token for pin metadata; using the CID as filename. Use --output to choose a name.";
@@ -655,6 +687,10 @@ function human(value: unknown, origin: string, tty: boolean): string {
         ["CID", String(value.cid)],
         ["Blocks", String(value.blocks)],
         ["Created", JSON.stringify(String(value.createdAt)).slice(1, -1)],
+        [
+          "Access",
+          "visibility" in value ? String(value.visibility) : "unknown",
+        ],
         ["Share", `${origin}/share/${String(value.cid)}`],
       ];
       return detailTable(rows, tty);
@@ -691,7 +727,7 @@ function tableName(name: string): string {
 
 function pinTable(pins: unknown[], tty: boolean): string {
   const rows = [
-    ["NAME", "SIZE", "CID"],
+    ["NAME", "SIZE", "CID", "ACCESS"],
     ...pins.map((pin: unknown) => {
       if (
         !pin ||
@@ -707,7 +743,12 @@ function pinTable(pins: unknown[], tty: boolean): string {
           "INVALID_RESPONSE",
           "Server returned an invalid pin.",
         );
-      return [tableName(pin.name), formatSize(pin.size), pin.cid];
+      return [
+        tableName(pin.name),
+        formatSize(pin.size),
+        pin.cid,
+        "visibility" in pin ? String(pin.visibility) : "unknown",
+      ];
     }),
   ];
   if (tty) return borderedTable(rows, true, 1);
@@ -715,8 +756,8 @@ function pinTable(pins: unknown[], tty: boolean): string {
   const sizeWidth = Math.max(...rows.map((row) => stringWidth(row[1]!)));
   return rows
     .map(
-      ([name, size, cid]) =>
-        `${name!}${" ".repeat(nameWidth - stringWidth(name!))}  ${size!.padStart(sizeWidth)}  ${cid!}`,
+      ([name, size, cid, access]) =>
+        `${name!}${" ".repeat(nameWidth - stringWidth(name!))}  ${size!.padStart(sizeWidth)}  ${cid!}  ${access!}`,
     )
     .join("\n");
 }

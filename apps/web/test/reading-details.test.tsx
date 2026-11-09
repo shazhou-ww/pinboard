@@ -17,6 +17,7 @@ describe("reading details", () => {
   it("groups the complete CID and icon in one copy button", () => {
     const html = renderToStaticMarkup(
       <DetailHeading
+        visibility="private"
         name="File"
         cid="complete-cid"
         contentType="image/png"
@@ -28,7 +29,7 @@ describe("reading details", () => {
       /aria-label="Copy CID"[^>]*><code>complete-cid<\/code>/u,
     );
     expect(html).toContain('aria-label="More copy options"');
-    expect(html).toContain("Copy HTTP download link");
+    expect(html).toContain("Copy personal access link");
     expect(html).toContain("Copy IPFS link");
     expect(html).not.toContain("Copy follow link");
   });

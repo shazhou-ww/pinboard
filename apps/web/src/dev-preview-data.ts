@@ -37,6 +37,7 @@ async function asset(
   await writer.close();
   return {
     pin: {
+      visibility: "private",
       cid: cid.toString(),
       name,
       size: bytes.length,

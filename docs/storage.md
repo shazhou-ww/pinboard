@@ -1,5 +1,9 @@
 # CAR-indexed storage
 
+See [item access](access-control.md): new items are private; migration
+`0009_item_visibility.sql` preserves existing public references. Storage and
+retention tables do not themselves authorize reads.
+
 ## Scoped user metadata
 
 Migration `0007_descriptions.sql` adds owner/root/node-keyed `node_descriptions`
@@ -49,8 +53,9 @@ accepted as before; stored block identifiers and export roots use CIDv1.
   pinning an available DAG packs it for subsequent direct exports, without
   deleting existing legacy data.
 
-HTTP routes, account authorization, explicit public-upload consent, raw ETags,
-negotiation and security headers are unchanged. R2 range reads are internal; the
+HTTP reads now authorize eligible live DAG roots before any storage access or
+conditional response. Gateway caches are private/no-store; raw ETags,
+negotiation and security headers are retained. R2 range reads are internal; the
 raw gateway still does not offer HTTP byte-range responses.
 
 ## Original content downloads
@@ -93,12 +98,13 @@ rolls back either transaction if cleanup already claimed its object.
 
 R2 and D1 are not a distributed transaction. A failed PUT publishes no index; a
 failed SQL transaction can leave an unindexed CAR. A failed pin save or a lost
-response after commit can leave complete public content without a successful
-account-pin response. No operation reports success before all required writes
-finish. Retrying the identical upload creates a fresh complete archive, updates
-the index and upserts the caller's pin; concurrent retries are safe. Do not
-delete an object as error compensation: a concurrent writer or a commit whose
-response was lost may already reference it.
+response after commit can leave stored content without a successful account-pin
+response. Without an eligible live public reference it is not anonymously
+readable. No operation reports success before all required writes finish.
+Retrying the identical upload creates a fresh complete archive, updates the
+index and upserts the caller's pin; concurrent retries are safe. Do not delete
+an object as error compensation: a concurrent writer or a commit whose response
+was lost may already reference it.
 
 An indexed object that is missing, truncated, or does not yield the requested
 range fails closed with 503. It is not reported as an ordinary missing CID or a

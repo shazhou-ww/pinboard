@@ -53,6 +53,13 @@ const text = (value: string) => new TextEncoder().encode(value);
 async function file(value: string) {
   return importFile(text(value));
 }
+async function publicReference(cid: string, size: number, blocks: number) {
+  await env.DB.prepare(
+    "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, 'Public storage fixture', ?, ?, 'public') ON CONFLICT(account_id, cid) DO UPDATE SET visibility = 'public'",
+  )
+    .bind(principal.accountId, cid, size, blocks)
+    .run();
+}
 async function* fileContent(bytes: Uint8Array) {
   yield await Promise.resolve(bytes);
 }
@@ -358,6 +365,7 @@ describe("CAR primary storage", () => {
       3,
     );
     const service = new PinService(env, principal);
+    await publicReference(key(root), legacy.size + child.size, 3);
     await service.pin(key(root), "mixed");
     const get = vi.spyOn(env.BLOCKS, "get");
     await responseBytes((await getCar(env, key(root)))!.body);
@@ -365,6 +373,11 @@ describe("CAR primary storage", () => {
     await service.unpin(key(root));
     expect(await getCar(env, key(root))).not.toBeNull();
     expect(await env.BLOCKS.head(key(legacy.root))).not.toBeNull();
+    await env.DB.prepare(
+      "DELETE FROM deleted_pins WHERE account_id = ? AND cid = ?",
+    )
+      .bind(principal.accountId, key(root))
+      .run();
     const uploaded = await service.upload(
       bytes,
       "block",
@@ -402,6 +415,7 @@ describe("CAR primary storage", () => {
     const dag = await file("indexed-gateway");
     await storeDag(env, dag);
     const cid = key(dag.root);
+    await publicReference(cid, dag.size, dag.blocks.size);
     for (const method of ["GET", "HEAD"]) {
       const request = (headers: Record<string, string> = {}) =>
         app.request(
@@ -491,6 +505,7 @@ describe("CAR primary storage", () => {
   it("fails closed on missing/truncated CARs and invalid range responses", async () => {
     const dag = await file("external-corruption");
     await storeDag(env, dag);
+    await publicReference(key(dag.root), dag.size, dag.blocks.size);
     const location = await env.DB.prepare(
       "SELECT object_key FROM car_blocks WHERE cid = ?",
     )
@@ -550,6 +565,10 @@ describe("CAR primary storage", () => {
     await expect(other.detail(pins[0]!.cid)).rejects.toMatchObject({
       status: 404,
     });
+    await expect(other.pin(pins[0]!.cid, "denied")).rejects.toMatchObject({
+      status: 404,
+    });
+    await service.setVisibility(pins[0]!.cid, "public");
     await other.pin(pins[0]!.cid, "mine");
     await service.unpin(pins[0]!.cid);
     expect((await other.detail(pins[0]!.cid)).name).toBe("mine");

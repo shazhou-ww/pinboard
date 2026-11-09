@@ -12,6 +12,7 @@ import {
   verifyBlock,
 } from "./content.js";
 import { readBlock, storeDag, writeGuard } from "./storage.js";
+import { authorizeBlock } from "./access.js";
 import { itemFilterSchema, nameSchema, validate } from "./schemas.js";
 import { matchesItemFilter } from "./item-filter.js";
 import {
@@ -43,14 +44,15 @@ export class PinService {
   async list(
     cursor?: string,
     query = "",
+    visibility: Pin["visibility"] | "all" = "all",
   ): Promise<{ pins: Pin[]; nextCursor: string | null }> {
     requireScope(this.principal, "pins:read");
     validate(itemFilterSchema, query);
     const filtered = query.trim().length > 0;
     const result = await this.env.DB.prepare(
-      `SELECT cid, name, size, blocks, created_at AS createdAt${filtered ? ", (SELECT text FROM node_descriptions n WHERE n.account_id = pins.account_id AND n.root_cid = pins.cid AND n.node_cid = pins.cid) AS rootDescription" : ""} FROM pins WHERE account_id = ? AND cid > ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) ORDER BY cid${filtered ? "" : " LIMIT 51"}`,
+      `SELECT cid, name, size, blocks, visibility, created_at AS createdAt${filtered ? ", (SELECT text FROM node_descriptions n WHERE n.account_id = pins.account_id AND n.root_cid = pins.cid AND n.node_cid = pins.cid) AS rootDescription" : ""} FROM pins WHERE account_id = ? AND cid > ? AND (? = 'all' OR visibility = ?) AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) ORDER BY cid${filtered ? "" : " LIMIT 51"}`,
     )
-      .bind(this.principal.accountId, cursor ?? "")
+      .bind(this.principal.accountId, cursor ?? "", visibility, visibility)
       .all<Pin & { rootDescription?: string | null }>();
     const matches = filtered
       ? result.results.filter((pin) =>
@@ -63,6 +65,7 @@ export class PinService {
       size: pin.size,
       blocks: pin.blocks,
       createdAt: pin.createdAt,
+      visibility: pin.visibility,
     }));
     return {
       pins,
@@ -73,7 +76,7 @@ export class PinService {
   async detail(cid: string): Promise<Pin> {
     requireScope(this.principal, "pins:read");
     const pin = await this.env.DB.prepare(
-      "SELECT cid, name, size, blocks, created_at AS createdAt FROM pins WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid)",
+      "SELECT cid, name, size, blocks, visibility, created_at AS createdAt FROM pins WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid)",
     )
       .bind(this.principal.accountId, key(parseCid(cid)))
       .first<Pin>();
@@ -148,6 +151,7 @@ export class PinService {
     requireScope(this.principal, "pins:write");
     validate(nameSchema, name);
     const root = key(parseCid(cid));
+    await authorizeBlock(this.env, root, this.principal);
     const images = new Map(
       (await this.existingThumbnails([root], root)).map((image) => [
         image.cid,
@@ -155,7 +159,7 @@ export class PinService {
       ]),
     );
     const dag = await completeDag(parseCid(cid), (link) =>
-      this.readBlock(link.toString()),
+      readBlock(this.env, link.toString()),
     );
     for (const image of await this.existingThumbnails([...dag.blocks.keys()]))
       images.set(image.cid, image);
@@ -193,7 +197,7 @@ export class PinService {
     requireScope(this.principal, "pins:write");
     const label = validate(nameSchema, name);
     const pin = await this.env.DB.prepare(
-      "UPDATE pins SET name = ? WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) RETURNING cid, name, size, blocks, created_at AS createdAt",
+      "UPDATE pins SET name = ? WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) RETURNING cid, name, size, blocks, visibility, created_at AS createdAt",
     )
       .bind(label, this.principal.accountId, key(parseCid(cid)))
       .first<Pin>();
@@ -205,7 +209,26 @@ export class PinService {
   }
 
   private async readBlock(cid: string): Promise<Uint8Array | undefined> {
+    await authorizeBlock(this.env, cid, this.principal);
     return readBlock(this.env, cid);
+  }
+
+  async setVisibility(
+    cid: string,
+    visibility: Pin["visibility"],
+  ): Promise<Pin> {
+    requireScope(this.principal, "pins:write");
+    requireScope(this.principal, "pins:read");
+    const pin = await this.env.DB.prepare(
+      "UPDATE pins SET visibility = ? WHERE account_id = ? AND cid = ? AND NOT EXISTS (SELECT 1 FROM deleted_pins d WHERE d.account_id = pins.account_id AND d.cid = pins.cid) RETURNING cid, name, size, blocks, visibility, created_at AS createdAt",
+    )
+      .bind(visibility, this.principal.accountId, key(parseCid(cid)))
+      .first<Pin>();
+    if (!pin)
+      throw new HTTPException(404, {
+        message: "Pin not found in your account",
+      });
+    return pin;
   }
 
   private async existingThumbnails(
@@ -232,7 +255,7 @@ export class PinService {
     const results = await this.env.DB.batch([
       writeGuard(this.env.DB, objectKey, "ready"),
       this.env.DB.prepare(
-        "INSERT INTO pins (account_id, cid, name, size, blocks) VALUES (?, ?, ?, ?, ?) ON CONFLICT(account_id, cid) DO UPDATE SET name = excluded.name RETURNING cid, name, size, blocks, created_at AS createdAt",
+        "INSERT INTO pins (account_id, cid, name, size, blocks) VALUES (?, ?, ?, ?, ?) ON CONFLICT(account_id, cid) DO UPDATE SET name = excluded.name RETURNING cid, name, size, blocks, visibility, created_at AS createdAt",
       ).bind(this.principal.accountId, cid, name, dag.size, dag.blocks.size),
       this.env.DB.prepare(
         "UPDATE retained_blocks SET unreferenced_at = NULL WHERE cid IN (SELECT cid FROM dag_members WHERE root = ?)",

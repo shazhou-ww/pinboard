@@ -164,7 +164,7 @@ describe("Pinboard interface", () => {
     expect(html).toContain('value="google"');
     expect(html).not.toContain('href="/api/auth/signin');
     expect(html).not.toContain("GitHub");
-    expect(html).toContain("Reading by CID is always public");
+    expect(html).toContain("knowing a CID grants no private access");
     expect(html).toContain('class="home-header"');
     expect(html).toContain('href="#signin"');
     expect(html).toContain(renderToStaticMarkup(<Icon name="externalLink" />));
@@ -203,8 +203,8 @@ describe("Pinboard interface", () => {
     expect(html).not.toContain('href="/api/auth/signout"');
     expect(html).toContain("Your pins");
     expect(html).not.toContain("I understand all uploaded bytes");
-    expect(html).toContain("Uploaded content will be public");
-    expect(html).toContain("Do not remind me in this browser");
+    expect(html).toContain("New content is private");
+    expect(html).not.toContain("Do not remind me in this browser");
     expect(html).toContain('class="shell home-shell canvas-shell"');
     expect(html).toContain('class="home-header has-filter"');
     expect(html).toContain('aria-label="Filter items by name or description"');
@@ -333,6 +333,7 @@ describe("Pinboard interface", () => {
   });
   it("renders preview-first cards with details and CID shortcuts, without a custom menu", () => {
     const pin = {
+      visibility: "private" as const,
       cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
       name: "photo.png",
       size: 1024,
@@ -346,7 +347,7 @@ describe("Pinboard interface", () => {
     expect(html).toContain('class="pin-info" role="group"');
     expect(html).toContain('aria-label="Pin information for photo.png"');
     expect(html).toContain(
-      '<div class="pin-info-summary"><strong class="pin-name" title="photo.png">photo.png</strong><span class="pin-size">1.0 KiB</span></div>',
+      '<strong class="pin-name" title="photo.png">photo.png</strong><span class="pin-size">1.0 KiB</span></div>',
     );
     expect(html).toContain('<div class="pin-info-cid"><button');
     expect(html).toContain('aria-label="View details for photo.png"');
@@ -381,6 +382,7 @@ describe("Pinboard interface", () => {
     function CardProbe() {
       card = PinCard({
         pin: {
+          visibility: "private",
           cid: "bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u",
           name: "photo.png",
           size: 1024,
@@ -427,8 +429,8 @@ describe("Pinboard interface", () => {
     const html = renderToStaticMarkup(
       <SharePage cid="bafkreia5ncapmfbrvhm3477lwtbhwrffqpujnsx7cfihnmbu3wcipu326u" />,
     );
-    expect(html).toContain("Download CAR");
-    expect(html).toContain("delegated router");
+    expect(html).toContain("Checking access...");
+    expect(html).not.toContain("Download CAR");
     expect(html).not.toContain("<iframe");
     expect(renderToStaticMarkup(<SharePage cid="<script>" />)).toContain(
       "Invalid CID",

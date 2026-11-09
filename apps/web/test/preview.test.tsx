@@ -418,6 +418,7 @@ describe("typed, display-only content previews", () => {
           size: 99,
           blocks: 1,
           createdAt: "",
+          visibility: "private",
         }}
       />,
     );

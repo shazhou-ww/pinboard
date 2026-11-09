@@ -1,12 +1,27 @@
 # Agents and remote MCP
 
+`block_get({cid})` reads an authorized raw block as base64, with a 2 MiB inline
+limit and `byteAccess` indicating public root overlap. Scoped MCP OAuth Agents
+can traverse verified CID links to read complete private DAGs without presenting
+OAuth credentials to HTTP endpoints. Verify returned bytes against their CIDs.
+Large legacy blocks require a separate scoped HTTP API Agent token, not public
+sharing. The tool never returns private item labels or publication metadata.
+
+See [item access](access-control.md). New content is private, and every tool
+result includes visibility. `access_set({kind,id,visibility,acknowledge:true})`
+requires the corresponding owner read and write scopes. Private publication
+reads require `publications:read`; OAuth credentials still work only at `/mcp`.
+Private-source publish to a public target requires
+`acknowledgePublicExposure:true` in its write input.
+
 ## Conversion and user descriptions
 
-`publication_convert` accepts `{cid,title,public:true,requestId}` and atomically
-replaces an owned fixed Pin with a publication whose v1 retains the original
-content and descriptions. It requires existing `publications:write`, `pins:read`
-and `pins:delete` scopes; old pin-only tokens gain no authority. Retry an
-uncertain conversion with the same request ID and identical input.
+`publication_convert` accepts `{cid,title,requestId}` and atomically replaces an
+owned fixed Pin with a publication whose v1 retains the original content,
+descriptions and visibility. It requires existing `publications:read`,
+`publications:write`, `pins:read` and `pins:delete` scopes; old pin-only tokens
+gain no authority. Retry an uncertain conversion with the same request ID and
+identical input.
 
 `description_get({rootCid,nodeCid})` reads scoped user text and system preview.
 `description_set({rootCid,nodeCid,text,expectedVersion})` sets bounded pure text
@@ -24,27 +39,28 @@ Pin has expired.
 ## Publications and recovery tools
 
 These tools use the same services, CAS and recovery lifecycle as Web, CLI and
-HTTP. Publication title and complete history are public; account identities and
-private pin labels are not included.
+HTTP. Publication title and complete history share the item's visibility;
+account identities and private pin labels are never included.
 
-| Tool                   | Input                                    | Permission                               |
-| ---------------------- | ---------------------------------------- | ---------------------------------------- |
-| `publication_create`   | `title,cid,public:true,requestId`        | `publications:write`, `pins:read`        |
-| `publication_list`     | optional `cursor`                        | `publications:read`                      |
-| `publication_get`      | `id`, optional fixed `revision`          | public metadata                          |
-| `publication_history`  | `id`                                     | public metadata                          |
-| `publication_publish`  | `id,cid,expectedSequence,requestId`      | `publications:write`, `pins:read`        |
-| `publication_rollback` | `id,revision,expectedSequence,requestId` | `publications:write`                     |
-| `publication_delete`   | `id`                                     | `publications:delete`                    |
-| `recently_deleted`     | optional `cursor`                        | corresponding pin/publication read scope |
-| `restore`              | `kind: "pin"` or `"publication"`, `id`   | corresponding delete scope               |
+| Tool                   | Input                                    | Permission                                             |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------------ |
+| `publication_create`   | `title,cid,requestId`                    | `publications:read`, `publications:write`, `pins:read` |
+| `publication_list`     | optional `cursor`                        | `publications:read`                                    |
+| `publication_get`      | `id`, optional fixed `revision`          | public, or owner `publications:read`                   |
+| `publication_history`  | `id`                                     | public, or owner `publications:read`                   |
+| `publication_publish`  | `id,cid,expectedSequence,requestId`      | `publications:read`, `publications:write`, `pins:read` |
+| `publication_rollback` | `id,revision,expectedSequence,requestId` | `publications:read`, `publications:write`              |
+| `publication_delete`   | `id`                                     | `publications:delete`                                  |
+| `recently_deleted`     | optional `cursor`                        | corresponding pin/publication read scope               |
+| `restore`              | `kind: "pin"` or `"publication"`, `id`   | corresponding delete scope                             |
 
 `upload` additionally accepts `publicationId` and
 `publicationWrite:{expectedSequence,requestId}`. Upload runs first; publication
 failure returns the successful `pin`, `partialSuccess:true` and
 `publicationError`, never silently deleting the successful upload. It also
 requires publication-write and pin-read scopes. The existing inline upload limit
-and public acknowledgement still apply.
+still applies. Uploads are private. Legacy public acknowledgements do not change
+visibility; sharing is a separate access mutation.
 
 Use the current **sequence**, not revision number, as `expectedSequence`.
 Current CID is NOP; republishing a noncurrent historical CID creates the next

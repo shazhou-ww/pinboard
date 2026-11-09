@@ -140,6 +140,17 @@ export async function getPreview(
 function parseDescription(json: string): ContentPreview {
   const value: unknown = JSON.parse(json);
   if (!isContentPreview(value)) throw new Error("Invalid preview descriptor");
+  if (value.status === "ready" && value.preview.kind === "image")
+    return {
+      ...value,
+      preview: {
+        ...value.preview,
+        image: {
+          ...value.preview.image,
+          url: `/ipfs/${value.preview.image.cid}?access=v1`,
+        },
+      },
+    };
   return value;
 }
 
@@ -244,7 +255,7 @@ async function imageResult(
         kind: "image",
         image: {
           cid: thumbnailCid,
-          url: `/ipfs/${thumbnailCid}`,
+          url: `/ipfs/${thumbnailCid}?access=v1`,
           width: image.width,
           height: image.height,
         },

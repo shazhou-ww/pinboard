@@ -18,9 +18,15 @@ export const scopeSchema = z.enum(scopes);
 export const pinSchema = z.object({
   cid: z.string().min(1).max(256),
   name: nameSchema.default("Untitled"),
-  public: z.literal(true),
+  public: z.literal(true).optional(),
 });
 export const renamePinSchema = z.object({ name: nameSchema }).strict();
+export const visibilitySchema = z
+  .object({
+    visibility: z.enum(["private", "public"]),
+    acknowledge: z.literal(true),
+  })
+  .strict();
 export const tokenSchema = z.object({
   name: nameSchema,
   scopes: z.array(scopeSchema).min(1).max(scopes.length),
@@ -28,6 +34,7 @@ export const tokenSchema = z.object({
 });
 
 export const publicationWriteSchema = z.object({
+  acknowledgePublicExposure: z.boolean().optional(),
   expectedSequence: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
   requestId: z.string().min(1).max(128),
 });
@@ -36,7 +43,7 @@ export const publicationCreateSchema = z
     title: nameSchema,
     cid: z.string().min(1).max(256),
     requestId: z.string().min(1).max(128),
-    public: z.literal(true),
+    public: z.literal(true).optional(),
   })
   .strict();
 export const publicationPublishSchema = publicationWriteSchema

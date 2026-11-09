@@ -151,6 +151,7 @@ const publicationHistory = (id: string): PublicationHistory => {
     publication: {
       id,
       title: `Public ${id}`,
+      visibility: "public",
       currentRevision: 1,
       revisionCount: 1,
       sequence: 1,
@@ -292,36 +293,48 @@ afterEach(() => {
 
 describe("cached detail reader integration", () => {
   it("does not render another publication's old resolved history while a new follow link resolves", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      Response.json(publicationHistory("a")),
-    );
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        Response.json({ error: "Sign in" }, { status: 401 }),
+      )
+      .mockResolvedValueOnce(Response.json(publicationHistory("a")));
     const page = componentReader(PublicationPage, { id: "a" });
     page();
     await flush();
-    expect(page()).toContain("<h1>Public a</h1>");
+    expect(page()).toContain("<h3>Public a</h3>");
     const pending = deferred();
-    vi.mocked(fetch).mockReturnValueOnce(pending.promise);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        Response.json({ error: "Sign in" }, { status: 401 }),
+      )
+      .mockReturnValueOnce(pending.promise);
     const switched = page({ id: "b" });
     expect(switched).not.toContain("Public a");
     expect(switched).toContain("Loading publication...");
     pending.resolve(Response.json(publicationHistory("b")));
     await flush();
-    expect(page({ id: "b" })).toContain("<h1>Public b</h1>");
+    expect(page({ id: "b" })).toContain("<h3>Public b</h3>");
   });
 
   it("ignores a late old publication history response after switching IDs", async () => {
     const pending = deferred();
     vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        Response.json({ error: "Sign in" }, { status: 401 }),
+      )
       .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce(
+        Response.json({ error: "Sign in" }, { status: 401 }),
+      )
       .mockResolvedValueOnce(Response.json(publicationHistory("b")));
     const page = componentReader(PublicationPage, { id: "a" });
     page();
     page({ id: "b" });
     await flush();
-    expect(page({ id: "b" })).toContain("<h1>Public b</h1>");
+    expect(page({ id: "b" })).toContain("<h3>Public b</h3>");
     pending.resolve(Response.json(publicationHistory("a")));
     await flush();
-    expect(page({ id: "b" })).toContain("<h1>Public b</h1>");
+    expect(page({ id: "b" })).toContain("<h3>Public b</h3>");
     expect(page({ id: "b" })).not.toContain("Public a");
   });
 
