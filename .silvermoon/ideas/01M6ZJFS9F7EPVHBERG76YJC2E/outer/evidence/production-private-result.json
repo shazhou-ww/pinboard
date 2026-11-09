@@ -1,0 +1,71 @@
+{
+  "release": "release-261109-4",
+  "checks": [
+    "real authenticated upload creates only a dedicated smoke pin",
+    "real generated text preview is rendered",
+    "private reopen displays cached preview before real delayed GET finishes",
+    "private delayed refresh has zero loading or blank regression",
+    "real UI description save uses CAS version zero and returns version one",
+    "real PUT version two wins over delayed GET version one",
+    "reopened description displays saved result immediately",
+    "only the owned smoke pin is removed and its description becomes 404"
+  ],
+  "fixtureCid": "bafkreiddg4wzkj2m3wtdbwurmijm7iuvrhqpm6bu5txq2z7qjbupplcrmq",
+  "fixtureBytes": 84,
+  "privateReopen": {
+    "delayMs": 1500,
+    "samples": 169,
+    "loading": 0,
+    "blank": 0,
+    "request": {
+      "method": "GET",
+      "started": 2710.9000000059605,
+      "delay": 1500,
+      "status": 200,
+      "version": 0,
+      "previewStatus": "ready",
+      "received": 3918.4000000059605,
+      "finished": 5419.200000017881
+    }
+  },
+  "firstSave": {
+    "method": "PUT",
+    "started": 5499.200000017881,
+    "delay": 0,
+    "expectedVersion": 0,
+    "status": 200,
+    "version": 1,
+    "previewStatus": "ready",
+    "received": 7390.0999999940395,
+    "finished": 7390.0999999940395
+  },
+  "race": {
+    "get": {
+      "method": "GET",
+      "started": 8368.40000000596,
+      "delay": 5000,
+      "status": 200,
+      "version": 1,
+      "previewStatus": "ready",
+      "received": 9631.800000011921,
+      "finished": 14643.90000000596
+    },
+    "put": {
+      "method": "PUT",
+      "started": 9726.90000000596,
+      "delay": 5000,
+      "expectedVersion": 1,
+      "status": 200,
+      "version": 2,
+      "previewStatus": "ready",
+      "received": 11561.59999999404,
+      "finished": 11561.700000017881
+    },
+    "savedVisible": true
+  },
+  "scripts": ["/assets/index-D1_UZUja.js"],
+  "cleanup": {
+    "deleteStatus": 204,
+    "descriptionAfterDelete": 404
+  }
+}

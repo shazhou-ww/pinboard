@@ -31,5 +31,16 @@ publication/revision/账号隔离均有可重跑证据。
 bootstrap/未认证详情 API 另用原始 fetch 探测，分别得到 200/200/401。合成授权数据的范围、局限、截图、请求记录和复跑步骤见
 [BrowserAcceptance.md](./BrowserAcceptance.md)。
 
-据此仅镜像勾选本地 D-S01、D-AC01、D-AC02。D-S02 不勾选：未获生产授权，未发布或线上复验；如以后执行生产发布，仍须补充对应生产证据。所有本次本地 server/browser
+本地验收当时仅镜像勾选 D-S01、D-AC01、D-AC02，D-S02 保持未勾选。所有本次本地 server/browser
 helper 已停止，独立 scratch/profile/state 已清理。
+
+## 授权生产发布与线上复验
+
+2026-11-09 用户授权在最新 main 的 CI 转绿后发布。`release-261109-4`
+已部署成功，私有详情在真实 Chrome for Testing 中完成缓存重开、1500
+ms 慢响应、真实描述保存及迟到 GET/新 PUT 竞态验证；公开节点与版本、独立匿名上下文 401 也通过。临时 smoke
+pin 已正常 DELETE，未操作已有用户数据或运行迁移。
+
+精确 source commit、Worker
+version、CI/部署链接、169 次无 loading/空白采样、保存版本、清理结果与验收范围见
+[ProductionAcceptance.md](./ProductionAcceptance.md)。D-S02 据实际发布和复验完成勾选；第二个真实 OAuth 账号等未执行范围明确披露，不以部署成功代替其证据。

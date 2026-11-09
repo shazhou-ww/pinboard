@@ -19,7 +19,7 @@
 ### Deployment steps
 
 - [x] **D-S01:** 在可访问环境验证重复阅读
-- [ ] **D-S02:** 按授权发布并复验
+- [x] **D-S02:** 按授权发布并复验
 
 ### Deployment acceptance criteria
 
