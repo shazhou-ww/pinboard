@@ -48,6 +48,8 @@ export function installReadingFixture() {
     pins,
     publication,
     single,
+    converted: null,
+    convertedRevisions: [],
     revisions,
     requests: [],
     version: 1,
@@ -141,21 +143,42 @@ export function installReadingFixture() {
     if (path === "/api/pins")
       return result({ pins: state.pins, nextCursor: null });
     if (path === "/api/publications" && method === "GET")
-      return result({ publications: [publication, single], nextCursor: null });
+      return result({
+        publications: [
+          publication,
+          single,
+          ...(state.converted ? [state.converted] : []),
+        ],
+        nextCursor: null,
+      });
     if (path.endsWith("/history")) {
       if (state.historyFailure)
         return result({ error: "Fixture history unavailable" }, 503);
-      const pub = path.includes("single-fixture") ? single : publication;
+      const pub = path.includes("converted-fixture")
+        ? state.converted
+        : path.includes("single-fixture")
+          ? single
+          : publication;
       return result({
         publication: pub,
-        revisions: pub === single ? [revisions[0]] : revisions,
+        revisions:
+          pub === state.converted
+            ? state.convertedRevisions
+            : pub === single
+              ? [revisions[0]]
+              : revisions,
       });
     }
     if (/\/publications\/[^/]+\/preview\/\d+$/.test(path))
       return result(preview("Publication card"));
     if (path.endsWith("/description")) {
       const version = Number(/\/versions\/(\d+)\//.exec(path)?.[1]);
-      const root = version ? revisions[version - 1].cid : path.split("/")[3];
+      const sourceRevisions = path.includes("converted-fixture")
+        ? state.convertedRevisions
+        : revisions;
+      const root = version
+        ? sourceRevisions[version - 1].cid
+        : path.split("/")[3];
       if (path.split("/").at(-2) !== root)
         return result(
           { error: "Node is not reachable from authorized root" },
@@ -206,9 +229,52 @@ export function installReadingFixture() {
           { error: "Fixture publication failed; pin preserved" },
           503,
         );
-      if (body.expectedSequence !== publication.sequence)
+      const pub = path.includes("converted-fixture")
+        ? state.converted
+        : publication;
+      if (body.expectedSequence !== pub.sequence)
         return result({ error: "Sequence conflict" }, 409);
+      if (pub === state.converted) {
+        const source = state.pins.find((pin) => pin.cid === body.cid);
+        const revision = {
+          revision: 2,
+          cid: source.cid,
+          size: source.size,
+          blocks: source.blocks,
+          createdAt: date,
+        };
+        state.convertedRevisions.push(revision);
+        Object.assign(pub, {
+          currentRevision: 2,
+          revisionCount: 2,
+          sequence: 2,
+          current: revision,
+        });
+        return result({ publication: pub, status: "published" });
+      }
       return result({ publication, status: "nop" });
+    }
+    if (method === "POST" && path.endsWith("/convert")) {
+      const source = state.pins.find((pin) => path.includes(pin.cid));
+      const revision = {
+        revision: 1,
+        cid: source.cid,
+        size: source.size,
+        blocks: source.blocks,
+        createdAt: date,
+      };
+      state.convertedRevisions = [revision];
+      state.converted = {
+        ...publication,
+        id: "converted-fixture",
+        title: body.title,
+        currentRevision: 1,
+        revisionCount: 1,
+        sequence: 1,
+        current: revision,
+      };
+      state.pins = state.pins.filter((pin) => pin !== source);
+      return result({ publication: state.converted, status: "converted" });
     }
     if (
       method === "POST" &&

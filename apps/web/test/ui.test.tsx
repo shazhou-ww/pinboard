@@ -167,7 +167,7 @@ describe("Pinboard interface", () => {
     expect(html).not.toContain("More add options");
     const toolbar = html.slice(
       html.indexOf('role="toolbar"'),
-      html.indexOf('aria-label="Choose file"'),
+      html.indexOf("<dialog"),
     );
     expect(toolbar.match(/class="floating-button /g)).toHaveLength(2);
     expect(toolbar.match(/<svg /g)).toHaveLength(2);

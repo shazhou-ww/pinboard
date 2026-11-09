@@ -22,6 +22,7 @@ import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { FunnelSimpleIcon } from "@phosphor-icons/react/dist/csr/FunnelSimple";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import type { IconProps } from "@phosphor-icons/react";
 
 const icons = {
@@ -34,6 +35,7 @@ const icons = {
   filter: FunnelSimpleIcon,
   refresh: ArrowsClockwiseIcon,
   revoke: XCircleIcon,
+  edit: PencilSimpleIcon,
   copy: CopyIcon,
   download: ArrowDownIcon,
   externalLink: ArrowUpRightIcon,

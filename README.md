@@ -189,14 +189,21 @@ Space. Cards have no custom right-click menu or overflow button, preserving the
 browser's native context menu. The bottom CID capsule remains a shortcut for
 copying the complete CID without opening details. Details are reading-first:
 content on the left and descriptions/facts on the right, stacked on narrow
-screens. **Share** and **Download** remain primary; **More** holds independent
-management tasks. Private descriptions are read-only until **Edit description**;
-advanced node queries remain available in a collapsed section. Publication
-details distinguish the viewed version, public current and latest. Browsing
-history does not change current. Fixed-version links and downloads use the
-viewed CID; publishing and making a version current are explicit tasks. Unpin
-moves only that pin to recently deleted; publication references remain
-independent.
+screens. A square type icon accompanies the title; the complete CID and copy
+icon below it form one click target with shared hover feedback. The adjacent
+copy dropdown offers a direct HTTP file/ZIP download link and `ipfs://` link,
+plus follow and fixed-version links for publications. Downloads and management
+actions live beneath the right-side facts, without a separate toolbar. Private
+descriptions are read-only until **Edit description**; advanced node queries
+remain available in a collapsed section. Publication details distinguish the
+viewed version, public current and latest. Browsing history in a panel-contained
+drawer opened from the version badge does not change current. The drawer closes
+on selection, outside click or Escape and has no close glyph. Fixed-version
+links and downloads use the viewed CID; publishing and making a version current
+are explicit tasks. Unpin moves only that pin to recently deleted; publication
+references remain independent. A Pin's **Publish new version** first confirms
+conversion to publication v1 with an explicit public title, then opens the
+new-version task. Canceling that task retains the confirmed publication and v1.
 
 The upload dialog's **After uploading** selector always offers **Create a
 publication**, including for an account with no existing publications. Enter a
@@ -348,9 +355,9 @@ capsule for 1.5 seconds, then restore the CID; repeated copies restart the
 confirmation. Copy failures show an error instead of success. Touch users can
 also copy the full CID in the details dialog. Clicking anywhere else on the card
 (or using its keyboard action) opens a reading-first modal with description,
-timestamp, block count, Share/Download menus and More management tasks. Complete
-CID and reachable-node queries are in **Advanced information and node query**.
-Renaming updates both the card and modal without changing the CID.
+timestamp, block count, inline CID copying and a compact sidebar of download and
+management actions. Reachable-node queries are in **Advanced information and
+node query**. Renaming updates both the card and modal without changing the CID.
 
 PDF image material appears as a full, aspect-preserving floating paper on a
 neutral backdrop, with a light border/shadow and a small upper-left PDF badge.
