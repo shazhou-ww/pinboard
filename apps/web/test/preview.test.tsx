@@ -74,7 +74,7 @@ describe("typed, display-only content previews", () => {
       /\.pin-card \.pin-preview\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/u,
     );
     expect(styles).toMatch(
-      /\.pin-info\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*auto 0 0;/u,
+      /\.pin-info\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*auto 0 -1px;/u,
     );
     expect(styles).toMatch(
       /\.pin-card \.pin-preview\.has-paper\s*\{[^}]*height:\s*100%;/u,
@@ -85,6 +85,16 @@ describe("typed, display-only content previews", () => {
     expect(styles).toMatch(
       /\.pin-preview \.preview-paper img\s*\{[^}]*width:\s*100%;[^}]*height:\s*100%;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center top;/u,
     );
+  });
+  it("extends the glass band through the card bottom border without moving its content", () => {
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toMatch(
+      /\.pin-info\s*\{[^}]*inset:\s*auto 0 -1px;[^}]*padding:\s*12px 16px;[^}]*border-top:\s*1px solid var\(--border\);[^}]*border-bottom:\s*1px solid var\(--border\);/u,
+    );
+    expect(styles).toMatch(/\.pin-wall \.pin-card\s*\{[^}]*overflow:\s*clip;/u);
   });
   it("keeps polling transient backend retries across their backoff without retrying terminal failures", () => {
     const preview: ContentPreview = {
