@@ -278,6 +278,7 @@ publicationApi.get("/api/recently-deleted", async (c) => {
       c.env,
       c.get("principal"),
       validate(z.string().max(512).optional(), c.req.query("cursor")),
+      validate(itemFilterSchema, c.req.query("q")),
     ),
   );
 });

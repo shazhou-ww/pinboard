@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   ContentPreview,
-  DeletedItem,
   Pin,
   Publication,
   PublicationHistory,
@@ -631,111 +630,6 @@ export function PublicationDialog({
             </>
           )}
         </>
-      ) : null}
-    </Dialog>
-  );
-}
-
-export function DeletedDialog({
-  open,
-  onClose,
-  onChanged,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onChanged: () => Promise<void>;
-}) {
-  const [items, setItems] = useState<DeletedItem[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const load = async (next?: string) => {
-    const page = await requestJson<{
-      items: DeletedItem[];
-      nextCursor: string | null;
-    }>(
-      `/api/recently-deleted${next ? `?cursor=${encodeURIComponent(next)}` : ""}`,
-    );
-    setItems((previous) => (next ? [...previous, ...page.items] : page.items));
-    setCursor(page.nextCursor);
-  };
-  useEffect(() => {
-    if (!open) return;
-    setError("");
-    void load().catch((failure: unknown) =>
-      setError(failure instanceof Error ? failure.message : String(failure)),
-    );
-  }, [open]);
-  return (
-    <Dialog open={open} title="Recently deleted" busy={busy} onClose={onClose}>
-      <p>
-        Restore within 30 days. Expiry releases only this object's references;
-        the last reference then starts a seven-day cleanup grace period. Public
-        CID copies cannot be recalled.
-      </p>
-      {error ? <p role="alert">{error}</p> : null}
-      {!items.length ? (
-        <p>No recoverable items.</p>
-      ) : (
-        <ul className="publication-history">
-          {items.map((item) => (
-            <li key={`${item.kind}:${item.id}`}>
-              <div>
-                <strong>{item.title}</strong>
-                <p>{item.kind === "pin" ? "Pin" : "Publication"}</p>
-                <p className="muted">
-                  Deleted {new Date(item.deletedAt).toLocaleString()}
-                  <br />
-                  Recover before {new Date(item.expiresAt).toLocaleString()}
-                </p>
-              </div>
-              <button
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  setError("");
-                  void requestJson(
-                    item.kind === "pin"
-                      ? `/api/pins/${item.id}/restore`
-                      : `/api/publications/${item.id}/restore`,
-                    json({}),
-                  )
-                    .then(async () => {
-                      await load();
-                      await onChanged();
-                    })
-                    .catch((failure: unknown) =>
-                      setError(
-                        failure instanceof Error
-                          ? failure.message
-                          : String(failure),
-                      ),
-                    )
-                    .finally(() => setBusy(false));
-                }}
-              >
-                Restore
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {cursor ? (
-        <button
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            void load(cursor)
-              .catch((failure: unknown) =>
-                setError(
-                  failure instanceof Error ? failure.message : String(failure),
-                ),
-              )
-              .finally(() => setBusy(false));
-          }}
-        >
-          Load more
-        </button>
       ) : null}
     </Dialog>
   );

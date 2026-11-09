@@ -88,8 +88,12 @@ images and PDF thumbnails fit within it. Ready previews do not add explanatory
 footer lines. Generation status and failure retry actions stay inside this
 fixed-height area rather than pushing the content below it down.
 
-Settings → **Recently deleted** lists pins and publications with deletion and
-expiry times and a restore action.
+Settings → **Trash** directly lists pins and publications in the same compact
+table style as Tokens and OAuth, with deletion and expiry times and a restore
+action. Search matches names and types across all pages. The footer shows the
+total recoverable item count; previous/next controls appear only when needed (50
+items per page). Restore refreshes the account and returns the table to its
+first page without closing Settings. No permanent-delete action is offered.
 
 The explicit local read-only UI preview includes single-version publications,
 multiple independent publications sharing a CID, a v3-of-5 rollback state and
@@ -101,21 +105,25 @@ Management endpoints use existing same-origin session or Agent-token checks.
 OAuth credentials remain restricted to `/mcp`. JSON writes use
 `Content-Type: application/json`.
 
-| Method | Route                                | Input / result                                              |
-| ------ | ------------------------------------ | ----------------------------------------------------------- |
-| POST   | `/api/publications`                  | `{title,cid,public:true,requestId}`; first revision         |
-| POST   | `/api/pins/:cid/convert`             | `{title,public:true,requestId}`; atomic in-place conversion |
-| GET    | `/api/publications?cursor=...&q=...` | owned active publications, `nextCursor`                     |
-| GET    | `/api/publications/:id`              | owned active publication                                    |
-| POST   | `/api/publications/:id/publish`      | `{cid,expectedSequence,requestId}`                          |
-| POST   | `/api/publications/:id/rollback`     | `{revision,expectedSequence,requestId}`                     |
-| DELETE | `/api/publications/:id`              | move entire publication to recently deleted                 |
-| POST   | `/api/publications/:id/restore`      | restore before expiry                                       |
-| GET    | `/api/recently-deleted?cursor=...`   | owned recoverable `items`, `nextCursor`                     |
-| DELETE | `/api/pins/:cid`                     | move pin to recently deleted                                |
-| POST   | `/api/pins/:cid/restore`             | restore before expiry                                       |
+| Method | Route                                    | Input / result                                                   |
+| ------ | ---------------------------------------- | ---------------------------------------------------------------- |
+| POST   | `/api/publications`                      | `{title,cid,public:true,requestId}`; first revision              |
+| POST   | `/api/pins/:cid/convert`                 | `{title,public:true,requestId}`; atomic in-place conversion      |
+| GET    | `/api/publications?cursor=...&q=...`     | owned active publications, `nextCursor`                          |
+| GET    | `/api/publications/:id`                  | owned active publication                                         |
+| POST   | `/api/publications/:id/publish`          | `{cid,expectedSequence,requestId}`                               |
+| POST   | `/api/publications/:id/rollback`         | `{revision,expectedSequence,requestId}`                          |
+| DELETE | `/api/publications/:id`                  | move entire publication to recently deleted                      |
+| POST   | `/api/publications/:id/restore`          | restore before expiry                                            |
+| GET    | `/api/recently-deleted?cursor=...&q=...` | owned recoverable `items`, `nextCursor`, `total`, `matchedTotal` |
+| DELETE | `/api/pins/:cid`                         | move pin to recently deleted                                     |
+| POST   | `/api/pins/:cid/restore`                 | restore before expiry                                            |
 
 `publications:read` permits private publication listing and recovery listing.
+Recovery counts exclude expired items and other accounts, respect read scopes,
+and are independent of the cursor. `total` counts all visible recoverable items;
+`matchedTotal` counts name/type search matches. The optional `q` filter uses a
+case-insensitive literal substring (maximum 200 characters).
 `publications:write` permits creation, publish and rollback; an existing-pin
 target also requires `pins:read`. Upload additionally requires `pins:write`.
 `publications:delete` permits deletion and restoration. Pin recovery uses

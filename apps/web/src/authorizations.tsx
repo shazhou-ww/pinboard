@@ -168,8 +168,41 @@ export function AuthorizationTable({
   retry?: ReactNode;
 }) {
   return (
+    <SettingsTable
+      name={name}
+      columns={[firstColumn, "Permissions", "Expires", "Status", "Actions"]}
+      loading={loading}
+      error={error}
+      empty={empty}
+      retry={retry}
+    >
+      {children}
+    </SettingsTable>
+  );
+}
+
+export function SettingsTable({
+  name,
+  columns,
+  children,
+  loading = false,
+  error = "",
+  empty = "",
+  retry,
+  className = "",
+}: {
+  name: string;
+  columns: readonly string[];
+  children: ReactNode;
+  loading?: boolean;
+  error?: string;
+  empty?: string;
+  retry?: ReactNode;
+  className?: string;
+}) {
+  return (
     <div
-      className="authorization-table-scroll"
+      className={`authorization-table-scroll${className ? ` ${className}` : ""}`}
       role="region"
       aria-label={`${name} table (scrollable)`}
       tabIndex={0}
@@ -177,19 +210,17 @@ export function AuthorizationTable({
       <table aria-label={name}>
         <thead>
           <tr>
-            {[firstColumn, "Permissions", "Expires", "Status", "Actions"].map(
-              (label) => (
-                <th key={label} scope="col">
-                  {label}
-                </th>
-              ),
-            )}
+            {columns.map((label) => (
+              <th key={label} scope="col">
+                {label}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {loading || error || empty ? (
             <tr>
-              <td colSpan={5} className="authorization-empty">
+              <td colSpan={columns.length} className="authorization-empty">
                 {loading ? (
                   <p role="status">Loading {name}...</p>
                 ) : error ? (

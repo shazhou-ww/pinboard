@@ -1,5 +1,10 @@
 import { HTTPException } from "hono/http-exception";
-import type { DeletedItem } from "@shazhou/pinboard-contracts";
+import {
+  normalizeItemFilter,
+  recentlyDeletedPageSize,
+  type DeletedItem,
+  type DeletedPage,
+} from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { requireScope, type Principal } from "./identity.js";
 import { key, parseCid } from "./content.js";
@@ -11,33 +16,48 @@ export async function listDeleted(
   env: Bindings,
   principal: Principal,
   cursor = "",
-) {
+  query = "",
+): Promise<DeletedPage> {
   const kinds = [
     ...(principal.scopes.includes("pins:read") ? ["pin"] : []),
     ...(principal.scopes.includes("publications:read") ? ["publication"] : []),
   ];
   if (!kinds.length) requireScope(principal, "pins:read");
   const now = new Date().toISOString();
-  const rows = await env.DB.prepare(
-    `SELECT * FROM (
+  const source = `(
     SELECT 'pin' AS kind, p.cid AS id, p.name AS title, d.deleted_at AS deletedAt, d.expires_at AS expiresAt
     FROM deleted_pins d JOIN pins p ON p.account_id = d.account_id AND p.cid = d.cid WHERE d.account_id = ?
     UNION ALL SELECT 'publication', id, title, deleted_at, expires_at FROM publications WHERE account_id = ? AND deleted_at IS NOT NULL
-  ) WHERE expiresAt > ? AND kind IN (SELECT value FROM json_each(?)) AND kind || ':' || id > ? ORDER BY kind, id LIMIT 51`,
-  )
-    .bind(
-      principal.accountId,
-      principal.accountId,
-      now,
-      JSON.stringify(kinds),
-      cursor,
+  ) WHERE expiresAt > ? AND kind IN (SELECT value FROM json_each(?))`;
+  const bindings = [
+    principal.accountId,
+    principal.accountId,
+    now,
+    JSON.stringify(kinds),
+  ];
+  const filter = normalizeItemFilter(query);
+  const [rows, counts] = await Promise.all([
+    env.DB.prepare(
+      `SELECT * FROM ${source} AND instr(lower(title || ' ' || kind), ?) > 0
+       AND kind || ':' || id > ? ORDER BY kind, id LIMIT ?`,
     )
-    .all<DeletedItem>();
-  const items = rows.results.slice(0, 50);
+      .bind(...bindings, filter, cursor, recentlyDeletedPageSize + 1)
+      .all<DeletedItem>(),
+    env.DB.prepare(
+      `SELECT count(*) AS total,
+       count(CASE WHEN instr(lower(title || ' ' || kind), ?) > 0 THEN 1 END) AS matchedTotal
+       FROM ${source}`,
+    )
+      .bind(filter, ...bindings)
+      .first<{ total: number; matchedTotal: number }>(),
+  ]);
+  if (!counts) throw new Error("Could not count recoverable items");
+  const items = rows.results.slice(0, recentlyDeletedPageSize);
   return {
     items,
+    ...counts,
     nextCursor:
-      rows.results.length > 50
+      rows.results.length > recentlyDeletedPageSize
         ? `${items.at(-1)!.kind}:${items.at(-1)!.id}`
         : null,
   };

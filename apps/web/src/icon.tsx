@@ -1,6 +1,8 @@
 import { ArrowDownIcon } from "@phosphor-icons/react/dist/csr/ArrowDown";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
@@ -29,6 +31,8 @@ const icons = {
   addFolder: FolderPlusIcon,
   brand: PushPinIcon,
   caretDown: CaretDownIcon,
+  caretLeft: CaretLeftIcon,
+  caretRight: CaretRightIcon,
   check: CheckIcon,
   close: XIcon,
   filter: FunnelSimpleIcon,

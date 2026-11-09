@@ -1811,6 +1811,51 @@ body:has(.canvas-dialog[open]) {
   color: var(--muted);
   font-size: 11px;
 }
+.recently-deleted-intro {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.recently-deleted > .notice {
+  margin: 0;
+  flex-shrink: 0;
+}
+.recently-deleted-table th:nth-child(1) {
+  width: 32%;
+}
+.recently-deleted-table th:nth-child(2) {
+  width: 15%;
+}
+.recently-deleted-table th:nth-child(3) {
+  width: 20%;
+}
+.recently-deleted-table th:nth-child(4) {
+  width: 21%;
+}
+.recently-deleted-table .authorization-badge {
+  white-space: nowrap;
+}
+.settings-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+.settings-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.settings-pagination .glyph-button {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.settings-pagination button:disabled {
+  cursor: default;
+}
 .settings-mcp {
   margin-top: 24px;
   padding-top: 20px;

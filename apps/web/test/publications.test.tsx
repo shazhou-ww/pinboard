@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Publication } from "@shazhou/pinboard-contracts";
 import { AccountManager, PinCard, publishUploadedPin } from "../src/manager.js";
-import { PublicationDialog, DeletedDialog } from "../src/publications.js";
+import { PublicationDialog } from "../src/publications.js";
+import { RecentlyDeleted } from "../src/recently-deleted.js";
 import { Icon } from "../src/icon.js";
 import {
   Children,
@@ -304,7 +305,7 @@ describe("publication wall identity and management", () => {
     expect(html).toContain("current v3");
   });
 
-  it("labels follow, fixed-version and CID copies independently and explains recovery expiry", () => {
+  it("labels follow, fixed-version and CID copies independently and embeds recovery in Settings", () => {
     const html = renderToStaticMarkup(
       <PublicationDialog
         publication={publication}
@@ -320,11 +321,17 @@ describe("publication wall identity and management", () => {
     expect(html).toContain("Copy selected CID");
     expect(html).toContain("5 versions");
     const deleted = renderToStaticMarkup(
-      <DeletedDialog open onClose={noop} onChanged={async () => {}} />,
+      <RecentlyDeleted
+        active
+        disabled={false}
+        onBusyChange={noop}
+        onChanged={async () => {}}
+      />,
     );
-    expect(deleted).toContain("Restore within 30 days");
-    expect(deleted).toContain(
-      "last reference then starts a seven-day cleanup grace period",
-    );
+    expect(deleted).toContain("within 30 days");
+    expect(deleted).toContain('aria-label="recently deleted"');
+    expect(deleted).toContain("Recover before");
+    expect(deleted).not.toContain("seven-day cleanup");
+    expect(deleted).not.toContain("<dialog");
   });
 });

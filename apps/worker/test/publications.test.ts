@@ -28,7 +28,7 @@ import { getPreview, processPreview, runPreviews } from "../src/previews.js";
 import { readFile } from "node:fs/promises";
 import { createToken } from "../src/tokens.js";
 import type {
-  DeletedItem,
+  DeletedPage,
   Publication,
   PublicationResult,
 } from "@shazhou/pinboard-contracts";
@@ -1375,16 +1375,20 @@ describe("publication HTTP boundaries", () => {
     expect(
       (await call("/api/pins/" + source.cid, { method: "DELETE" })).status,
     ).toBe(204);
-    type RecoveryPage = { items: DeletedItem[]; nextCursor: string | null };
+    type RecoveryPage = DeletedPage;
     const deleted = await call("/api/recently-deleted");
     expect(deleted.headers.get("cache-control")).toBe("private, no-store");
     const page = await deleted.json<RecoveryPage>();
     expect(page.items).toHaveLength(50);
+    expect(page.total).toBe(52);
+    expect(page.matchedTotal).toBe(52);
     expect(page.nextCursor).toBeTruthy();
     const tail = await (
       await call("/api/recently-deleted?cursor=" + page.nextCursor)
     ).json<RecoveryPage>();
     expect(tail.items).toHaveLength(2);
+    expect(tail.total).toBe(52);
+    expect(tail.matchedTotal).toBe(52);
     expect(tail.nextCursor).toBeNull();
     expect(
       new Set(
@@ -1409,9 +1413,63 @@ describe("publication HTTP boundaries", () => {
       await publicationsOnly("/api/recently-deleted")
     ).json<RecoveryPage>();
     expect(publicationsPage.items).toHaveLength(50);
+    expect(publicationsPage.total).toBe(51);
+    expect(publicationsPage.matchedTotal).toBe(51);
     expect(
       publicationsPage.items.every((item) => item.kind === "publication"),
     ).toBe(true);
+    const pinSearch = await (
+      await call("/api/recently-deleted?q=%20PRIVATE%20")
+    ).json<RecoveryPage & { total: number; matchedTotal: number }>();
+    expect(pinSearch.total).toBe(52);
+    expect(pinSearch.matchedTotal).toBe(1);
+    expect(pinSearch.items.map((item) => item.id)).toEqual([source.cid]);
+    const typeSearch = await (
+      await call("/api/recently-deleted?q=PUBLICATION")
+    ).json<RecoveryPage & { total: number; matchedTotal: number }>();
+    expect(typeSearch.total).toBe(52);
+    expect(typeSearch.matchedTotal).toBe(51);
+    expect(typeSearch.items).toHaveLength(50);
+    const typeTail = await (
+      await call(
+        "/api/recently-deleted?q=publication&cursor=" +
+          encodeURIComponent(typeSearch.nextCursor!),
+      )
+    ).json<RecoveryPage & { total: number; matchedTotal: number }>();
+    expect(typeTail.items).toHaveLength(1);
+    expect(typeTail.total).toBe(52);
+    expect(typeTail.matchedTotal).toBe(51);
+    for (const query of ["not-a-recoverable-title", "%", "_"]) {
+      const empty = await (
+        await call("/api/recently-deleted?q=" + encodeURIComponent(query))
+      ).json<RecoveryPage & { total: number; matchedTotal: number }>();
+      expect(empty.items).toEqual([]);
+      expect(empty.total).toBe(52);
+      expect(empty.matchedTotal).toBe(0);
+      expect(empty.nextCursor).toBeNull();
+    }
+    expect(
+      (await call("/api/recently-deleted?q=" + "x".repeat(201))).status,
+    ).toBe(400);
+    const scopedSearch = await (
+      await pinsOnly("/api/recently-deleted?q=publication")
+    ).json<RecoveryPage & { total: number; matchedTotal: number }>();
+    expect(scopedSearch).toEqual({
+      items: [],
+      nextCursor: null,
+      total: 1,
+      matchedTotal: 0,
+    });
+    const emptyAccount = await client({
+      ...owner,
+      accountId: await accountForGoogle(env.DB, "empty-recovery-count-account"),
+    });
+    expect(await (await emptyAccount("/api/recently-deleted")).json()).toEqual({
+      items: [],
+      nextCursor: null,
+      total: 0,
+      matchedTotal: 0,
+    });
     const noRead = await client(principal, ["pins:write"]);
     expect((await noRead("/api/recently-deleted")).status).toBe(403);
     expect(
@@ -1440,6 +1498,14 @@ describe("publication HTTP boundaries", () => {
     await env.DB.prepare("UPDATE publications SET expires_at = ? WHERE id = ?")
       .bind(new Date(0).toISOString(), target.id)
       .run();
+    const remaining = await (
+      await call("/api/recently-deleted")
+    ).json<DeletedPage>();
+    expect(remaining.total).toBe(50);
+    expect(remaining.matchedTotal).toBe(50);
+    expect(remaining.items).toHaveLength(50);
+    expect(remaining.nextCursor).toBeNull();
+    expect(remaining.items.some((item) => item.id === target.id)).toBe(false);
     expect(
       (
         await call("/api/publications/" + target.id + "/restore", {
@@ -1448,6 +1514,31 @@ describe("publication HTTP boundaries", () => {
       ).status,
     ).toBe(404);
   }, 30000);
+
+  it("rejects recovery listings with missing counts rather than returning an incomplete page", async () => {
+    const prepare = env.DB.prepare.bind(env.DB);
+    const stub = vi.spyOn(env.DB, "prepare").mockImplementation((sql) => {
+      const statement = prepare(sql);
+      if (sql.includes("count(*) AS total")) {
+        const missing: typeof statement = {
+          bind: () => missing,
+          first: () => Promise.resolve(null),
+          run: statement.run.bind(statement),
+          all: statement.all.bind(statement),
+          raw: statement.raw.bind(statement),
+        };
+        return missing;
+      }
+      return statement;
+    });
+    try {
+      await expect(listDeleted(env, owner)).rejects.toThrow(
+        "Could not count recoverable items",
+      );
+    } finally {
+      stub.mockRestore();
+    }
+  });
 
   it("preserves HTTP uploads and sanitizes unexpected publication failures after the pin is committed", async () => {
     const call = await client();
