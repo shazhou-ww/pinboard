@@ -1,9 +1,8 @@
-import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BackgroundSettings,
+  PinboardBackground,
   backgroundPalettes,
   backgroundStorageKey,
   initializeBackground,
@@ -125,51 +124,26 @@ describe("browser background preferences", () => {
     expect(html).toContain('checked="" value="mist"');
   });
 
-  it.each([
-    "pinboard-pattern.svg",
-    "pinboard-pattern-sand.svg",
-    "pinboard-pattern-ice.svg",
-  ])(
-    "bundles the approved shallow engraving without changing the layout in %s",
-    (file) => {
-      const pattern = readFileSync(
-        new URL(`../src/assets/${file}`, import.meta.url),
-        "utf8",
-      );
-      const styles = readFileSync(
-        new URL("../src/styles.css", import.meta.url),
-        "utf8",
-      );
-      expect(pattern).toContain('viewBox="0 0 480 960"');
-      expect(pattern.match(/rotate\(/g)).toHaveLength(70);
-      expect(pattern.match(/href="#motif"/g)).toHaveLength(9);
-      expect(pattern).not.toMatch(
-        /<script|onload=|linearGradient|class="foil"/i,
-      );
-      expect(pattern).toContain(".engraved{stroke-width:1.6}");
-      expect(pattern).toContain('<g id="motif" filter="url(#engraving)">');
-      expect(pattern).toContain('stdDeviation="0.12"');
-      expect(pattern).toContain('dx="-0.45" dy="-0.55"');
-      expect(pattern).toContain('dx="0.45" dy="0.55"');
-      for (const opacity of ["0.12", "0.42", "0.035"]) {
-        expect(pattern).toContain(`flood-opacity="${opacity}"`);
-      }
-      expect(pattern).toContain(
-        '<feMergeNode in="highlight"/><feMergeNode in="core"/><feMergeNode in="shadow"/>',
-      );
-      const geometry = Array.from(
-        pattern
-          .replace(/<filter\b[\s\S]*?<\/filter>/g, "")
-          .matchAll(
-            /<(?:path|rect|circle|ellipse)\b[^>]*\/>|(?:transform|viewBox|width|height)="[^"]*"/g,
-          ),
-        ([value]) => value,
-      ).join("\n");
-      expect(createHash("sha256").update(geometry).digest("hex")).toBe(
-        "ef945f5f860da108679e628657d628698824de12d88486bf8dd82ecc4f4ef939",
-      );
-      expect(styles).toMatch(/background-size:\s*480px 960px,/);
-      expect(styles).not.toMatch(/background-size:\s*(cover|contain)/);
-    },
-  );
+  it("renders the approved paper effect as a noninteractive fixed backdrop", () => {
+    const html = renderToStaticMarkup(<PinboardBackground />);
+    expect(html).toContain('class="pinboard-backdrop" aria-hidden="true"');
+    expect(html).toContain("position:fixed");
+    expect(html).toContain("z-index:-1");
+    expect(html).toContain(
+      'width="480" height="960" patternUnits="userSpaceOnUse"',
+    );
+    expect(html.match(/rotate\(/g)).toHaveLength(70);
+    expect(html.match(/<use /g)).toHaveLength(9);
+    expect(html).toContain('stroke-width="1.6"');
+    expect(html).toContain('stdDeviation="0.12"');
+    expect(html).toContain('dx="-0.45" dy="-0.55"');
+    expect(html).toContain('dx="0.45" dy="0.55"');
+    for (const opacity of ["0.12", "0.42", "0.035"]) {
+      expect(html).toContain(`flood-opacity="${opacity}"`);
+    }
+    expect(html).toContain(
+      '<feMergeNode in="highlight"></feMergeNode><feMergeNode in="core"></feMergeNode><feMergeNode in="shadow"></feMergeNode>',
+    );
+    expect(renderToStaticMarkup(<PinboardBackground />)).toBe(html);
+  });
 });

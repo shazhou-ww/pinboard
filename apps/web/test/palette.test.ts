@@ -1,5 +1,18 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+  engravingPresets,
+  mistPalette,
+  sandPalette,
+  icePalette,
+} from "react-engraved-background";
+import type { EngravedPalette } from "react-engraved-background";
+
+const engravingPalettes: Record<string, EngravedPalette> = {
+  mist: mistPalette,
+  sand: sandPalette,
+  ice: icePalette,
+};
 
 const styles = readFileSync(
   new URL("../src/styles.css", import.meta.url),
@@ -210,30 +223,22 @@ describe("global palette contract", () => {
       const text = rgb(palette["--text"]!);
       const muted = rgb(palette["--muted"]!);
       const canvasMuted = composite(muted, 0.7, text);
-      const file =
-        id === "mist" ? "pinboard-pattern.svg" : `pinboard-pattern-${id}.svg`;
-      const selector =
-        id === "mist" ? ":root" : `:root[data-background="${id}"]`;
-      const patternRule = rules.find(
-        (entry) =>
-          entry.selectors.includes(selector) &&
-          entry.declarations["--background-pattern"],
-      );
-      expect(patternRule?.declarations["--background-pattern"]).toBe(
-        `url("./assets/${file}")`,
-      );
-      const pattern = readFileSync(
-        new URL(`../src/assets/${file}`, import.meta.url),
-        "utf8",
-      );
-      const floods = new Map<string, { color: RGB; opacity: number }>();
-      for (const [, color, opacity, name] of pattern.matchAll(
-        /<feFlood\s+flood-color="(#[\da-f]{6})"\s+flood-opacity="([\d.]+)"\s+result="([^"]+)"\s*\/>/g,
-      )) {
-        if (!color || !opacity || !name)
-          throw new Error("Invalid engraving flood.");
-        floods.set(name, { color: rgb(color), opacity: Number(opacity) });
-      }
+      const colors = engravingPalettes[id]!;
+      const effect = engravingPresets.paper;
+      const floods = new Map([
+        [
+          "light-color",
+          { color: rgb(colors.engraving.highlight), opacity: effect.highlight },
+        ],
+        [
+          "core-color",
+          { color: rgb(colors.engraving.shadow), opacity: effect.core },
+        ],
+        [
+          "shadow-color",
+          { color: rgb(colors.engraving.shadow), opacity: effect.shadow },
+        ],
+      ]);
       expect(floods.size).toBe(3);
       for (const background of [
         "background-start",

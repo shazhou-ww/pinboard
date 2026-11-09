@@ -22,6 +22,7 @@
     "@fontsource-variable/newsreader": "catalog:",
     "@shazhou/pinboard-contracts": "workspace:*",
     "react": "catalog:",
+    "react-engraved-background": "workspace:*",
     "react-dom": "catalog:"
   },
   "devDependencies": {

@@ -3,21 +3,24 @@ import { pathToFileURL } from "node:url";
 export const cliPackageName = "@shazhou/pinboard";
 export const developmentVersion = "0.0.0-development.0";
 
-export function cliVersionFromTag(tag) {
-  const match =
-    /^@shazhou\/pinboard@((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))$/u.exec(
-      tag,
-    );
+export function packageVersionFromTag(tag, packageName) {
+  const prefix = `${packageName}@`;
+  const version = tag.startsWith(prefix) ? tag.slice(prefix.length) : "";
+  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.exec(version);
   if (
     !match ||
-    match[0] !== tag ||
-    !match[1].split(".").every((part) => Number.isSafeInteger(Number(part)))
+    match[0] !== version ||
+    !version.split(".").every((part) => Number.isSafeInteger(Number(part)))
   ) {
     throw new Error(
-      "Expected @shazhou/pinboard@x.y.z with a stable numeric version and no leading zeros.",
+      `Expected ${packageName}@x.y.z with a stable numeric version and no leading zeros.`,
     );
   }
-  return match[1];
+  return version;
+}
+
+export function cliVersionFromTag(tag) {
+  return packageVersionFromTag(tag, cliPackageName);
 }
 
 if (

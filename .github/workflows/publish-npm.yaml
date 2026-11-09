@@ -1,9 +1,10 @@
-name: Publish Pinboard CLI to npm
+name: Publish packages to npm
 
 on:
   push:
     tags:
       - "@shazhou/pinboard@*"
+      - "react-engraved-background@*"
 
 permissions:
   contents: read
@@ -14,7 +15,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Publish standalone CLI
+    name: Publish tagged npm package
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 20
@@ -45,12 +46,11 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          version="$(node scripts/validate-cli-release.mjs "$RELEASE_TAG")"
+          node scripts/validate-npm-release.mjs "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           if ! git merge-base --is-ancestor HEAD origin/main; then
             echo "::error::npm release tags must point to a commit already on main."
             exit 1
           fi
-          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -59,6 +59,7 @@ jobs:
         run: pnpm check
 
       - name: Build and verify exact release tarball
+        if: steps.release.outputs.package == '@shazhou/pinboard'
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
           PINBOARD_CLI_EXPECTED_VERSION: ${{ steps.release.outputs.version }}
@@ -67,9 +68,28 @@ jobs:
           pnpm --dir apps/cli/dist/npm pack --pack-destination ..
           node --test scripts/cli-package.test.mjs
 
-      - name: Publish using npm Trusted Publishing
+      - name: Build and verify React background release tarball
+        if: steps.release.outputs.package == 'react-engraved-background'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          BACKGROUND_EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          pnpm prepare:background "$RELEASE_VERSION"
+          pnpm --dir packages/react-engraved-background/dist/npm pack --pack-destination ..
+          node --test scripts/background-package.test.mjs
+
+      - name: Publish CLI using npm Trusted Publishing
+        if: steps.release.outputs.package == '@shazhou/pinboard'
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           npm --version
           npm publish "./apps/cli/dist/shazhou-pinboard-${RELEASE_VERSION}.tgz" --access public --tag latest --provenance
+
+      - name: Publish React background using npm Trusted Publishing
+        if: steps.release.outputs.package == 'react-engraved-background'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          npm --version
+          npm publish "./packages/react-engraved-background/dist/react-engraved-background-${RELEASE_VERSION}.tgz" --access public --tag latest --provenance

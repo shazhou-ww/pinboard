@@ -1,10 +1,12 @@
-# Tag-driven npm CLI releases
+# Tag-driven npm releases
 
-The public package is `@shazhou/pinboard`; its executable is `pinboard`. Only
-tags named **`@shazhou/pinboard@x.y.z`** trigger npm publication. For example,
+The CLI package is `@shazhou/pinboard`; its executable is `pinboard`. Tags named
+**`@shazhou/pinboard@x.y.z`** trigger CLI npm publication. For example,
 `@shazhou/pinboard@0.1.0` publishes version `0.1.0`. Versions are stable numeric
 SemVer triples without leading zeros. Other package names, prereleases, branch
-pushes and manual dispatch do not publish.
+pushes and manual dispatch do not publish. The reusable React background uses
+the separate **`react-engraved-background@x.y.z`** tag family in the same
+workflow. Each tag publishes only its named package.
 
 This is independent of the Cloudflare application's `release-YYMMDD-INDEX` tags.
 Publishing the CLI does not deploy the Worker, run D1 migrations or change
@@ -26,9 +28,10 @@ The workflow uses a GitHub-hosted runner and job-scoped `id-token: write`. No
 `NPM_TOKEN` or `NODE_AUTH_TOKEN` is configured or needed. npm publishing uses
 Node.js 24.11.1 and its npm CLI with OIDC support, and includes provenance.
 
-The GitHub `npm` Environment must allow tags matching `@shazhou/pinboard@*`.
-Required reviewers and tag rulesets may restrict who can release. Do not remove
-protections just to make a pending deployment pass.
+The GitHub `npm` Environment must allow tags matching `@shazhou/pinboard@*` and
+`react-engraved-background@*`. Required reviewers and tag rulesets may restrict
+who can release. Do not remove protections just to make a pending deployment
+pass.
 
 The initial `0.0.0-bootstrap.0` package is a placeholder for configuring trust,
 not an installable CLI. Until the first stable release replaces `latest`,
@@ -99,3 +102,43 @@ that exact version in a clean environment. A successful local pack or workflow
 configuration alone is not evidence that Trusted Publishing has succeeded.
 Published versions are immutable: fix forward with a new version instead of
 moving/reusing a tag or attempting to overwrite a package.
+
+## React engraved background releases
+
+Configure `react-engraved-background` with the same trusted publisher fields
+above. Its package version is supplied by the release tag; the development
+manifest remains `0.0.0`. Preparing a release copies the compiled ESM modules,
+TypeScript declarations, README, and license into a clean staging directory. The
+published manifest retains React as a peer dependency and repository metadata,
+but excludes development dependencies, scripts, and workspace/catalog
+references. React and icon libraries are not bundled.
+
+Validate an exact release locally without publishing:
+
+```powershell
+pnpm prepare:background 0.1.0
+pnpm --dir packages/react-engraved-background/dist/npm pack --pack-destination ..
+$env:BACKGROUND_EXPECTED_VERSION = "0.1.0"
+node --test .\scripts\background-package.test.mjs
+Remove-Item Env:\BACKGROUND_EXPECTED_VERSION
+```
+
+The smoke test installs the actual tarball offline outside the checkout,
+supplies copied local React peer fixtures, and renders the installed component
+in a separate process. It checks the release version, exported files,
+deterministic layout, and seamless SVG wrapping. `pnpm check` includes this test
+with version `0.0.0`; the workflow repeats it using the tag's release version.
+
+After the intended commit is on `origin/main` and supported-platform CI has
+passed, explicitly authorized publication uses:
+
+```powershell
+git tag -a "react-engraved-background@0.1.0" -m "Publish react-engraved-background 0.1.0"
+git push origin "react-engraved-background@0.1.0"
+```
+
+The workflow validates main ancestry and publishes the tested
+`packages/react-engraved-background/dist/react-engraved-background-0.1.0.tgz`
+under `latest` with provenance. It does not publish the CLI or deploy
+Cloudflare. Verify the resulting version, dist-tag, and provenance through
+npmx.dev after the action succeeds.

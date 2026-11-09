@@ -1,4 +1,11 @@
-import { useId, useState } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
+import {
+  EngravedBackground,
+  mistPalette,
+  sandPalette,
+  icePalette,
+} from "react-engraved-background";
+import { backgroundIcons } from "./background-icons.js";
 
 export const backgroundStorageKey = "pinboard:background";
 export const backgroundPalettes = [
@@ -7,6 +14,15 @@ export const backgroundPalettes = [
   { id: "ice", label: "晴空冰海 · Clear sky blue" },
 ] as const;
 export type BackgroundPalette = (typeof backgroundPalettes)[number]["id"];
+const paletteValues = { mist: mistPalette, sand: sandPalette, ice: icePalette };
+const backgroundListeners = new Set<() => void>();
+
+function subscribeBackground(listener: () => void) {
+  backgroundListeners.add(listener);
+  return () => {
+    backgroundListeners.delete(listener);
+  };
+}
 
 function isBackgroundPalette(value: unknown): value is BackgroundPalette {
   return backgroundPalettes.some((palette) => palette.id === value);
@@ -25,6 +41,7 @@ export function readBackground(): BackgroundPalette {
 
 function applyBackground(palette: BackgroundPalette) {
   document.documentElement.dataset.background = palette;
+  for (const listener of backgroundListeners) listener();
 }
 
 export function initializeBackground() {
@@ -50,6 +67,24 @@ function currentBackground(): BackgroundPalette {
       ? undefined
       : document.documentElement.dataset.background;
   return isBackgroundPalette(palette) ? palette : "mist";
+}
+
+export function PinboardBackground() {
+  const palette = useSyncExternalStore(
+    subscribeBackground,
+    currentBackground,
+    () => "mist" as const,
+  );
+  return (
+    <EngravedBackground
+      className="pinboard-backdrop"
+      icons={backgroundIcons}
+      palette={paletteValues[palette]}
+      seed="pinboard-v1"
+      aria-hidden="true"
+      style={{ position: "fixed", inset: 0, zIndex: -1 }}
+    />
+  );
 }
 
 export function BackgroundSettings({

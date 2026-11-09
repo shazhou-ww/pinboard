@@ -31,7 +31,7 @@
   "packageManager": "pnpm@11.22.0",
   "scripts": {
     "build": "turbo run build",
-    "check": "pnpm format:check && pnpm test:release && turbo run lint typecheck test build && pnpm test:cli-package",
+    "check": "pnpm format:check && pnpm test:release && turbo run lint typecheck test build && pnpm test:cli-package && pnpm test:background-package",
     "clean": "turbo run clean && node -e \"require('node:fs').rmSync('.turbo', { recursive: true, force: true })\"",
     "deploy": "pnpm build && pnpm --filter @shazhou/pinboard-worker deploy",
     "dev": "pnpm --filter @shazhou/pinboard-web build && turbo run dev",
@@ -39,11 +39,13 @@
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "prepare:cli": "turbo run build --filter=@shazhou/pinboard && node scripts/package-cli.mjs",
+    "prepare:background": "turbo run build --filter=react-engraved-background && node scripts/package-react-background.mjs",
     "package:cli": "pnpm prepare:cli && pnpm --dir apps/cli/dist/npm pack --pack-destination ..",
     "test": "turbo run test",
     "test:kubo": "pnpm --filter @shazhou/pinboard-contracts build && node scripts/kubo-poc.mjs",
-    "test:release": "node --test scripts/validate-release.test.mjs scripts/validate-cli-release.test.mjs",
+    "test:release": "node --test scripts/validate-release.test.mjs scripts/validate-cli-release.test.mjs scripts/validate-npm-release.test.mjs",
     "test:cli-package": "pnpm package:cli && node --test scripts/cli-package.test.mjs",
+    "test:background-package": "pnpm prepare:background 0.0.0 && pnpm --dir packages/react-engraved-background/dist/npm pack --pack-destination .. && node --test scripts/background-package.test.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

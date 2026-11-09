@@ -6,7 +6,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./app.js";
 import { previewEnabled } from "./api.js";
-import { initializeBackground } from "./background.js";
+import { initializeBackground, PinboardBackground } from "./background.js";
 import "./styles.css";
 
 const root = document.querySelector("#root");
@@ -18,11 +18,14 @@ if (!(root instanceof HTMLElement)) {
 const appRoot = createRoot(root);
 function showStartupError(error: unknown) {
   appRoot.render(
-    <main className="shell">
-      <p className="notice" role="alert">
-        {error instanceof Error ? error.message : String(error)}
-      </p>
-    </main>,
+    <>
+      <PinboardBackground />
+      <main className="shell">
+        <p className="notice" role="alert">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
+      </main>
+    </>,
   );
 }
 async function start() {
@@ -34,6 +37,7 @@ async function start() {
   }
   appRoot.render(
     <StrictMode>
+      <PinboardBackground />
       <App />
     </StrictMode>,
   );

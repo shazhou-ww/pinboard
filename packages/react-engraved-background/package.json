@@ -1,0 +1,43 @@
+{
+  "name": "react-engraved-background",
+  "version": "0.0.0",
+  "description": "Deterministic, seamlessly tiled SVG icon backgrounds for React.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shazhou-ww/pinboard.git",
+    "directory": "packages/react-engraved-background"
+  },
+  "homepage": "https://github.com/shazhou-ww/pinboard/tree/main/packages/react-engraved-background",
+  "bugs": {
+    "url": "https://github.com/shazhou-ww/pinboard/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run --config vitest.config.ts --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0 <20"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  }
+}
