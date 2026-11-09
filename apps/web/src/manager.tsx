@@ -23,6 +23,7 @@ import { Dialog } from "./dialog.js";
 import { OAuthGrants } from "./oauth.js";
 import { PinPreview } from "./pin-preview.js";
 import { PreviewClient } from "./preview-client.js";
+import { DescriptionClient } from "./description-client.js";
 import { apiFetch, ApiRequestError } from "./api.js";
 import { Icon } from "./icon.js";
 import { PublicationDialog, PublicationPreview } from "./publications.js";
@@ -111,6 +112,11 @@ export function AccountManager({
 }) {
   const previews = useMemo(() => new PreviewClient(accountId), [accountId]);
   useEffect(() => previews.attach(), [previews]);
+  const descriptions = useMemo(
+    () => new DescriptionClient(accountId, previews),
+    [accountId, previews],
+  );
+  useEffect(() => descriptions.attach(), [descriptions]);
   const lists = useItemLists(accountId);
   const { pins, publications, cursor, publicationCursor, loaded } = lists;
   const [selectedPublication, setSelectedPublication] =
@@ -627,6 +633,7 @@ export function AccountManager({
       return;
     void perform(async () => {
       await requestJson(`/api/pins/${pin.cid}`, { method: "DELETE" });
+      descriptions.invalidateRoot(pin.cid);
       setSelected(null);
       setRenaming(null);
       await refresh();
@@ -743,6 +750,7 @@ export function AccountManager({
         </div>
       </div>
       <PublicationDialog
+        descriptionClient={descriptions}
         publication={selectedPublication}
         pin={publishingPin}
         pins={actionItems.pins}
@@ -1121,6 +1129,7 @@ export function AccountManager({
               </form>
             ) : null}
             <NodeDescriptionEditor
+              client={descriptions}
               key={selected.cid}
               rootCid={selected.cid}
               name={selected.name}

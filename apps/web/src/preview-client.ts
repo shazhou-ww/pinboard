@@ -234,7 +234,7 @@ export class PreviewClient {
     }
   }
 
-  private async invalidate(cid: string) {
+  async invalidate(cid: string) {
     this.memory.delete(cid);
     if (this.persistent) {
       try {

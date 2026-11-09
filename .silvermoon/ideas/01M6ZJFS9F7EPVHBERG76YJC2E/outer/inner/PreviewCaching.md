@@ -1,9 +1,9 @@
 # 详情预览缓存技术方案
 
 本文件支持 [实施契约](./Implementation.md)
-的 I-S01、I-S02、I-S03，记录当前建议及需要验证的风险，不是第四份契约，也不代表构想已验收或功能已实现。
+的 I-S01、I-S02、I-S03，记录方案及实现证据，不是第四份契约，也不代表构想已验收或已部署。
 
-## 当前链路与重复加载原因
+## 实施前链路与重复加载原因
 
 - [PinPreview](../../../../../apps/web/src/pin-preview.tsx) 先读取
   [PreviewClient](../../../../../apps/web/src/preview-client.ts)
@@ -107,3 +107,26 @@ Worker 或离线编辑。
 和
 [publications 测试](../../../../../apps/web/test/publications.test.tsx)，按实施需要增加客户端单元测试。定向测试通过后运行 pnpm
 check；真实慢网络、图片资源与发布页面阅读体验留给 D-AC01、D-AC02 的浏览器验收。
+
+## 已实施的机制与方案细化
+
+- 新增
+  [DescriptionClient](../../../../../apps/web/src/description-client.ts)，由 AccountManager 按账号稳定持有，并传给私有详情及 PublicationDialog；PublicationPage 持有独立客户端。NodeDescriptionEditor 的所有读写均使用同一入口，独立高级节点查询也可共享该客户端。没有恢复并行 UI 简化已移除的按钮或额外说明。
+- 私有键为账号/root/node；公开键为 publication/明确 revision/root/node，两者使用独立命名空间。根/节点匹配、用户 text/version、系统预览均做运行时校验；根据 descriptions.ts 中公开 user.version
+  = revision 的实际契约，额外拒绝错版本响应。
+- 同步快照在首次渲染即可显示；切换账号、根、节点、发布版本用新的上下文渲染，不等待 effect 才隐藏旧内容。每次打开仍 GET，正在进行的相同 GET 合并；关闭单个读者只解除订阅，最终会话释放才中止请求。
+- GET 与 PUT 各自跟踪当前请求身份。保存成功取消旧 GET 并广播 PUT；删除/权限失效/会话释放同时撤销在途 GET 与 PUT，忽略晚到响应。草稿开始编辑时固定 text 和 expectedVersion；后台刷新可更新预览与已保存版本，不改变草稿基准。409 保留草稿，Retry
+  description 必须确认丢弃。
+- 当前 publication 页面及对话框原有历史状态会在切换 ID 的首次渲染短暂保留上一个发布对象。为保证描述键只使用当前发布的已解析历史，新增 ID 作用域筛选，公开页面忽略已取消的旧历史响应；定向组件测试验证延迟跟随链接、晚到历史和账号对话框切换不会绘制旧发布内容。
+- 完整响应 LRU 使用 128 条、2 MiB 总量、64
+  KiB 单条及 1 小时保存时间；按 UTF-8 序列化响应计费，访问不延长保留期。超限仍通知当前读者并 console.warn，不入缓存。拒绝/删除标记也占用同一有界 LRU（序列化 null 为 4 字节），避免刚失效的上下文重新使用列表预览。401/403 后该私有会话禁止列表预览回退，公开快照不受影响。新成功 GET 可重建完整快照，恢复动作不复活旧数据。
+- 既有 PreviewClient 只用于读取稳定描述及撤销 pending/failed 的旧记录，不新增详情到 IndexedDB 的写入入口。列表已有独立批量写入/新鲜期管理，详情重复打开每次都验证完整响应；因此无需新增异步持久写入或与旧批量请求竞态的代次机制。此处是对建议“可增加写入入口”的有意简化，不缓存用户描述，也不把 CID 缓存视为根授权。无完整快照时可独立显示已有系统预览，未获完整响应前不显示用户描述或编辑入口；IndexedDB 失败使用现有显式告警降级。
+- 待生成/可重试失败状态继续使用 previewPollDelay 的 2 秒/30 秒间隔与 24 次上限；保存通知也能继续轮询。Retry
+  preview 发起真实重新验证，完成或关闭时释放定时器。网络/5xx 保留当前展示（包括因单条超限而未入 LRU 的响应），错误与重试明确可见；401/403/404、无效 JSON/上下文撤下相应展示，不延长旧快照时间。
+
+## 自动化证据
+
+- 新增 description-client.test.ts，验证请求合并、账号/root/node/publication/revision 隔离、公开错版本拒绝、PUT 广播及旧 GET 竞态、单读者关闭、401/403/404/409/5xx/网络/无效 JSON 与字段校验、删除和账号释放的晚到 GET/PUT、StrictMode 所有权重放，以及精确 LRU/UTF-8/总量/TTL 边界。
+- 新增 description-reader.test.tsx，沿用仓库现有 hook 状态宿主测试方式：延迟响应下关闭重开即时显示、并发读者、仅稳定预览缓存时描述独立加载、IndexedDB 不可用告警、首次渲染上下文切换隔离、草稿 CAS/409/确认重试、清除描述、主/高级读者同步且不同子节点不串写、权限与 5xx、两种轮询间隔/24 次上限/真实预览重试/关闭清理。
+- 额外覆盖权限/无效响应后晚到 PUT 不复活、超限但已显示响应在网络错误时保留、pending/failed 撤销旧稳定记录（不串到公开命名空间）、ready 后立即停止轮询，以及发布历史解析的 ID 隔离和取消竞态。
+- 联合运行上述两组及 reading-details、preview-client、publications、preview 回归。当前定向结果及全工作区检查结果见 Implementation.md；浏览器部署标准仍未声明通过。

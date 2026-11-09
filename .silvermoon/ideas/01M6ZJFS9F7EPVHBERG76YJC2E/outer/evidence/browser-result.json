@@ -1,0 +1,3709 @@
+{
+  "url": "http://127.0.0.1:5196",
+  "checks": 28,
+  "evidence": [
+    "私有详情重开：后台 GET 尚未完成，旧预览与说明立即可见",
+    "私有详情 1500ms 后台更新全过程没有 Loading content/空白回退",
+    "每次重开有真实授权重新验证且不额外重复发起详情 GET",
+    "切换私有根时不显示另一根的完整描述或预览",
+    "不同私有根完成验证后显示各自内容",
+    "后台更新到 v2 时正在编辑的草稿不被覆盖",
+    "刷新后保存仍使用原草稿 CAS v1，409 明示且保留草稿",
+    "取消重试丢弃确认仍保留草稿",
+    "明确丢弃后重新编辑/保存显示 PUT 新响应 v3",
+    "PUT v4 比旧 GET v3 先完成，迟到 GET 不覆盖保存结果",
+    "真实浏览器后台 503 保留缓存预览并明确提供重试",
+    "后台失败后的重试实际恢复描述",
+    "真实目录预览及独立/嵌套高级节点读者使用当前组件，无恢复详情已移除按钮",
+    "实际独立高级读者：同一 child CID 在两个根内分别显示，缓存不串根/节点",
+    "高级读者保存 child 不串写同 CID 的另一根",
+    "同一 root/child 的另一实际读者同步收到 PUT，无旧描述残留",
+    "发布 current v3 重开从独立缓存立即读取而不是 current 字面键",
+    "发布详情 1500ms 后台更新全过程已有预览持续可见",
+    "切换已缓存 v1 不显示 v3，后台请求使用明确 revision",
+    "另一 publication 的同 CID/v1 不复用前一 publication 的用户快照",
+    "相同 CID 与 revision 也按 publication ID 分离，并保留只读",
+    "真实账号重载路径：另一账号未验证前不显示前账号完整说明或预览",
+    "另一账号响应完成后显示其自己的私有说明",
+    "另一账号自己的缓存重开同样保留预览而不串前账号",
+    "未经 fixture 拦截的同源 Worker bootstrap/受保护 API 与 SPA 路由真实响应",
+    "所有 fixture API 请求保持同源 /api/*，无跨源详情请求",
+    "真实固定发布页面读取可达 child，保持 revision/root/node 及只读边界",
+    "真实静态资源和固定页面由同一 Vite origin 返回"
+  ],
+  "cacheDetails": [
+    {
+      "label": "私有详情 1500ms 后台更新全过程没有 Loading content/空白回退",
+      "samples": [
+        {
+          "at": 2056,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2072.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2109.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2119.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2132.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2149.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2156.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2165.4000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2181.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2197.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2213.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2229.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2245.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2261.4000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2276.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2292.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2308.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2324.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2341.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2356.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2373.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2388.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2404.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2421.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2437.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2453.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2470.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2485.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2501.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2517.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2533.5,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2550.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2565.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2581.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2596.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2613.5,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2629.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2645.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2661.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2677.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2693.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2710.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2725.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2741.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2757.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2773.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2789.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2806,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2822,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2837.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2853,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2869.5,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2884.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2902.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2918.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2934.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2948.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2964.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2981.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2998.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3013.5,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3029.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3045.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3061.2000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3077.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3093.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3110,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3125.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3140.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3156.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3173.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3189.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3206.7000000178814,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3221.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3237.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3254,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3269.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3285.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3301.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3317.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3332.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3349.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3364.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3380.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3397.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3413.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3429.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3445.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3461.0999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3477.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3492.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3509.300000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3525.800000011921,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3541.5999999940395,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3557.9000000059605,
+          "text": "Root A root synthetic preview v1",
+          "loading": false,
+          "busy": "false"
+        }
+      ]
+    },
+    {
+      "label": "发布详情 1500ms 后台更新全过程已有预览持续可见",
+      "samples": [
+        {
+          "at": 11155.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11185.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11193.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11225.700000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11229.700000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11271.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11285.700000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11301.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11317.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11334.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11350.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11365.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11381.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11398.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11414.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11430.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11446.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11461.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11477.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11494,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11509.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11525.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11540.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11556.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11573.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11590.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11605.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11622.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11638.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11653.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11669.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11685.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11702.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11717.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11733.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11749.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11765.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11782,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11797.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11813.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11830.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11846.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11861.700000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11877.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11894.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11909.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11926.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11941.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11957.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11973.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 11989.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12005.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12022.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12037.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12054.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12069.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12086.09999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12101.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12118.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12134.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12148.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12164.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12181.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12197.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12214.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12230.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12246.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12261.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12278,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12293.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12310.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12326.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12341.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12358.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12373.300000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12389.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12405.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12421.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12438.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12453.700000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12469.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12485.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12502.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12517.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12534.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12549.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12565.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12582.40000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12597.200000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12613.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12629.5,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12646.59999999404,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12660.90000000596,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12676.800000011921,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 12693.700000017881,
+          "text": "reading-fixture Version 3 excerpt",
+          "loading": false,
+          "busy": "false"
+        }
+      ]
+    },
+    {
+      "label": "account-a-request-log",
+      "requests": [
+        {
+          "path": "/api/bootstrap",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1586.5999999940395,
+          "status": 200,
+          "finishedAt": 1586.7000000178814
+        },
+        {
+          "path": "/api/auth/session",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1587.0999999940395,
+          "status": 200,
+          "finishedAt": 1587.0999999940395
+        },
+        {
+          "path": "/api/bootstrap",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1591.300000011921,
+          "status": 200,
+          "finishedAt": 1591.4000000059605
+        },
+        {
+          "path": "/api/auth/session",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1591.5,
+          "status": 200,
+          "finishedAt": 1591.5
+        },
+        {
+          "path": "/api/oauth/grants",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1667.7000000178814,
+          "status": 200,
+          "finishedAt": 1667.7000000178814
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1669.0999999940395,
+          "status": 200,
+          "finishedAt": 1669.0999999940395
+        },
+        {
+          "path": "/api/publications",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1669.2000000178814,
+          "status": 200,
+          "finishedAt": 1669.2000000178814
+        },
+        {
+          "path": "/api/tokens",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1669.5999999940395,
+          "status": 200,
+          "finishedAt": 1669.7000000178814
+        },
+        {
+          "path": "/api/oauth/grants",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1671.2000000178814,
+          "status": 200,
+          "finishedAt": 1671.2000000178814
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1671.4000000059605,
+          "status": 200,
+          "finishedAt": 1671.5
+        },
+        {
+          "path": "/api/publications",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1671.5,
+          "status": 200,
+          "finishedAt": 1671.5
+        },
+        {
+          "path": "/api/tokens",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1671.5999999940395,
+          "status": 200,
+          "finishedAt": 1671.5999999940395
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/preview/3",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1729,
+          "status": 200,
+          "finishedAt": 1729.300000011921
+        },
+        {
+          "path": "/api/public/publications/single-fixture/preview/1",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1729.5,
+          "status": 200,
+          "finishedAt": 1729.5
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/preview/3",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1731.2000000178814,
+          "status": 200,
+          "finishedAt": 1731.2000000178814
+        },
+        {
+          "path": "/api/public/publications/single-fixture/preview/1",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1731.2000000178814,
+          "status": 200,
+          "finishedAt": 1731.2000000178814
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1824.800000011921,
+          "status": 200,
+          "finishedAt": 1824.9000000059605
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 1855,
+          "status": 200,
+          "finishedAt": 1855.0999999940395
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 2044.5999999940395,
+          "status": 200,
+          "finishedAt": 3557.9000000059605
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 2055.4000000059605,
+          "status": 200,
+          "finishedAt": 2055.5
+        },
+        {
+          "path": "/api/pins/previews",
+          "origin": "http://127.0.0.1:5196",
+          "method": "POST",
+          "body": {
+            "cids": [
+              "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b",
+              "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a"
+            ]
+          },
+          "accountId": "synthetic",
+          "startedAt": 2150.5999999940395,
+          "status": 200,
+          "finishedAt": 2150.5999999940395
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 3699.9000000059605,
+          "status": 200,
+          "finishedAt": 5213.0999999940395
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 3712.5999999940395,
+          "status": 200,
+          "finishedAt": 3712.7000000178814
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 5389,
+          "status": 200,
+          "finishedAt": 6897.0999999940395
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 5400.4000000059605,
+          "status": 200,
+          "finishedAt": 5400.4000000059605
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "PUT",
+          "body": {
+            "text": "Draft remains based on v1",
+            "expectedVersion": 1
+          },
+          "accountId": "synthetic",
+          "startedAt": 6919,
+          "status": 409,
+          "finishedAt": 6919.0999999940395
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 7371.200000017881,
+          "status": 200,
+          "finishedAt": 7371.200000017881
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "PUT",
+          "body": {
+            "text": "Saved v3",
+            "expectedVersion": 2
+          },
+          "accountId": "synthetic",
+          "startedAt": 7629.200000017881,
+          "status": 200,
+          "finishedAt": 7629.200000017881
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 7658.800000011921,
+          "status": 200,
+          "finishedAt": 7658.800000011921
+        },
+        {
+          "path": "/api/publications",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 7658.800000011921,
+          "status": 200,
+          "finishedAt": 7658.800000011921
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 7854,
+          "status": 200,
+          "finishedAt": 9368.5
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 7862.5,
+          "status": 200,
+          "finishedAt": 7862.5
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "PUT",
+          "body": {
+            "text": "PUT wins v4",
+            "expectedVersion": 3
+          },
+          "accountId": "synthetic",
+          "startedAt": 8054.0999999940395,
+          "status": 200,
+          "finishedAt": 8054.0999999940395
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 8083.0999999940395,
+          "status": 200,
+          "finishedAt": 8083.0999999940395
+        },
+        {
+          "path": "/api/publications",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 8083.200000017881,
+          "status": 200,
+          "finishedAt": 8083.200000017881
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 9512,
+          "status": 503,
+          "finishedAt": 9512
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 9519.700000017881,
+          "status": 200,
+          "finishedAt": 9519.800000011921
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 9611.700000017881,
+          "status": 200,
+          "finishedAt": 9611.700000017881
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 9808,
+          "status": 200,
+          "finishedAt": 10108.90000000596
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 9809.300000011921,
+          "status": 200,
+          "finishedAt": 10111.700000017881
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6c/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 10245.800000011921,
+          "status": 200,
+          "finishedAt": 10546.200000017881
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6c/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 10321.700000017881,
+          "status": 200,
+          "finishedAt": 10622
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6c/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "PUT",
+          "body": {
+            "text": "Only root A child changed",
+            "expectedVersion": 1
+          },
+          "accountId": "synthetic",
+          "startedAt": 10714,
+          "status": 200,
+          "finishedAt": 10714.09999999404
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/versions/3/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s63/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 10821.700000017881,
+          "status": 200,
+          "finishedAt": 10821.800000011921
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/history",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 10836.40000000596,
+          "status": 200,
+          "finishedAt": 10836.40000000596
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 10837.09999999404,
+          "status": 200,
+          "finishedAt": 10837.09999999404
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/versions/1/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s61/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 10931.200000017881,
+          "status": 200,
+          "finishedAt": 10931.300000011921
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/versions/3/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s63/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 11144.700000017881,
+          "status": 200,
+          "finishedAt": 12646.59999999404
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/history",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 11154.90000000596,
+          "status": 200,
+          "finishedAt": 11154.90000000596
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 11155.59999999404,
+          "status": 200,
+          "finishedAt": 11155.59999999404
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/versions/1/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s61/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 12729.300000011921,
+          "status": 200,
+          "finishedAt": 14231
+        },
+        {
+          "path": "/api/public/publications/single-fixture/versions/1/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s61/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 12934.700000017881,
+          "status": 200,
+          "finishedAt": 14441.300000011921
+        },
+        {
+          "path": "/api/public/publications/single-fixture/history",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 12947.700000017881,
+          "status": 200,
+          "finishedAt": 12947.800000011921
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic",
+          "startedAt": 12948.40000000596,
+          "status": 200,
+          "finishedAt": 12948.40000000596
+        }
+      ]
+    },
+    {
+      "label": "另一账号自己的缓存重开同样保留预览而不串前账号",
+      "samples": [
+        {
+          "at": 2249.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2270.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2312.0999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2315.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2362.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2379.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2396.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2411.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2427.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2442.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2460.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2474.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2490.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2506.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2523.0999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2540.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2555.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2572.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2587.0999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2603.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2619.9000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2635.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2651.0999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2667,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2682.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2699.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2715.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2732.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2748.0999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2763.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2779.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2795.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2811.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2827.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2843.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2858.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2875.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2890.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2906.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2923.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2938.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2954.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2971.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 2986.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3002.9000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3019.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3034.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3051.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3067,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3083.800000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3098.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3114.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3130.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3146.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3162.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3179.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3194.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3210.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3227,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3242.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3258.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3274.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3290.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3307.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3323.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3339.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3356.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3371.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3388.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3403.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3419.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3434.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3451.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3467.300000011921,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3483.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3500.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3514.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3530.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3547.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3563.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3578.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3594.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3610.9000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3627.5999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3642.7000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3659.2000000178814,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3676,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3691,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3707.0999999940395,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3722.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3739.4000000059605,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3755.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        },
+        {
+          "at": 3770.5,
+          "text": "Root A root synthetic-b preview v1",
+          "loading": false,
+          "busy": "false"
+        }
+      ]
+    },
+    {
+      "label": "real-same-origin-network-probes",
+      "probes": [
+        {
+          "path": "/api/bootstrap",
+          "url": "http://127.0.0.1:5196/api/bootstrap",
+          "status": 200,
+          "contentType": "application/json",
+          "text": "{\"appName\":\"Pinboard\",\"providers\":[]}"
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "url": "http://127.0.0.1:5196/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "status": 401,
+          "contentType": "application/json",
+          "text": "{\"error\":\"Sign in with Google\"}"
+        },
+        {
+          "path": "/p/reading-fixture/v/1",
+          "url": "http://127.0.0.1:5196/p/reading-fixture/v/1",
+          "status": 200,
+          "contentType": "text/html",
+          "text": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\";\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () => {};\nwindow.$RefreshSig$ = () => (type) => type;</script>\n\n    <script type=\"module\" src=\"/@vite/client\"></script>\n\n   "
+        }
+      ]
+    },
+    {
+      "label": "account-b-request-log",
+      "requests": [
+        {
+          "path": "/api/bootstrap",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 319.09999999403954,
+          "status": 200,
+          "finishedAt": 319.09999999403954
+        },
+        {
+          "path": "/api/auth/session",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 319.2000000178814,
+          "status": 200,
+          "finishedAt": 319.2000000178814
+        },
+        {
+          "path": "/api/bootstrap",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 321.80000001192093,
+          "status": 200,
+          "finishedAt": 321.90000000596046
+        },
+        {
+          "path": "/api/auth/session",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 322,
+          "status": 200,
+          "finishedAt": 322
+        },
+        {
+          "path": "/api/oauth/grants",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 442.40000000596046,
+          "status": 200,
+          "finishedAt": 442.40000000596046
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 443.09999999403954,
+          "status": 200,
+          "finishedAt": 443.09999999403954
+        },
+        {
+          "path": "/api/publications",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 443.2000000178814,
+          "status": 200,
+          "finishedAt": 443.2000000178814
+        },
+        {
+          "path": "/api/tokens",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 443.30000001192093,
+          "status": 200,
+          "finishedAt": 443.30000001192093
+        },
+        {
+          "path": "/api/oauth/grants",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 444.5,
+          "status": 200,
+          "finishedAt": 444.5
+        },
+        {
+          "path": "/api/pins",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 444.7000000178814,
+          "status": 200,
+          "finishedAt": 444.7000000178814
+        },
+        {
+          "path": "/api/publications",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 444.7000000178814,
+          "status": 200,
+          "finishedAt": 444.7000000178814
+        },
+        {
+          "path": "/api/tokens",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 444.7000000178814,
+          "status": 200,
+          "finishedAt": 444.7000000178814
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/preview/3",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 488.09999999403954,
+          "status": 200,
+          "finishedAt": 488.2000000178814
+        },
+        {
+          "path": "/api/public/publications/single-fixture/preview/1",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 488.30000001192093,
+          "status": 200,
+          "finishedAt": 488.30000001192093
+        },
+        {
+          "path": "/api/public/publications/reading-fixture/preview/3",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 489.40000000596046,
+          "status": 200,
+          "finishedAt": 489.5
+        },
+        {
+          "path": "/api/public/publications/single-fixture/preview/1",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 489.5,
+          "status": 200,
+          "finishedAt": 489.5
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 538,
+          "status": 200,
+          "finishedAt": 2047.300000011921
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 556.8000000119209,
+          "status": 200,
+          "finishedAt": 556.8000000119209
+        },
+        {
+          "path": "/api/pins/previews",
+          "origin": "http://127.0.0.1:5196",
+          "method": "POST",
+          "body": {
+            "cids": [
+              "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6b",
+              "bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a"
+            ]
+          },
+          "accountId": "synthetic-b",
+          "startedAt": 846.4000000059605,
+          "status": 200,
+          "finishedAt": 846.5
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 2227,
+          "status": 200,
+          "finishedAt": 3739.5
+        },
+        {
+          "path": "/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a",
+          "origin": "http://127.0.0.1:5196",
+          "method": "GET",
+          "body": null,
+          "accountId": "synthetic-b",
+          "startedAt": 2249.2000000178814,
+          "status": 200,
+          "finishedAt": 2249.2000000178814
+        }
+      ]
+    }
+  ],
+  "networkResponses": [
+    {
+      "url": "http://127.0.0.1:5196/",
+      "status": 200,
+      "mimeType": "text/html"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/main.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@vite/client",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+instrument-sans@5.3.0/node_modules/@fontsource-variable/instrument-sans/index.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+newsreader@5.3.0/node_modules/@fontsource-variable/newsreader/index.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@react-refresh",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/app.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/api.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/background.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/styles.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/vite@8.3.4_@types+node@26.6.6_esbuild@0.28.2/node_modules/vite/dist/client/env.mjs",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0831621f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@hono_auth-js_react.js?v=87360c9b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/ui.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/oauth.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/index.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/publications.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/background-icons.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/icon.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/loading.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/contracts/dist/index.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/manager.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/authorizations.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/dialog.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/pin-preview.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react-dom_client.js?v=3ad2286f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/node-description.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-poll.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/description-client.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/detail-actions.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react_jsx-runtime.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/layout.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/engraving.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/palettes.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowDown.js?v=db5e138e",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowUpRight.js?v=3d0a4685",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretDown.js?v=d7935414",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretLeft.js?v=ac7bcc93",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Check.js?v=e3b9001b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretRight.js?v=817caa12",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Copy.js?v=e0e6ca14",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_DotsThree.js?v=1c5890c9",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FileText.js?v=3fa5c650",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FilePdf.js?v=83d876ce",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Image.js?v=b70280bb",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FilmStrip.js?v=fd2883c7",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_MusicNote.js?v=7f5b8dfa",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Folder.js?v=5f548613",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FolderPlus.js?v=3ee2fb1d",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Gear.js?v=a1f805c5",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Plus.js?v=03d9ab32",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_PushPin.js?v=ff324698",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Question.js?v=b6cf2128",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_SignOut.js?v=c45fa23a",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Stack.js?v=226dd71a",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_X.js?v=60efbaac",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Warning.js?v=03bae936",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FunnelSimple.js?v=c6acc430",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowsClockwise.js?v=f6596921",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_PencilSimple.js?v=caae2bb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_XCircle.js?v=9b26e08b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/contracts/dist/preview.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/uploads.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-client.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/recently-deleted.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/settings.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/item-filter.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/action-items.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/IconBase.es-DxOb1wjJ.js?v=0831621f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react-dom.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-cache.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+instrument-sans@5.3.0/node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2",
+      "status": 200,
+      "mimeType": "font/woff2"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+newsreader@5.3.0/node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2",
+      "status": 200,
+      "mimeType": "font/woff2"
+    },
+    {
+      "url": "http://127.0.0.1:5196/favicon.ico",
+      "status": 404,
+      "mimeType": "text/plain"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/main.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/",
+      "status": 200,
+      "mimeType": "text/html"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/main.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@vite/client",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@react-refresh",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+instrument-sans@5.3.0/node_modules/@fontsource-variable/instrument-sans/index.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+newsreader@5.3.0/node_modules/@fontsource-variable/newsreader/index.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/app.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/api.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/background.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/styles.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/vite@8.3.4_@types+node@26.6.6_esbuild@0.28.2/node_modules/vite/dist/client/env.mjs",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0831621f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/ui.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@hono_auth-js_react.js?v=87360c9b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/oauth.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/background-icons.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/index.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/publications.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react-dom_client.js?v=3ad2286f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/icon.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/loading.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/manager.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react_jsx-runtime.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/contracts/dist/index.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/layout.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/engraving.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/authorizations.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/palettes.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/dialog.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-poll.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/pin-preview.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/node-description.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/description-client.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/detail-actions.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react-dom.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/uploads.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-client.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/item-filter.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowDown.js?v=db5e138e",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowUpRight.js?v=3d0a4685",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretDown.js?v=d7935414",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretLeft.js?v=ac7bcc93",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Check.js?v=e3b9001b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Copy.js?v=e0e6ca14",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretRight.js?v=817caa12",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/settings.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/recently-deleted.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_DotsThree.js?v=1c5890c9",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FileText.js?v=3fa5c650",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FilePdf.js?v=83d876ce",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Image.js?v=b70280bb",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FilmStrip.js?v=fd2883c7",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/action-items.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_MusicNote.js?v=7f5b8dfa",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Folder.js?v=5f548613",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FolderPlus.js?v=3ee2fb1d",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Plus.js?v=03d9ab32",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Gear.js?v=a1f805c5",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_PushPin.js?v=ff324698",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Question.js?v=b6cf2128",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_SignOut.js?v=c45fa23a",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Stack.js?v=226dd71a",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Warning.js?v=03bae936",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_X.js?v=60efbaac",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FunnelSimple.js?v=c6acc430",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowsClockwise.js?v=f6596921",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_XCircle.js?v=9b26e08b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_PencilSimple.js?v=caae2bb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/contracts/dist/preview.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/IconBase.es-DxOb1wjJ.js?v=0831621f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-cache.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+instrument-sans@5.3.0/node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2",
+      "status": 200,
+      "mimeType": "font/woff2"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+newsreader@5.3.0/node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2",
+      "status": 200,
+      "mimeType": "font/woff2"
+    },
+    {
+      "url": "http://127.0.0.1:5196/p/reading-fixture/v/1",
+      "status": 200,
+      "mimeType": "text/html"
+    },
+    {
+      "url": "http://127.0.0.1:5196/api/bootstrap",
+      "status": 200,
+      "mimeType": "application/json"
+    },
+    {
+      "url": "http://127.0.0.1:5196/api/pins/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/nodes/bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6a/description",
+      "status": 401,
+      "mimeType": "application/json"
+    },
+    {
+      "url": "http://127.0.0.1:5196/p/reading-fixture/v/1",
+      "status": 200,
+      "mimeType": "text/html"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/main.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react-dom_client.js?v=3ad2286f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0831621f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@react-refresh",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@vite/client",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react-dom.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+instrument-sans@5.3.0/node_modules/@fontsource-variable/instrument-sans/index.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+newsreader@5.3.0/node_modules/@fontsource-variable/newsreader/index.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/api.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/app.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/background.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/styles.css",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@hono_auth-js_react.js?v=87360c9b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/vite@8.3.4_@types+node@26.6.6_esbuild@0.28.2/node_modules/vite/dist/client/env.mjs",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/ui.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/oauth.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/index.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/background-icons.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/react_jsx-runtime.js?v=9879eeb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/publications.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/manager.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/icon.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/loading.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/contracts/dist/index.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/authorizations.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/layout.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowDown.js?v=db5e138e",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowUpRight.js?v=3d0a4685",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretDown.js?v=d7935414",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretLeft.js?v=ac7bcc93",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_CaretRight.js?v=817caa12",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Check.js?v=e3b9001b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Copy.js?v=e0e6ca14",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_DotsThree.js?v=1c5890c9",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FileText.js?v=3fa5c650",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FilePdf.js?v=83d876ce",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Image.js?v=b70280bb",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FilmStrip.js?v=fd2883c7",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_MusicNote.js?v=7f5b8dfa",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Folder.js?v=5f548613",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FolderPlus.js?v=3ee2fb1d",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Gear.js?v=a1f805c5",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Plus.js?v=03d9ab32",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_PushPin.js?v=ff324698",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Question.js?v=b6cf2128",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_SignOut.js?v=c45fa23a",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Stack.js?v=226dd71a",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_Warning.js?v=03bae936",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_X.js?v=60efbaac",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_FunnelSimple.js?v=c6acc430",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_ArrowsClockwise.js?v=f6596921",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_XCircle.js?v=9b26e08b",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/@phosphor-icons_react_dist_csr_PencilSimple.js?v=caae2bb6",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/engraving.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/node_modules/.vite/deps/IconBase.es-DxOb1wjJ.js?v=0831621f",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/react-engraved-background/dist/palettes.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/dialog.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/pin-preview.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/node-description.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/description-client.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-poll.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/detail-actions.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/uploads.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-client.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/settings.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/item-filter.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/recently-deleted.tsx",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/action-items.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/packages/contracts/dist/preview.js",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/src/preview-cache.ts",
+      "status": 200,
+      "mimeType": "text/javascript"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+instrument-sans@5.3.0/node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2",
+      "status": 304,
+      "mimeType": "font/woff2"
+    },
+    {
+      "url": "http://127.0.0.1:5196/@fs/D:/Code/pinboard.worktrees/frontend-item-preview-caching/node_modules/.pnpm/@fontsource-variable+newsreader@5.3.0/node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2",
+      "status": 304,
+      "mimeType": "font/woff2"
+    }
+  ]
+}

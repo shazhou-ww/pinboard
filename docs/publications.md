@@ -236,8 +236,36 @@ independent of source Pin and generated preview lifetimes.
 
 Sidecars never alter raw CID/CAR bytes. Ordinary downloads/exports contain only
 the original content, **not descriptions**; use the explicit metadata export or
-revision JSON when you need both. The Web Pin details editor offers a Node CID
-field for root/child editing; public version pages offer read-only node lookup.
+revision JSON when you need both. The standalone Web node editor supports
+root/child editing; root item details remain reading-focused. Public version
+pages offer read-only node lookup.
+
+### Web detail snapshots
+
+Private and published node readers share a session-memory description client:
+reopening shows an already authorized snapshot immediately while a real GET
+revalidates descriptions, previews and access. Concurrent reads of the same
+account/root/node or publication/revision/root/node are combined. Public
+`current` links resolve history to an explicit revision before reading a node.
+Snapshots are never persisted and are limited to 128 entries, 2 MiB total, 64
+KiB per serialized UTF-8 response, and one hour since the last successful
+response. Oversize responses still display but emit a cache-budget warning.
+
+Private readers may initially display an existing account-scoped list preview
+without inventing a user description or editable version. Preview persistence
+failure warns and falls back to memory/network reads. Pending or failed system
+previews invalidate old stable descriptors and keep the existing polling limits.
+Saving broadcasts the PUT response to matching readers; an older GET cannot
+overwrite it. Drafts retain their original optimistic-concurrency version during
+refresh. Network/5xx failures keep displayed content and show a retry action;
+401/403/404 and invalid responses withdraw protected or unverifiable content.
+Account changes dispose the session; successful Unpin/publication deletion
+invalidates matching snapshots and outstanding reads/writes.
+
+A cached snapshot is not a new authorization decision: previously authorized
+content can briefly appear until revalidation detects revoked access.
+Server-side authorization, same-origin API routing and public HTTP validators
+are unchanged.
 
 ### Upload and publish
 

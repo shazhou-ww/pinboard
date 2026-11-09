@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ContentPreview,
   Pin,
@@ -13,6 +13,7 @@ import { isContentPreview } from "@shazhou/pinboard-contracts";
 import { previewEnabled } from "./api.js";
 import { Icon } from "./icon.js";
 import { NodeDescriptionEditor } from "./node-description.js";
+import { DescriptionClient } from "./description-client.js";
 import { previewPollDelay } from "./preview-poll.js";
 import {
   DetailDrawer,
@@ -103,6 +104,7 @@ export function PublicationDialog({
   onRetryChoices,
   startPublishing = false,
   onConverted,
+  descriptionClient,
 }: {
   publication: Publication | null;
   pin: Pin | null;
@@ -119,8 +121,23 @@ export function PublicationDialog({
   onRetryChoices?: () => void;
   startPublishing?: boolean;
   onConverted?: (publication: Publication) => void;
+  descriptionClient?: DescriptionClient | undefined;
 }) {
-  const [history, setHistory] = useState<PublicationHistory | null>(null);
+  const descriptions = useMemo(
+    () => descriptionClient ?? new DescriptionClient(),
+    [descriptionClient],
+  );
+  useEffect(
+    () => (descriptionClient ? undefined : descriptions.attach()),
+    [descriptionClient, descriptions],
+  );
+  const [receivedHistory, setHistory] = useState<PublicationHistory | null>(
+    null,
+  );
+  const history =
+    publication && receivedHistory?.publication.id !== publication.id
+      ? null
+      : receivedHistory;
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
   const [cid, setCid] = useState("");
@@ -475,6 +492,7 @@ export function PublicationDialog({
             <div className="publication-detail-shell">
               <div inert={drawerOpen}>
                 <NodeDescriptionEditor
+                  client={descriptions}
                   key={`${current.id}:${viewing.revision}`}
                   readingFirst
                   name={current.title}
@@ -557,6 +575,7 @@ export function PublicationDialog({
                               `/api/publications/${current.id}`,
                               { method: "DELETE" },
                             );
+                            descriptions.invalidatePublication(current.id);
                             await onChanged();
                             onClose();
                           });
@@ -676,16 +695,26 @@ export function PublicationPage({
   id: string;
   revision?: number;
 }) {
-  const [history, setHistory] = useState<PublicationHistory | null>(null);
+  const descriptions = useMemo(() => new DescriptionClient(), []);
+  useEffect(() => descriptions.attach(), [descriptions]);
+  const [receivedHistory, setHistory] = useState<PublicationHistory | null>(
+    null,
+  );
+  const history =
+    receivedHistory?.publication.id === id ? receivedHistory : null;
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   useEffect(() => {
     const controller = new AbortController();
+    setError("");
+    setNotice("");
     void requestJson<PublicationHistory>(
       `/api/public/publications/${encodeURIComponent(id)}/history`,
       { signal: controller.signal },
     )
-      .then(setHistory)
+      .then((next) => {
+        if (!controller.signal.aborted) setHistory(next);
+      })
       .catch((failure: unknown) => {
         if (!controller.signal.aborted)
           setError(
@@ -725,6 +754,7 @@ export function PublicationPage({
         <>
           <h1>{publication.title}</h1>
           <NodeDescriptionEditor
+            client={descriptions}
             key={`${id}:${actual.revision}`}
             rootCid={actual.cid}
             publicationId={id}

@@ -19,3 +19,17 @@
 ### D-AC02: 实际环境隔离与路由不变
 
 在验收环境切换账号和发布版本，确认无错误缓存展示；验证同源静态资源和 /api/* 路由保持正常。若执行生产发布，对同一结果进行线上复验并提供证据。
+
+## 本地验收证据（不代表生产发布）
+
+2026-11-09 的真实 Chrome/React/Vite 本地验收已完成：新缓存模式 28 项断言通过，原有 reading-details 回归 55 项通过。1500
+ms 延迟 GET 下私有、发布与另一账号缓存重开分别取得 95、95、93 个 DOM 样本，均无 Loading
+content/空白回退；保存、409、重试、PUT/旧 GET 竞态及 root/node/
+publication/revision/账号隔离均有可重跑证据。
+
+真实同源静态页及 Worker
+bootstrap/未认证详情 API 另用原始 fetch 探测，分别得到 200/200/401。合成授权数据的范围、局限、截图、请求记录和复跑步骤见
+[BrowserAcceptance.md](./BrowserAcceptance.md)。
+
+据此仅镜像勾选本地 D-S01、D-AC01、D-AC02。D-S02 不勾选：未获生产授权，未发布或线上复验；如以后执行生产发布，仍须补充对应生产证据。所有本次本地 server/browser
+helper 已停止，独立 scratch/profile/state 已清理。

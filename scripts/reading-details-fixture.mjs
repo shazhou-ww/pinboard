@@ -1,3 +1,4 @@
+/* global window, location */
 export function installReadingFixture() {
   const cid = (n) =>
     `bafkreigh2akiscaildcxxbmjcwt4svm6yv6oubkcb3i3m2ak6bpgxy3s6${n}`;
@@ -62,8 +63,14 @@ export function installReadingFixture() {
     previewKind: "text",
     lateRevision: 0,
     delayWrite: 0,
+    accountId: sessionStorage.getItem("reading-fixture-account") ?? "synthetic",
+    scopeLabels: sessionStorage.getItem("reading-cache-scope") === "true",
+    delayDescription: 0,
+    nodeDescriptions: {},
+    sharedNode: cid("c"),
   });
   const originalFetch = window.fetch.bind(window);
+  state.networkFetch = originalFetch;
   const preview = (label) => {
     const base = {
       version: 3,
@@ -116,8 +123,20 @@ export function installReadingFixture() {
     const path = url.pathname;
     const method = (init.method ?? "GET").toUpperCase();
     const body = init.body ? JSON.parse(init.body) : null;
-    state.requests.push({ path, method, body });
-    const result = (data, status = 200) => Response.json(data, { status });
+    const request = {
+      path,
+      origin: url.origin,
+      method,
+      body,
+      accountId: state.accountId,
+      startedAt: performance.now(),
+    };
+    state.requests.push(request);
+    const result = (data, status = 200) => {
+      request.status = status;
+      request.finishedAt = performance.now();
+      return Response.json(data, { status });
+    };
     if (path === "/api/bootstrap")
       return result({
         appName: "Pinboard",
@@ -126,8 +145,8 @@ export function installReadingFixture() {
     if (path === "/api/auth/session")
       return result({
         user: {
-          id: "synthetic",
-          name: "Synthetic local test",
+          id: state.accountId,
+          name: `Synthetic local test ${state.accountId}`,
           email: "fixture@example.test",
         },
       });
@@ -137,7 +156,11 @@ export function installReadingFixture() {
       return result({
         previews: body.cids.map((value) => ({
           cid: value,
-          preview: preview("Card excerpt"),
+          preview: preview(
+            state.scopeLabels
+              ? `Card excerpt ${state.accountId} ${value}`
+              : "Card excerpt",
+          ),
         })),
       });
     if (path === "/api/pins")
@@ -179,13 +202,21 @@ export function installReadingFixture() {
       const root = version
         ? sourceRevisions[version - 1].cid
         : path.split("/")[3];
-      if (path.split("/").at(-2) !== root)
+      const node = path.split("/").at(-2);
+      if (node !== root && (!state.scopeLabels || node !== state.sharedNode))
         return result(
           { error: "Node is not reachable from authorized root" },
           404,
         );
       if (state.descriptionFailure)
         return result({ error: "Fixture description unavailable" }, 503);
+      const identity = `${root}/${node}`;
+      const privateUser = state.scopeLabels
+        ? (state.nodeDescriptions[identity] ??= {
+            text: `${root === cid("a") ? "Root A" : "Root B"} ${node === root ? "root" : "child"} ${state.accountId} description`,
+            version: 1,
+          })
+        : state;
       if (method === "PUT") {
         if (state.delayWrite)
           await new Promise((resolve) => setTimeout(resolve, state.delayWrite));
@@ -194,26 +225,37 @@ export function installReadingFixture() {
             { error: "Description conflict; refresh required" },
             409,
           );
-        if (body.expectedVersion !== state.version)
+        if (body.expectedVersion !== privateUser.version)
           return result({ error: "Version conflict" }, 409);
-        state.text = body.text;
-        state.version++;
+        privateUser.text = body.text;
+        privateUser.version++;
       }
-      if (version === state.lateRevision)
-        await new Promise((resolve) => setTimeout(resolve, 650));
-      return result({
+      const publicationId = version ? path.split("/")[4] : null;
+      const value = {
         rootCid: root,
-        nodeCid: root,
+        nodeCid: node,
         description: {
           user: {
-            text: version ? `Public snapshot v${version}` : state.text,
-            version: version || state.version,
+            text: version
+              ? `${state.scopeLabels ? publicationId + " " : ""}Public snapshot v${version}${node !== root ? " child" : ""}`
+              : privateUser.text,
+            version: version || privateUser.version,
           },
           preview: preview(
-            version ? `Version ${version} excerpt` : "Private content excerpt",
+            version
+              ? `${state.scopeLabels ? publicationId + " " : ""}Version ${version} excerpt`
+              : state.scopeLabels
+                ? `${root === cid("a") ? "Root A" : "Root B"} ${node === root ? "root" : "child"} ${state.accountId} preview v${privateUser.version}`
+                : "Private content excerpt",
           ),
         },
-      });
+      };
+      const delay =
+        method === "GET"
+          ? state.delayDescription || (version === state.lateRevision ? 650 : 0)
+          : 0;
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+      return result(value);
     }
     if (method === "POST" && path.endsWith("/rollback")) {
       if (body.expectedSequence !== publication.sequence)

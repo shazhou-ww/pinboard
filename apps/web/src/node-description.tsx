@@ -1,13 +1,53 @@
-import { useEffect, useState } from "react";
-import type { NodeDescription } from "@shazhou/pinboard-contracts";
-import { isContentPreview } from "@shazhou/pinboard-contracts";
-import { ApiRequestError, previewEnabled } from "./api.js";
-import { requestJson } from "./manager.js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  ContentPreview,
+  NodeDescription,
+} from "@shazhou/pinboard-contracts";
+import { DescriptionClient } from "./description-client.js";
 import { PreviewContent, previewClassName } from "./pin-preview.js";
 import { previewPollDelay } from "./preview-poll.js";
 import { Icon } from "./icon.js";
 
-export function NodeDescriptionEditor({
+type EditorProps = {
+  rootCid: string;
+  publicationId?: string | undefined;
+  revision?: number | undefined;
+  client?: DescriptionClient | undefined;
+  onChanged?: (() => Promise<void>) | undefined;
+  readingFirst?: boolean;
+  name?: string;
+  facts?: React.ReactNode;
+  sidebar?: React.ReactNode;
+  heading?: (contentType: string | null) => React.ReactNode;
+  actions?: React.ReactNode;
+  onDirtyChange?: ((dirty: boolean) => void) | undefined;
+  onBusyChange?: ((busy: boolean) => void) | undefined;
+};
+
+export function NodeDescriptionEditor(props: EditorProps) {
+  const client = useMemo(
+    () => props.client ?? new DescriptionClient(),
+    [props.client],
+  );
+  useEffect(
+    () => (props.client ? undefined : client.attach()),
+    [client, props.client],
+  );
+  return (
+    <DescriptionEditor
+      {...props}
+      client={client}
+      key={JSON.stringify([
+        client.identity,
+        props.rootCid,
+        props.publicationId,
+        props.revision,
+      ])}
+    />
+  );
+}
+
+function DescriptionEditor({
   rootCid,
   publicationId,
   revision,
@@ -20,30 +60,49 @@ export function NodeDescriptionEditor({
   actions,
   onDirtyChange,
   onBusyChange,
-}: {
-  rootCid: string;
-  publicationId?: string | undefined;
-  revision?: number | undefined;
-  onChanged?: (() => Promise<void>) | undefined;
-  readingFirst?: boolean;
-  name?: string;
-  facts?: React.ReactNode;
-  sidebar?: React.ReactNode;
-  heading?: (contentType: string | null) => React.ReactNode;
-  actions?: React.ReactNode;
-  onDirtyChange?: ((dirty: boolean) => void) | undefined;
-  onBusyChange?: ((busy: boolean) => void) | undefined;
-}) {
+  client,
+}: EditorProps & { client: DescriptionClient }) {
   const [node, setNode] = useState(rootCid);
   const [selectedNode, setSelectedNode] = useState(rootCid);
-  const [data, setData] = useState<NodeDescription | null>(null);
-  const [text, setText] = useState("");
+  const context = useMemo(
+    () => ({ rootCid, nodeCid: selectedNode, publicationId, revision }),
+    [rootCid, selectedNode, publicationId, revision],
+  );
+  const [snapshot, setSnapshot] = useState(() => ({
+    context,
+    data: client.cached(context),
+  }));
+  const data =
+    snapshot.context === context ? snapshot.data : client.cached(context);
+  const [fallback, setFallback] = useState<{
+    context: typeof context;
+    preview: ContentPreview;
+  } | null>(null);
+  const preview =
+    data?.description.preview ??
+    (fallback?.context === context ? fallback.preview : null);
+  const [text, setText] = useState(data?.description.user.text ?? "");
+  const [draft, setDraft] = useState({
+    text: text,
+    version: data?.description.user.version ?? 0,
+  });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
   const [editing, setEditing] = useState(false);
-  const dirty = editing && text !== (data?.description.user.text ?? "");
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const dirty = editing && text !== draft.text;
+  const startEditing = () => {
+    if (!data) return;
+    setText(data.description.user.text ?? "");
+    setDraft({
+      text: data.description.user.text ?? "",
+      version: data.description.user.version,
+    });
+    setEditing(true);
+  };
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {
@@ -61,89 +120,57 @@ export function NodeDescriptionEditor({
     onBusyChange?.(busy);
     return () => onBusyChange?.(false);
   }, [busy, onBusyChange]);
-  const path = publicationId
-    ? `/api/public/publications/${publicationId}/versions/${revision}/nodes/${selectedNode}/description`
-    : `/api/pins/${rootCid}/nodes/${selectedNode}/description`;
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
+    let received = false;
     let timer: ReturnType<typeof setTimeout>;
     let attempts = 0;
-    let first = true;
-    setData(null);
     setError("");
     setNotice("");
-    const load = async () => {
-      try {
-        const value = await requestJson<NodeDescription>(path, {
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted) return;
-        if (!isContentPreview(value?.description?.preview, previewEnabled)) {
-          setData(null);
-          throw new Error("Invalid node preview response");
-        }
-        setError("");
-        if (first) {
-          setData(value);
-          setText(value.description.user.text ?? "");
-          first = false;
-        } else {
-          setData((current) =>
-            current
-              ? {
-                  ...current,
-                  description: {
-                    ...current.description,
-                    preview: value.description.preview,
-                  },
-                }
-              : value,
-          );
-        }
+    const unsubscribe = client.subscribe(context, (value, failure) => {
+      if (!active) return;
+      received = true;
+      setError(failure);
+      if (value === undefined) return;
+      clearTimeout(timer);
+      setSnapshot({ context, data: value });
+      setFallback(null);
+      if (!editingRef.current) setText(value?.description.user.text ?? "");
+      if (value) {
         const delay = previewPollDelay(value.description.preview, ++attempts);
         if (delay !== undefined)
           timer = setTimeout(() => {
             void load();
           }, delay);
-      } catch (failure) {
-        if (!controller.signal.aborted) {
-          if (
-            (failure instanceof ApiRequestError &&
-              [401, 403, 404].includes(failure.status)) ||
-            failure instanceof SyntaxError
-          )
-            setData(null);
-          setError(
-            failure instanceof Error ? failure.message : String(failure),
-          );
-        }
+      }
+    });
+    if (!client.cached(context) && client.canUsePreview(context))
+      void client.previews?.cached(selectedNode).then((cached) => {
+        if (active && !received && cached && client.canUsePreview(context))
+          setFallback({ context, preview: cached.preview });
+      });
+    const load = async () => {
+      try {
+        await client.request(context);
+      } catch {
+        // The shared client notifies all current readers, including errors.
       }
     };
     void load();
     return () => {
-      controller.abort();
+      active = false;
+      unsubscribe();
       clearTimeout(timer);
     };
-  }, [path, reload]);
+  }, [client, context, reload]);
   const save = async (value: string | null) => {
     if (!data) return;
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      const next = await requestJson<NodeDescription>(path, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          text: value,
-          expectedVersion: data.description.user.version,
-        }),
-      });
-      if (!isContentPreview(next?.description?.preview, previewEnabled)) {
-        setData(null);
-        throw new Error("Invalid node preview response");
-      }
-      setData(next);
+      const next = await client.save(context, value, draft.version);
+      if (!next) return;
       setText(next.description.user.text ?? "");
       setEditing(false);
       setNotice(
@@ -151,11 +178,6 @@ export function NodeDescriptionEditor({
       );
       await onChanged?.();
     } catch (failure) {
-      if (
-        failure instanceof ApiRequestError &&
-        [401, 403, 404].includes(failure.status)
-      )
-        setData(null);
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {
       setBusy(false);
@@ -191,23 +213,20 @@ export function NodeDescriptionEditor({
   if (readingFirst)
     return (
       <>
-        {heading?.(data?.description.preview.contentType ?? null)}
+        {heading?.(preview?.contentType ?? null)}
         <div className="reading-layout">
           <section className="reading-content" aria-label="Content preview">
             {!heading ? <h4>Content</h4> : null}
             <div className="reading-preview-viewport">
               <div
-                className={previewClassName(data?.description.preview ?? null)}
+                className={previewClassName(preview)}
                 tabIndex={0}
                 role="region"
                 aria-label="Scrollable content preview"
-                aria-busy={!data && !error}
+                aria-busy={!preview && !error}
               >
-                {data ? (
-                  <PreviewContent
-                    preview={data.description.preview}
-                    name={name ?? rootCid}
-                  />
+                {preview ? (
+                  <PreviewContent preview={preview} name={name ?? rootCid} />
                 ) : (
                   <p role="status">
                     {error
@@ -260,7 +279,7 @@ export function NodeDescriptionEditor({
                     aria-label="Edit description"
                     title="Edit description"
                     disabled={busy}
-                    onClick={() => setEditing(true)}
+                    onClick={startEditing}
                   >
                     {heading ? (
                       <Icon name="edit" size={16} />
@@ -424,11 +443,7 @@ export function NodeDescriptionEditor({
               <p className="node-user-description">
                 {data.description.user.text || "No private description."}
               </p>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setEditing(true)}
-              >
+              <button type="button" disabled={busy} onClick={startEditing}>
                 Edit description
               </button>
             </>
