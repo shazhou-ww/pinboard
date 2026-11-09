@@ -1,0 +1,5 @@
+﻿{
+  "verifiedAbsent": true,
+  "deletedCfgKey": "PINBOARD_ACCEPTANCE_OTHER_TOKEN",
+  "tokenRevocation": "cfg removal is not server-side revocation; generated smoke tokens separately revoked"
+}

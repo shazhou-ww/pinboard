@@ -1,0 +1,22 @@
+{
+  "origin": "https://pinboard.shazhou.work",
+  "prefix": "access-extra-412bee4d-0633-4aba-88a7-c233f5a5bbba",
+  "status": "failed",
+  "checks": [
+    "Original file, each raw block and hash-verified CAR reconstruct identical bytes with independent UnixFS exporter",
+    "Private directory downloads ZIP and real compiled CLI reconstructs nested files using scoped token on stdin",
+    "Public update and rollback preserve visibility; current v1 differs from two-version history; private transition closes every revision"
+  ],
+  "layoutScope": "real desktop Web; mobile verified locally",
+  "failure": "The expression evaluated to a falsy value:\n\n  assert(!title.hasTypeIcon && title.leftmost && title.sameRow)\n",
+  "cleanup": [],
+  "fixtures": {
+    "pins": [
+      "bafybeia3cl6zy7qjuhepbgmfad5nce6o2iaplvj57pd675nfm4krap3cpy",
+      "bafybeibg7u7xecexnfj7s7kmmtltpad3kxhohikzyu7krgftcvj76e6cva",
+      "bafkreiapt65koantrs6buegzs5ef2lw6r7ls6j7ood54ds3wtc67j32f64",
+      "bafkreib2wq3nqbcpbf2sotrfh5vxl6mtxzgcsxblkhmngixcxpunocvygy"
+    ],
+    "publications": ["0e33eef7-3fe9-4ada-8d14-7305fd002d37"]
+  }
+}

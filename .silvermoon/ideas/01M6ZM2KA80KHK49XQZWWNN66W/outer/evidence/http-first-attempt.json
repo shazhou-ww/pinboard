@@ -1,0 +1,22 @@
+{
+  "origin": "https://pinboard.shazhou.work",
+  "prefix": "access-smoke-1794223503216-10c93ffd-5442-4c5d-99c1-ee3e2a6dba44",
+  "status": "failed",
+  "checks": [
+    {
+      "name": "New multiblock Pin and Publication default private",
+      "result": "passed"
+    },
+    {
+      "name": "Real supplied MCP credential reads private raw bytes without public sharing",
+      "result": "passed"
+    }
+  ],
+  "missingCredentialChecks": [],
+  "failure": "/ipfs/bafybeieefyxqwiqgbbct2m2nnqqtu62fdd6u3bukxr7mov63vrahd54wgq?format=raw&access=v1: expected 404, received 304\n\n304 !== 404\n",
+  "cleanup": [],
+  "fixtureIds": {
+    "pins": ["bafybeieefyxqwiqgbbct2m2nnqqtu62fdd6u3bukxr7mov63vrahd54wgq"],
+    "publications": ["d56ba8a3-f14f-48d1-928b-6208db84b035"]
+  }
+}

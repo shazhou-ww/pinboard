@@ -1,0 +1,16 @@
+{
+  "origin": "https://pinboard.shazhou.work",
+  "prefix": "access-extra-d57fdc23-09ca-4507-af1e-5d39288da7f0",
+  "status": "passed",
+  "checks": [
+    "Real production Web private lock is info-bar-first without height/padding change; inline title permission button replaces type icon and opens sharing",
+    "Real production Web permission button and native confirmations save public then private, independently verified through authenticated API",
+    "Real production mobile detail keeps inline permission/title alignment without horizontal page overflow"
+  ],
+  "layoutScope": "real desktop Web; mobile verified locally",
+  "cleanup": [],
+  "fixtures": {
+    "pins": ["bafkreic46yyl2mx6cgbn22mt7cqrvazyok2myhuqiyswmdtmywfo5k2moa"],
+    "publications": []
+  }
+}

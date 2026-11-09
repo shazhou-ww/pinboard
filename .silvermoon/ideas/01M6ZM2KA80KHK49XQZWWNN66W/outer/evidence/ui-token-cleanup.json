@@ -1,0 +1,20 @@
+{
+  "temporaryTokens": [
+    {
+      "id": "39a6f013-f92e-4da6-9ee4-77f4ec0f1ab5",
+      "revoked": true,
+      "status": 204
+    },
+    {
+      "id": "37e9c084-aaf0-4479-8a27-dddd295ed8f8",
+      "revoked": true,
+      "status": 204
+    },
+    {
+      "id": "bc3e2e83-24a3-4cf9-8a4e-376767783d85",
+      "revoked": true,
+      "status": 204
+    }
+  ],
+  "secondAccountCfgDeletion": "parent must delete after all acceptance use"
+}

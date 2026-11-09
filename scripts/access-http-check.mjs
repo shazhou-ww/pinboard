@@ -73,6 +73,16 @@ let failure;
 try {
   await expectStatus("/api/health", undefined, 200);
   await expectStatus("/api/pins", owner, 200);
+  let otherPublicationWriteDeniedByScope = false;
+  if (other) {
+    const otherPublications = await request("/api/publications", other);
+    assert(
+      otherPublications.status === 200 || otherPublications.status === 403,
+      "Other-account credential must authenticate; publication scope denial must be explicit",
+    );
+    otherPublicationWriteDeniedByScope = otherPublications.status === 403;
+    await otherPublications.body?.cancel();
+  }
   const bytes = new TextEncoder().encode((prefix + "\n").repeat(12000));
   const pin = await (
     await expectStatus(
@@ -185,7 +195,7 @@ try {
     await expectStatus(
       "/api/publications",
       other,
-      404,
+      otherPublicationWriteDeniedByScope ? 403 : 404,
       json({
         title: prefix + "-denied",
         cid: pin.cid,
@@ -195,6 +205,10 @@ try {
     check(
       "Other account cannot acquire private roots by CID, omitted-block completion or publication creation",
     );
+    if (otherPublicationWriteDeniedByScope)
+      check(
+        "Other account's Publication creation is denied by its limited scopes; full-scope cross-account Publication ownership is covered by local authorization tests",
+      );
   }
   for (const token of [read, upload].filter(Boolean)) {
     await expectStatus(

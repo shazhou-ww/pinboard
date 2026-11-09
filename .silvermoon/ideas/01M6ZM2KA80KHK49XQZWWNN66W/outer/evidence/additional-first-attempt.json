@@ -1,0 +1,13 @@
+{
+  "origin": "https://pinboard.shazhou.work",
+  "prefix": "access-extra-5c4770bd-4a33-470f-8a30-e579b434ef5f",
+  "status": "failed",
+  "checks": [],
+  "layoutScope": "real desktop Web; mobile verified locally",
+  "failure": "source is not iterable",
+  "cleanup": [],
+  "fixtures": {
+    "pins": ["bafybeic2pykaax5jedbptgiyo53m5gu5a4s6g3lj2f45m73jw2jrp4tsdq"],
+    "publications": []
+  }
+}

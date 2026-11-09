@@ -1,0 +1,56 @@
+{
+  "origin": "https://pinboard.shazhou.work",
+  "prefix": "access-smoke-1794223656233-2ab623fc-4259-46ae-8618-17e6e3074fb3",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "New multiblock Pin and Publication default private",
+      "result": "passed"
+    },
+    {
+      "name": "Real supplied MCP credential reads private raw bytes without public sharing",
+      "result": "passed"
+    },
+    {
+      "name": "Private raw/CAR/original/history/description GET, HEAD and 304 requests denied",
+      "result": "passed"
+    },
+    {
+      "name": "Private provider discovery does not advertise",
+      "result": "passed"
+    },
+    {
+      "name": "Other account cannot acquire private roots by CID, omitted-block completion or publication creation",
+      "result": "passed"
+    },
+    {
+      "name": "Other account's Publication creation is denied by its limited scopes; full-scope cross-account Publication ownership is covered by local authorization tests",
+      "result": "passed"
+    },
+    {
+      "name": "Owner read-only credential can read bytes, not change access",
+      "result": "passed"
+    },
+    {
+      "name": "Public byte overlap leaves private Pin and separate Publication metadata isolated",
+      "result": "passed"
+    },
+    {
+      "name": "Last public reference revocation denies new anonymous reads and validators",
+      "result": "passed"
+    },
+    {
+      "name": "Restore preserves private access and does not reopen anonymous history",
+      "result": "passed"
+    }
+  ],
+  "missingCredentialChecks": [],
+  "cleanup": [],
+  "fixtureIds": {
+    "pins": ["bafybeihlxnjpfn7ge2dnacijmjpo4nobkacjcrfuyil52wafxocq7fztky"],
+    "publications": [
+      "c3c330e1-0a34-4c41-b52c-ef3a9497c48c",
+      "5d0b7eba-de79-4f21-b02b-c151cabef43c"
+    ]
+  }
+}

@@ -35,6 +35,10 @@ key。不提取 Cookie、不伪造登录、不插入合成数据库账号。
 fixture 验证存量兼容；只清理本次创建的项，不修改其他生产内容。所有结果记录在 Outer
 supporting evidence。
 
+实际发布、迁移、双账号请求、Web／CLI／MCP 与清理结果见
+[生产验收记录](ProductionAcceptance.md)。旧 CDN 精确 URL
+purge 尚因主 Token 权限被拒绝，补齐并验证之前不宣告 complete。
+
 ## Acceptance criteria
 
 ### D-AC01: 上线与存量策略有据
