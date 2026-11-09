@@ -1053,17 +1053,56 @@ footer {
 }
 .item-filter select {
   width: 104px;
-  min-height: 30px;
-  height: 30px;
+  min-height: 0;
+  height: 100%;
   padding: 0 8px 0 14px;
   flex-shrink: 0;
   border: 0;
   border-right: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: 999px 0 0 999px;
   background: transparent;
   color: var(--muted);
   font-size: 12px;
-  outline-offset: -2px;
+  outline-offset: -4px;
+}
+@supports (appearance: base-select) {
+  .item-filter select,
+  .item-filter select::picker(select) {
+    appearance: base-select;
+  }
+  .item-filter select {
+    align-items: center;
+    gap: 6px;
+  }
+  .item-filter select::picker-icon {
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .item-filter select::picker(select) {
+    min-width: 128px;
+    max-width: calc(100vw - 32px);
+    max-height: min(240px, calc(100dvh - 32px));
+    overflow-y: auto;
+    margin-block-start: 6px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 24px var(--shadow);
+  }
+  .item-filter option {
+    min-height: 36px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .item-filter option:checked {
+    background: var(--selected);
+  }
+  .item-filter option:hover {
+    background: var(--hover);
+  }
 }
 .detail-access {
   display: inline-flex;

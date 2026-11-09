@@ -50,6 +50,23 @@ it("keeps the clear action circular without clipping its keyboard focus", () => 
   );
 });
 
+it("contains the access trigger inside the pill and bounds its expanded picker", () => {
+  const styles = readFileSync(
+    new URL("../src/styles.css", import.meta.url),
+    "utf8",
+  );
+  expect(styles).toMatch(
+    /\.item-filter select\s*\{[^}]*height:\s*100%;[^}]*border-radius:\s*999px 0 0 999px;[^}]*outline-offset:\s*-4px;/u,
+  );
+  expect(styles).toContain("@supports (appearance: base-select)");
+  expect(styles).toMatch(
+    /\.item-filter select::picker\(select\)\s*\{[^}]*appearance:\s*base-select;/u,
+  );
+  expect(styles).toMatch(
+    /\.item-filter select::picker\(select\)\s*\{[^}]*max-width:\s*calc\(100vw - 32px\);[^}]*overflow-y:\s*auto;/u,
+  );
+});
+
 const host = vi.hoisted(() => ({
   slots: [] as unknown[],
   index: 0,

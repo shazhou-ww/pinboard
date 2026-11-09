@@ -98,6 +98,60 @@ try {
       mobile: width < 500,
     });
     await wait(250);
+    await evaluate("document.querySelector('.item-filter select').focus()");
+    await wait(250);
+    const trigger = await evaluate(`(() => {
+      const select=document.querySelector('.item-filter select');
+      const bounds=select.getBoundingClientRect();
+      const group=select.closest('.item-filter').getBoundingClientRect();
+      return {x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2,
+        contained:bounds.x>=group.x&&bounds.y>=group.y&&bounds.bottom<=group.bottom,
+        radius:getComputedStyle(select).borderTopLeftRadius,
+        customizable:CSS.supports('appearance','base-select')};
+    })()`);
+    await wait(250);
+    await send("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x: trigger.x,
+      y: trigger.y,
+      button: "left",
+      clickCount: 1,
+    });
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: trigger.x,
+      y: trigger.y,
+      button: "left",
+      clickCount: 1,
+    });
+    await until(
+      "document.querySelector('.item-filter select').matches(':open')",
+    );
+    const picker = await evaluate(`(() => {
+      const select=document.querySelector('.item-filter select');
+      const bounds=select.closest('.item-filter').getBoundingClientRect();
+      const options=Array.from(select.options).map(option=>{const r=option.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};});
+      return {open:select.matches(':open'),options,
+        viewport:options.every(r=>r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight),
+        belowControl:options.every(r=>r.top>=bounds.bottom)};
+    })()`);
+    assert(trigger.contained && trigger.customizable);
+    assert(picker.open && picker.viewport && picker.belowControl);
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await until(
+      "!document.querySelector('.item-filter select').matches(':open')",
+    );
     await evaluate(`(() => {
       const input = document.querySelector('.item-filter input');
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -262,6 +316,7 @@ try {
       result: "通过",
       card: geometry,
       filter,
+      picker,
       descriptionEditing,
       renameEditing,
       detail: title,

@@ -41,7 +41,10 @@ content. Fixed Pins have no version badge.
 The access selector and text search share one pill-shaped control: access on the
 left, text in the middle and a clear-text action on the right. Clearing text
 (including Escape) preserves the access selection; clearing all filters from the
-empty state resets both.
+empty state resets both. The access trigger follows the pill's left corners and
+keeps its focus ring inside. Browsers supporting customizable native selects
+show a themed, viewport-bounded picker; other browsers retain their native
+accessible picker.
 
 Details replace the file-type icon with a leftmost inline lock/globe. The
 owner's button has a tinted background and aligns with the title's first line,
