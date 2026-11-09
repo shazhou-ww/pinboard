@@ -107,6 +107,17 @@ let delayWrite = false;
 let releaseWrite;
 let delayHistory = false;
 let releaseHistory;
+let deletedFailure = false;
+let deletedItems = Array.from({ length: 52 }, (_, i) => ({
+  kind: i < 26 ? "pin" : "publication",
+  id: i === 0 ? "deleted-fixture" : `deleted-${String(i).padStart(2, "0")}`,
+  title:
+    i === 0
+      ? "Recoverable example pin"
+      : `Recoverable example ${i < 26 ? "pin" : "publication"} ${i}`,
+  deletedAt: new Date(now).toISOString(),
+  expiresAt: new Date(now + 30 * 86400000).toISOString(),
+}));
 const mutations = [];
 await page.route(`${origin}/api/**`, async (route) => {
   const request = route.request();
@@ -179,20 +190,32 @@ await page.route(`${origin}/api/**`, async (route) => {
     );
     return json({});
   }
-  if (path === "/api/recently-deleted")
+  if (path === "/api/recently-deleted") {
+    if (deletedFailure) return json({ error: "Recovery fixture failure" }, 503);
+    const query = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+    const filtered = deletedItems.filter((item) =>
+      `${item.title} ${item.kind}`.toLowerCase().includes(query),
+    );
+    const cursor = url.searchParams.get("cursor");
+    const start = cursor
+      ? filtered.findIndex((item) => `${item.kind}:${item.id}` === cursor) + 1
+      : 0;
+    const items = filtered.slice(start, start + 50);
     return json({
-      items: [
-        {
-          kind: "pin",
-          id: "deleted-fixture",
-          title: "Recoverable example pin",
-          deletedAt: new Date(now).toISOString(),
-          expiresAt: new Date(now + 30 * 86400000).toISOString(),
-        },
-      ],
-      nextCursor: null,
+      items,
+      nextCursor:
+        start + 50 < filtered.length
+          ? `${items.at(-1).kind}:${items.at(-1).id}`
+          : null,
+      total: deletedItems.length,
+      matchedTotal: filtered.length,
     });
-  if (path === "/api/pins/deleted-fixture/restore") return json({});
+  }
+  if (/^\/api\/(pins|publications)\/deleted-[^/]+\/restore$/.test(path)) {
+    const id = path.split("/")[3];
+    deletedItems = deletedItems.filter((item) => item.id !== id);
+    return json({});
+  }
   throw new Error(`Unexpected local fixture request: ${method} ${path}`);
 });
 const settings = page.getByRole("dialog", {
@@ -670,14 +693,127 @@ try {
   assert(lowBounds.y >= 0 && lowBounds.y + lowBounds.height <= 480);
   await page.setViewportSize({ width: 320, height: 900 });
   await select("Recently deleted");
-  assert((await panel().innerText()).includes("seven days"));
-  await panel().getByRole("button", { name: "Open recently deleted" }).click();
-  const deleted = page.getByRole("dialog", {
-    name: "Recently deleted",
-    exact: true,
-  });
-  await deleted.getByRole("button", { name: "Restore", exact: true }).click();
-  await deleted.getByRole("button", { name: "Close Recently deleted" }).click();
+  await panel().getByText("52 items", { exact: true }).waitFor();
+  assert.equal(
+    await panel()
+      .getByRole("button", { name: /^Restore / })
+      .count(),
+    50,
+  );
+  assert.equal(
+    await page
+      .getByRole("dialog", { name: "Recently deleted", exact: true })
+      .count(),
+    0,
+  );
+  assert(!(await panel().innerText()).includes("seven days"));
+  await tableGeometry("320px Trash 复用表格，表头固定与独立横纵滚动", true);
+  await panel().getByRole("searchbox").fill("publication");
+  await panel()
+    .getByRole("button", {
+      name: "Restore Recoverable example publication 51",
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(
+    await panel()
+      .getByRole("button", { name: /^Restore / })
+      .count(),
+    26,
+  );
+  assert.equal(
+    await panel().getByRole("navigation", { name: "Trash pagination" }).count(),
+    0,
+  );
+  assert.equal(await panel().getByText("52 items", { exact: true }).count(), 1);
+  await panel().getByRole("searchbox").fill("");
+  await panel().getByText("Page 1 / 2", { exact: true }).waitFor();
+  assert(
+    await panel()
+      .getByRole("button", { name: "Previous page", exact: true })
+      .isDisabled(),
+  );
+  await panel().getByRole("button", { name: "Next page", exact: true }).click();
+  await panel().getByText("Page 2 / 2", { exact: true }).waitFor();
+  assert.equal(
+    await panel()
+      .getByRole("button", { name: /^Restore / })
+      .count(),
+    2,
+  );
+  assert(
+    await panel()
+      .getByRole("button", { name: "Next page", exact: true })
+      .isDisabled(),
+  );
+  await panel()
+    .getByRole("button", { name: "Previous page", exact: true })
+    .click();
+  await panel().getByText("Page 1 / 2", { exact: true }).waitFor();
+  delayWrite = true;
+  await panel()
+    .getByRole("button", {
+      name: "Restore Recoverable example pin",
+      exact: true,
+    })
+    .click();
+  await page.waitForFunction(() =>
+    document.querySelector('.settings-dialog[aria-busy="true"]'),
+  );
+  await page.keyboard.press("Escape");
+  assert(await settings.isVisible());
+  await select("Access tokens");
+  assert(
+    await panel()
+      .getByRole("button", { name: "Create access token", exact: true })
+      .isDisabled(),
+  );
+  await select("Recently deleted");
+  delayWrite = false;
+  releaseWrite();
+  await panel().getByText("51 items", { exact: true }).waitFor();
+  await panel().getByRole("searchbox").fill("publication");
+  await panel()
+    .getByRole("button", {
+      name: "Restore Recoverable example publication 51",
+      exact: true,
+    })
+    .waitFor();
+  await panel()
+    .getByRole("button", {
+      name: "Restore Recoverable example publication 51",
+      exact: true,
+    })
+    .click();
+  await panel().getByText("50 items", { exact: true }).waitFor();
+  await panel().getByRole("searchbox").fill("missing");
+  await panel()
+    .getByText("No matching items. Try another name or type.", { exact: true })
+    .waitFor();
+  await panel().getByRole("searchbox").fill("");
+  await panel()
+    .getByRole("button", { name: /^Restore / })
+    .first()
+    .waitFor();
+  deletedFailure = true;
+  await panel()
+    .getByRole("button", { name: "Refresh recently deleted", exact: true })
+    .click();
+  await panel()
+    .getByRole("alert")
+    .getByText("Recovery fixture failure", { exact: true })
+    .waitFor();
+  assert.equal(
+    await panel().getByText("No recoverable items.", { exact: true }).count(),
+    0,
+  );
+  deletedFailure = false;
+  await panel().getByRole("button", { name: "Retry", exact: true }).click();
+  await panel().getByText("50 items", { exact: true }).waitFor();
+  assert.equal(
+    await panel().getByRole("navigation", { name: "Trash pagination" }).count(),
+    0,
+  );
   assert.equal(
     await tab("Recently deleted").getAttribute("aria-selected"),
     "true",
@@ -689,7 +825,7 @@ try {
       document.activeElement?.getAttribute("aria-label") ===
       "Account options for Local UI fixture",
   );
-  check("恢复独立弹层与返回分类、关闭焦点回入口");
+  check("Trash 内联恢复、跨页搜索、总数、分页、错误重试与忙碌关闭保护");
   await openSettings();
   await select("Access tokens");
   await panel()

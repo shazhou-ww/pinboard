@@ -122,6 +122,14 @@ export interface DeletedItem {
   readonly expiresAt: string;
 }
 
+export const recentlyDeletedPageSize = 50;
+export interface DeletedPage {
+  readonly items: DeletedItem[];
+  readonly nextCursor: string | null;
+  readonly total: number;
+  readonly matchedTotal: number;
+}
+
 export type UploadPublicationResult =
   | { readonly pin: Pin; readonly publication: PublicationResult }
   | {

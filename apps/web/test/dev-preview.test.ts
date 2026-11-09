@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   ContentPreview,
+  DeletedPage,
   NodeDescription,
   PublicationHistory,
 } from "@shazhou/pinboard-contracts";
@@ -273,7 +274,24 @@ describe("one-shot local UI preview", () => {
       (await apiFetch(`/api/public/publications/${rollback.id}/history`))
         .status,
     ).toBe(200);
-    expect((await apiFetch("/api/recently-deleted")).status).toBe(200);
+    const recovery = (await (
+      await apiFetch("/api/recently-deleted")
+    ).json()) as DeletedPage;
+    expect(recovery).toMatchObject({
+      total: 2,
+      matchedTotal: 2,
+      nextCursor: null,
+    });
+    expect(recovery.items).toHaveLength(2);
+    const filtered = (await (
+      await apiFetch("/api/recently-deleted?q=PUBLICATION")
+    ).json()) as DeletedPage;
+    expect(filtered).toMatchObject({
+      total: 2,
+      matchedTotal: 1,
+      nextCursor: null,
+    });
+    expect(filtered.items.map((item) => item.kind)).toEqual(["publication"]);
     for (const path of [
       "/api/publications",
       `/api/publications/${rollback.id}/publish`,

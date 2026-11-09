@@ -25,11 +25,8 @@ import { PinPreview } from "./pin-preview.js";
 import { PreviewClient } from "./preview-client.js";
 import { apiFetch, ApiRequestError } from "./api.js";
 import { Icon } from "./icon.js";
-import {
-  DeletedDialog,
-  PublicationDialog,
-  PublicationPreview,
-} from "./publications.js";
+import { PublicationDialog, PublicationPreview } from "./publications.js";
+import { RecentlyDeleted } from "./recently-deleted.js";
 import { BackgroundSettings } from "./background.js";
 import { SettingsDialog, type SettingsCategory } from "./settings.js";
 import {
@@ -128,7 +125,6 @@ export function AccountManager({
     payload: string;
     requestId: string;
   } | null>(null);
-  const [deletedOpen, setDeletedOpen] = useState(false);
   const [uploadPublication, setUploadPublication] = useState("");
   const [uploadPublicTitle, setUploadPublicTitle] = useState("");
   const [tokens, setTokens] = useState<AgentToken[]>([]);
@@ -147,7 +143,9 @@ export function AccountManager({
   } | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [operationBusy, setBusy] = useState(false);
+  const [trashBusy, setTrashBusy] = useState(false);
+  const busy = operationBusy || trashBusy;
   const [uploadSelection, setUploadSelection] =
     useState<UploadSelection | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -169,8 +167,7 @@ export function AccountManager({
   const [tokenScopes, setTokenScopes] = useState(["pins:read"]);
   const [expires, setExpires] = useState(30);
   const [newToken, setNewToken] = useState("");
-  const publicationDialogOpen =
-    !!selectedPublication || !!publishingPin || deletedOpen;
+  const publicationDialogOpen = !!selectedPublication || !!publishingPin;
   const actionItems = useActionItems(
     uploadSelection
       ? "upload"
@@ -773,15 +770,6 @@ export function AccountManager({
         onUploadFile={(publication) => pickFor(publication, false)}
         onUploadFolder={(publication) => pickFor(publication, true)}
       />
-      <DeletedDialog
-        open={deletedOpen}
-        onClose={() => {
-          setDeletedOpen(false);
-          setSettingsCategory("Recently deleted");
-          setSettingsOpen(true);
-        }}
-        onChanged={refresh}
-      />
       <input
         ref={filePicker}
         aria-label="Choose file"
@@ -1231,31 +1219,12 @@ export function AccountManager({
         error={error}
         panels={{
           "Recently deleted": (
-            <>
-              <section>
-                <h2>Recently deleted</h2>
-                <p className="muted">
-                  Pins and publications can be restored for 30 days with their
-                  original identity and links.
-                </p>
-                <button
-                  disabled={busy || oauthBusy}
-                  onClick={() => {
-                    setSettingsOpen(false);
-                    setDeletedOpen(true);
-                  }}
-                >
-                  Open recently deleted
-                </button>
-              </section>
-              <p className="muted policy">
-                Deleted pins and publications are recoverable for 30 days.
-                Expiry releases only their own references. The last reference
-                then starts seven days of cleanup grace. CDN, other nodes and
-                downloaded copies may remain. There is no permanent-delete
-                action.
-              </p>
-            </>
+            <RecentlyDeleted
+              active={settingsOpen && settingsCategory === "Recently deleted"}
+              disabled={busy || oauthBusy}
+              onBusyChange={setTrashBusy}
+              onChanged={refresh}
+            />
           ),
           "Access tokens": (
             <>

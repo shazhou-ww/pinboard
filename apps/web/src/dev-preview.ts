@@ -2,6 +2,7 @@ import type { PreviewAsset } from "./dev-preview-data.js";
 import {
   previewBatchLimit,
   normalizeItemFilter,
+  type DeletedItem,
   type NodeDescription,
   type PublicationHistory,
 } from "@shazhou/pinboard-contracts";
@@ -147,26 +148,33 @@ export async function previewRequest(
         ),
       nextCursor: null,
     });
-  if (pathname === "/api/recently-deleted")
+  if (pathname === "/api/recently-deleted") {
+    const deleted: DeletedItem[] = [
+      {
+        kind: "pin",
+        id: data[0]!.pin.cid,
+        title: "Archived coast study",
+        deletedAt: "2026-11-01T10:00:00Z",
+        expiresAt: "2026-12-01T10:00:00Z",
+      },
+      {
+        kind: "publication",
+        id: "preview-deleted-publication",
+        title: "Previous field notes",
+        deletedAt: "2026-11-03T10:00:00Z",
+        expiresAt: "2026-12-03T10:00:00Z",
+      },
+    ];
+    const items = deleted.filter((item) =>
+      matches(`${item.title} ${item.kind}`),
+    );
     return json({
-      items: [
-        {
-          kind: "pin",
-          id: data[0]!.pin.cid,
-          title: "Archived coast study",
-          deletedAt: "2026-11-01T10:00:00Z",
-          expiresAt: "2026-12-01T10:00:00Z",
-        },
-        {
-          kind: "publication",
-          id: "preview-deleted-publication",
-          title: "Previous field notes",
-          deletedAt: "2026-11-03T10:00:00Z",
-          expiresAt: "2026-12-03T10:00:00Z",
-        },
-      ],
+      items,
       nextCursor: null,
+      total: deleted.length,
+      matchedTotal: items.length,
     });
+  }
   for (const history of histories) {
     const root = `/api/public/publications/${history.publication.id}`;
     if (

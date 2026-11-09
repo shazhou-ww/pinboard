@@ -176,7 +176,10 @@ describe("Pinboard interface", () => {
     expect(toolbar).not.toContain("Settings");
     expect(toolbar).not.toContain(">Settings</button>");
     expect(toolbar).not.toContain(">Choose folder</button>");
-    expect(html.match(/<dialog/g)).toHaveLength(6);
+    expect(html.match(/<dialog/g)).toHaveLength(5);
+    expect(html).toContain('aria-label="recently deleted"');
+    expect(html).not.toContain('aria-label="Recently deleted"');
+    expect(html).not.toContain("Open recently deleted");
     expect(html).toContain('aria-label="Pin details"');
     expect(html).not.toContain('class="intro"');
     expect(html).toContain("Create access token");

@@ -133,7 +133,7 @@ export function SettingsDialog({
               aria-labelledby={`${id}-tab-${index}`}
               hidden={category !== name}
               className={
-                name === "Access tokens" || name === "OAuth authorizations"
+                name !== "General"
                   ? "settings-authorization-panel"
                   : "settings-general-panel"
               }

@@ -37,6 +37,9 @@ describe("Settings categories", () => {
     ).toEqual(["General", "Tokens", "OAuth", "Trash"]);
     expect(html).toContain("OAuth content");
     expect(html).toContain("Recovery content");
+    expect(html).toMatch(
+      /class="settings-authorization-panel"[^>]*><p>Recovery content<\/p>/,
+    );
     expect(html).toContain("fixture-only-secret");
     expect(html).toContain("Return to copy token");
     expect(html).toContain("Example request failure");
