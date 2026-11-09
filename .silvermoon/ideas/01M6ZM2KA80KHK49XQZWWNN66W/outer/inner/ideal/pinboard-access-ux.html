@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pinboard · 逐项访问权限 UX 对比</title>
+  <style>
+    :root{color-scheme:light;--mist:#e6edf3;--lavender:#e8e3ef;--paper:#fafbfe;--ink:#283044;--muted:#515971;--line:#cbd0df;--accent:#505c86;--warning:#79500d;--error:#a13645;font-family:"Instrument Sans Variable","Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink);line-height:1.6;background:#f1f3f8}
+    *{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}button,a,input,select{outline-offset:3px}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent)}button{color:inherit}svg{width:18px;height:18px;vertical-align:middle;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}svg.large{width:40px;height:40px}button{border:1px solid var(--line);border-radius:6px;background:var(--paper);padding:8px 12px;min-height:40px;text-align:center}button:hover{background:#eef0f7}button:disabled{cursor:not-allowed;opacity:.5}a{color:var(--accent);text-underline-offset:4px}.primary{background:var(--accent);color:white;border-color:var(--accent)}.primary:hover{background:#414d75}.quiet{background:transparent;border-color:transparent}.danger{color:var(--error)}.muted{color:var(--muted)}.small{font-size:12px}h1,h2,h3,h4,p{margin-top:0}h1{font-size:28px;letter-spacing:-.6px;line-height:1.3;margin-bottom:8px}h2{font-size:20px}h3{font-size:17px;line-height:1.4}h4{font-size:14px}p{font-size:14px}code{font-size:11px;overflow-wrap:anywhere}label{display:block;font-size:13px}input,select{width:100%;min-height:40px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--ink);padding:8px 10px}input[type=checkbox]{width:18px;min-height:18px;accent-color:var(--accent)}[hidden]{display:none!important}
+    .review-head{max-width:1560px;margin:auto;padding:34px 32px 24px;display:flex;justify-content:space-between;gap:24px;align-items:flex-start}.review-head p{margin:0;max-width:720px}.review-tag{font-size:12px;white-space:nowrap;background:#e2e7f2;padding:7px 12px;border-radius:5px}.review-layout{max-width:1560px;margin:auto;padding:0 32px;display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px}.scene-nav{position:sticky;top:20px;align-self:start}.scene-nav h2{font-size:12px;color:var(--muted);font-weight:500;margin:0 0 12px}.scene-nav button{display:block;width:100%;text-align:left;border:0;background:transparent;margin:0 0 5px;padding:11px 12px;font-size:14px}.scene-nav button[aria-pressed=true]{background:var(--accent);color:white}.scene-nav p{font-size:12px;margin:20px 12px;color:var(--muted)}.review-main{min-width:0}.scene-intro{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.scene-intro h2{margin-bottom:4px}.scene-intro p{margin:0;max-width:640px}.demo-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.demo-controls select{width:auto;font-size:12px}.demo-controls button{font-size:12px}.comparison{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}.version-head{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;font-size:12px;color:var(--muted)}.version-head strong{font-size:14px;color:var(--ink)}.version-head .new{color:var(--accent)}.frame{position:relative;min-height:630px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:linear-gradient(145deg,var(--mist),var(--lavender))}.app-head{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #cbd0df99;background:#fafbfeaa;backdrop-filter:blur(12px)}.brand{font-size:19px;font-weight:650;letter-spacing:-.6px;display:flex;align-items:center;gap:8px}.account{display:flex;gap:7px;align-items:center;font-size:12px}.avatar{display:grid;place-items:center;width:26px;height:26px;border:1px solid #b5bfd4;border-radius:50%;background:#dbe1f0;font-size:11px}.app-body{padding:22px;position:relative;min-height:555px}.toolbar{display:flex;gap:6px;align-items:center;justify-content:space-between;margin-bottom:18px}.search{width:54%;font-size:12px;background:#fafbfe99}.filter{font-size:12px;width:auto;max-width:44%;background:#fafbfe99}.wall{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.tile{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:8px;aspect-ratio:4/3;background:var(--paper);padding:0;text-align:left;width:100%;display:block}.tile:hover{background:var(--paper);border-color:var(--accent)}.tile-cover{height:100%;padding:22px 18px;font-size:11px;line-height:1.7;color:#54617a;background:#f6f8fc}.tile-cover h4{font-size:16px;margin:0 0 9px;color:var(--ink)}.tile-cover.landscape{background:linear-gradient(155deg,#bac7dc 0%,#d9dde9 50%,#8596aa 51%,#b7c5d4 68%,#d5dce5 69%)}.tile-cover.document{background:#eef0f7}.tile-info{position:absolute;bottom:0;left:0;right:0;background:#fafbfec9;backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px}.tile-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tile-info svg{width:15px;height:15px}.tile-version{position:absolute;right:9px;top:9px;background:#fafbfede;padding:2px 6px;font-size:10px;border-radius:4px}.tile-state{position:absolute;left:9px;top:9px;background:#fafbfef0;border:1px solid #cbd0df80;font-size:10px;padding:3px 6px;border-radius:4px;display:flex;gap:4px;align-items:center}.tile-state svg{width:13px;height:13px}.floating-add{position:absolute;bottom:22px;right:22px;border-radius:50%;width:48px;height:48px;padding:0;font-size:27px;box-shadow:0 4px 15px #28304420}.surface{background:#fafbfef0;border:1px solid var(--line);border-radius:9px;padding:22px;box-shadow:0 10px 34px #2830440b}.surface h3{margin-bottom:20px}.form-row{margin-bottom:16px}.form-row label{margin-bottom:5px}.facts{font-size:12px;color:var(--muted);margin:8px 0 18px}.notice{font-size:12px;padding:12px;border-left:3px solid #ab843c;background:#fff4dc;line-height:1.7;margin:14px 0}.notice p{font-size:12px;margin:5px 0 0}.private-note{background:#edf0f8;border-color:var(--accent);color:var(--muted)}.safe{background:#edf6ef;border-color:#286044;color:#286044}.check{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-top:10px}.actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}.choice-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}.choice{padding:12px;text-align:left;border:1px solid var(--line);border-radius:6px;background:white;min-width:0}.choice[aria-pressed=true]{border-color:var(--accent);background:#edf0f8;box-shadow:inset 0 0 0 1px var(--accent)}.choice strong{display:flex;gap:7px;align-items:center;font-size:13px}.choice small{display:block;color:var(--muted);font-size:11px;margin:6px 0 0}.scope{font-size:11px;color:var(--muted);margin-top:8px}.detail-title{display:flex;align-items:center;gap:12px;margin-bottom:18px}.type-icon{width:45px;height:45px;display:grid;place-items:center;border-radius:8px;background:#eef0f7;color:var(--accent);flex-shrink:0}.detail-title h3{margin:0;font-size:19px}.detail-title p{margin:4px 0 0;font-size:11px}.badge{display:inline-flex;align-items:center;gap:5px;background:#eef0f7;border:1px solid var(--line);border-radius:4px;padding:3px 7px;font-size:11px}.badge-button{min-height:32px}.detail-content{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:18px}.reading{background:white;border:1px solid #dce0e9;border-radius:5px;padding:22px 18px;min-height:260px;font-size:12px;line-height:1.9}.reading h4{font-size:16px;margin-bottom:18px}.reading hr{border:0;border-top:1px solid #dce0e9;margin:18px 0}.reading p{font-size:12px}.detail-side{min-width:0}.detail-side h4{margin-bottom:8px}.detail-side p{font-size:11px;margin-bottom:10px}.detail-side dl{display:grid;grid-template-columns:auto 1fr;gap:6px;font-size:10px;margin-bottom:12px}.detail-side dt{color:var(--muted)}.detail-side dd{margin:0;text-align:right}.action-list{border-top:1px solid var(--line);padding-top:10px}.action-list button{display:flex;gap:6px;align-items:center;min-height:34px;padding:6px 0;background:transparent;border:0;text-align:left;font-size:11px;width:100%}.action-list svg{width:15px;height:15px}.access-box{padding:12px 0;border-top:1px solid var(--line);margin-top:12px}.access-box button{font-size:11px;min-height:32px;width:100%;margin-top:8px}.copy-menu{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0 16px;font-size:11px}.copy-menu button{font-size:11px;min-height:30px;padding:4px 8px}.new-mark{color:var(--accent);font-weight:600}.guest{padding:42px 12px 20px;text-align:center}.guest .large{width:44px;height:44px;color:var(--accent);margin-bottom:20px}.guest h3{font-size:20px;margin-bottom:12px}.guest p{max-width:310px;margin:0 auto 18px;font-size:13px}.guest button{display:block;margin:12px auto}.history{list-style:none;padding:0;margin:12px 0}.history li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #cbd0df66;font-size:12px}.change-note{margin:18px 0 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}.change-note div{padding:16px 18px;border-top:2px solid var(--line);font-size:13px}.change-note div:last-child{border-color:var(--accent)}.change-note h3{font-size:13px;margin-bottom:6px}.change-note p{font-size:12px;margin:0;color:var(--muted)}.summary{margin:16px 0 40px;border-top:1px solid var(--line);padding-top:24px}.summary h2{margin-bottom:14px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;text-align:left}th{font-weight:600;color:var(--muted);padding:10px 12px;background:#e7ebf3}td{padding:12px;border-bottom:1px solid #dce0e9;vertical-align:top}th:first-child{width:16%}th:nth-child(2){width:28%}.principles{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:24px}.principles h3{font-size:13px}.principles p{font-size:12px;color:var(--muted)}.colophon{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;margin-bottom:34px}.empty{grid-column:1/-1;text-align:center;padding:50px 0;font-size:13px}
+    dialog{width:min(460px,calc(100vw - 32px));border:1px solid var(--line);border-radius:10px;padding:24px;background:var(--paper);color:var(--ink);box-shadow:0 20px 80px #28304433;max-height:calc(100dvh - 40px);overflow-y:auto}dialog::backdrop{background:#28304466;backdrop-filter:blur(3px)}dialog h2{margin:0 0 8px;font-size:20px}dialog>p{font-size:13px;color:var(--muted)}.dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.dialog-heading button{border:0;background:transparent;padding:0 6px;min-height:32px;font-size:22px}.link-row{display:flex;gap:7px;margin:14px 0}.link-row input{font-size:11px;min-width:0}.link-row button{font-size:12px;flex-shrink:0}.error-box{padding:10px;background:#fceef0;color:var(--error);font-size:12px;margin-top:12px}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;padding:12px 18px;border-radius:6px;box-shadow:0 6px 30px #28304433;z-index:5;font-size:13px;max-width:calc(100vw - 32px);width:max-content}.dialog-context{font-size:12px;padding:10px 12px;background:#eef0f7;margin:14px 0}.design-label{margin-top:16px;font-size:11px;color:var(--muted)}
+    .tile-info .tile-name{flex:1;min-width:0}.tile-info .private-lock{display:inline-flex;flex-shrink:0;align-items:center;color:var(--muted)}
+    .tile-version{display:inline-flex;align-items:center;justify-content:center;min-width:25px;min-height:22px}.tile-version svg{width:14px;height:14px}
+    .detail-title-row{display:flex;align-items:center;gap:8px;width:100%;min-width:0}.detail-title-row h3{flex:1;min-width:0;overflow-wrap:anywhere}.detail-title-row>.badge{flex-shrink:0}.detail-access-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;min-height:36px;padding:8px;border:0;background:transparent;border-radius:5px;color:var(--accent)}button.detail-access-icon:hover{background:#eef0f7}
+    @media(min-width:1400px){.frame{min-height:650px}.detail-content{grid-template-columns:minmax(0,1fr) 175px}.app-body{padding:24px}.detail-side p,.action-list button{font-size:12px}}
+    @media(max-width:1100px){.review-layout{grid-template-columns:1fr}.scene-nav{position:static;display:flex;gap:5px;flex-wrap:wrap}.scene-nav h2,.scene-nav p{display:none}.scene-nav button{width:auto;font-size:12px;margin:0;padding:8px 12px}.review-head{padding-bottom:18px}.detail-content{grid-template-columns:1fr}.detail-side{border-top:1px solid var(--line);padding-top:14px}.detail-side dl{max-width:250px}.detail-side .action-list{display:flex;gap:12px;flex-wrap:wrap}.detail-side .action-list button{width:auto}.reading{min-height:200px}.frame{min-height:720px}.surface{padding:18px}.app-body{padding:18px}}
+    @media(max-width:760px){.review-head{padding:24px 18px 18px;display:block}.review-tag{display:inline-block;margin-top:12px}.review-layout{padding:0 18px;gap:16px}h1{font-size:24px}.scene-intro{display:block}.demo-controls{margin-top:14px}.comparison{grid-template-columns:1fr;gap:16px}.frame{min-height:560px}.app-body{min-height:480px;padding:18px}.detail-content{grid-template-columns:minmax(0,1fr) 150px}.detail-side{border:0;padding:0}.detail-side .action-list{display:block}.detail-side .action-list button{width:100%}.change-note{grid-template-columns:1fr;gap:8px}.change-note div{padding:12px 0}.principles{grid-template-columns:1fr;gap:12px}.summary{margin-top:6px}th,td{min-width:130px;padding:10px}.review-head p{font-size:13px}.scene-nav button{min-height:42px}.surface{padding:18px}.frame .app-head{padding:15px 18px}}
+    @media(max-width:440px){.detail-content{grid-template-columns:1fr}.detail-side{border-top:1px solid var(--line);padding-top:12px}.reading{min-height:180px}.detail-side .action-list{display:flex;flex-wrap:wrap;gap:8px}.detail-side .action-list button{width:auto}.wall{gap:10px}.tile-cover{padding:16px 12px}.tile-cover h4{font-size:13px}.tile-state{font-size:9px;left:6px;top:6px}.tile-info{padding:8px;font-size:11px}.choice{padding:10px}.app-body{padding:14px}.account{font-size:11px}.review-layout{padding:0 12px}.review-head{padding-left:16px;padding-right:16px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <defs>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="m9 3 6 0-1 6 4 4v2H6v-2l4-4-1-6ZM12 15v6"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 7h14M5 17h14"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7l-4-4Zm0 0v5h4M9 12h6M9 16h6"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 11v10h14V11"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l3 2"/></symbol>
+      <symbol id="i-stack" viewBox="0 0 24 24"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="m9 15 6-6M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m2 1 2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(1 1) scale(.9)"/></symbol>
+    </defs>
+  </svg>
+  <header class="review-head">
+    <div><h1>Pinboard，谁能看这一份？</h1><p class="muted">逐项访问权限交互提案。保持内容墙与阅读布局，把「发布版本」与「对外公开」分开。</p></div>
+    <span class="review-tag">交互 Mockup · 不连接真实服务</span>
+  </header>
+  <div class="review-layout">
+    <nav class="scene-nav" aria-label="对比场景">
+      <h2>查看变化</h2>
+      <button data-scene="wall" aria-pressed="true">内容墙</button>
+      <button data-scene="upload" aria-pressed="false">上传新内容</button>
+      <button data-scene="detail" aria-pressed="false">详情与分享</button>
+      <button data-scene="revision" aria-pressed="false">发布新版本</button>
+      <button data-scene="guest" aria-pressed="false">访客打开链接</button>
+      <button data-scene="overlap" aria-pressed="false">共享内容提醒</button>
+      <p>右侧为可点击提案。可公开、转私有、切换访客身份，并模拟保存失败。</p>
+    </nav>
+    <main class="review-main">
+      <div class="scene-intro">
+        <div><h2 id="scene-title"></h2><p id="scene-description" class="muted"></p></div>
+        <div class="demo-controls">
+          <label><span class="small">评审对象</span><select id="item-kind" aria-label="评审对象"><option value="publication">Publication</option><option value="pin">固定 Pin</option></select></label>
+          <button id="reset">重置演示</button>
+        </div>
+      </div>
+      <div class="comparison">
+        <section aria-label="现状">
+          <div class="version-head"><strong>现状</strong><span>所有上传字节公开</span></div>
+          <div class="frame"><div class="app-head"><div class="brand"><svg><use href="#i-pin"/></svg>Pinboard</div><div class="account"><span class="avatar">L</span><span>Lin</span></div></div><div id="before" class="app-body"></div></div>
+        </section>
+        <section aria-label="提案">
+          <div class="version-head"><strong class="new">提案</strong><span>逐项设置 · 新建默认私有</span></div>
+          <div class="frame"><div class="app-head"><div class="brand"><svg><use href="#i-pin"/></svg>Pinboard</div><div class="account" id="after-account"><span class="avatar">L</span><span>Lin</span></div></div><div id="after" class="app-body"></div></div>
+        </section>
+      </div>
+      <div class="change-note"><div><h3>现在怎么做</h3><p id="before-note"></p></div><div><h3>变化与理由</h3><p id="after-note"></p></div></div>
+      <section class="summary">
+        <h2>哪些地方会变</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>触点</th><th>现状</th><th>交互变化</th></tr></thead>
+            <tbody>
+              <tr><td>内容墙</td><td>内容预览、名称、Publication 图标。</td><td>仅私有项在底部 info bar 的名称前显示锁，公开项不加权限标记；不占用 preview 空间。增加访问范围筛选，卡片只打开详情。</td></tr>
+              <tr><td>Publication 标记</td><td>右上角仅显示叠层图标，表示发布项类型。</td><td>原位替换为当前版本号，如 v3；固定 Pin 不显示。更新后显示新版本，回滚后显示回滚目标版本，不使用历史总数；标记只读，点卡片仍打开详情。</td></tr>
+              <tr><td>新建上传</td><td>提醒全部上传字节公开，可关闭提醒。</td><td>统一默认私有，仅显示只读说明，不提供权限选择。上传后进入 detail view，再决定是否公开。</td></tr>
+              <tr><td>详情</td><td>标题左侧显示文件类型 icon，CID 旁可复制 HTTP／IPFS／版本链接。</td><td>移除类型 icon；权限图标放在标题同一行最左侧，作者点击锁／地球可修改权限。非作者图标只读；CID、版本标记和下载保留。</td></tr>
+              <tr><td>分享</td><td>复制链接即能让他人读取。</td><td>公开项可复制分享链接；私有项明确「链接不会授予访问权限」，可复制本人访问链接，公开是独立操作。</td></tr>
+              <tr><td>更新／转换</td><td>「Publish」通常意味着公开的新版本。</td><td>只读展示继承权限；需要修改时先返回 detail view。私有 Pin 引用到公开 Publication 前，说明字节将公开；确认不修改源 Pin 权限。</td></tr>
+              <tr><td>版本历史</td><td>完整历史公开。</td><td>整项统一设置，包含所有历史和描述；历史抽屉不增加逐版本权限开关。</td></tr>
+              <tr><td>访客访问</td><td>分享页无需登录即可预览、下载。</td><td>公开页体验不变；受保护链接提示登录，登录后无权限时不给出标题、CID、缩略图或版本数量。</td></tr>
+              <tr><td>转私有</td><td>没有关闭字节公开访问的操作。</td><td>确认后停止新的匿名访问；提示已有副本无法收回，有公开重叠引用时额外说明。</td></tr>
+              <tr><td>设置／回收站</td><td>浏览器偏好、Token 与恢复管理。</td><td>默认私有不做浏览器级开关。回收站标记原权限，恢复前说明公开项会重新开放访问。</td></tr>
+              <tr><td>CLI／MCP</td><td>读内容链接无需身份。</td><td>私有下载携带授权凭证，输出明确访问状态；错误区分登录失效和权限不足，不诱导公开来解决下载。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="principles">
+          <div><h3>权限只在详情中修改</h3><p>内容墙只显示锁，上传默认私有，更新沿用设置。只有在 detail view 的「访问与分享」中才能修改权限；复制链接不授权。</p></div>
+          <div><h3>不要把私有说成绝对保密</h3><p>权限保护这个内容项，不能撤回相同字节在其他公开项或外部副本中的可读性。</p></div>
+          <div><h3>不要让失败看起来已保存</h3><p>确认成功后才更新标记。失败保留原状态、展示原因并允许重试；可在权限面板中模拟。</p></div>
+        </div>
+      </section>
+      <p class="colophon">布局依据当前 Web 代码复刻，不是现网截图。中文为评审文案，不改变产品现有语言。所有文件、账号、链接与保存结果均为本地演示。存量公开项建议保持公开并标明来源，避免未经作者操作改变原有分享；该迁移策略尚待确认。</p>
+    </main>
+  </div>
+  <dialog id="access-dialog" aria-labelledby="access-title"></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script>
+    const icon=(name,large=false)=>`<svg aria-hidden="true"${large?' class="large"':''}><use href="#i-${name}"/></svg>`;
+    const $=id=>document.getElementById(id);
+    const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const state={scene:"wall",kind:"publication",visibility:"private",guest:"anonymous",filter:"all",draft:"private",fail:false,overlap:false,itemName:null,revision:3};
+    const scenes={
+      wall:{title:"内容墙：底部标私有，右上角看版本",description:"私有锁放在底部名称前；Publication 右上角用当前版本号替换图标，固定 Pin 不显示版本标记。",before:"自己的列表是私有的，但所有文件字节仍然公开。Publication 右上角只有叠层图标，无法直接看出当前版本。",after:"底部 info bar 最前面增加只读锁，不为它占用 preview 空间。右上角原位显示当前版本号，不是历史总数；回滚后显示目标版本。两种标记都只读，卡片只打开 detail view。"},
+      upload:{title:"上传：默认私有，权限稍后在详情管理",description:"保留选文件、名称、上传后操作；上传表单不再提供任何权限修改入口。",before:"上传前提示「内容将公开」，用户没有私有选项，而且可永久关闭浏览器提醒。",after:"新内容统一私有，只显示只读说明。上传后进入 detail view；要公开时，从「访问与分享」修改并确认风险。创建 Publication 也不会自动公开。"},
+      detail:{title:"详情：权限图标与标题同一行",description:"去掉标题栏的文件类型 icon，把锁放在标题最左边；点击它，在 detail view 中管理权限。",before:"标题左侧有文件类型 icon。复制 HTTP／IPFS 链接后，接收者可直接下载。Publication 另有跟随和固定版本链接。",after:"标题最左侧显示可点击的锁／地球，和标题、版本标记保持在同一行。作者点击打开「访问与分享」，访客图标只读；私有时复制链接不授权，下载行为保持不变。"},
+      revision:{title:"更新版本：更新内容，不偷偷改变权限",description:"访问状态只读，修改必须先返回 detail view；私有 Pin 进入公开项时额外提醒。",before:"「上传并发布」与公开强绑定，新版本及完整历史都公开。",after:"更新页只显示继承的权限，不打开权限面板。需要修改时先返回 detail view；公开目标引用私有源时确认暴露内容字节，但不修改源 Pin 权限。"},
+      guest:{title:"访客：公开照常读，私有不泄露内容",description:"先在 detail view 设置权限，再切换访客身份查看访问结果；访客页面不提供权限切换。",before:"任何人打开 Publication 或 CID 分享链接，都可以看到内容、版本和下载入口。",after:"匿名请求受保护内容时要求登录，但不确认内容存在。其他账号显示通用不可访问页面；作者可正常读取，管理权限先进入 detail view。"},
+      overlap:{title:"共享内容：私有记录，不等于撤回已公开字节",description:"用同一内容同时存在于私有笔记和公开发布项的场景，避免虚假的保密承诺。",before:"没有访问权限选择，内容本身一直公开。删除 Pin 也不会收回公开副本。",after:"重叠提示不透露他人私有信息。只在操作影响保密预期时出现；将私有内容公开或将公开项转私有都说明同字节公开引用与外部副本的边界。"}
+    };
+    const name=()=>escape(state.itemName??(state.kind==="publication"?"湖边工作札记":"湖边札记.md"));
+    const badge=(visibility,button=false)=>`<${button?"button":"span"} class="badge${button?" badge-button":""}"${button?' data-action="access" aria-haspopup="dialog"':""}>${icon(visibility==="private"?"lock":"globe")}${visibility==="private"?"私有":"公开"}</${button?"button":"span"}>`;
+    function choices(current,context){
+      return `<div class="choice-group" role="group" aria-label="访问范围"><button type="button" class="choice" data-choice="private" data-context="${context}" aria-pressed="${current==="private"}"><strong>${icon("lock")}私有</strong><small>仅你和你授权的 Agent</small></button><button type="button" class="choice" data-choice="public" data-context="${context}" aria-pressed="${current==="public"}"><strong>${icon("globe")}公开</strong><small>任何获得链接的人可读取</small></button></div>`;
+    }
+    function risk(context){
+      return `<div class="notice"><strong>公开后，副本无法收回</strong><p>${state.kind==="publication"?"标题、描述、当前内容及全部历史版本":"文件内容与预览"}可被任何人读取、下载和缓存。之后转私有只会停止新的匿名访问。</p><label class="check"><input type="checkbox" data-risk="${context}"><span>我理解公开后的下载和缓存无法收回</span></label></div>`;
+    }
+    function tile(title,type,visibility,version,newUI,index){
+      return `<button class="tile" ${newUI?`data-tile="${index}"`:'data-action="baseline"'} aria-label="${escape(title)}${newUI?`，${visibility==="private"?"私有":"公开"}${version?`，当前版本 v${version}`:""}`:""}"><div class="tile-cover ${type}">${type==="landscape"?"":`<h4>${title}</h4>${type==="document"?"沿湖散步的几个观察<br>水面，风向与树影<br><br>把未完成的想法先留在这里。":"notes.md<br>photos/<br>references/"}`}</div>${version?`<span class="tile-version" title="${newUI?`Publication，当前版本 v${version}`:"Publication"}">${newUI?`v${version}`:icon("stack")}</span>`:""}<div class="tile-info">${newUI&&visibility==="private"?`<span class="private-lock" title="私有">${icon("lock")}</span>`:""}<span class="tile-name">${title}</span>${icon("copy")}</div></button>`;
+    }
+    function wall(newUI){
+      const items=[{title:name(),type:"document",visibility:state.visibility,version:state.kind==="publication"?state.revision:0},{title:"湖岸照片",type:"landscape",visibility:"public",version:0},{title:"项目草稿",type:"document",visibility:"private",version:2},{title:"参考资料",type:"folder",visibility:"public",version:0}];
+      const filtered=items.map((item,index)=>({...item,index})).filter(item=>!newUI||state.filter==="all"||item.visibility===state.filter);
+      return `<div class="toolbar"><input class="search" aria-label="${newUI?"提案":"现状"}搜索内容" placeholder="搜索内容"${newUI?' id="wall-search"':""}>${newUI?`<select class="filter" id="wall-filter" aria-label="按访问范围筛选"><option value="all"${state.filter==="all"?" selected":""}>全部访问范围</option><option value="private"${state.filter==="private"?" selected":""}>私有</option><option value="public"${state.filter==="public"?" selected":""}>公开</option></select>`:`<span class="muted small">4 个内容项</span>`}</div><div class="wall">${filtered.map(item=>tile(item.title,item.type,item.visibility,item.version,newUI,item.index)).join("")}</div><p class="muted small" style="margin-top:18px">${newUI?"私有项的链接不会授予别人访问权限。":"列表属于你，文件字节对外公开。"}</p><button class="floating-add primary" data-action="${newUI?"upload":"baseline"}" aria-label="添加文件">+</button>`;
+    }
+    function upload(newUI){
+      return `<div class="surface"><h3>添加内容</h3><form id="${newUI?"upload-form":"before-upload-form"}"><div class="form-row"><label for="${newUI?"upload-name":"before-name"}">Pin 名称</label><input id="${newUI?"upload-name":"before-name"}" value="湖边札记.md" required maxlength="200"></div><p class="facts">湖边札记.md · 1 个文件 · 24 KB<br>总大小不超过 32 MiB</p><div class="form-row"><label for="${newUI?"upload-target":"before-target"}">上传后</label><select id="${newUI?"upload-target":"before-target"}"><option>仅保留为 Pin</option><option>创建 Publication</option></select></div>${newUI?`<div class="form-row" id="publication-title-row" hidden><label for="publication-title">Publication 标题</label><input id="publication-title" value="湖边工作札记" maxlength="200"><p class="scope">创建的 Pin 与 Publication 均为私有，之后各自在 detail view 管理权限。</p></div><div class="notice private-note">${badge("private")}<p>新内容默认私有，仅你与授权的 Agent 可读。上传后进入 detail view，可在「访问与分享」中设为公开。</p></div>`:`<div class="notice"><strong>上传内容将公开</strong><p>任何知道 CID 的人都能读取这些字节，即使取消 Pin。下载或缓存副本无法收回，请勿上传敏感信息。</p><label class="check"><input type="checkbox"><span>不要在此浏览器中再次提醒</span></label></div>`}<div class="actions"><button type="button" data-action="${newUI?"wall":"baseline"}">取消</button><button class="primary" type="submit">${newUI?"上传并查看详情":"上传并 Pin"}</button></div></form></div>`;
+    }
+    const reading=()=>`<article class="reading"><h4>沿湖散步的几个观察</h4><p>上午的水面很安静，风从树林那边过来。停下来之后，才发现树影一直在变。</p><hr><p>下次带上相机，沿东岸走一段。把路线和观察放在一起，慢慢更新这份札记。</p></article>`;
+    function detail(newUI,owner=true){
+      const version=state.kind==="publication"?`<span class="badge">v${state.revision} · 当前</span>`:"";
+      const accessLabel=state.visibility==="private"?"私有":"公开";
+      const accessIcon=owner
+        ?`<button class="detail-access-icon" data-action="access" aria-label="${accessLabel}，修改访问权限" title="${accessLabel} · 点击修改访问权限" aria-haspopup="dialog">${icon(state.visibility==="private"?"lock":"globe")}</button>`
+        :`<span class="detail-access-icon" role="img" aria-label="${accessLabel}" title="${accessLabel}">${icon(state.visibility==="private"?"lock":"globe")}</span>`;
+      const titleMarkup=newUI
+        ?`<div class="detail-title-row">${accessIcon}<h3>${name()}</h3>${version}</div>`
+        :`<span class="type-icon">${icon("file")}</span><div><h3>${name()}</h3><p>${version||"固定 Pin"}</p></div>`;
+      return `<div class="surface"><div class="detail-title">${titleMarkup}</div><div class="copy-menu"><button data-action="${newUI?"copy-cid":"baseline"}">${icon("copy")} 复制 CID</button>${newUI?`<span class="muted small" style="align-self:center">CID 不代表访问权限</span>`:`<button data-action="baseline">HTTP 下载链接</button><button data-action="baseline">IPFS 链接</button>${state.kind==="publication"?'<button data-action="baseline">跟随 / 固定版本链接</button>':""}`}</div><div class="detail-content">${reading()}<aside class="detail-side"><h4>关于这份内容</h4><p>一份持续更新的散步笔记，包含路线与观察。</p><dl><dt>大小</dt><dd>24 KB</dd><dt>块数</dt><dd>3</dd><dt>日期</dt><dd>2026/11/09</dd></dl>${newUI?`<div class="access-box"><strong class="small">访问范围</strong><p style="margin-top:6px">${state.visibility==="private"?"仅你与授权的 Agent":"任何获得链接的人"}${state.kind==="publication"?"<br>包含全部历史版本":""}</p>${owner?`<button data-action="access" aria-haspopup="dialog">${icon("share")} 访问与分享</button>`:""}</div>`:""}<div class="action-list"><button data-action="${newUI?"download":"baseline"}">${icon("download")} 下载文件 / ZIP</button><button data-action="${newUI?"download":"baseline"}">${icon("download")} 下载完整 CAR</button>${state.kind==="publication"?`<button data-action="${newUI?"history":"baseline"}">${icon("history")} 版本历史</button>${owner?`<button data-action="${newUI?"revision":"baseline"}">${icon("pin")} ${newUI?"更新版本":"发布新版本"}</button>`:""}`:""}${owner?`<button class="danger" data-action="${newUI?"trash":"baseline"}">移至回收站</button>`:""}</div></aside></div></div>`;
+    }
+    function revision(newUI){
+      return `<div class="surface"><h3>${newUI?"更新版本":"发布新版本"}</h3><div class="dialog-context">${name()} · 当前 v${state.revision} ${newUI?badge(state.visibility):""}</div>${newUI?`<p class="scope">新版本沿用此 Publication 的${state.visibility==="private"?"私有":"公开"}设置，所有历史版本一致。${state.visibility==="public"?"更新后任何获得链接的人可读。":"仅你与授权的 Agent 可读。"}</p><button class="quiet small" data-action="detail">返回详情管理访问范围</button>`:`<p class="muted small">更新跟随链接的内容。新旧版本都保留在公开历史中。</p>`}<div class="form-row" style="margin-top:16px"><label for="${newUI?"revision-source":"before-source"}">${newUI?"选择已有 Pin":"发布已有 Pin"}</label><select id="${newUI?"revision-source":"before-source"}"><option>湖边札记-v${state.revision+1}.md ${newUI?"（私有）":""}</option></select></div>${newUI&&state.visibility==="public"?`<div class="notice"><strong>这份私有 Pin 的字节将被公开</strong><p>源 Pin 的设置仍是私有，但相同文件可通过这个公开 Publication 下载。相关描述会随新版本公开。</p><label class="check"><input type="checkbox" id="source-confirm"><span>我理解源内容将可以被公开读取</span></label></div>`:newUI?'<div class="notice private-note">更新不会公开内容，也不会修改源 Pin 的访问设置。</div>':""}<div class="actions"><button data-action="${newUI?"detail":"baseline"}">取消</button><button class="primary" data-action="${newUI?"save-revision":"baseline"}"${newUI&&state.visibility==="public"?" disabled":""}>${newUI?`更新为 v${state.revision+1}`:"发布新版本"}</button></div><p class="design-label">${newUI?"拖入文件、上传文件夹以及从 Pin 转换为 Publication 使用相同的继承规则。":"现状没有独立的访问设置。"}</p></div>`;
+    }
+    function guest(newUI){
+      if(!newUI)return `<div class="surface"><h3>${name()}</h3><p class="facts">${state.kind==="publication"?`当前 v${state.revision} · 共 ${state.revision} 个版本 · `:""}24 KB</p>${reading()}<div class="actions"><button data-action="baseline">下载文件 / ZIP</button><button data-action="baseline">下载 CAR</button></div><p class="scope">${state.kind==="publication"?"完整历史与描述":"内容字节"}公开可读，无需登录。</p></div>`;
+      const controls=`<div class="toolbar"><select id="guest-identity" aria-label="模拟访问者身份" style="width:58%"><option value="anonymous"${state.guest==="anonymous"?" selected":""}>未登录访客</option><option value="other"${state.guest==="other"?" selected":""}>其他已登录账号</option><option value="owner"${state.guest==="owner"?" selected":""}>作者本人</option></select><span class="muted small">评审：仅切换身份</span></div>`;
+      if(state.visibility==="public"||state.guest==="owner")return controls+detail(true,state.guest==="owner");
+      return controls+`<div class="surface guest">${icon("lock",true)}<h3>${state.guest==="anonymous"?"登录以检查访问权限":"无法访问此内容"}</h3><p>${state.guest==="anonymous"?"如果内容需要授权，请使用上传时的账号登录。登录不保证获得访问权限。":"内容可能不存在、已删除，或当前账号没有权限。若这是你上传的内容，请切换到原账号。"}</p><button class="primary" data-action="${state.guest==="anonymous"?"sign-in":"switch-account"}">${state.guest==="anonymous"?"使用 Google 登录":"切换账号"}</button><button class="quiet" data-action="wall">返回我的内容</button><p class="scope">不展示标题、CID、缩略图、历史数量；不提供「申请访问」入口。</p></div>`;
+    }
+    function overlap(newUI){
+      if(!newUI)return `<div class="surface"><h3>同一文件，两份引用</h3><p class="muted">你的 Pin 与公开 Publication 都使用同一内容。</p><div class="dialog-context">Pin：湖边札记.md<br>Publication：湖岸开放笔记 · v2</div><div class="notice">字节始终公开。删除其中一个引用，不会撤回已有副本。</div><button data-action="baseline">复制 CID</button></div>`;
+      return `<div class="surface"><h3>访问设置与内容公开，分别说明</h3><div class="dialog-context">${badge("private")} 湖边札记.md<br><span class="muted small">你的 Pin 名称与账号描述保持私有。</span></div><div class="notice"><strong>相同内容仍有公开引用</strong><p>这份文件的字节也出现在一个公开项中，仍可被匿名读取。私有设置保护这份记录，不会让已经公开的相同字节变成秘密。</p></div><p class="scope">提示不列出其他账号的名称或记录。这里不提供权限修改入口。</p><div class="actions"><button data-action="overlap-detail">${icon("file")} 前往详情查看访问范围</button></div><p class="design-label">进入 detail view 后，再从「访问与分享」管理；导航本身不改变权限。</p></div>`;
+    }
+    function render(){
+      const scene=scenes[state.scene];
+      $("scene-title").textContent=scene.title;
+      $("scene-description").textContent=scene.description;
+      $("before-note").textContent=scene.before;
+      $("after-note").textContent=scene.after;
+      document.querySelectorAll("[data-scene]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.scene===state.scene)));
+      $("item-kind").value=state.kind;
+      $("item-kind").disabled=state.scene==="revision";
+      const renderer={wall,upload,detail,revision,guest,overlap}[state.scene];
+      $("before").innerHTML=renderer(false);
+      $("after").innerHTML=renderer(true);
+      const visitor=state.scene==="guest"&&state.guest!=="owner";
+      const account=$("after-account");
+      account.replaceChildren();
+      if(visitor&&state.guest==="anonymous"){const text=document.createElement("span");text.textContent="未登录";account.append(text);}
+      else{const avatar=document.createElement("span");avatar.className="avatar";avatar.textContent=visitor?"M":"L";const label=document.createElement("span");label.textContent=visitor?"Mei":"Lin";account.append(avatar,label);}
+    }
+    let toastTimer;
+    function toast(text){clearTimeout(toastTimer);$("toast").textContent=text;$("toast").hidden=false;toastTimer=setTimeout(()=>$("toast").hidden=true,3600);}
+    let lastDialogTrigger;
+    function openDialog(html){
+      const dialog=$("access-dialog");
+      if(!dialog.open)lastDialogTrigger=document.activeElement;
+      dialog.innerHTML=html;
+      if(!dialog.open)dialog.showModal();
+      dialog.querySelector("button:not(:disabled),input")?.focus();
+    }
+    function heading(title){return `<div class="dialog-heading"><h2 id="access-title">${title}</h2><button data-action="close" aria-label="关闭对话框">×</button></div>`;}
+    function accessPanel(resetDraft=true){
+      if(state.scene!=="detail"){state.scene="detail";render();}
+      if(resetDraft){state.draft=state.visibility;state.fail=false;}
+      openDialog(`${heading("访问与分享")}<p>${name()}${state.kind==="publication"?" · 覆盖全部历史版本":""}</p>${choices(state.draft,"access")}<p class="scope">私有时仅所属账号及其授权 Agent 可读；公开时任何获得链接的人可读。</p><div class="actions"><button class="primary" data-action="save-access"${state.draft===state.visibility?" disabled":""}>${state.draft===state.visibility?"已保存":state.draft==="public"?"继续设为公开":"继续设为私有"}</button></div><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><h3 style="font-size:14px;margin-bottom:6px">${state.visibility==="private"?"本人访问链接":"分享链接"}</h3><p class="scope">${state.visibility==="private"?"链接不会授予他人访问权限。复制不会改变私有设置。":"接收者无需登录。链接可读取当前内容；固定版本链接读取指定版本。"}</p><div class="link-row"><input id="share-link" aria-label="内容访问链接" readonly value="https://pinboard.example/${state.kind==="publication"?"p/lake-notes":"share/bafy-demo"}"><button data-action="copy-link">${icon("copy")} 复制</button></div>${state.visibility==="public"&&state.kind==="publication"?`<button class="quiet small" data-action="copy-fixed">复制固定 v${state.revision} 链接</button>`:""}<label class="check"><input type="checkbox" id="fail-save"${state.fail?" checked":""}><span>评审工具：模拟保存失败</span></label><p class="design-label">本面板只演示本地状态，不执行真实保存或下载。</p>`);
+    }
+    function confirmAccess(){
+      if(state.draft==="public"){
+        openDialog(`${heading("设为公开？")}<p>${name()}${state.kind==="publication"?" 的标题、描述、当前版本与全部历史都将公开。":"的文件内容与预览将公开。"}</p>${risk("access")}<div id="save-error" class="error-box" role="alert" hidden></div><div class="actions"><button data-action="back-access">返回</button><button class="primary" data-action="commit-access" disabled>设为公开</button></div>${state.fail?'<p class="design-label">已开启模拟失败；失败后原权限保持不变。</p>':""}`);
+      }else{
+        openDialog(`${heading("设为私有？")}<p>其他人将不能再通过这个内容项${state.kind==="publication"?"及其全部历史版本":""}读取和下载。你与授权的 Agent 仍可访问。</p><div class="notice"><strong>不会收回已经公开的副本</strong><p>已有下载、浏览器缓存和外部副本无法收回。${state.overlap?"相同内容仍有其他公开引用，字节仍可被匿名读取。":"相同内容若仍被其他公开项引用，字节仍可公开读取。"}</p></div>${state.overlap?'<div class="dialog-context">已检测到相同内容仍有公开引用。设为私有仅关闭此项的公开访问。</div>':""}<div id="save-error" class="error-box" role="alert" hidden></div><div class="actions"><button data-action="back-access">保持公开</button><button class="primary" data-action="commit-access">设为私有</button></div>`);
+      }
+    }
+    function commitAccess(){
+      if(state.fail){$("save-error").hidden=false;$("save-error").textContent="演示错误：访问设置保存失败，原设置未改变。可重试，或返回关闭「模拟保存失败」。";return;}
+      state.visibility=state.draft;
+      $("access-dialog").close();
+      render();
+      toast(state.visibility==="public"?"演示：已设为公开，包含全部历史版本。":"演示：已设为私有，已存在的副本无法收回。");
+    }
+    document.addEventListener("click",async event=>{
+      const sceneButton=event.target.closest("[data-scene]");
+      if(sceneButton){state.scene=sceneButton.dataset.scene;if(state.scene==="revision")state.kind="publication";render();return;}
+      const choice=event.target.closest("[data-choice]");
+      if(choice){state.draft=choice.dataset.choice;accessPanel(false);$("access-dialog").querySelector(`[data-choice="${state.draft}"]`).focus();return;}
+      const card=event.target.closest("[data-tile]");
+      if(card){const index=Number(card.dataset.tile);state.kind=index===0?state.kind:index===2?"publication":"pin";state.visibility=index===0?state.visibility:index===2?"private":"public";if(index!==0){state.itemName=["","湖岸照片","项目草稿","参考资料"][index];state.revision=index===2?2:1;}state.scene="detail";render();$("after").querySelector('[data-action="access"]').focus();return;}
+      const button=event.target.closest("[data-action]");
+      if(!button)return;
+      const action=button.dataset.action;
+      if(["wall","upload","detail","revision"].includes(action)){state.scene=action;if(action==="revision")state.kind="publication";render();}
+      else if(action==="access")accessPanel();
+      else if(action==="save-access")confirmAccess();
+      else if(action==="commit-access")commitAccess();
+      else if(action==="back-access")accessPanel(false);
+      else if(action==="close")$("access-dialog").close();
+      else if(action==="overlap-detail"){state.overlap=true;state.scene="detail";render();}
+      else if(action==="copy-link"||action==="copy-fixed"||action==="copy-cid"){
+        const value=action==="copy-cid"?"bafy-demo-cid-not-real":action==="copy-fixed"?`https://pinboard.example/p/lake-notes/v/${state.revision}`:$("share-link").value;
+        try{await navigator.clipboard.writeText(value);toast(action==="copy-cid"?"已复制演示 CID；它不会授予访问权限。":state.visibility==="private"?"已复制本人演示链接，仍是私有。":"已复制演示分享链接。");}
+        catch(error){toast("无法访问剪贴板，请选中链接后手动复制。");if(action==="copy-link")$("share-link").select();console.warn("Mockup clipboard unavailable",error);}
+      }
+      else if(action==="download")toast("演示：保留下载入口；真实私有下载需校验身份。");
+      else if(action==="baseline")toast("左侧为现状布局复刻，请在右侧体验新交互。");
+      else if(action==="save-revision"){if(state.visibility==="public"&&!$("source-confirm").checked)return;state.revision++;state.scene="detail";render();toast(`演示：已更新为 v${state.revision}，${state.visibility==="private"?"私有":"公开"}设置保持不变。`);}
+      else if(action==="sign-in"||action==="switch-account"){state.guest=action==="sign-in"?"other":"owner";render();toast("演示身份已切换，未执行真实登录。");}
+      else if(action==="history"){openDialog(`${heading("版本历史")}<p>${badge(state.visibility)} 全部版本沿用同一访问设置。</p><ul class="history">${Array.from({length:state.revision},(_,index)=>{const revision=state.revision-index;return `<li><span>v${revision}${index===0?" · 当前":""}</span><span>演示版本</span></li>`;}).join("")}</ul><p class="scope">回滚只改变当前版本，不改变权限，也不收回曾公开的版本副本。</p>`);}
+      else if(action==="trash"){openDialog(`${heading("移至回收站？")}<p>此内容项的读取入口将关闭，可在 30 天内恢复。其他公开引用和已有副本不受影响。</p><div class="notice private-note">恢复时沿用当前${state.visibility==="private"?"私有":"公开"}设置。${state.visibility==="public"?"恢复公开项前再次确认，会重新开放此项的链接和历史。":""}</div><div class="actions"><button data-action="close">取消</button><button class="danger" data-action="demo-trash">移至回收站</button></div>`);}
+      else if(action==="demo-trash"){$("access-dialog").close();toast("演示：移至回收站。没有修改真实内容。");}
+    });
+    document.addEventListener("change",event=>{
+      if(event.target.id==="wall-filter"){state.filter=event.target.value;render();$("wall-filter").focus();}
+      if(event.target.id==="guest-identity"){state.guest=event.target.value;render();$("guest-identity").focus();}
+      if(event.target.id==="fail-save")state.fail=event.target.checked;
+      if(event.target.id==="upload-target"){$("publication-title-row").hidden=event.target.selectedIndex!==1;$("publication-title").required=event.target.selectedIndex===1;}
+      if(event.target.matches("[data-risk]"))$("access-dialog").querySelector(".actions .primary").disabled=!event.target.checked;
+      if(event.target.id==="source-confirm")$("after").querySelector('[data-action="save-revision"]').disabled=!event.target.checked;
+    });
+    document.addEventListener("input",event=>{
+      if(event.target.id!=="wall-search")return;
+      const query=event.target.value.trim().toLowerCase();
+      const tiles=$("after").querySelectorAll(".tile");let visible=0;
+      tiles.forEach(tile=>{tile.hidden=!tile.textContent.toLowerCase().includes(query);if(!tile.hidden)visible++;});
+      $("after").querySelector(".empty")?.remove();
+      if(!visible){const empty=document.createElement("p");empty.className="empty";empty.textContent="没有匹配的内容。试试其他名称或访问范围。";$("after").querySelector(".wall").append(empty);}
+    });
+    document.addEventListener("submit",event=>{
+      event.preventDefault();
+      if(event.target.id!=="upload-form"){toast("左侧为现状复刻，不执行上传。");return;}
+      const publication=$("upload-target").selectedIndex===1;
+      const enteredName=(publication?$("publication-title"):$("upload-name")).value.trim();
+      if(!enteredName){toast("请填写内容名称或 Publication 标题。");return;}
+      state.itemName=enteredName;state.revision=1;state.visibility="private";state.overlap=false;state.kind=publication?"publication":"pin";state.scene="detail";
+      render();toast(`演示：已${publication?"创建 Publication":"保存 Pin"}，访问范围为${state.visibility==="private"?"私有":"公开"}。`);
+    });
+    $("item-kind").addEventListener("change",event=>{state.kind=event.target.value;state.itemName=null;state.revision=3;render();});
+    $("reset").addEventListener("click",()=>{Object.assign(state,{scene:"wall",kind:"publication",visibility:"private",guest:"anonymous",filter:"all",draft:"private",fail:false,overlap:false,itemName:null,revision:3});render();toast("已重置演示。");});
+    $("access-dialog").addEventListener("close",()=>{if(lastDialogTrigger?.isConnected)lastDialogTrigger.focus();else $("after").querySelector("button")?.focus();});
+    $("access-dialog").addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();$("access-dialog").close();}});
+    render();
+  </script>
+</body>
+</html>
