@@ -8,20 +8,24 @@ import {
 } from "react";
 import type { Publication } from "@shazhou/pinboard-contracts";
 
-it("overrides generic input styling with the pill-shaped search selector", () => {
+it("combines the access selector and search in one pill-shaped control", () => {
   const styles = readFileSync(
     new URL("../src/styles.css", import.meta.url),
     "utf8",
   );
   const selector = '.item-filter input[type="search"]';
-  expect(styles).toMatch(
-    /\.item-filter input\[type="search"\]\s*\{[^}]*border-radius:\s*999px;/u,
-  );
+  expect(styles).toMatch(/\.item-filter\s*\{[^}]*border-radius:\s*999px;/u);
   expect(styles.indexOf(selector)).toBeGreaterThan(
     styles.indexOf('input:not([type="checkbox"]):not([type="radio"])'),
   );
   expect(styles).toMatch(
     /\.item-filter input\[type="search"\]\s*\{[^}]*height:\s*44px;/u,
+  );
+  expect(styles).toMatch(
+    /\.item-filter input\[type="search"\]\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;/u,
+  );
+  expect(styles).toMatch(
+    /\.item-filter select\s*\{[^}]*border-right:\s*1px solid var\(--border\);/u,
   );
   expect(styles).toMatch(
     /\.item-filter:focus-within\s*\{[^}]*width:\s*min\(420px,\s*calc\(100vw - 600px\)\);/u,
@@ -40,6 +44,7 @@ it("keeps the clear action circular without clipping its keyboard focus", () => 
   expect(rule).toMatch(/place-items:\s*center;/u);
   expect(rule).toMatch(/outline-offset:\s*-4px;/u);
   expect(rule).toMatch(/border:\s*0;/u);
+  expect(rule).toMatch(/right:\s*-1px;/u);
   expect(styles).toMatch(
     /\.item-filter button:hover:not\(:disabled\)\s*\{[^}]*radial-gradient\(circle,\s*var\(--hover\) 0%,\s*transparent 70%\)/u,
   );
@@ -144,7 +149,7 @@ const input = () =>
   (
     (
       render().filter.props.children as ReactElement[]
-    )[0] as ReactElement<InputHandlers>
+    )[1] as ReactElement<InputHandlers>
   ).props;
 const change = (value: string) => input().onChange({ target: { value } });
 const flush = async (ms = 0) => {
@@ -180,6 +185,55 @@ afterEach(() => {
 });
 
 describe("item filter lifecycle", () => {
+  it("places access before text and clears text without resetting access", async () => {
+    let state = render();
+    await flush();
+    const controls = state.filter.props.children as ReactElement[];
+    expect(controls[0]!.type).toBe("select");
+    expect(controls[1]!.type).toBe("input");
+    (
+      controls[0] as ReactElement<{
+        onChange: (event: { target: { value: string } }) => void;
+      }>
+    ).props.onChange({ target: { value: "private" } });
+    await flush();
+    change("notes");
+    await flush(200);
+    state = render();
+    const clearButton = (
+      state.filter.props.children as ReactElement[]
+    )[2] as ReactElement<{ onClick: () => void; "aria-label": string }>;
+    expect(clearButton.props["aria-label"]).toBe("Clear filter text");
+    host.fetch.mockClear();
+    clearButton.props.onClick();
+    state = await flush();
+    expect(
+      (state.filter.props.children as ReactElement[])[1]!.props,
+    ).toMatchObject({
+      value: "",
+    });
+    expect(
+      (state.filter.props.children as ReactElement[])[0]!.props,
+    ).toMatchObject({
+      value: "private",
+    });
+    expect(state.filtered).toBe(true);
+    expect(host.fetch.mock.calls).toHaveLength(2);
+    for (const [path] of host.fetch.mock.calls) {
+      const query = new URL(path as string, "http://local").searchParams;
+      expect(query.get("q")).toBe("");
+      expect(query.get("visibility")).toBe("private");
+    }
+    await state.clear();
+    state = await flush();
+    expect(state.filtered).toBe(false);
+    expect(
+      (state.filter.props.children as ReactElement[])[0]!.props,
+    ).toMatchObject({
+      value: "all",
+    });
+  });
+
   it("debounces 200ms, preserves internal whitespace, and fetches only item lists", async () => {
     render();
     await flush();
@@ -301,7 +355,7 @@ describe("item filter lifecycle", () => {
     expect(loader(renderManager())).toBeUndefined();
     const filterInput = (
       managerFilter.props.children as ReactElement<InputHandlers>[]
-    )[0]!.props;
+    )[1]!.props;
     filterInput.onChange({ target: { value: "query" } });
     tree = renderManager();
     expect(loader(tree)?.props).toMatchObject({
@@ -431,7 +485,7 @@ describe("item filter lifecycle", () => {
       await vi.advanceTimersByTimeAsync(0);
       renderManager();
       const filterInput = () =>
-        (managerFilter.props.children as ReactElement<InputHandlers>[])[0]!
+        (managerFilter.props.children as ReactElement<InputHandlers>[])[1]!
           .props;
       filterInput().onChange({ target: { value: "no-match" } });
       await vi.advanceTimersByTimeAsync(200);

@@ -244,4 +244,20 @@ describe("detail-only access interaction", () => {
     expect(visitor).not.toContain("Access and sharing");
     expect(owner).toContain("Copy CID");
   });
+
+  it("keeps version labels secondary and makes the title access action visible", () => {
+    const css = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    const badge = css.match(/\.publication-badge\s*\{([^}]+)\}/)?.[1];
+    expect(badge).toMatch(/font-size:\s*11px;/);
+    expect(badge).toMatch(/height:\s*22px;/);
+    expect(css).toMatch(
+      /button\.detail-access\s*\{[^}]*background:\s*var\(--selected\);/,
+    );
+    expect(css).toMatch(
+      /\.detail-access\s*\{[^}]*margin-top:\s*calc\(\(1lh - 36px\) \/ 2\);/,
+    );
+  });
 });

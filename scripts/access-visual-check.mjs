@@ -98,6 +98,37 @@ try {
       mobile: width < 500,
     });
     await wait(250);
+    await evaluate(`(() => {
+      const input = document.querySelector('.item-filter input');
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setter.call(input, ' ');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await until("document.querySelector('.item-filter button')");
+    const filter = await evaluate(`(() => {
+      const group = document.querySelector('.item-filter');
+      const select = group.querySelector('select');
+      const input = group.querySelector('input');
+      const clear = group.querySelector('button');
+      const bounds = group.getBoundingClientRect();
+      const text = input.getBoundingClientRect();
+      const action = clear.getBoundingClientRect();
+      return { firstAccess: group.firstElementChild === select,
+        leftAccess: select.getBoundingClientRect().right <= text.left,
+        rightClear: Math.abs(action.right - bounds.right) < 1,
+        textClearance: text.right - parseFloat(getComputedStyle(input).paddingRight) <= action.left,
+        clearLabel: clear.getAttribute('aria-label'), height: bounds.height };
+    })()`);
+    assert(
+      filter.firstAccess &&
+        filter.leftAccess &&
+        filter.rightClear &&
+        filter.textClearance,
+    );
+    assert.equal(filter.clearLabel, "Clear filter text");
+    assert.equal(filter.height, 44);
+    await evaluate("document.querySelector('.item-filter button').click()");
+    await until("document.querySelectorAll('.pin-card').length >= 4");
     const geometry = await evaluate(`(() => {
       const card = document.querySelector('.pin-card');
       const lock = card.querySelector('.pin-lock');
@@ -128,8 +159,12 @@ try {
       const access = dialog.querySelector('.detail-access');
       const title = dialog.querySelector('.detail-title h3');
       access.focus();
+      const accessBounds = access.getBoundingClientRect();
+      const titleBounds = title.getBoundingClientRect();
+      const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
       return { first: dialog.querySelector('.detail-title').firstElementChild === access,
-        sameRow: Math.abs(access.getBoundingClientRect().top - title.getBoundingClientRect().top) < 12,
+        sameRow: Math.abs(accessBounds.top + accessBounds.height / 2 - titleBounds.top - lineHeight / 2) < 1,
+        actionBackground: getComputedStyle(access).backgroundColor,
         oldIcon: !!dialog.querySelector('.detail-type-icon'), focused: document.activeElement === access,
         overflow: dialog.scrollWidth > dialog.clientWidth };
     })()`);
@@ -140,6 +175,7 @@ try {
         !title.oldIcon &&
         !title.overflow,
     );
+    assert.notEqual(title.actionBackground, "rgba(0, 0, 0, 0)");
     await evaluate(
       "document.querySelector('dialog[open] .detail-access').click()",
     );
@@ -169,6 +205,7 @@ try {
       viewport: width,
       result: "通过",
       card: geometry,
+      filter,
       detail: title,
       saveFailure:
         "只读预览拒绝保存，原私有状态保留；关闭分享对话框后焦点返回权限按钮",
@@ -176,9 +213,12 @@ try {
   }
   const publication = await evaluate(`(() => {
     const card = Array.from(document.querySelectorAll('.pin-card')).find(c => c.querySelector('.publication-badge')?.textContent === 'v3');
-    return { badge: card?.querySelector('.publication-badge')?.textContent, current: card?.querySelector('.pin-publication-version')?.textContent };
+    const badge = card?.querySelector('.publication-badge');
+    return { badge: badge?.textContent, fontSize: badge ? getComputedStyle(badge).fontSize : null, height: badge?.getBoundingClientRect().height, current: card?.querySelector('.pin-publication-version')?.textContent };
   })()`);
   assert.equal(publication.badge, "v3");
+  assert.equal(publication.fontSize, "11px");
+  assert.equal(publication.height, 22);
   assert(publication.current.includes("5 versions"));
   assert(
     await evaluate(

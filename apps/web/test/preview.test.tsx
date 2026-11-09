@@ -131,13 +131,13 @@ describe("typed, display-only content previews", () => {
       previewPollDelay({ ...preview, status: "pending" }, 24),
     ).toBeUndefined();
   });
-  it("floats publication icons without changing the shared preview or summary layout", () => {
+  it("floats compact version labels without changing the shared preview or summary layout", () => {
     const styles = readFileSync(
       new URL("../src/styles.css", import.meta.url),
       "utf8",
     );
     expect(styles).toMatch(
-      /\.publication-badge\s*\{[^}]*position:\s*absolute;[^}]*top:\s*12px;[^}]*right:\s*12px;[^}]*width:\s*28px;[^}]*height:\s*28px;/u,
+      /\.publication-badge\s*\{[^}]*position:\s*absolute;[^}]*top:\s*12px;[^}]*right:\s*12px;[^}]*min-width:\s*22px;[^}]*height:\s*22px;[^}]*font-size:\s*11px;/u,
     );
     expect(styles).not.toMatch(
       /\.pin-card:has\(\.publication-badge\) \.(?:pin-preview|pin-info-summary|pin-size)/u,

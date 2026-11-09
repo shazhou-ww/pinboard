@@ -131,15 +131,31 @@ export function useItemLists(accountId?: string) {
     }
   };
   const inputRef = useRef<HTMLInputElement>(null);
-  const clear = () => {
-    desiredVisibility.current = "all";
-    setVisibility("all");
+  const clearText = () => {
     composing.current = false;
     change("", true);
     inputRef.current?.focus();
   };
+  const clear = () => {
+    desiredVisibility.current = "all";
+    setVisibility("all");
+    clearText();
+  };
   const filter = (
     <div className="item-filter">
+      <select
+        aria-label="Filter by access"
+        value={visibility}
+        onChange={(event) => {
+          desiredVisibility.current = event.target.value;
+          setVisibility(event.target.value);
+          void refresh();
+        }}
+      >
+        <option value="all">All access</option>
+        <option value="private">Private</option>
+        <option value="public">Public</option>
+      </select>
       <input
         ref={inputRef}
         type="search"
@@ -161,28 +177,19 @@ export function useItemLists(accountId?: string) {
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
-            clear();
+            clearText();
           } else if (event.key === "Enter") {
             event.preventDefault();
             void refresh();
           }
         }}
       />
-      <select
-        aria-label="Filter by access"
-        value={visibility}
-        onChange={(event) => {
-          desiredVisibility.current = event.target.value;
-          setVisibility(event.target.value);
-          void refresh();
-        }}
-      >
-        <option value="all">All access</option>
-        <option value="private">Private</option>
-        <option value="public">Public</option>
-      </select>
       {input ? (
-        <button type="button" aria-label="Clear filter" onClick={clear}>
+        <button
+          type="button"
+          aria-label="Clear filter text"
+          onClick={clearText}
+        >
           <Icon name="close" size={16} />
         </button>
       ) : null}

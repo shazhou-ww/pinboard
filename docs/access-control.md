@@ -35,14 +35,22 @@ preserves visibility, and restoring a public item reopens its links/history.
 Only private wall cards show a readonly lock, immediately before the name in the
 existing bottom information strip. There is no visibility preview overlay.
 Publication cards show **current vN** at upper right, not the history count;
-rollback changes this number. Fixed Pins have no version badge.
+rollback changes this number. The compact 11px label stays secondary to the
+content. Fixed Pins have no version badge.
 
-Details replace the file-type icon with a leftmost inline lock/globe. Owners
-open **Access and sharing** there; visitors see a readonly icon. Uploads show
-only a default-private note and open details afterward. Updating content keeps
-the destination's visibility. Conversion inherits the source Pin's visibility.
-Making a private source part of a public Publication requires confirmation of
-byte and description exposure; the source Pin stays private.
+The access selector and text search share one pill-shaped control: access on the
+left, text in the middle and a clear-text action on the right. Clearing text
+(including Escape) preserves the access selection; clearing all filters from the
+empty state resets both.
+
+Details replace the file-type icon with a leftmost inline lock/globe. The
+owner's button has a tinted background and aligns with the title's first line,
+including wrapped titles. Owners open **Access and sharing** there; visitors see
+a readonly icon. Uploads show only a default-private note and open details
+afterward. Updating content keeps the destination's visibility. Conversion
+inherits the source Pin's visibility. Making a private source part of a public
+Publication requires confirmation of byte and description exposure; the source
+Pin stays private.
 
 Each visibility change requires fresh confirmation. Public confirmation covers
 all Publication history and irreversible downloads/caches. Revocation explains

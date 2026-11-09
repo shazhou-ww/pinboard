@@ -369,11 +369,16 @@ describe("global palette contract", () => {
   });
 
   it("themes the integrated filter input and clear action with shared roles", () => {
-    expect(rule('.item-filter input[type="search"]')).toMatchObject({
+    expect(rule(".item-filter")).toMatchObject({
       border: "1px solid var(--control)",
       background: "var(--surface-glass-input)",
+    });
+    expect(rule('.item-filter input[type="search"]')).toMatchObject({
+      border: "0",
+      background: "transparent",
       color: "var(--text)",
     });
+    expect(rule(".item-filter select").color).toBe("var(--muted)");
     expect(rule(".item-filter button").color).toBe("var(--accent)");
     expect(rule(".item-filter button:hover:not(:disabled)").background).toBe(
       "radial-gradient(circle, var(--hover) 0%, transparent 70%)",
