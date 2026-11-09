@@ -176,8 +176,64 @@ try {
         !title.overflow,
     );
     assert.notEqual(title.actionBackground, "rgba(0, 0, 0, 0)");
+    const beforeEditing = await evaluate(`(() => {
+      const dialog=document.querySelector('dialog[open]');
+      return {height:dialog.getBoundingClientRect().height,
+        preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height};
+    })()`);
     await evaluate(
-      "document.querySelector('dialog[open] .detail-access').click()",
+      "document.querySelector('dialog[open] [aria-label=\"Edit description\"]').click()",
+    );
+    await until(
+      "document.querySelector('dialog[open] .reading-description-form textarea')",
+    );
+    const descriptionEditing = await evaluate(`(() => {
+      const dialog=document.querySelector('dialog[open]');
+      const textarea=dialog.querySelector('.reading-description-form textarea');
+      textarea.style.height='800px';
+      const sidebar=dialog.querySelector('.reading-sidebar');
+      return {height:dialog.getBoundingClientRect().height,
+        preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height,
+        sidebar:sidebar.getBoundingClientRect().height,textarea:textarea.getBoundingClientRect().height,
+        scrollable:getComputedStyle(sidebar).overflowY==='auto'};
+    })()`);
+    assert.equal(descriptionEditing.preview, beforeEditing.preview);
+    assert(
+      descriptionEditing.sidebar <= 360 &&
+        descriptionEditing.textarea <= 180 &&
+        descriptionEditing.scrollable,
+    );
+    if (width > 700)
+      assert.equal(descriptionEditing.height, beforeEditing.height);
+    await evaluate(
+      `Array.from(document.querySelector('dialog[open]').querySelectorAll('button')).find(b=>b.textContent==='Cancel edit').click()`,
+    );
+    await evaluate(
+      "document.querySelector('dialog[open] [aria-label=\"Rename pin\"]').click()",
+    );
+    await until("document.querySelector('dialog[open] .detail-title-editor')");
+    const renameEditing = await evaluate(`(() => {
+      const dialog=document.querySelector('dialog[open]'),form=dialog.querySelector('.detail-title-editor');
+      return {height:dialog.getBoundingClientRect().height,insideTitle:form.parentElement.classList.contains('detail-title'),
+        duplicateTitle:!!dialog.querySelector('.detail-title h3'),
+        preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height,
+        overflow:dialog.scrollWidth>dialog.clientWidth};
+    })()`);
+    assert(
+      renameEditing.insideTitle &&
+        !renameEditing.duplicateTitle &&
+        !renameEditing.overflow,
+    );
+    assert(renameEditing.height <= beforeEditing.height + 1);
+    assert.equal(renameEditing.preview, beforeEditing.preview);
+    await evaluate(
+      "document.querySelector('dialog[open] [aria-label=\"Cancel rename\"]').click()",
+    );
+    await until(
+      "document.activeElement.getAttribute('aria-label')==='Rename pin'",
+    );
+    await evaluate(
+      "document.querySelector('dialog[open] .detail-access').focus(); document.querySelector('dialog[open] .detail-access').click()",
     );
     await until(
       "document.querySelector('dialog[open][aria-label=\"Access and sharing\"]')",
@@ -206,6 +262,8 @@ try {
       result: "通过",
       card: geometry,
       filter,
+      descriptionEditing,
+      renameEditing,
       detail: title,
       saveFailure:
         "只读预览拒绝保存，原私有状态保留；关闭分享对话框后焦点返回权限按钮",

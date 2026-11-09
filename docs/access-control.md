@@ -52,6 +52,11 @@ inherits the source Pin's visibility. Making a private source part of a public
 Publication requires confirmation of byte and description exposure; the source
 Pin stays private.
 
+Renaming replaces the title inline rather than inserting a second form above the
+preview. Description editing uses compact spacing and a bounded, scrollable
+sidebar so editing or resizing the text field does not stretch the desktop
+reading panel; the content preview keeps its reserved height.
+
 Each visibility change requires fresh confirmation. Public confirmation covers
 all Publication history and irreversible downloads/caches. Revocation explains
 other public byte references and existing external copies. Failure leaves the

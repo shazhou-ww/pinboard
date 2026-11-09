@@ -44,6 +44,7 @@ export function DetailHeading({
   onAccess,
   publication,
   badge,
+  titleEditor,
   onCopy,
 }: {
   name: string;
@@ -54,6 +55,7 @@ export function DetailHeading({
   disabled: boolean;
   publication?: { id: string; revision: number };
   badge?: ReactNode;
+  titleEditor?: ReactNode;
   onCopy: (text: string, onCopied?: () => void) => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -88,7 +90,7 @@ export function DetailHeading({
               <Icon name={visibility === "private" ? "lock" : "globe"} />
             </span>
           )}
-          <h3>{name}</h3>
+          {titleEditor ?? <h3>{name}</h3>}
           {badge}
         </div>
         <div className="detail-cid-combo">

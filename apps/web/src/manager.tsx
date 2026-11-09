@@ -1089,50 +1089,6 @@ export function AccountManager({
         {selected ? (
           <div className="pin-detail" aria-busy={busy || detailsLoading}>
             {error ? <p role="alert">{error}</p> : null}
-            {renaming ? (
-              <form onSubmit={rename} aria-label={`Rename ${selected.name}`}>
-                <label>
-                  Pin name
-                  <input
-                    autoFocus
-                    required
-                    maxLength={200}
-                    value={renaming.name}
-                    disabled={busy}
-                    onChange={(event) =>
-                      setRenaming({
-                        cid: renaming.cid,
-                        name: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-                <div className="actions">
-                  <button
-                    type="submit"
-                    disabled={busy || !renaming.name.trim()}
-                  >
-                    Save name
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      setRenaming(null);
-                      requestAnimationFrame(() =>
-                        document
-                          .querySelector<HTMLElement>(
-                            'dialog[open] [aria-label="Rename pin"]',
-                          )
-                          ?.focus(),
-                      );
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : null}
             <NodeDescriptionEditor
               client={descriptions}
               key={selected.cid}
@@ -1155,18 +1111,73 @@ export function AccountManager({
                   onCopy={(text, onCopied) => {
                     void copy(text, onCopied);
                   }}
+                  titleEditor={
+                    renaming ? (
+                      <form
+                        className="detail-title-editor"
+                        onSubmit={rename}
+                        aria-label={`Rename ${selected.name}`}
+                      >
+                        <input
+                          aria-label="Pin name"
+                          autoFocus
+                          required
+                          maxLength={200}
+                          value={renaming.name}
+                          disabled={busy}
+                          onChange={(event) =>
+                            setRenaming({
+                              cid: renaming.cid,
+                              name: event.target.value,
+                            })
+                          }
+                        />
+                        <button
+                          type="submit"
+                          aria-label="Save name"
+                          title="Save name"
+                          disabled={busy || !renaming.name.trim()}
+                        >
+                          <Icon name="check" size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Cancel rename"
+                          title="Cancel rename"
+                          disabled={busy}
+                          onClick={() => {
+                            setRenaming(null);
+                            requestAnimationFrame(() =>
+                              document
+                                .querySelector<HTMLElement>(
+                                  'dialog[open] [aria-label="Rename pin"]',
+                                )
+                                ?.focus(),
+                            );
+                          }}
+                        >
+                          <Icon name="close" size={16} />
+                        </button>
+                      </form>
+                    ) : undefined
+                  }
                   badge={
-                    <button
-                      className="detail-rename"
-                      aria-label="Rename pin"
-                      title="Rename pin"
-                      disabled={busy || descriptionBusy || descriptionDirty}
-                      onClick={() =>
-                        setRenaming({ cid: selected.cid, name: selected.name })
-                      }
-                    >
-                      <Icon name="edit" size={16} />
-                    </button>
+                    !renaming ? (
+                      <button
+                        className="detail-rename"
+                        aria-label="Rename pin"
+                        title="Rename pin"
+                        disabled={busy || descriptionBusy || descriptionDirty}
+                        onClick={() =>
+                          setRenaming({
+                            cid: selected.cid,
+                            name: selected.name,
+                          })
+                        }
+                      >
+                        <Icon name="edit" size={16} />
+                      </button>
+                    ) : null
                   }
                 />
               )}

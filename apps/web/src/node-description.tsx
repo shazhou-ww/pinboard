@@ -293,6 +293,7 @@ function DescriptionEditor({
               {data ? (
                 editing ? (
                   <form
+                    className="reading-description-form"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void save(text);
@@ -302,6 +303,7 @@ function DescriptionEditor({
                       User description (optional, plain text)
                       <textarea
                         autoFocus
+                        rows={5}
                         maxLength={8000}
                         value={text}
                         disabled={busy}

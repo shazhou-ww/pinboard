@@ -14,6 +14,52 @@ import { NodeDescriptionEditor } from "../src/node-description.js";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("reading details", () => {
+  it("replaces the title with an inline editor instead of appending another panel", () => {
+    const html = renderToStaticMarkup(
+      <DetailHeading
+        name="Existing title"
+        cid="root"
+        contentType="text/plain"
+        visibility="private"
+        disabled
+        onCopy={() => {}}
+        titleEditor={
+          <form
+            className="detail-title-editor"
+            aria-label="Rename Existing title"
+          >
+            <input aria-label="Pin name" defaultValue="Existing title" />
+            <button aria-label="Save name">Save</button>
+          </form>
+        }
+      />,
+    );
+    expect(html).toContain('class="detail-title-editor"');
+    expect(html).not.toContain("<h3>");
+    expect(html.indexOf('class="detail-title-editor"')).toBeLessThan(
+      html.indexOf('class="detail-cid-combo"'),
+    );
+  });
+
+  it("bounds the reading sidebar and isolates compact editor spacing", () => {
+    const css = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /\.reading-sidebar\s*\{[^}]*max-height:\s*360px;[^}]*overflow-y:\s*auto;/u,
+    );
+    expect(css).toMatch(
+      /\.reading-sidebar \.reading-description-form\s*\{[^}]*gap:\s*8px;[^}]*margin:\s*0;/u,
+    );
+    expect(css).toMatch(
+      /\.reading-description-form textarea\s*\{[^}]*max-height:\s*180px;/u,
+    );
+    expect(css).toMatch(
+      /\.pin-detail \.detail-title-editor\s*\{[^}]*height:\s*1lh;[^}]*margin:\s*0;/u,
+    );
+  });
+
   it("groups the complete CID and icon in one copy button", () => {
     const html = renderToStaticMarkup(
       <DetailHeading
