@@ -37,7 +37,7 @@ import {
   tokenStatus,
 } from "./authorizations.js";
 import { NodeDescriptionEditor } from "./node-description.js";
-import { DetailMenu, discardDetailsDraft } from "./detail-actions.js";
+import { DetailHeading, discardDetailsDraft } from "./detail-actions.js";
 import { useItemLists } from "./item-filter.js";
 import { useActionItems } from "./action-items.js";
 import { LoadingIndicator, LoadingReveal } from "./loading.js";
@@ -117,6 +117,7 @@ export function AccountManager({
     useState<Publication | null>(null);
   const [publishingPin, setPublishingPin] = useState<Pin | null>(null);
   const [converting, setConverting] = useState(false);
+  const [startPublishing, setStartPublishing] = useState(false);
   const [linkTarget, setLinkTarget] = useState("");
   const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null);
   const pickerTarget = useRef<UploadTarget | null>(null);
@@ -750,11 +751,19 @@ export function AccountManager({
         choicesError={actionItems.error}
         onRetryChoices={actionItems.retry}
         convert={converting}
+        startPublishing={startPublishing}
+        onConverted={(publication) => {
+          setPublishingPin(null);
+          setConverting(false);
+          setSelectedPublication(publication);
+          setStartPublishing(true);
+        }}
         initialTarget={linkTarget}
         onClose={() => {
           setSelectedPublication(null);
           setPublishingPin(null);
           setConverting(false);
+          setStartPublishing(false);
           setLinkTarget("");
         }}
         onChanged={refresh}
@@ -1053,6 +1062,7 @@ export function AccountManager({
         open={!!selected}
         title="Pin details"
         className="reading-dialog"
+        glyphClose
         returnFocusKey={selected ? `pin:${selected.cid}` : undefined}
         busy={busy || descriptionBusy}
         dismissOnOutsideClick
@@ -1066,126 +1076,6 @@ export function AccountManager({
         {selected ? (
           <div className="pin-detail" aria-busy={busy || detailsLoading}>
             {error ? <p role="alert">{error}</p> : null}
-            <h3>{selected.name}</h3>
-            <p className="muted">
-              Fixed content · {formatSize(selected.size)} · Private Pin ·{" "}
-              <code>
-                {selected.cid.slice(0, 12)}…{selected.cid.slice(-6)}
-              </code>
-            </p>
-            <div
-              className="actions detail-toolbar"
-              aria-label="Pin actions"
-              inert={busy || descriptionBusy || descriptionDirty || !!renaming}
-            >
-              <DetailMenu label="Share">
-                <button
-                  disabled={busy || detailsLoading}
-                  onClick={() => {
-                    void copy(`${location.origin}/share/${selected.cid}`);
-                  }}
-                >
-                  Copy fixed content link
-                </button>
-                <button
-                  disabled={busy || detailsLoading}
-                  onClick={() => {
-                    void copy(selected.cid);
-                  }}
-                >
-                  Copy CID
-                </button>
-                <a href={`/share/${selected.cid}`}>
-                  Open share <Icon name="externalLink" size={16} />
-                </a>
-                <p className="muted">
-                  Fixed content link. Private name and description are not
-                  shared.
-                </p>
-              </DetailMenu>
-              <DetailMenu label="Download">
-                <a
-                  href={`/api/public/${selected.cid}/download?name=${encodeURIComponent(selected.name)}`}
-                >
-                  Download file / ZIP <Icon name="download" size={16} />
-                </a>
-                <a href={`/api/public/${selected.cid}/car`}>
-                  Download complete CAR <Icon name="download" size={16} />
-                </a>
-              </DetailMenu>
-              <DetailMenu label="More">
-                <button
-                  disabled={busy || detailsLoading}
-                  onClick={() => {
-                    void perform(async () => {
-                      const pin = await requestJson<Pin>(
-                        `/api/pins/${selected.cid}`,
-                      );
-                      setSelected(pin);
-                    });
-                  }}
-                >
-                  Refresh pin details
-                </button>
-                <button
-                  disabled={busy || detailsLoading}
-                  onClick={() => {
-                    setConverting(false);
-                    setLinkTarget("");
-                    setPublishingPin(selected);
-                    setSelected(null);
-                  }}
-                >
-                  Add to a publication
-                </button>
-                <button
-                  disabled={busy || detailsLoading}
-                  onClick={() => {
-                    setConverting(true);
-                    setLinkTarget("");
-                    setPublishingPin(selected);
-                    setSelected(null);
-                  }}
-                >
-                  Convert to publication
-                </button>
-                <details>
-                  <summary>Convert &amp; upload</summary>
-                  <button
-                    disabled={busy || detailsLoading}
-                    onClick={() => pickFor(selected, false)}
-                  >
-                    Choose file for conversion
-                  </button>
-                  <button
-                    disabled={busy || detailsLoading}
-                    onClick={() => pickFor(selected, true)}
-                  >
-                    Choose folder for conversion
-                  </button>
-                </details>
-                <button
-                  disabled={busy || detailsLoading}
-                  onClick={() =>
-                    setRenaming({ cid: selected.cid, name: selected.name })
-                  }
-                >
-                  Rename
-                </button>
-                <button
-                  className="danger"
-                  disabled={busy || detailsLoading}
-                  onClick={() => unpin(selected)}
-                >
-                  Move to recently deleted
-                </button>
-                <p className="muted policy">
-                  Restore within 30 days. Publication references remain
-                  independent; public CID bytes and external copies cannot be
-                  recalled.
-                </p>
-              </DetailMenu>
-            </div>
             {renaming ? (
               <form onSubmit={rename} aria-label={`Rename ${selected.name}`}>
                 <label>
@@ -1219,7 +1109,7 @@ export function AccountManager({
                       requestAnimationFrame(() =>
                         document
                           .querySelector<HTMLElement>(
-                            "dialog[open] .detail-toolbar > .detail-menu:last-child > summary",
+                            'dialog[open] [aria-label="Rename pin"]',
                           )
                           ?.focus(),
                       );
@@ -1238,12 +1128,78 @@ export function AccountManager({
               onChanged={lists.refresh}
               onBusyChange={setDescriptionBusy}
               onDirtyChange={setDescriptionDirty}
+              heading={(contentType) => (
+                <DetailHeading
+                  name={selected.name}
+                  cid={selected.cid}
+                  contentType={contentType}
+                  disabled={
+                    busy || descriptionBusy || descriptionDirty || !!renaming
+                  }
+                  onCopy={(text, onCopied) => {
+                    void copy(text, onCopied);
+                  }}
+                  badge={
+                    <button
+                      className="detail-rename"
+                      aria-label="Rename pin"
+                      title="Rename pin"
+                      disabled={busy || descriptionBusy || descriptionDirty}
+                      onClick={() =>
+                        setRenaming({ cid: selected.cid, name: selected.name })
+                      }
+                    >
+                      <Icon name="edit" size={16} />
+                    </button>
+                  }
+                />
+              )}
+              actions={
+                <div
+                  className="detail-action-list"
+                  aria-label="Pin actions"
+                  inert={
+                    busy ||
+                    detailsLoading ||
+                    descriptionBusy ||
+                    descriptionDirty ||
+                    !!renaming
+                  }
+                >
+                  <a
+                    href={`/api/public/${selected.cid}/download?name=${encodeURIComponent(selected.name)}`}
+                  >
+                    <Icon name="download" size={16} /> Download original file /
+                    ZIP
+                  </a>
+                  <a href={`/api/public/${selected.cid}/car`}>
+                    <Icon name="download" size={16} /> Download CAR
+                  </a>
+                  <button
+                    onClick={() => {
+                      setConverting(true);
+                      setStartPublishing(false);
+                      setLinkTarget("");
+                      setPublishingPin(selected);
+                      setSelected(null);
+                    }}
+                  >
+                    <Icon name="publication" size={16} /> Publish new version
+                  </button>
+                  <button className="danger" onClick={() => unpin(selected)}>
+                    <Icon name="brand" size={16} /> Unpin
+                  </button>
+                </div>
+              }
               facts={
-                <p className="muted">
-                  {formatSize(selected.size)} · {selected.blocks} blocks
-                  <br />
-                  Added {new Date(selected.createdAt).toLocaleString()}
-                </p>
+                <dl className="detail-facts">
+                  <dt>Size</dt>
+                  <dd>{formatSize(selected.size)}</dd>
+                  <dt>Blocks</dt>
+                  <dd>{selected.blocks}</dd>
+                  <dt>Added</dt>
+                  <dd>{new Date(selected.createdAt).toLocaleString()}</dd>
+                </dl>
               }
             />
           </div>

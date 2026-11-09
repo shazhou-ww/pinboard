@@ -9,13 +9,17 @@ labels are not included.
 
 ## Web
 
-Use a pin's **Add to a publication** menu action to create a publication with an
-explicit public title, or publish that pin to an existing publication. The
-upload dialog also lets you **Create a publication** with a separate explicit
-**Public title**, even when you have no publications yet, or select an existing
-publication. The default **Keep as a pin only** does not publish. Upload always
-finishes first; if publication fails, the uploaded pin remains and the UI
-reports that partial success.
+Use a pin's **Publish new version** sidebar action to confirm conversion to a
+new publication with an explicit public title. Original content becomes v1; the
+next task chooses an owned Pin or file/folder upload for v2. Canceling the next
+task does not undo the confirmed conversion. To publish a Pin into an existing
+publication without converting it, drag it onto that publication or select it in
+the publication's **Publish new version** task. The upload dialog also lets you
+**Create a publication** with a separate explicit **Public title**, even when
+you have no publications yet, or select an existing publication. The default
+**Keep as a pin only** does not publish. Upload always finishes first; if
+publication fails, the uploaded pin remains and the UI reports that partial
+success.
 
 Drop a file or folder **onto a publication card** to highlight that target and
 confirm upload/publish. Drop onto a fixed Pin to confirm **conversion** with a
@@ -27,10 +31,11 @@ Pin by default.
 
 Dragging a fixed Pin onto a publication opens the link confirmation. It does not
 upload, move, remove or rename the source, or change the target title. The **Add
-to a publication**, **Convert to publication** and **Convert & upload** tasks in
-details → **More** provide keyboard and touch equivalents. Publication details →
-**More** → **Publish new version** offers file/folder upload and an owned-Pin
-selector showing names and content facts; card context menus are not required.
+to a publication** confirmation remains separate from conversion. The Pin's
+sidebar **Publish new version** offers the conversion flow to keyboard and touch
+users. Publication details → **Publish new version** offers file/folder upload
+and an owned-Pin selector showing names and content facts; card context menus
+are not required.
 
 Explicit conversion needs no upload. It atomically replaces the Pin identity
 with a new random-ID publication and original-content v1. The source Pin is not
@@ -66,13 +71,17 @@ HTML. Downloads resolve one actual CID before reading the complete content.
 
 Details open on **current**, even when rollback leaves newer revisions in
 history. **View vN** changes only the local reading context: content, public
-description snapshot, size, date and CID. The header names **Viewing**, **Public
-current** and **Latest** independently. **Share** keeps the follow link tied to
-the publication identity, while its fixed link/CID and **Download** file/ZIP/CAR
-use the viewed revision. **Make viewed vN current** requires confirmation and
-the actual publication sequence; it does not create a revision. Publishing is a
-separate task using the current publication state, never the browsed snapshot as
-a write baseline.
+description snapshot, size, date and CID. Click the title's version badge to
+open a version drawer within the detail panel, distinguishing the viewed,
+current and latest revisions. History is not permanently shown in the sidebar.
+Selection closes the drawer; outside click and Escape also dismiss it, without a
+close glyph. The inline CID/copy button copies the complete viewed CID; its
+dropdown offers HTTP downloads, IPFS, follow and fixed-version links. The follow
+link stays tied to the publication identity, while fixed links and file/ZIP/CAR
+downloads use the viewed revision. **Make viewed vN current** in the drawer
+requires confirmation and the actual publication sequence; it does not create a
+revision. Publishing is a separate task using the current publication state,
+never the browsed snapshot as a write baseline.
 
 Public descriptions remain read-only immutable snapshots. Pin descriptions are
 private and shown read-only until explicit editing; cancel restores the
@@ -80,13 +89,14 @@ original, conflicts preserve the draft, and unsaved closing requires
 confirmation. **Advanced information and node query** retains
 root/reachable-child queries without putting a CID form ahead of the main
 content. Desktop content and description/history columns stack on narrow
-screens; Close and Share/Download remain accessible while scrolling. The content
-preview reserves the same height while loading and after content arrives (360px
-on desktop, 240px on narrow screens). Long text, code and directory previews
-scroll inside that keyboard-focusable region instead of resizing the details;
-images and PDF thumbnails fit within it. Ready previews do not add explanatory
-footer lines. Generation status and failure retry actions stay inside this
-fixed-height area rather than pushing the content below it down.
+screens; copying lives below the title and downloads below the sidebar facts.
+The content preview reserves the same height while loading and after content
+arrives (360px on desktop, 240px on narrow screens). Long text, code and
+directory previews scroll inside that keyboard-focusable region instead of
+resizing the details; images and PDF thumbnails fit within it. Ready previews do
+not add explanatory footer lines. Generation status and failure retry actions
+stay inside this fixed-height area rather than pushing the content below it
+down.
 
 Settings → **Trash** directly lists pins and publications in the same compact
 table style as Tokens and OAuth, with deletion and expiry times and a restore

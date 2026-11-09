@@ -5,6 +5,7 @@ import { ApiRequestError, previewEnabled } from "./api.js";
 import { requestJson } from "./manager.js";
 import { PreviewContent, previewClassName } from "./pin-preview.js";
 import { previewPollDelay } from "./preview-poll.js";
+import { Icon } from "./icon.js";
 
 export function NodeDescriptionEditor({
   rootCid,
@@ -15,6 +16,8 @@ export function NodeDescriptionEditor({
   name,
   facts,
   sidebar,
+  heading,
+  actions,
   onDirtyChange,
   onBusyChange,
 }: {
@@ -26,6 +29,8 @@ export function NodeDescriptionEditor({
   name?: string;
   facts?: React.ReactNode;
   sidebar?: React.ReactNode;
+  heading?: (contentType: string | null) => React.ReactNode;
+  actions?: React.ReactNode;
   onDirtyChange?: ((dirty: boolean) => void) | undefined;
   onBusyChange?: ((busy: boolean) => void) | undefined;
 }) {
@@ -189,9 +194,10 @@ export function NodeDescriptionEditor({
   if (readingFirst)
     return (
       <>
+        {heading?.(data?.description.preview.contentType ?? null)}
         <div className="reading-layout">
           <section className="reading-content" aria-label="Content preview">
-            <h4>Content</h4>
+            {!heading ? <h4>Content</h4> : null}
             <div className="reading-preview-viewport">
               <div
                 className={previewClassName(data?.description.preview ?? null)}
@@ -253,10 +259,17 @@ export function NodeDescriptionEditor({
                 {!publicationId && data && !editing ? (
                   <button
                     type="button"
+                    className={heading ? "detail-description-edit" : undefined}
+                    aria-label="Edit description"
+                    title="Edit description"
                     disabled={busy || advancedDirty || advancedBusy}
                     onClick={() => setEditing(true)}
                   >
-                    Edit description
+                    {heading ? (
+                      <Icon name="edit" size={16} />
+                    ) : (
+                      "Edit description"
+                    )}
                   </button>
                 ) : null}
               </div>
@@ -327,6 +340,7 @@ export function NodeDescriptionEditor({
               </p>
             ) : null}
             {facts}
+            {actions}
             {sidebar}
           </aside>
         </div>

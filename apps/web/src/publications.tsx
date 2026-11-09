@@ -14,7 +14,11 @@ import { previewEnabled } from "./api.js";
 import { Icon } from "./icon.js";
 import { NodeDescriptionEditor } from "./node-description.js";
 import { previewPollDelay } from "./preview-poll.js";
-import { DetailMenu, discardDetailsDraft } from "./detail-actions.js";
+import {
+  DetailDrawer,
+  DetailHeading,
+  discardDetailsDraft,
+} from "./detail-actions.js";
 
 const json = (body: unknown): RequestInit => ({
   method: "POST",
@@ -97,6 +101,8 @@ export function PublicationDialog({
   choicesLoading = false,
   choicesError = "",
   onRetryChoices,
+  startPublishing = false,
+  onConverted,
 }: {
   publication: Publication | null;
   pin: Pin | null;
@@ -111,6 +117,8 @@ export function PublicationDialog({
   choicesLoading?: boolean;
   choicesError?: string;
   onRetryChoices?: () => void;
+  startPublishing?: boolean;
+  onConverted?: (publication: Publication) => void;
 }) {
   const [history, setHistory] = useState<PublicationHistory | null>(null);
   const [title, setTitle] = useState("");
@@ -121,6 +129,8 @@ export function PublicationDialog({
   const [notice, setNotice] = useState("");
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
   const [task, setTask] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const versionTrigger = useRef<HTMLButtonElement>(null);
   const taskTrigger = useRef<HTMLButtonElement>(null);
   const [historyError, setHistoryError] = useState("");
   const [historyReload, setHistoryReload] = useState(0);
@@ -150,8 +160,12 @@ export function PublicationDialog({
     setTarget(initialTarget);
     setCid(pin?.cid ?? "");
     setSelectedRevision(null);
-    setTask(false);
+    setTask(startPublishing);
+    setDrawerOpen(false);
+  }, [publication?.id, pin?.cid, initialTarget, convert, startPublishing]);
+  useEffect(() => {
     if (!publication) return;
+    setHistoryError("");
     const controller = new AbortController();
     void requestJson<PublicationHistory>(
       `/api/public/publications/${publication.id}/history`,
@@ -167,7 +181,7 @@ export function PublicationDialog({
           );
       });
     return () => controller.abort();
-  }, [publication?.id, pin?.cid, initialTarget, convert, historyReload]);
+  }, [publication?.id, historyReload]);
   const perform = async (operation: () => Promise<void>) => {
     setBusy(true);
     setError("");
@@ -198,10 +212,11 @@ export function PublicationDialog({
   const latest = history
     ? Math.max(...history.revisions.map((item) => item.revision))
     : current?.revisionCount;
-  const copy = (text: string) => {
+  const copy = (text: string, onCopied?: () => void) => {
     void perform(async () => {
       await navigator.clipboard.writeText(text);
       setNotice("Copied to clipboard.");
+      onCopied?.();
     });
   };
   return (
@@ -214,8 +229,9 @@ export function PublicationDialog({
             : "Add to a publication"
           : "Publication details"
       }
-      busy={busy}
+      busy={busy || drawerOpen}
       className={pin || task ? "" : "reading-dialog"}
+      glyphClose={!pin && !task}
       returnFocusKey={
         publication
           ? `publication:${publication.id}`
@@ -281,7 +297,10 @@ export function PublicationDialog({
                   ? "Already current. No version was created; draft description changes were not applied."
                   : "Published.",
               );
-              if (result.status !== "nop") onClose();
+              if (result.status !== "nop") {
+                if (convert && onConverted) onConverted(result.publication);
+                else onClose();
+              }
             });
           }}
         >
@@ -295,6 +314,13 @@ export function PublicationDialog({
             with each new revision. Publishing the current CID is a NOP: draft
             description changes are not applied to the existing public version.
           </p>
+          {convert && onConverted ? (
+            <p>
+              After confirming, choose new content to publish v2. Canceling the
+              next step does not undo this conversion. The public title and
+              descriptions become public with v1.
+            </p>
+          ) : null}
           {!convert ? (
             <label>
               Publication
@@ -332,19 +358,18 @@ export function PublicationDialog({
               (!target && !title.trim())
             }
           >
-            {convert ? "Convert to publication" : "Publish"}
+            {convert
+              ? onConverted
+                ? "Convert to v1 and continue"
+                : "Convert to publication"
+              : "Publish"}
           </button>
         </form>
       ) : current && viewing ? (
         <>
-          <h3>{current.title}</h3>
-          <p className="muted">
-            Viewing v{viewing.revision} · Public current v
-            {current.currentRevision} · Latest v{latest} ·{" "}
-            {current.revisionCount} versions
-          </p>
           {task ? (
             <section aria-label="Publish new version task">
+              <h3>{current.title}</h3>
               <h4>Publish new version</h4>
               <p className="muted">
                 Publish to this identity, not the browsing version. New
@@ -390,6 +415,9 @@ export function PublicationDialog({
                       },
                     );
                     await refresh(current.id);
+                    setSelectedRevision(null);
+                    setCid("");
+                    setTask(false);
                     setNotice(
                       result.status === "nop"
                         ? "Already current. No version was created; draft description changes were not applied."
@@ -434,10 +462,7 @@ export function PublicationDialog({
                   setCid("");
                   setTask(false);
                   requestAnimationFrame(() => {
-                    taskTrigger.current
-                      ?.closest("details")
-                      ?.querySelector("summary")
-                      ?.focus();
+                    taskTrigger.current?.focus();
                   });
                 }}
               >
@@ -445,110 +470,113 @@ export function PublicationDialog({
               </button>
             </section>
           ) : (
-            <>
-              <div
-                className="actions detail-toolbar"
-                aria-label="Publication actions"
-                inert={busy}
-              >
-                <DetailMenu label="Share">
-                  <button
-                    disabled={busy}
-                    onClick={() => copy(`${location.origin}/p/${current.id}`)}
-                  >
-                    Copy follow link
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      copy(
-                        `${location.origin}/p/${current.id}/v/${viewing.revision}`,
-                      )
-                    }
-                  >
-                    Copy fixed v{viewing.revision} link
-                  </button>
-                  <button disabled={busy} onClick={() => copy(viewing.cid)}>
-                    Copy selected CID
-                  </button>
-                  <a href={`/p/${current.id}`}>
-                    Open public page <Icon name="externalLink" size={16} />
-                  </a>
-                  <p className="muted">
-                    Follow link points to current v{current.currentRevision};
-                    fixed version and CID never change.
-                  </p>
-                </DetailMenu>
-                <DetailMenu label="Download">
-                  <a
-                    href={`/api/public/${viewing.cid}/download?name=${encodeURIComponent(current.title)}`}
-                  >
-                    Download selected file / ZIP
-                  </a>
-                  <a href={`/api/public/${viewing.cid}/car`}>
-                    Download selected CAR
-                  </a>
-                </DetailMenu>
-                <DetailMenu label="More">
-                  <button
-                    ref={taskTrigger}
-                    disabled={busy || !history}
-                    onClick={() => setTask(true)}
-                  >
-                    Publish new version
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() => {
-                      void perform(() => refresh(current.id));
-                    }}
-                  >
-                    Refresh details
-                  </button>
-                  <button
-                    className="danger"
-                    disabled={busy}
-                    onClick={() => {
-                      if (
-                        !window.confirm(
-                          "Move this publication to recently deleted? All its public links and history will close. Restore within 30 days to reopen the original links. Pins remain independent. Public bytes and external copies cannot be recalled.",
-                        )
-                      )
-                        return;
-                      void perform(async () => {
-                        await requestJson(`/api/publications/${current.id}`, {
-                          method: "DELETE",
-                        });
-                        await onChanged();
-                        onClose();
-                      });
-                    }}
-                  >
-                    Move to recently deleted
-                  </button>
-                </DetailMenu>
+            <div className="publication-detail-shell">
+              <div inert={drawerOpen}>
+                <NodeDescriptionEditor
+                  key={`${current.id}:${viewing.revision}`}
+                  readingFirst
+                  name={current.title}
+                  rootCid={viewing.cid}
+                  publicationId={current.id}
+                  revision={viewing.revision}
+                  heading={(contentType) => (
+                    <DetailHeading
+                      name={current.title}
+                      cid={viewing.cid}
+                      contentType={contentType}
+                      disabled={busy}
+                      publication={{
+                        id: current.id,
+                        revision: viewing.revision,
+                      }}
+                      onCopy={copy}
+                      badge={
+                        <button
+                          ref={versionTrigger}
+                          className="detail-version-badge"
+                          aria-label={`Viewing v${viewing.revision}. Open version history`}
+                          aria-haspopup="dialog"
+                          disabled={busy}
+                          onClick={() => setDrawerOpen(true)}
+                        >
+                          v{viewing.revision} ·{" "}
+                          {viewing.revision === current.currentRevision
+                            ? "Current"
+                            : "History"}
+                        </button>
+                      }
+                    />
+                  )}
+                  facts={
+                    <dl className="detail-facts">
+                      <dt>Size</dt>
+                      <dd>{formatSize(viewing.size)}</dd>
+                      <dt>Blocks</dt>
+                      <dd>{viewing.blocks}</dd>
+                      <dt>Published</dt>
+                      <dd>{new Date(viewing.createdAt).toLocaleString()}</dd>
+                    </dl>
+                  }
+                  actions={
+                    <div
+                      className="detail-action-list"
+                      aria-label="Publication actions"
+                      inert={busy}
+                    >
+                      <a
+                        href={`/api/public/${viewing.cid}/download?name=${encodeURIComponent(current.title)}`}
+                      >
+                        <Icon name="download" size={16} /> Download selected
+                        file / ZIP
+                      </a>
+                      <a href={`/api/public/${viewing.cid}/car`}>
+                        <Icon name="download" size={16} /> Download selected CAR
+                      </a>
+                      <button
+                        ref={taskTrigger}
+                        disabled={busy || !history}
+                        onClick={() => setTask(true)}
+                      >
+                        <Icon name="publication" size={16} /> Publish new
+                        version
+                      </button>
+                      <button
+                        className="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              "Move this publication to recently deleted? All its public links and history will close. Restore within 30 days to reopen the original links. Pins remain independent. Public bytes and external copies cannot be recalled.",
+                            )
+                          )
+                            return;
+                          void perform(async () => {
+                            await requestJson(
+                              `/api/publications/${current.id}`,
+                              { method: "DELETE" },
+                            );
+                            await onChanged();
+                            onClose();
+                          });
+                        }}
+                      >
+                        <Icon name="brand" size={16} /> Delete publication
+                      </button>
+                    </div>
+                  }
+                />
               </div>
-              <NodeDescriptionEditor
-                key={`${current.id}:${viewing.revision}`}
-                readingFirst
-                name={current.title}
-                rootCid={viewing.cid}
-                publicationId={current.id}
-                revision={viewing.revision}
-                facts={
-                  <p className="muted">
-                    {formatSize(viewing.size)} · {viewing.blocks} blocks
-                    <br />
-                    Published {new Date(viewing.createdAt).toLocaleString()}
-                  </p>
-                }
-                sidebar={
+              {drawerOpen ? (
+                <DetailDrawer
+                  onClose={() => {
+                    if (busy) return;
+                    setDrawerOpen(false);
+                    requestAnimationFrame(() =>
+                      versionTrigger.current?.focus(),
+                    );
+                  }}
+                >
                   <section aria-label="Version history">
-                    <h4>Version history</h4>
-                    <p className="muted">
-                      Selecting a version only changes your reading view, not
-                      public current.
-                    </p>
                     {historyError ? (
                       <div role="alert">
                         <p>{historyError}</p>
@@ -570,9 +598,13 @@ export function PublicationDialog({
                               aria-pressed={
                                 revision.revision === viewing.revision
                               }
-                              onClick={() =>
-                                setSelectedRevision(revision.revision)
-                              }
+                              onClick={() => {
+                                setSelectedRevision(revision.revision);
+                                setDrawerOpen(false);
+                                requestAnimationFrame(() =>
+                                  versionTrigger.current?.focus(),
+                                );
+                              }}
                             >
                               View v{revision.revision}
                               {revision.revision === current.currentRevision
@@ -625,9 +657,9 @@ export function PublicationDialog({
                       </p>
                     </details>
                   </section>
-                }
-              />
-            </>
+                </DetailDrawer>
+              ) : null}
+            </div>
           )}
         </>
       ) : null}

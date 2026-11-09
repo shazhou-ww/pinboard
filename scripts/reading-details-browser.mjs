@@ -100,10 +100,10 @@ try {
   };
   const click = async (text, tag = "button") => {
     await wait(
-      `Array.from(document.querySelectorAll('dialog[open] ${tag}')).some(e => e.textContent.trim() === ${JSON.stringify(text)} && e.getClientRects().length && !e.disabled)`,
+      `Array.from(document.querySelectorAll('dialog[open] ${tag}')).some(e => (e.textContent.trim() === ${JSON.stringify(text)} || e.getAttribute('aria-label') === ${JSON.stringify(text)}) && e.getClientRects().length && !e.disabled)`,
     );
     await evaluate(
-      `setTimeout(() => { const e = Array.from(document.querySelectorAll('dialog[open] ${tag}')).find(e => e.textContent.trim() === ${JSON.stringify(text)} && e.getClientRects().length && !e.disabled); e.focus(); e.click(); }, 0)`,
+      `setTimeout(() => { const e = Array.from(document.querySelectorAll('dialog[open] ${tag}')).find(e => (e.textContent.trim() === ${JSON.stringify(text)} || e.getAttribute('aria-label') === ${JSON.stringify(text)}) && e.getClientRects().length && !e.disabled); e.focus(); e.click(); }, 0)`,
     );
     await pause(80);
   };
@@ -123,6 +123,18 @@ try {
       windowsVirtualKeyCode,
     });
     await pause(80);
+  };
+  const copyMenu = async () => {
+    await evaluate(
+      `(() => { const trigger = document.querySelector('dialog[open] summary[aria-label="More copy options"]'); trigger.focus(); trigger.click(); })()`,
+    );
+    await pause(80);
+  };
+  const versions = async () => {
+    await evaluate(
+      `document.querySelector('dialog[open] .detail-version-badge').click()`,
+    );
+    await wait(`document.querySelector('dialog[open] .detail-drawer')`);
   };
   const setValue = async (selector, value) => {
     await evaluate(`(() => { const e = document.querySelector(${JSON.stringify(selector)});
@@ -225,22 +237,24 @@ try {
     );
   }
   evidence.push("连续十次 Tab 循环保持弹窗焦点约束");
-  await click("Share", "summary");
+  await copyMenu();
   await check(
     "普通 Pin 固定分享且不公开私人名称",
-    `document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('Private name and description are not shared')`,
+    `document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('Copy HTTP download link') && document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('Copy IPFS link')`,
   );
   await key("Escape");
   await check(
     "菜单 Escape 不关闭详情且焦点返回菜单入口",
-    `!!document.querySelector('dialog[open]') && document.activeElement.textContent === 'Share' && !document.querySelector('dialog[open] .detail-menu').open`,
+    `!!document.querySelector('dialog[open]') && document.activeElement.getAttribute('aria-label') === 'More copy options' && !document.querySelector('dialog[open] .detail-menu').open`,
   );
-  await click("Download", "summary");
   await check(
     "普通 Pin file/ZIP 与 CAR 固定根 CID",
-    `Array.from(document.querySelectorAll('dialog[open] .detail-menu[open] a')).every(a=>a.href.includes(window.__readingTest.pins[0].cid))`,
+    `Array.from(document.querySelectorAll('dialog[open] .detail-action-list a')).every(a=>a.href.includes(window.__readingTest.pins[0].cid))`,
   );
-  await key("Escape");
+  await check(
+    "CID 与复制图标为同一个点击区域、类型图标正方形",
+    `(() => { const d=document.querySelector('dialog[open]'); const r=d.querySelector('.detail-type-icon').getBoundingClientRect(); return d.querySelector('.detail-cid-copy code').textContent === window.__readingTest.pins[0].cid && Math.abs(r.width-r.height) < 1; })()`,
+  );
   await click("Advanced information and node query", "summary");
   await wait(
     `document.querySelector('dialog[open] .node-description-editor input')`,
@@ -266,29 +280,33 @@ try {
   await open(true);
   await check(
     "Publication 打开 current v3 而非 latest v5",
-    `document.querySelector('dialog[open]').textContent.includes('Viewing v3 · Public current v3 · Latest v5') && document.querySelector('dialog[open]').textContent.includes('Public snapshot v3')`,
+    `document.querySelector('dialog[open] .detail-version-badge').textContent.includes('v3 · Current') && document.querySelector('dialog[open]').textContent.includes('Public snapshot v3') && !document.querySelector('dialog[open] .publication-history')`,
   );
   await screenshot("publication-desktop.png");
+  await versions();
+  await check(
+    "版本 drawer 限制在详情面板内且无关闭图标",
+    `(() => { const panel=document.querySelector('dialog[open]').getBoundingClientRect(); const drawer=document.querySelector('.detail-drawer').getBoundingClientRect(); return drawer.left>=panel.left && drawer.right<=panel.right && !document.querySelector('.detail-drawer [aria-label="Close version history"]'); })()`,
+  );
   await click("View v5 · Latest");
   await wait(
     `document.querySelector('dialog[open]').textContent.includes('Public snapshot v5')`,
   );
   await check(
     "浏览 v5 不回滚且公开跟随仍 v3",
-    `window.__readingTest.publication.currentRevision === 3 && !window.__readingTest.requests.some(r=>r.path.endsWith('/rollback')) && document.querySelector('dialog[open]').textContent.includes('Viewing v5 · Public current v3')`,
+    `window.__readingTest.publication.currentRevision === 3 && !window.__readingTest.requests.some(r=>r.path.endsWith('/rollback')) && document.querySelector('dialog[open] .detail-version-badge').textContent.includes('v5 · History') && !document.querySelector('.detail-drawer')`,
   );
-  await click("Share", "summary");
+  await copyMenu();
   await check(
     "选中 v5 的固定链接和 CID 与跟随身份分离",
-    `document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('Copy fixed v5 link') && document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('current v3')`,
+    `document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('Copy fixed v5 link') && document.querySelector('dialog[open] .detail-menu[open]').textContent.includes('Copy follow link')`,
   );
   await key("Escape");
-  await click("Download", "summary");
   await check(
     "Publication file/ZIP 与 CAR 绑定选中 v5 确定 CID",
-    `Array.from(document.querySelectorAll('dialog[open] .detail-menu[open] a')).every(a=>a.href.includes(window.__readingTest.revisions[4].cid) && !a.href.includes('/current'))`,
+    `Array.from(document.querySelectorAll('dialog[open] .detail-action-list a')).every(a=>a.href.includes(window.__readingTest.revisions[4].cid) && !a.href.includes('/current'))`,
   );
-  await key("Escape");
+  await versions();
   await click("Make viewed v5 current");
   await answer(false);
   await check(
@@ -298,7 +316,7 @@ try {
   await click("Make viewed v5 current");
   await answer(true);
   await wait(
-    `document.querySelector('dialog[open]').textContent.includes('Public current v5')`,
+    `document.querySelector('dialog[open]').textContent.includes('View v5 · Current')`,
   );
   await check(
     "显式 Make current 使用 sequence CAS、不增加 revision",
@@ -306,6 +324,7 @@ try {
   );
   await evaluate("window.__readingTest.lateRevision = 1");
   await click("View v1");
+  await versions();
   await click("View v3");
   await wait(
     `document.querySelector('dialog[open]').textContent.includes('Public snapshot v3')`,
@@ -315,7 +334,6 @@ try {
     "切换版本后的迟到响应不覆盖选中快照",
     `document.querySelector('dialog[open]').textContent.includes('Public snapshot v3') && !document.querySelector('dialog[open]').textContent.includes('Public snapshot v1')`,
   );
-  await click("More", "summary");
   await click("Publish new version");
   await check(
     "独立发布任务优先 owned Pin 名称、没有原始 CID 输入",
@@ -337,6 +355,7 @@ try {
   await wait("!document.querySelector('dialog[open]')");
   await evaluate("window.__readingTest.historyFailure = true");
   await open(true);
+  await versions();
   await wait(
     `document.querySelector('dialog[open]').textContent.includes('Fixture history unavailable')`,
   );
@@ -354,10 +373,11 @@ try {
     `!document.querySelector('dialog[open]').textContent.includes('Fixture history unavailable')`,
   );
   await key("Escape");
+  await key("Escape");
   await open(true, true);
   await check(
     "单版本 Publication 默认 v1、无回滚按钮",
-    `document.querySelector('dialog[open]').textContent.includes('Viewing v1 · Public current v1 · Latest v1') && !document.querySelector('dialog[open]').textContent.includes('Make viewed')`,
+    `document.querySelector('dialog[open] .detail-version-badge').textContent.includes('v1 · Current') && !document.querySelector('dialog[open]').textContent.includes('Make viewed')`,
   );
   await key("Escape");
   await send("Emulation.setTouchEmulationEnabled", { enabled: true });
@@ -388,7 +408,7 @@ try {
       });
       await pause(100);
       await check(
-        `${width}px ${published ? "Publication" : "Pin"} 触屏 Share 可用`,
+        `${width}px ${published ? "Publication" : "Pin"} 触屏复制菜单可用`,
         `document.querySelector('dialog[open] .detail-menu').open`,
       );
       await key("Escape");
@@ -396,8 +416,8 @@ try {
         "document.querySelector('dialog[open]').scrollTop = 10000",
       );
       await check(
-        `${width}px ${published ? "Publication" : "Pin"} 关闭与主动作在滚动后保持可见`,
-        `(() => { const d=document.querySelector('dialog[open]').getBoundingClientRect(); const title=document.querySelector('dialog[open] > .section-title').getBoundingClientRect(); const bar=document.querySelector('dialog[open] .detail-toolbar').getBoundingClientRect(); return title.top >= d.top && bar.top >= title.bottom - 1 && bar.bottom < d.bottom; })()`,
+        `${width}px ${published ? "Publication" : "Pin"} 详情操作区无横向溢出`,
+        `(() => { const d=document.querySelector('dialog[open]'); return d.scrollWidth <= d.clientWidth + 1 && !!d.querySelector('.detail-action-list'); })()`,
       );
       await screenshot(
         `${published ? "publication" : "pin"}-${width}-scrolled.png`,
@@ -419,7 +439,9 @@ try {
     await open();
     await check(
       `预览 ${status} 状态不伪装成功`,
-      `document.querySelector('dialog[open] .preview-scope').textContent.includes(${JSON.stringify(status === "pending" ? "being generated" : status === "failed" ? "failed" : "not supported")})`,
+      status === "unsupported"
+        ? `!!document.querySelector('dialog[open] .reading-content .preview-type-cover')`
+        : `document.querySelector('dialog[open] .reading-content').textContent.includes(${JSON.stringify(status === "pending" ? "Generating preview" : "failed")})`,
     );
     await key("Escape");
   }
@@ -432,8 +454,8 @@ try {
     );
     await open();
     await check(
-      `${kind} 预览标明有限能力、空说明可识别`,
-      `document.querySelector('dialog[open]').textContent.includes('No private description') && !!document.querySelector('dialog[open] .preview-scope')`,
+      `${kind} 预览不增加解释行、空说明可识别`,
+      `document.querySelector('dialog[open]').textContent.includes('No private description') && !document.querySelector('dialog[open] .preview-scope')`,
     );
     await key("Escape");
   }
@@ -451,39 +473,39 @@ try {
   );
   await key("Escape");
   await open();
-  await click("More", "summary");
-  await click("Add to a publication");
-  await wait(`document.querySelector('dialog[open] select:not(:disabled)')`);
-  await check(
-    "关联任务明确保留源 Pin、创建公开标题不默认私人名称",
-    `document.querySelector('dialog[open]').textContent.includes('without removing or renaming it') && document.querySelector('dialog[open] input').value === ''`,
-  );
-  await setValue("dialog[open] select", "reading-fixture");
-  await evaluate("window.__readingTest.publishFailure = false");
-  await click("Publish");
-  await wait(
-    `document.querySelector('dialog[open]').textContent.includes('Already current')`,
-  );
-  await check(
-    "关联已有 Publication 保留源 Pin 并使用真实 sequence",
-    `window.__readingTest.pins.length === 2 && window.__readingTest.requests.filter(r=>r.path.endsWith('/publish')).at(-1).body.cid === window.__readingTest.pins[0].cid && window.__readingTest.requests.filter(r=>r.path.endsWith('/publish')).at(-1).body.expectedSequence === 7`,
-  );
-  await click("Close");
-  await open();
-  await click("More", "summary");
-  await click("Convert to publication");
+  await click("Publish new version");
   await check(
     "转换是独立确认任务并要求明确公开标题",
     `document.querySelector('dialog[open]').textContent.includes('Replace this fixed Pin') && document.querySelector('dialog[open] input').value === '' && !document.querySelector('dialog[open] select')`,
   );
   await click("Close");
   await open();
-  await click("More", "summary");
-  await click("Move to recently deleted");
+  await click("Unpin");
   await answer(false);
   await check(
     "取消最近删除不发送写入",
     `!window.__readingTest.requests.some(r=>r.method === 'DELETE') && window.__readingTest.pins.length === 2`,
+  );
+  await key("Escape");
+  await open();
+  await click("Publish new version");
+  await setValue("dialog[open] input", "Converted reading fixture");
+  await click("Convert to v1 and continue");
+  await wait(`!!document.querySelector('dialog[open] select')`);
+  await check(
+    "确认转换保留原始 v1 并立即进入发布任务",
+    `window.__readingTest.converted.currentRevision === 1 && window.__readingTest.converted.current.cid.endsWith('s6a') && window.__readingTest.pins.length === 1 && document.querySelector('dialog[open]').textContent.includes('Publish new version')`,
+  );
+  await evaluate("window.__readingTest.publishFailure = false");
+  await setValue(
+    "dialog[open] select",
+    await evaluate("window.__readingTest.pins[0].cid"),
+  );
+  await click("Publish new version");
+  await wait(`!!document.querySelector('dialog[open] .detail-version-badge')`);
+  await check(
+    "发布 v2 使用转换后的真实 sequence、保留 v1 和独立新 Pin",
+    `window.__readingTest.converted.currentRevision === 2 && window.__readingTest.convertedRevisions.length === 2 && window.__readingTest.requests.filter(r=>r.path.endsWith('converted-fixture/publish')).at(-1).body.expectedSequence === 1 && window.__readingTest.pins.length === 1`,
   );
   await key("Escape");
   await writeFile(

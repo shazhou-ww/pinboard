@@ -42,10 +42,8 @@ describe("publication wall identity and management", () => {
   it("keeps publication writes behind an explicit task entry", () => {
     const onUploadFile = vi.fn();
     const onUploadFolder = vi.fn();
-    type ActionTree = { children?: ReactNode; onClick?: () => void };
-    let tree: ReactNode = null;
     function Probe() {
-      tree = PublicationDialog({
+      return PublicationDialog({
         publication,
         pin: null,
         pins: [pin],
@@ -55,33 +53,64 @@ describe("publication wall identity and management", () => {
         onUploadFile,
         onUploadFolder,
       });
-      return tree;
     }
-    const find = (
-      node: ReactNode,
-      label: string,
-    ): ReactElement<ActionTree> | undefined => {
-      if (!isValidElement<ActionTree>(node)) return undefined;
-      if (
-        node.type === "button" &&
-        Children.toArray(node.props.children).includes(label)
-      )
-        return node;
-      for (const child of Children.toArray(node.props.children)) {
-        const found = find(child, label);
-        if (found) return found;
-      }
-      return undefined;
-    };
     const html = renderToStaticMarkup(<Probe />);
     expect(html).toContain("Copy follow link");
-    expect(html).toContain("Version history");
-    expect(find(tree, "Publish new version")).toBeDefined();
+    expect(html).toContain("Open version history");
+    expect(html).toContain("Publish new version");
+    expect(html).not.toContain('class="publication-history"');
     expect(html).not.toContain("Upload file to publication");
     expect(html).not.toContain("Upload folder to publication");
     expect(html).not.toContain("Owned pin CID");
     expect(onUploadFile).not.toHaveBeenCalled();
     expect(onUploadFolder).not.toHaveBeenCalled();
+  });
+  it("continues a confirmed conversion into the new publication instead of closing it", async () => {
+    type FormTree = {
+      children?: ReactNode;
+      onSubmit?: (event: { preventDefault: () => void }) => void;
+    };
+    let tree: ReactNode;
+    const onConverted = vi.fn();
+    const onClose = vi.fn();
+    const onChanged = vi.fn(async () => {});
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        Response.json({ status: "converted", publication }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    function Probe() {
+      tree = PublicationDialog({
+        publication: null,
+        pin,
+        pins: [pin],
+        publications: [],
+        convert: true,
+        onConverted,
+        onClose,
+        onChanged,
+      });
+      return tree;
+    }
+    const findForm = (node: ReactNode): ReactElement<FormTree> | undefined => {
+      if (!isValidElement<FormTree>(node)) return;
+      if (node.type === "form") return node;
+      for (const child of Children.toArray(node.props.children)) {
+        const found = findForm(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const html = renderToStaticMarkup(<Probe />);
+    expect(html).toContain("Convert to v1 and continue");
+    expect(html).toContain("does not undo this conversion");
+    findForm(tree)?.props.onSubmit?.({ preventDefault: vi.fn() });
+    await vi.waitFor(() =>
+      expect(onConverted).toHaveBeenCalledWith(publication),
+    );
+    expect(onChanged).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(fetch.mock.calls[0]?.[0]).toBe(`/api/pins/${pin.cid}/convert`);
   });
   it("routes external and internal card events without bubbling into document upload handlers", () => {
     type EventProps = {
@@ -318,8 +347,8 @@ describe("publication wall identity and management", () => {
     );
     expect(html).toContain("Copy follow link");
     expect(html).toContain("Copy fixed v3 link");
-    expect(html).toContain("Copy selected CID");
-    expect(html).toContain("5 versions");
+    expect(html).toContain('aria-label="Copy CID"');
+    expect(html).toContain("Open version history");
     const deleted = renderToStaticMarkup(
       <RecentlyDeleted
         active

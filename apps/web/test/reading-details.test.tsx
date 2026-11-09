@@ -2,12 +2,66 @@ import { isValidElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DetailMenu, discardDetailsDraft } from "../src/detail-actions.js";
+import {
+  DetailMenu,
+  DetailHeading,
+  DetailDrawer,
+  detailCopyLinks,
+  discardDetailsDraft,
+} from "../src/detail-actions.js";
 import { NodeDescriptionEditor } from "../src/node-description.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("reading details", () => {
+  it("groups the complete CID and icon in one copy button", () => {
+    const html = renderToStaticMarkup(
+      <DetailHeading
+        name="File"
+        cid="complete-cid"
+        contentType="image/png"
+        disabled={false}
+        onCopy={() => {}}
+      />,
+    );
+    expect(html).toMatch(
+      /aria-label="Copy CID"[^>]*><code>complete-cid<\/code>/u,
+    );
+    expect(html).toContain('aria-label="More copy options"');
+    expect(html).toContain("Copy HTTP download link");
+    expect(html).toContain("Copy IPFS link");
+    expect(html).not.toContain("Copy follow link");
+  });
+
+  it("copies direct downloads and immutable IPFS identifiers with version-specific links", () => {
+    expect(
+      detailCopyLinks("root", "notes & files", "https://local.test", {
+        id: "pub",
+        revision: 2,
+      }),
+    ).toEqual([
+      {
+        label: "Copy HTTP download link",
+        value:
+          "https://local.test/api/public/root/download?name=notes%20%26%20files",
+      },
+      { label: "Copy IPFS link", value: "ipfs://root" },
+      { label: "Copy follow link", value: "https://local.test/p/pub" },
+      { label: "Copy fixed v2 link", value: "https://local.test/p/pub/v/2" },
+    ]);
+  });
+
+  it("keeps the version drawer inside its layer without a close glyph", () => {
+    const html = renderToStaticMarkup(
+      <DetailDrawer onClose={() => {}}>
+        <button aria-pressed="true">View v2</button>
+      </DetailDrawer>,
+    );
+    expect(html).toContain('class="detail-drawer-layer"');
+    expect(html).toContain('aria-modal="true"');
+    expect(html).toContain('class="detail-drawer-backdrop"');
+    expect(html).not.toContain("Close version history</button>");
+  });
   it("does not append scope explanations for any ready preview type", () => {
     const source = readFileSync(
       new URL("../src/node-description.tsx", import.meta.url),
