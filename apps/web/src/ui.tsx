@@ -37,6 +37,7 @@ export function HomeHeader({
   const menu = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const name = user?.name?.trim() || user?.email || "Google account";
+  const image = user?.image?.trim();
   return (
     <header
       className={`home-header${filter ? " has-filter" : ""}`}
@@ -66,6 +67,18 @@ export function HomeHeader({
           >
             <span className="account-avatar" aria-hidden="true">
               {Array.from(name)[0]?.toUpperCase()}
+              {image ? (
+                <img
+                  key={image}
+                  src={image}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    event.currentTarget.hidden = true;
+                    console.warn("Account avatar failed to load.");
+                  }}
+                />
+              ) : null}
             </span>
             <span className="account-name">
               {signingOut ? "Signing out..." : name}

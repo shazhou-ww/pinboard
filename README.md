@@ -105,6 +105,9 @@ Without Google credentials the public gateway and local tests work, but real
 interactive sign-in and account writes are unavailable. There is no development
 login bypass in the production Worker.
 
+The account menu prioritizes the OAuth profile avatar, falling back to the
+account name's initial when no image is available or the image fails to load.
+
 ## Web uploads
 
 UI icons use [Phosphor](https://github.com/phosphor-icons/react) (MIT), with a
