@@ -100,6 +100,32 @@ describe("reading details", () => {
     expect(html).toContain('class="detail-drawer-backdrop"');
     expect(html).not.toContain("Close version history</button>");
   });
+  it("uses the same drawer for editing without version-specific instructions", () => {
+    const html = renderToStaticMarkup(
+      <DetailDrawer title="Edit details" busy onClose={() => {}}>
+        <form aria-label="Edit details">
+          <input aria-label="Name" />
+        </form>
+      </DetailDrawer>,
+    );
+    expect(html).toContain('class="detail-drawer-layer"');
+    expect(html).toContain('aria-label="Edit details" aria-busy="true"');
+    expect(html).toContain(
+      'aria-label="Close edit details" tabindex="-1" disabled=""',
+    );
+    expect(html).not.toContain("Selecting a version");
+    const css = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(css).toMatch(/\.detail-drawer-layer\s*\{[^}]*inset:\s*0;/u);
+    expect(css).toMatch(
+      /\.reading-dialog:has\(> \.detail-drawer-layer\)\s*\{[^}]*overflow:\s*hidden;/u,
+    );
+    expect(css).toMatch(
+      /\.detail-heading-actions > button\s*\{[^}]*align-items:\s*center;[^}]*height:\s*32px;[^}]*line-height:\s*1;/u,
+    );
+  });
   it("does not append scope explanations for any ready preview type", () => {
     const source = readFileSync(
       new URL("../src/node-description.tsx", import.meta.url),

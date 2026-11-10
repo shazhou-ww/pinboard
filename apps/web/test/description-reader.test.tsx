@@ -323,7 +323,7 @@ describe("cached detail reader integration", () => {
     });
   };
 
-  it("uses one sidebar form and one action pair for both fields, hiding reading actions", async () => {
+  it("uses one drawer form while preserving the reading layout behind it", async () => {
     const { instance } = unifiedReader();
     expect(instance.render()).toContain("File facts");
     instance.click("Edit details");
@@ -334,8 +334,14 @@ describe("cached detail reader integration", () => {
     expect(html).toContain("Save changes");
     expect(html).not.toContain("Clear description");
     expect(html).not.toContain("Edit description");
-    expect(html).not.toContain("Download content");
-    expect(html).not.toContain("File facts");
+    const drawer = html.match(
+      /<section class="detail-drawer"[\s\S]*?<\/section>/,
+    )?.[0];
+    expect(drawer).toContain('aria-label="Edit details"');
+    expect(drawer).not.toContain("Download content");
+    expect(drawer).not.toContain("File facts");
+    expect(html).toContain("Download content");
+    expect(html).toContain("File facts");
     expect(html).toContain("<h3>Original name</h3>");
     expect(html.match(/<form/g)).toHaveLength(1);
     editName(instance, "Draft name");

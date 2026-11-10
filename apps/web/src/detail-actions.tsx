@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { DialogPanelContext } from "./dialog.js";
 import { Icon } from "./icon.js";
 import type { Visibility } from "@shazhou/pinboard-contracts";
 
@@ -89,7 +91,7 @@ export function DetailHeading({
             </span>
           )}
           <h3>{name}</h3>
-          {badge}
+          {badge ? <div className="detail-heading-actions">{badge}</div> : null}
         </div>
         <div className="detail-cid-combo">
           <button
@@ -135,24 +137,59 @@ export function DetailHeading({
 export function DetailDrawer({
   onClose,
   children,
+  title = "Version history",
+  busy = false,
 }: {
   onClose: () => void;
   children: ReactNode;
+  title?: string;
+  busy?: boolean;
 }) {
+  const panel = useContext(DialogPanelContext);
+  const panelStyle = panel ? getComputedStyle(panel) : null;
+  // Cover the reserved scrollbar gutter without shifting the reading layout.
+  const gutter =
+    panel && panelStyle
+      ? Math.max(
+          0,
+          panel.offsetWidth -
+            panel.clientWidth -
+            parseFloat(panelStyle.borderLeftWidth) -
+            parseFloat(panelStyle.borderRightWidth),
+        )
+      : 0;
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const drawer = ref.current;
     if (!drawer) return;
+    const siblings = panel
+      ? Array.from(panel.children)
+          .filter(
+            (element): element is HTMLElement =>
+              element instanceof HTMLElement && !element.contains(drawer),
+          )
+          .map((element) => ({ element, inert: element.inert }))
+      : [];
+    for (const { element } of siblings) element.inert = true;
+    const scrollTop = panel?.scrollTop ?? 0;
+    if (panel) panel.scrollTop = 0;
     (
-      drawer.querySelector<HTMLElement>('[aria-pressed="true"]') ?? drawer
+      drawer.querySelector<HTMLElement>(
+        '[aria-pressed="true"], input:not(:disabled), textarea:not(:disabled)',
+      ) ?? drawer
     ).focus();
-  }, []);
-  return (
-    <div className="detail-drawer-layer">
+    return () => {
+      for (const { element, inert } of siblings) element.inert = inert;
+      if (panel) panel.scrollTop = scrollTop;
+    };
+  }, [panel]);
+  const layer = (
+    <div className="detail-drawer-layer" style={{ right: -gutter }}>
       <button
         className="detail-drawer-backdrop"
-        aria-label="Close version history"
+        aria-label={`Close ${title.toLowerCase()}`}
         tabIndex={-1}
+        disabled={busy}
         onClick={onClose}
       />
       <section
@@ -160,19 +197,26 @@ export function DetailDrawer({
         className="detail-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Version history"
+        aria-label={title}
+        aria-busy={busy}
         tabIndex={-1}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
-            onClose();
+            if (!busy) onClose();
           }
           if (event.key === "Tab") {
             const controls = Array.from(
-              ref.current?.querySelectorAll<HTMLButtonElement>(
-                "button:not(:disabled)",
+              ref.current?.querySelectorAll<HTMLElement>(
+                "a[href], button, input, select, textarea, summary, [tabindex]",
               ) ?? [],
+            ).filter(
+              (element) =>
+                element.tabIndex >= 0 &&
+                !element.matches(":disabled") &&
+                !element.closest("[inert]") &&
+                element.getClientRects().length > 0,
             );
             const first = controls[0];
             const last = controls.at(-1);
@@ -184,19 +228,23 @@ export function DetailDrawer({
             ) {
               event.preventDefault();
               (event.shiftKey ? last : first)?.focus();
+              if (!first) ref.current?.focus();
             }
           }
         }}
       >
-        <h3>Version history</h3>
-        <p className="muted">
-          Selecting a version only changes your reading view, not public
-          current.
-        </p>
+        <h3>{title}</h3>
+        {title === "Version history" ? (
+          <p className="muted">
+            Selecting a version only changes your reading view, not public
+            current.
+          </p>
+        ) : null}
         {children}
       </section>
     </div>
   );
+  return panel ? createPortal(layer, panel) : layer;
 }
 
 export function DetailMenu({

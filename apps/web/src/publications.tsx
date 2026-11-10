@@ -726,6 +726,7 @@ export function PublicationDialog({
                 </div>
                 {drawerOpen ? (
                   <DetailDrawer
+                    busy={busy}
                     onClose={() => {
                       if (busy) return;
                       setDrawerOpen(false);

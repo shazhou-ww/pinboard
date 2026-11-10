@@ -1,5 +1,14 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Icon } from "./icon.js";
+
+export const DialogPanelContext = createContext<HTMLDialogElement | null>(null);
 
 export function Dialog({
   open,
@@ -25,10 +34,19 @@ export function Dialog({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [panel, setPanel] = useState<HTMLDialogElement | null>(null);
+  const attachPanel = useCallback((element: HTMLDialogElement | null) => {
+    ref.current = element;
+    setPanel(element);
+  }, []);
   const opener = useRef<HTMLElement | null>(null);
   const openerKey = useRef<string | null>(null);
   if (returnFocusKey) openerKey.current = returnFocusKey;
   const outsidePress = useRef(false);
+  const hasDrawer = useCallback(
+    () => !!ref.current?.querySelector(":scope > .detail-drawer-layer"),
+    [],
+  );
   useEffect(() => {
     outsidePress.current = false;
     const dialog = ref.current;
@@ -69,6 +87,7 @@ export function Dialog({
     if (!open || !dialog) return;
     if (busy && !dialog.contains(document.activeElement)) dialog.focus();
     const escapeOutside = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if (
         Array.from(document.querySelectorAll("dialog[open]")).at(-1) !== dialog
       )
@@ -104,12 +123,12 @@ export function Dialog({
         !dialog.contains(event.target)
       ) {
         event.preventDefault();
-        if (!busy) onClose();
+        if (!busy && !hasDrawer()) onClose();
       }
     };
     document.addEventListener("keydown", escapeOutside);
     return () => document.removeEventListener("keydown", escapeOutside);
-  }, [open, busy, onClose]);
+  }, [open, busy, onClose, hasDrawer]);
   const isOutside = (event: {
     currentTarget: HTMLDialogElement;
     clientX: number;
@@ -125,7 +144,7 @@ export function Dialog({
   };
   return (
     <dialog
-      ref={ref}
+      ref={attachPanel}
       className={`canvas-dialog${className ? ` ${className}` : ""}`}
       aria-label={title}
       aria-busy={busy}
@@ -135,6 +154,7 @@ export function Dialog({
         outsidePress.current =
           dismissOnOutsideClick &&
           !busy &&
+          !hasDrawer() &&
           event.button === 0 &&
           event.target === event.currentTarget &&
           isOutside(event);
@@ -154,12 +174,12 @@ export function Dialog({
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
-          if (!busy) onClose();
+          if (!busy && !hasDrawer()) onClose();
         }
       }}
       onCancel={(event) => {
         event.preventDefault();
-        if (!busy) onClose();
+        if (!busy && !hasDrawer()) onClose();
       }}
     >
       <div className="section-title">
@@ -177,7 +197,9 @@ export function Dialog({
           </button>
         )}
       </div>
-      {children}
+      <DialogPanelContext.Provider value={panel}>
+        {children}
+      </DialogPanelContext.Provider>
     </dialog>
   );
 }

@@ -76,19 +76,21 @@ HTML. Downloads resolve one actual CID before reading the complete content.
 Details open on **current**, even when rollback leaves newer revisions in
 history. **View vN** changes only the local reading context: content, public
 description snapshot, size, date and CID. Click the title's version badge to
-open a version drawer within the detail panel, distinguishing the viewed,
-current and latest revisions. History is not permanently shown in the sidebar.
-Selection closes the drawer; outside click and Escape also dismiss it, without a
-close glyph. The inline CID/copy button copies the complete viewed CID; its
-dropdown offers HTTP downloads, IPFS, follow and fixed-version links. The follow
-link stays tied to the publication identity, while fixed links and file/ZIP/CAR
-downloads use the viewed revision. **Make viewed vN current** in the drawer
-requires confirmation and the actual publication sequence; it does not create a
-revision. Publishing is a separate task using the current publication state,
-never the browsed snapshot as a write baseline.
+open a full-height right drawer within the detail panel, distinguishing the
+viewed, current and latest revisions. History is not permanently shown in the
+sidebar. Selection closes the drawer; outside click and Escape also dismiss it,
+without a close glyph. The inline CID/copy button copies the complete viewed
+CID; its dropdown offers HTTP downloads, IPFS, follow and fixed-version links.
+The follow link stays tied to the publication identity, while fixed links and
+file/ZIP/CAR downloads use the viewed revision. **Make viewed vN current** in
+the drawer requires confirmation and the actual publication sequence; it does
+not create a revision. Publishing is a separate task using the current
+publication state, never the browsed snapshot as a write baseline.
 
 Publication details also have a unified **Edit details** sidebar on the current
-version. The owner can edit the item-level title and root description together.
+version. The owner can edit the item-level title and root description together
+in the same full-panel drawer used for history. The title's two action buttons
+have the same height and alignment; history and editing cannot open together.
 Changing only the title advances the sequence without creating a revision;
 changing the root description creates the next revision with the same CID and
 preserves all child descriptions. Earlier description snapshots and source Pin

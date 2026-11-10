@@ -2324,16 +2324,6 @@ body:has(.canvas-dialog[open]) {
 .reading-sidebar.metadata-sidebar {
   height: var(--reading-sidebar-height);
 }
-.reading-sidebar.editing-details {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-glass-light);
-}
-.detail-metadata-form h4 {
-  margin: 0 0 4px;
-  font-size: 14px;
-}
 .detail-metadata-form input {
   min-width: 0;
   padding: 8px;
@@ -2343,7 +2333,7 @@ body:has(.canvas-dialog[open]) {
 }
 .detail-metadata-form .actions {
   position: sticky;
-  bottom: -14px;
+  bottom: -24px;
   justify-content: flex-end;
   padding-block: 8px;
   background: var(--surface);
@@ -2447,6 +2437,26 @@ body:has(.canvas-dialog[open]) {
   margin: 0;
   font-size: inherit;
   line-height: inherit;
+}
+.detail-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  height: 32px;
+  margin-top: calc((1lh - 32px) / 2);
+}
+.detail-heading-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1;
 }
 .detail-cid-combo {
   position: relative;
@@ -2574,7 +2584,11 @@ body:has(.canvas-dialog[open]) {
   position: absolute;
   inset: 0;
   z-index: 6;
-  min-height: 300px;
+  border-radius: inherit;
+  overflow: hidden;
+}
+.reading-dialog:has(> .detail-drawer-layer) {
+  overflow: hidden;
 }
 .detail-drawer-backdrop {
   position: absolute;
@@ -2592,15 +2606,36 @@ body:has(.canvas-dialog[open]) {
 .detail-drawer {
   position: absolute;
   inset: 0 0 0 auto;
-  width: min(300px, calc(100% - 18px));
-  padding: 20px;
+  width: min(340px, calc(100% - 24px));
+  padding: 24px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--surface);
   box-shadow: -8px 0 24px var(--shadow);
   overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .detail-drawer h3 {
-  margin-top: 0;
+  flex-shrink: 0;
+  margin: 0 0 16px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.detail-drawer .reading-description-form {
+  gap: 12px;
+  margin: 0;
+  font-size: 12px;
+}
+.detail-drawer .detail-metadata-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.detail-drawer .detail-metadata-form .actions {
+  margin-top: auto;
 }
 .detail-drawer > p,
 .detail-drawer p {
@@ -2711,6 +2746,13 @@ body:has(.canvas-dialog[open]) {
   }
   .detail-title {
     --detail-title-size: 18px;
+    flex-wrap: wrap;
+  }
+  .detail-title h3 {
+    flex-basis: calc(100% - 44px);
+  }
+  .detail-heading-actions {
+    margin: 0 0 0 44px;
   }
   .detail-cid-copy,
   .detail-cid-combo .detail-menu > summary {

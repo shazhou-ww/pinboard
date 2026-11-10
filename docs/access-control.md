@@ -58,18 +58,23 @@ Publication requires confirmation of byte and description exposure; the source
 Pin stays private.
 
 Owned Pin details have two modes: reading and **Edit details**. One header
-action replaces the sidebar with a unified name and private-description form,
-with one Save changes/Cancel pair. The title, CID and content preview stay in
-place; file facts, download and publication actions are hidden while editing,
-and access changes are disabled. Long fields scroll within the bounded sidebar.
-Desktop details reserve up to 480px for both preview and sidebar, adjusting to
-the viewport height so the normal edit form fits without an initial scrollbar.
-Short windows and long content retain scrolling; mobile keeps its compact
-stacked preview layout. Dirty drafts require confirmation before canceling or
-closing. Current owned Publications use the same editor: description changes
-create a new same-CID revision without rewriting history or Pin annotations;
-title-only edits do not create a revision. Historical snapshots and visitor
-pages remain read-only.
+action opens a right-hand drawer with a unified name and private-description
+form and one Save changes/Cancel pair. Editing and version history use the same
+drawer, covering the whole detail panel from its top to bottom edges rather than
+only the padded content area. Reading content stays in place behind a dimmed,
+inert backdrop; only one drawer can be active. Long forms scroll inside the
+drawer. Escape and outside click close the drawer, with dirty-draft confirmation
+and focus returning to its trigger; saving prevents dismissal. The title's
+version and edit buttons share aligned 32px controls. On narrow screens they
+stay together below the title rather than squeezing the name. Desktop details
+reserve up to 480px for both preview and sidebar, adjusting to the viewport
+height so the normal edit form fits without an initial scrollbar. Short windows
+and long content retain scrolling; mobile keeps its compact stacked preview
+layout. Dirty drafts require confirmation before canceling or closing. Current
+owned Publications use the same editor: description changes create a new
+same-CID revision without rewriting history or Pin annotations; title-only edits
+do not create a revision. Historical snapshots and visitor pages remain
+read-only.
 
 The existing description CAS write and rename API remain separate operations:
 description saves first, then the name. If the second operation fails, the UI

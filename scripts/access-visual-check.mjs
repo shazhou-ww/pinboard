@@ -289,45 +289,64 @@ try {
     );
     const defaultEditor = await evaluate(`(() => {
       const dialog=document.querySelector('dialog[open]');
-      const sidebar=dialog.querySelector('.reading-sidebar');
-      return {sidebarHeight:sidebar.getBoundingClientRect().height,
-        sidebarScroll:sidebar.scrollHeight>sidebar.clientHeight+1,
-        dialogScroll:dialog.scrollHeight>dialog.clientHeight+1};
+      const drawer=dialog.querySelector('.detail-drawer'),layer=dialog.querySelector('.detail-drawer-layer');
+      const panelBounds=dialog.getBoundingClientRect(),r=drawer.getBoundingClientRect();
+      return {drawerHeight:r.height,drawerScroll:drawer.scrollHeight>drawer.clientHeight+1,
+        topGap:r.top-panelBounds.top,bottomGap:panelBounds.bottom-r.bottom,
+        rightGap:panelBounds.right-r.right,portalRoot:layer.parentElement===dialog};
     })()`);
     assert(
-      !defaultEditor.sidebarScroll,
+      !defaultEditor.drawerScroll,
       `Default edit form scrolls at ${width}px: ${JSON.stringify(defaultEditor)}`,
     );
-    if (width > 700) assert(!defaultEditor.dialogScroll);
+    assert(
+      defaultEditor.portalRoot &&
+        Math.abs(defaultEditor.topGap) <= 1 &&
+        Math.abs(defaultEditor.bottomGap) <= 1 &&
+        Math.abs(defaultEditor.rightGap) <= 1,
+    );
     const metadataEditing = await evaluate(`(() => {
       const dialog=document.querySelector('dialog[open]');
       const textarea=dialog.querySelector('.reading-description-form textarea');
       textarea.style.height='800px';
-      const sidebar=dialog.querySelector('.reading-sidebar');
+      const drawer=dialog.querySelector('.detail-drawer');
       return {height:dialog.getBoundingClientRect().height,
         preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height,
-        sidebar:sidebar.getBoundingClientRect().height,textarea:textarea.getBoundingClientRect().height,
-        scrollable:getComputedStyle(sidebar).overflowY==='auto',
+        drawer:drawer.getBoundingClientRect().height,textarea:textarea.getBoundingClientRect().height,
+        scrollable:getComputedStyle(drawer).overflowY==='auto',
         titleReadOnly:!!dialog.querySelector('.detail-title h3'),
         formCount:dialog.querySelectorAll('form').length,
         hasName:!!dialog.querySelector('.detail-metadata-form input'),
-        competingActions:!!dialog.querySelector('.detail-action-list,[aria-label="Rename pin"],[aria-label="Edit description"]'),
+        backgroundInert:!!dialog.querySelector('.reading-layout').closest('[inert]'),
         accessDisabled:dialog.querySelector('.detail-access').disabled};
     })()`);
     assert.equal(metadataEditing.preview, beforeEditing.preview);
-    assert(
-      metadataEditing.sidebar <= 480 &&
-        metadataEditing.textarea <= 180 &&
-        metadataEditing.scrollable,
-    );
+    assert(metadataEditing.textarea <= 180 && metadataEditing.scrollable);
     assert.equal(metadataEditing.height, beforeEditing.height);
     assert(
       metadataEditing.titleReadOnly &&
         metadataEditing.formCount === 1 &&
         metadataEditing.hasName &&
-        !metadataEditing.competingActions &&
+        metadataEditing.backgroundInert &&
         metadataEditing.accessDisabled,
     );
+    for (let i = 0; i < 8; i++) {
+      await send("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "Tab",
+        code: "Tab",
+        windowsVirtualKeyCode: 9,
+      });
+      await send("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key: "Tab",
+        code: "Tab",
+        windowsVirtualKeyCode: 9,
+      });
+      assert(
+        await evaluate("!!document.activeElement.closest('.detail-drawer')"),
+      );
+    }
     if (
       width === 1280 &&
       height === 900 &&
@@ -429,6 +448,16 @@ try {
   await until(
     "document.querySelector('dialog[open] [aria-label=\"Edit details\"]:not(:disabled)')",
   );
+  const actionAlignment = await evaluate(`(() => {
+    const version=document.querySelector('.detail-version-badge').getBoundingClientRect();
+    const edit=document.querySelector('[aria-label="Edit details"]').getBoundingClientRect();
+    return {delta:Math.abs(version.y+version.height/2-edit.y-edit.height/2),versionHeight:version.height,editHeight:edit.height};
+  })()`);
+  assert(
+    actionAlignment.delta < 1 &&
+      actionAlignment.versionHeight === 32 &&
+      actionAlignment.editHeight === 32,
+  );
   await evaluate(
     "document.querySelector('dialog[open] [aria-label=\"Edit details\"]').click()",
   );
@@ -436,9 +465,9 @@ try {
   assert(
     await evaluate(`(() => {
     const form=document.querySelector('.detail-metadata-form');
-    const sidebar=form.closest('.reading-sidebar');
+    const drawer=form.closest('.detail-drawer');
     return form.querySelector('label').textContent.includes('Title')&&form.textContent.includes('Description changes create a new version')
-      && !document.querySelector('.detail-action-list')&&sidebar.scrollHeight<=sidebar.clientHeight+1
+      && !!document.querySelector('.detail-action-list').closest('[inert]')&&drawer.scrollHeight<=drawer.clientHeight+1
       && document.querySelector('.detail-version-badge').disabled;
   })()`),
   );
@@ -449,6 +478,17 @@ try {
   await until("!document.querySelector('.detail-metadata-form')");
   await evaluate("document.querySelector('.detail-version-badge').click()");
   await until("document.querySelector('.detail-drawer')");
+  const historyDrawer = await evaluate(`(() => {
+    const panel=document.querySelector('dialog[open]').getBoundingClientRect();
+    const drawer=document.querySelector('.detail-drawer').getBoundingClientRect();
+    return {topGap:drawer.top-panel.top,bottomGap:panel.bottom-drawer.bottom,portalRoot:document.querySelector('.detail-drawer-layer').parentElement===document.querySelector('dialog[open]')};
+  })()`);
+  assert(
+    historyDrawer.portalRoot &&
+      Math.abs(historyDrawer.topGap) <= 1 &&
+      Math.abs(historyDrawer.bottomGap) <= 1,
+  );
+  await captureDialog(process.env.ACCESS_HISTORY_SCREENSHOT);
   await evaluate(
     `Array.from(document.querySelectorAll('.detail-drawer button')).find(b=>b.textContent.includes('View v1')).click()`,
   );
@@ -463,6 +503,8 @@ try {
   );
   results.push({
     result: "通过",
+    actionAlignment,
+    historyDrawer,
     publicationEditing:
       "当前版本统一编辑标题与描述；历史版本只读，编辑时版本切换禁用，默认表单无滚动条",
   });
