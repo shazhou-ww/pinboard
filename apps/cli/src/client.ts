@@ -391,6 +391,13 @@ export class Client {
       );
     if (action === "create")
       return this.request("/api/publications", "POST", JSON.stringify(input));
+    if (action === "edit")
+      return this.request(
+        `/api/publications/${encoded}`,
+        "PATCH",
+        JSON.stringify(input),
+        "Retry the same publication request ID and payload to retrieve its original result.",
+      );
     if (action === "remove") {
       await this.request(`/api/publications/${encoded}`, "DELETE");
       return { deleted: true, id };

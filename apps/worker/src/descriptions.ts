@@ -5,7 +5,7 @@ import type { Bindings } from "./env.js";
 import { completeDag, key, parseCid } from "./content.js";
 import { requireScope, type Principal } from "./identity.js";
 import { getPreview, processPreview } from "./previews.js";
-import { validate } from "./schemas.js";
+import { descriptionTextSchema, validate } from "./schemas.js";
 import { dagStatements, readBlock } from "./storage.js";
 import { resolvePublication } from "./publications.js";
 
@@ -47,18 +47,7 @@ export async function publishedDescription(
 
 export const descriptionWriteSchema = z
   .object({
-    text: z
-      .string()
-      .max(8000)
-      .refine(
-        (text) =>
-          Array.from(text).every((character) => {
-            const code = character.charCodeAt(0);
-            return code >= 32 || code === 9 || code === 10 || code === 13;
-          }),
-        "Use plain text without control characters",
-      )
-      .nullable(),
+    text: descriptionTextSchema,
     expectedVersion: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   })
   .strict();

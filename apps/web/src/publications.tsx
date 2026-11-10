@@ -149,6 +149,8 @@ export function PublicationDialog({
   const [task, setTask] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
+  const [metadataBusy, setMetadataBusy] = useState(false);
+  const [metadataDirty, setMetadataDirty] = useState(false);
   const versionTrigger = useRef<HTMLButtonElement>(null);
   const taskTrigger = useRef<HTMLButtonElement>(null);
   const [historyError, setHistoryError] = useState("");
@@ -159,14 +161,15 @@ export function PublicationDialog({
   async function mutate<T>(
     path: string,
     body: Record<string, unknown>,
+    method = "POST",
   ): Promise<T> {
-    const payload = JSON.stringify({ path, body });
+    const payload = JSON.stringify({ path, body, method });
     if (pendingRequest.current?.payload !== payload)
       pendingRequest.current = { payload, requestId: crypto.randomUUID() };
-    const result = await requestJson<T>(
-      path,
-      json({ ...body, requestId: pendingRequest.current.requestId }),
-    );
+    const result = await requestJson<T>(path, {
+      ...json({ ...body, requestId: pendingRequest.current.requestId }),
+      method,
+    });
     return result;
   }
   useEffect(() => {
@@ -250,7 +253,7 @@ export function PublicationDialog({
               : "Add to a publication"
             : "Publication details"
         }
-        busy={busy || drawerOpen}
+        busy={busy || drawerOpen || metadataBusy}
         className={pin || task ? "" : "reading-dialog"}
         glyphClose={!pin && !task}
         returnFocusKey={
@@ -261,7 +264,11 @@ export function PublicationDialog({
               : undefined
         }
         onClose={() => {
-          if (discardDetailsDraft(pin ? !!title.trim() : task && !!cid))
+          if (
+            discardDetailsDraft(
+              metadataDirty || (pin ? !!title.trim() : task && !!cid),
+            )
+          )
             onClose();
         }}
       >
@@ -532,33 +539,127 @@ export function PublicationDialog({
                     rootCid={viewing.cid}
                     publicationId={current.id}
                     revision={viewing.revision}
-                    heading={(contentType) => (
+                    onBusyChange={setMetadataBusy}
+                    onDirtyChange={setMetadataDirty}
+                    onSaveDetails={
+                      viewing.revision === current.currentRevision
+                        ? async (title, description) => {
+                            if (
+                              current.visibility === "public" &&
+                              !window.confirm(
+                                "Save public publication details? The title and new description will be public. Description changes create a new version with the same file CID; earlier descriptions stay unchanged. Downloaded and cached copies cannot be recalled.",
+                              )
+                            )
+                              return false;
+                            const result = await mutate<PublicationResult>(
+                              `/api/publications/${current.id}`,
+                              {
+                                title,
+                                description,
+                                expectedSequence: current.sequence,
+                                acknowledgePublicExposure:
+                                  current.visibility === "public",
+                              },
+                              "PATCH",
+                            ).catch((failure: unknown) => {
+                              if (
+                                failure instanceof ApiRequestError &&
+                                failure.status === 409
+                              )
+                                throw new Error(
+                                  "Publication changed. Your draft is preserved; cancel editing and reopen details to use the latest version before saving again.",
+                                );
+                              throw failure;
+                            });
+                            setHistory((previous) => ({
+                              publication: result.publication,
+                              revisions: previous?.revisions.some(
+                                (item) =>
+                                  item.revision ===
+                                  result.publication.currentRevision,
+                              )
+                                ? previous.revisions
+                                : [
+                                    result.publication.current,
+                                    ...(previous?.revisions ?? []),
+                                  ],
+                              operations:
+                                result.status === "nop"
+                                  ? (previous?.operations ?? [])
+                                  : [
+                                      {
+                                        sequence: result.publication.sequence,
+                                        revision:
+                                          result.publication.currentRevision,
+                                        kind: "edit",
+                                        createdAt: result.publication.updatedAt,
+                                      },
+                                      ...(previous?.operations ?? []),
+                                    ],
+                            }));
+                            setSelectedRevision(null);
+                            setNotice(
+                              result.status === "nop"
+                                ? "Details unchanged."
+                                : "Publication details saved. Earlier descriptions are unchanged.",
+                            );
+                            try {
+                              await onChanged();
+                            } catch (failure) {
+                              setHistoryError(
+                                `Details saved, but the list could not refresh. ${failure instanceof Error ? failure.message : String(failure)}`,
+                              );
+                            }
+                            return;
+                          }
+                        : undefined
+                    }
+                    heading={(contentType, editor) => (
                       <DetailHeading
                         name={current.title}
                         visibility={current.visibility}
                         onAccess={() => setAccessOpen(true)}
                         cid={viewing.cid}
                         contentType={contentType}
-                        disabled={busy}
+                        disabled={busy || editor.busy || editor.editing}
                         publication={{
                           id: current.id,
                           revision: viewing.revision,
                         }}
                         onCopy={copy}
                         badge={
-                          <button
-                            ref={versionTrigger}
-                            className="detail-version-badge"
-                            aria-label={`Viewing v${viewing.revision}. Open version history`}
-                            aria-haspopup="dialog"
-                            disabled={busy}
-                            onClick={() => setDrawerOpen(true)}
-                          >
-                            v{viewing.revision} ·{" "}
-                            {viewing.revision === current.currentRevision
-                              ? "Current"
-                              : "History"}
-                          </button>
+                          <>
+                            <button
+                              ref={versionTrigger}
+                              className="detail-version-badge"
+                              aria-label={`Viewing v${viewing.revision}. Open version history`}
+                              aria-haspopup="dialog"
+                              disabled={busy || editor.editing}
+                              onClick={() => setDrawerOpen(true)}
+                            >
+                              v{viewing.revision} ·{" "}
+                              {viewing.revision === current.currentRevision
+                                ? "Current"
+                                : "History"}
+                            </button>
+                            {viewing.revision === current.currentRevision ? (
+                              <button
+                                className="detail-rename"
+                                aria-label="Edit details"
+                                title="Edit publication title and description"
+                                aria-pressed={editor.editing}
+                                disabled={
+                                  busy ||
+                                  editor.busy ||
+                                  editor.editing ||
+                                  !editor.ready
+                                }
+                                onClick={editor.start}
+                              >
+                                <Icon name="edit" size={16} /> Edit details
+                              </button>
+                            ) : null}
+                          </>
                         }
                       />
                     )}

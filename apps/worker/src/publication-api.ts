@@ -25,6 +25,7 @@ import {
   publicationWriteSchema,
   validate,
   visibilitySchema,
+  publicationEditSchema,
 } from "./schemas.js";
 
 export const publicationApi = new Hono<AppEnv>();
@@ -262,6 +263,16 @@ publicationApi.patch("/api/publications/:id/visibility", async (c) => {
     await new PublicationService(c.env, c.get("principal")).setVisibility(
       c.req.param("id"),
       input.visibility,
+    ),
+  );
+});
+publicationApi.patch("/api/publications/:id", async (c) => {
+  const input = validate(publicationEditSchema, await jsonBody(c.req.raw));
+  c.header("Cache-Control", "private, no-store");
+  return c.json(
+    await new PublicationService(c.env, c.get("principal")).edit(
+      c.req.param("id"),
+      input,
     ),
   );
 });

@@ -5,13 +5,19 @@ import type {
   PublicationResult,
   PublicationRevision,
   PublicationWrite,
+  PublicationEdit,
   UploadPublicationResult,
 } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { requireScope, type Principal } from "./identity.js";
 import { key, parseCid, readCar } from "./content.js";
 import { PinService } from "./service.js";
-import { itemFilterSchema, nameSchema, validate } from "./schemas.js";
+import {
+  itemFilterSchema,
+  nameSchema,
+  publicationEditSchema,
+  validate,
+} from "./schemas.js";
 import { getCar, storeDag } from "./storage.js";
 import { matchesItemFilter } from "./item-filter.js";
 import { authorizePublication } from "./access.js";
@@ -396,9 +402,26 @@ export class PublicationService {
     return this.change(id, { revision }, write);
   }
 
+  async edit(id: string, input: PublicationEdit): Promise<PublicationResult> {
+    const write = validate(publicationEditSchema, input);
+    return this.change(
+      id,
+      {
+        metadata: {
+          title: write.title,
+          description: write.description || null,
+        },
+      },
+      write,
+    );
+  }
+
   private async change(
     id: string,
-    target: { cid: string } | { revision: number },
+    target:
+      | { cid: string }
+      | { revision: number }
+      | { metadata: { title: string; description: string | null } },
     write: PublicationWrite,
   ): Promise<PublicationResult> {
     requireScope(this.principal, "publications:write");
@@ -418,23 +441,37 @@ export class PublicationService {
       this.principal,
     );
     if (before.sequence !== write.expectedSequence) throw conflict();
+    const metadata = "metadata" in target ? target.metadata : undefined;
+    const descriptionChanged =
+      !!metadata &&
+      (before.current.descriptions?.[before.current.cid] ?? null) !==
+        metadata.description;
     const rollback = "revision" in target;
     const previous = rollback
       ? revisions.find((item) => item.revision === target.revision)
       : undefined;
     if (rollback && !previous)
       throw new HTTPException(404, { message: "Revision not found" });
-    const cid = rollback ? previous!.cid : target.cid;
-    const nop = rollback
-      ? before.currentRevision === target.revision
-      : before.current.cid === cid;
-    if (!rollback) requireScope(this.principal, "pins:read");
-    const pin = nop
-      ? before.current
+    const cid =
+      "cid" in target
+        ? target.cid
+        : rollback
+          ? previous!.cid
+          : before.current.cid;
+    const nop = metadata
+      ? !descriptionChanged && metadata.title === before.title
       : rollback
-        ? previous!
-        : await new PinService(this.env, this.principal).detail(cid);
+        ? before.currentRevision === target.revision
+        : before.current.cid === cid;
+    if (!rollback && !metadata) requireScope(this.principal, "pins:read");
+    const pin =
+      metadata || nop
+        ? before.current
+        : rollback
+          ? previous!
+          : await new PinService(this.env, this.principal).detail(cid);
     if (
+      !metadata &&
       !rollback &&
       !nop &&
       before.visibility === "public" &&
@@ -446,28 +483,55 @@ export class PublicationService {
         message:
           "Confirm that private source bytes and descriptions will become public; the source Pin remains private",
       });
-    if (!nop) await this.prepareTarget(cid);
+    if (
+      metadata &&
+      !nop &&
+      before.visibility === "public" &&
+      !write.acknowledgePublicExposure
+    )
+      throw new HTTPException(400, {
+        message:
+          "Confirm that edited publication metadata will be public; downloaded and cached copies cannot be recalled",
+      });
+    if (!nop && !metadata) await this.prepareTarget(cid);
     const now = new Date().toISOString();
+    const descriptions = { ...before.current.descriptions };
+    if (metadata && descriptionChanged) {
+      if (metadata.description === null) delete descriptions[cid];
+      else descriptions[cid] = metadata.description;
+    }
     const current = nop
       ? before.current
-      : rollback
-        ? previous!
-        : {
-            revision: revisions[0]!.revision + 1,
-            cid,
-            size: pin.size,
-            blocks: pin.blocks,
-            createdAt: now,
-          };
+      : metadata && !descriptionChanged
+        ? before.current
+        : rollback
+          ? previous!
+          : {
+              revision: revisions[0]!.revision + 1,
+              cid,
+              size: pin.size,
+              blocks: pin.blocks,
+              createdAt: now,
+              ...(metadata ? { descriptions } : {}),
+            };
     const result: PublicationResult = {
-      status: nop ? "nop" : rollback ? "rolled-back" : "published",
+      status: nop
+        ? "nop"
+        : metadata
+          ? "updated"
+          : rollback
+            ? "rolled-back"
+            : "published",
       publication: nop
         ? before
         : {
             ...before,
+            title: metadata?.title ?? before.title,
             current,
             currentRevision: current.revision,
-            revisionCount: before.revisionCount + (rollback ? 0 : 1),
+            revisionCount:
+              before.revisionCount +
+              (rollback || (metadata && !descriptionChanged) ? 0 : 1),
             sequence: before.sequence + 1,
             updatedAt: now,
           },
@@ -479,7 +543,7 @@ export class PublicationService {
       this.env.DB.prepare(
         `INSERT OR IGNORE INTO publication_requests (account_id, request_id, payload, attempt_id, result)
         SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM publications WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND sequence = ?)
-        ${rollback || nop ? "" : `AND ${availablePin} AND (? OR EXISTS (SELECT 1 FROM publications p JOIN pins pin ON pin.account_id = p.account_id WHERE p.id = ? AND pin.cid = ? AND (p.visibility = 'private' OR pin.visibility = 'public')))`}`,
+        ${rollback || nop || metadata ? "" : `AND ${availablePin} AND (? OR EXISTS (SELECT 1 FROM publications p JOIN pins pin ON pin.account_id = p.account_id WHERE p.id = ? AND pin.cid = ? AND (p.visibility = 'private' OR pin.visibility = 'public')))`}`,
       ).bind(
         this.principal.accountId,
         write.requestId,
@@ -489,7 +553,7 @@ export class PublicationService {
         id,
         this.principal.accountId,
         write.expectedSequence,
-        ...(rollback || nop
+        ...(rollback || nop || metadata
           ? []
           : [
               this.principal.accountId,
@@ -501,10 +565,10 @@ export class PublicationService {
       ),
     ];
     if (!nop) {
-      if (!rollback)
+      if (!rollback && (!metadata || descriptionChanged))
         statements.push(
           this.env.DB.prepare(
-            `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at, descriptions) SELECT ?, ?, ?, ?, ?, ?, ${descriptionSnapshot} WHERE ${guard}`,
+            `INSERT INTO publication_revisions (publication_id, revision, cid, size, blocks, created_at, descriptions) SELECT ?, ?, ?, ?, ?, ?, ${metadata ? "?" : descriptionSnapshot} WHERE ${guard}`,
           ).bind(
             id,
             current.revision,
@@ -512,8 +576,9 @@ export class PublicationService {
             pin.size,
             pin.blocks,
             now,
-            this.principal.accountId,
-            cid,
+            ...(metadata
+              ? [JSON.stringify(descriptions)]
+              : [this.principal.accountId, cid]),
             attempt,
           ),
           this.env.DB.prepare(
@@ -522,15 +587,15 @@ export class PublicationService {
         );
       statements.push(
         this.env.DB.prepare(
-          `UPDATE publications SET current_revision = ?, sequence = sequence + 1, updated_at = ? WHERE id = ? AND ${guard}`,
-        ).bind(current.revision, now, id, attempt),
+          `UPDATE publications SET title = ?, current_revision = ?, sequence = sequence + 1, updated_at = ? WHERE id = ? AND ${guard}`,
+        ).bind(result.publication.title, current.revision, now, id, attempt),
         this.env.DB.prepare(
           `INSERT INTO publication_operations (publication_id, sequence, revision, kind, created_at) SELECT ?, ?, ?, ?, ? WHERE ${guard}`,
         ).bind(
           id,
           result.publication.sequence,
           current.revision,
-          rollback ? "rollback" : "publish",
+          metadata ? "edit" : rollback ? "rollback" : "publish",
           now,
           attempt,
         ),

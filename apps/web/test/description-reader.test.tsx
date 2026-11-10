@@ -524,6 +524,68 @@ describe("cached detail reader integration", () => {
     );
   });
 
+  it("uses the unified editor for an owned publication without mutating snapshot descriptions directly", async () => {
+    const cache = client();
+    const context = { ...ctx, publicationId: "publication", revision: 1 };
+    cache.saved(context, value("Published original", 1, context));
+    vi.mocked(fetch).mockImplementation(async () =>
+      Response.json(value("Published original", 1, context)),
+    );
+    const save = vi
+      .fn<(name: string, text: string | null) => Promise<void | false>>()
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(
+        new Error("Publication changed; cancel and reopen details"),
+      )
+      .mockResolvedValueOnce();
+    const instance = reader({
+      rootCid: "root",
+      name: "Publication title",
+      publicationId: "publication",
+      revision: 1,
+      readingFirst: true,
+      client: cache,
+      onSaveDetails: save,
+      heading: (_, editor) => (
+        <header>
+          <h3>Publication title</h3>
+          <button onClick={editor.start}>Edit details</button>
+        </header>
+      ),
+    });
+    instance.render();
+    await flush();
+    instance.render();
+    instance.click("Edit details");
+    let html = instance.render();
+    expect(html).toContain("Description changes create a new version");
+    editName(instance, "Updated publication title");
+    instance.edit("A new version description");
+    instance.render();
+    instance.submit();
+    await flush();
+    expect(instance.render()).toContain("<textarea");
+    instance.submit();
+    await flush();
+    html = instance.render();
+    expect(html).toContain("Publication changed");
+    expect(html).toContain("A new version description");
+    expect(html).not.toContain("Retry description");
+    instance.submit();
+    await flush();
+    expect(save).toHaveBeenLastCalledWith(
+      "Updated publication title",
+      "A new version description",
+    );
+    expect(instance.render()).not.toContain("<textarea");
+    expect(
+      vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === "PUT"),
+    ).toBe(false);
+    expect(cache.cached(context)?.description.user.text).toBe(
+      "Published original",
+    );
+  });
+
   it("does not render another publication's old resolved history while a new follow link resolves", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(

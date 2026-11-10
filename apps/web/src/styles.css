@@ -2252,7 +2252,8 @@ body:has(.canvas-dialog[open]) {
   background: var(--surface);
 }
 .reading-layout {
-  --reading-preview-height: 360px;
+  --reading-sidebar-height: clamp(320px, calc(100dvh - 200px), 480px);
+  --reading-preview-height: var(--reading-sidebar-height);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 230px;
   gap: 22px;
@@ -2310,7 +2311,7 @@ body:has(.canvas-dialog[open]) {
   border-left: 1px solid var(--border);
   padding-left: 18px;
   overflow-wrap: anywhere;
-  max-height: 360px;
+  max-height: var(--reading-sidebar-height);
   overflow-y: auto;
   scrollbar-gutter: stable;
   padding-right: 4px;
@@ -2321,7 +2322,7 @@ body:has(.canvas-dialog[open]) {
   font-size: 12px;
 }
 .reading-sidebar.metadata-sidebar {
-  height: 360px;
+  height: var(--reading-sidebar-height);
 }
 .reading-sidebar.editing-details {
   padding: 14px;
@@ -2687,6 +2688,7 @@ body:has(.canvas-dialog[open]) {
     right: 12px;
   }
   .reading-layout {
+    --reading-sidebar-height: 400px;
     --reading-preview-height: 240px;
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;

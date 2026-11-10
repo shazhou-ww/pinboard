@@ -35,7 +35,7 @@ describe("reading details", () => {
       "utf8",
     );
     expect(css).toMatch(
-      /\.reading-sidebar\s*\{[^}]*max-height:\s*360px;[^}]*overflow-y:\s*auto;/u,
+      /\.reading-sidebar\s*\{[^}]*max-height:\s*var\(--reading-sidebar-height\);[^}]*overflow-y:\s*auto;/u,
     );
     expect(css).toMatch(
       /\.reading-sidebar \.reading-description-form\s*\{[^}]*gap:\s*8px;[^}]*margin:\s*0;/u,
@@ -44,7 +44,10 @@ describe("reading details", () => {
       /\.reading-description-form textarea\s*\{[^}]*max-height:\s*180px;/u,
     );
     expect(css).toMatch(
-      /\.reading-sidebar\.metadata-sidebar\s*\{[^}]*height:\s*360px;/u,
+      /\.reading-sidebar\.metadata-sidebar\s*\{[^}]*height:\s*var\(--reading-sidebar-height\);/u,
+    );
+    expect(css).toMatch(
+      /\.reading-layout\s*\{[^}]*--reading-sidebar-height:\s*clamp\(320px,\s*calc\(100dvh - 200px\),\s*480px\);[^}]*--reading-preview-height:\s*var\(--reading-sidebar-height\);/u,
     );
   });
 

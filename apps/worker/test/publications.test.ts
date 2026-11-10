@@ -166,6 +166,258 @@ afterEach(() => {
 });
 afterAll(() => mf.dispose());
 
+describe("publication metadata editing", () => {
+  it("creates same-CID revisions for root description edits and preserves old and child snapshots", async () => {
+    const { pin, dag } = await legacyPin();
+    const child = [...dag.blocks.keys()].find((cid) => cid !== pin.cid)!;
+    const notes = new DescriptionService(env, owner);
+    await notes.write(pin.cid, pin.cid, {
+      text: "Root original",
+      expectedVersion: 0,
+    });
+    await notes.write(pin.cid, child, {
+      text: "Child original",
+      expectedVersion: 0,
+    });
+    const first = await publications.create(
+      "Original publication",
+      pin.cid,
+      write(1).requestId,
+    );
+    const input = {
+      ...write(first.publication.sequence),
+      title: "Edited publication",
+      description: "Root edited",
+    };
+    const edited = await publications.edit(first.publication.id, input);
+    expect(edited.status).toBe("updated");
+    expect(edited.publication).toMatchObject({
+      title: "Edited publication",
+      visibility: "private",
+      currentRevision: 2,
+      revisionCount: 2,
+      sequence: 2,
+      current: {
+        cid: pin.cid,
+        descriptions: { [pin.cid]: "Root edited", [child]: "Child original" },
+      },
+    });
+    expect(await publications.edit(first.publication.id, input)).toEqual(
+      edited,
+    );
+    expect(
+      (await publicationHistory(env, first.publication.id)).revisions[1]!
+        .descriptions,
+    ).toEqual({ [pin.cid]: "Root original", [child]: "Child original" });
+    expect((await notes.read(pin.cid, pin.cid)).description.user.text).toBe(
+      "Root original",
+    );
+    const titleOnly = await publications.edit(first.publication.id, {
+      ...write(2),
+      title: "Title only",
+      description: "Root edited",
+    });
+    expect(titleOnly.publication).toMatchObject({
+      title: "Title only",
+      currentRevision: 2,
+      revisionCount: 2,
+      sequence: 3,
+    });
+    const cleared = await publications.edit(first.publication.id, {
+      ...write(3),
+      title: "Title only",
+      description: null,
+    });
+    expect(cleared.publication.currentRevision).toBe(3);
+    expect(cleared.publication.current.descriptions).toEqual({
+      [child]: "Child original",
+    });
+    const rolledBack = await publications.rollback(
+      first.publication.id,
+      1,
+      write(cleared.publication.sequence),
+    );
+    expect(rolledBack.publication.current.descriptions).toEqual({
+      [pin.cid]: "Root original",
+      [child]: "Child original",
+    });
+    const unchanged = await publications.edit(first.publication.id, {
+      ...write(rolledBack.publication.sequence),
+      title: "Title only",
+      description: "Root original",
+    });
+    expect(unchanged.status).toBe("nop");
+    expect(unchanged.publication.sequence).toBe(
+      rolledBack.publication.sequence,
+    );
+  });
+
+  it("fences concurrent edits and creates only one immutable revision", async () => {
+    const pin = await upload();
+    const first = await publications.create(
+      "CAS metadata",
+      pin.cid,
+      write(1).requestId,
+    );
+    const edits = await Promise.allSettled(
+      ["A", "B"].map((text) =>
+        publications.edit(first.publication.id, {
+          ...write(first.publication.sequence),
+          title: text,
+          description: text,
+        }),
+      ),
+    );
+    expect(
+      edits.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(edits.filter((result) => result.status === "rejected")).toHaveLength(
+      1,
+    );
+    const history = await publicationHistory(env, first.publication.id);
+    expect(history.revisions).toHaveLength(2);
+    expect(history.publication.sequence).toBe(2);
+  });
+
+  it("uses the same metadata transaction for scoped MCP clients", async () => {
+    const pin = await upload();
+    const first = await publications.create(
+      "MCP edit",
+      pin.cid,
+      write(1).requestId,
+    );
+    const scoped = await client(owner, [
+      "publications:read",
+      "publications:write",
+    ]);
+    const args = {
+      id: first.publication.id,
+      ...write(1),
+      title: "MCP edited",
+      description: "Snapshot through MCP",
+    };
+    const response = await scoped("/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "publication_edit", arguments: args },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const rpc = await response.json<{
+      result: { content: { text: string }[]; isError?: boolean };
+    }>();
+    expect(rpc.result.isError).not.toBe(true);
+    expect(JSON.parse(rpc.result.content[0]!.text)).toMatchObject({
+      status: "updated",
+      publication: {
+        title: "MCP edited",
+        currentRevision: 2,
+        visibility: "private",
+        current: { cid: pin.cid },
+      },
+    });
+    expect(
+      (await publicationHistory(env, first.publication.id)).revisions[1]!
+        .descriptions,
+    ).toEqual({});
+  });
+
+  it("enforces owner read/write scopes and public edit acknowledgement through HTTP", async () => {
+    const pin = await upload();
+    const first = await publications.create(
+      "HTTP metadata",
+      pin.cid,
+      write(1).requestId,
+    );
+    const id = first.publication.id;
+    const path = `/api/publications/${id}`;
+    const input = {
+      ...write(1),
+      title: "HTTP edited",
+      description: "New description",
+    };
+    expect(
+      (
+        await httpRequest(path, {
+          ...json(input, "PATCH"),
+          headers: { "content-type": "application/json", origin },
+        })
+      ).status,
+    ).toBe(401);
+    const otherOwner: Principal = {
+      accountId: await accountForGoogle(env.DB, "metadata-other-owner"),
+      kind: "session",
+      scopes,
+    };
+    expect(
+      (await (await client(otherOwner))(path, json(input, "PATCH"))).status,
+    ).toBe(404);
+    for (const allowed of [
+      ["publications:read"],
+      ["publications:write"],
+    ] as const)
+      expect(
+        (await (await client(owner, allowed))(path, json(input, "PATCH")))
+          .status,
+      ).toBe(403);
+    const scoped = await client(owner, [
+      "publications:read",
+      "publications:write",
+    ]);
+    const visible = await publications.setVisibility(id, "public");
+    const publicInput = { ...input, ...write(visible.sequence) };
+    expect((await scoped(path, json(publicInput, "PATCH"))).status).toBe(400);
+    expect(
+      (
+        await scoped(
+          path,
+          json({ ...publicInput, acknowledgePublicExposure: true }, "PATCH"),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await scoped(
+          path,
+          json(
+            {
+              ...publicInput,
+              requestId: write(1).requestId,
+              acknowledgePublicExposure: true,
+            },
+            "PATCH",
+          ),
+        )
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await scoped(
+          path,
+          json(
+            {
+              ...publicInput,
+              requestId: write(1).requestId,
+              description: "\u0000",
+              acknowledgePublicExposure: true,
+            },
+            "PATCH",
+          ),
+        )
+      ).status,
+    ).toBe(400);
+    await publications.delete(id);
+    expect((await scoped(path, json(publicInput, "PATCH"))).status).toBe(404);
+  });
+});
+
 describe("filter metadata stays authoritative through service writes", () => {
   it("tracks edits, snapshots, rollback, conversion, deletion and restore without derived data", async () => {
     const first = await upload();

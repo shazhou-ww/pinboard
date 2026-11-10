@@ -109,9 +109,14 @@ export interface PublicationWrite {
   readonly requestId: string;
 }
 
+export interface PublicationEdit extends PublicationWrite {
+  readonly title: string;
+  readonly description: string | null;
+}
+
 export interface PublicationResult {
   readonly status:
-    "created" | "converted" | "published" | "rolled-back" | "nop";
+    "created" | "converted" | "published" | "rolled-back" | "updated" | "nop";
   readonly publication: Publication;
 }
 

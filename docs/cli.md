@@ -38,6 +38,7 @@ pinboard publication list
 pinboard publication get <ID>
 pinboard publication get <ID> --revision 3
 pinboard publication history <ID>
+pinboard publication edit <ID> --title "Field notes" --text "New description" --sequence 2 --request-id edit-notes
 pinboard publication download <ID> --revision 3 --output .\fixed-notes.txt
 pinboard publication export <ID> --output .\current.car
 pinboard publication publish <ID> <CID> --sequence 1 --request-id publish-notes-2
@@ -49,6 +50,13 @@ pinboard publication restore <ID>
 pinboard remove <CID>
 pinboard restore <CID>
 ```
+
+`publication edit` requires publication read/write scopes. Description changes
+create a same-CID revision and preserve historical and child descriptions;
+title-only changes update the publication identity without adding a revision.
+Use `--text ""` to clear the root description and
+`--acknowledge-public-exposure` when editing a public item. Reuse an uncertain
+request ID only with identical input.
 
 Read commands use optional configured/supplied credentials for private access,
 including get/history/download/export. Public reads need no credential.

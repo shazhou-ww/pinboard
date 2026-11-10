@@ -89,6 +89,23 @@ describe("publication and recovery commands", () => {
       method: "DELETE",
     },
     {
+      args: [
+        "publication",
+        "edit",
+        "stable-id",
+        "--title",
+        "Updated title",
+        "--text",
+        "Updated description",
+        "--sequence",
+        "2",
+        "--request-id",
+        "edit-key",
+      ],
+      path: "/api/publications/stable-id",
+      method: "PATCH",
+    },
+    {
       args: ["publication", "restore", "stable-id"],
       path: "/api/publications/stable-id/restore",
       method: "POST",

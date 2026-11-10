@@ -30,6 +30,7 @@ pinboard publication description <ID> <NODE_CID> --revision N
 pinboard publication download|export <ID> [--revision N] [--output PATH]
 pinboard publication publish <ID> <CID> --sequence N --request-id KEY
 pinboard publication rollback <ID> <REVISION> --sequence N --request-id KEY
+pinboard publication edit <ID> --title TITLE --text DESCRIPTION --sequence N --request-id KEY
 pinboard publication remove|restore <ID>
 Upload/import options: --publication ID --sequence N --request-id KEY
 Public target updates from private sources require --acknowledge-public-exposure.
@@ -192,6 +193,7 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
         history: 3,
         publish: 4,
         rollback: 4,
+        edit: 3,
         remove: 3,
         restore: 3,
         download: 3,
@@ -213,8 +215,13 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
       )
         allowed.add("revision");
       if (action === "download" || action === "export") allowed.add("output");
-      if (action === "publish" || action === "rollback") {
-        if (action === "publish") allowed.add("acknowledge-public-exposure");
+      if (action === "publish" || action === "rollback" || action === "edit") {
+        if (action === "publish" || action === "edit")
+          allowed.add("acknowledge-public-exposure");
+        if (action === "edit") {
+          allowed.add("title");
+          allowed.add("text");
+        }
         allowed.add("sequence");
         allowed.add("request-id");
       }
@@ -400,6 +407,23 @@ export async function run(args: string[], runtime: Runtime): Promise<number> {
                     requestId,
                     public: true,
                   });
+          } else if (action === "edit") {
+            const title = value("title")?.trim();
+            const text = value("text");
+            if (
+              !title ||
+              title.length > 200 ||
+              text === undefined ||
+              text.length > 8000
+            )
+              return usage(
+                "Edit requires --title (1-200 characters) and --text (at most 8000 characters; empty clears). Description changes create a new revision; public edits require --acknowledge-public-exposure.",
+              );
+            result = await client.publication(action, words[2], {
+              title,
+              description: text || null,
+              ...sequence(),
+            });
           } else if (action === "publish") {
             result = await client.publication(action, words[2], {
               cid: canonicalCid(words[3]!),

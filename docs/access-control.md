@@ -62,8 +62,14 @@ action replaces the sidebar with a unified name and private-description form,
 with one Save changes/Cancel pair. The title, CID and content preview stay in
 place; file facts, download and publication actions are hidden while editing,
 and access changes are disabled. Long fields scroll within the bounded sidebar.
-Dirty drafts require confirmation before canceling or closing. Publication
-snapshots remain read-only.
+Desktop details reserve up to 480px for both preview and sidebar, adjusting to
+the viewport height so the normal edit form fits without an initial scrollbar.
+Short windows and long content retain scrolling; mobile keeps its compact
+stacked preview layout. Dirty drafts require confirmation before canceling or
+closing. Current owned Publications use the same editor: description changes
+create a new same-CID revision without rewriting history or Pin annotations;
+title-only edits do not create a revision. Historical snapshots and visitor
+pages remain read-only.
 
 The existing description CAS write and rename API remain separate operations:
 description saves first, then the name. If the second operation fails, the UI

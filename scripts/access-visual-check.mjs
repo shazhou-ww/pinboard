@@ -56,6 +56,19 @@ async function until(expression) {
   }
   throw new Error("Local UI condition timed out: " + expression);
 }
+async function captureDialog(path) {
+  if (!path) return;
+  const clip = await evaluate(`(() => {
+    const r=document.querySelector('dialog[open]').getBoundingClientRect();
+    return {x:r.x+window.scrollX,y:r.y+window.scrollY,width:r.width,height:r.height,scale:1};
+  })()`);
+  const image = await send("Page.captureScreenshot", {
+    format: "png",
+    captureBeyondViewport: true,
+    clip,
+  });
+  await writeFile(path, Buffer.from(image.data, "base64"));
+}
 const results = [];
 try {
   let tabs;
@@ -91,10 +104,15 @@ try {
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Page.navigate", { url: origin + "/#preview" });
   await until("document.querySelectorAll('.pin-card').length >= 4");
-  for (const width of [1280, 390, 320]) {
+  for (const { width, height } of [
+    { width: 1280, height: 900 },
+    { width: 1280, height: 600 },
+    { width: 390, height: 900 },
+    { width: 320, height: 900 },
+  ]) {
     await send("Emulation.setDeviceMetricsOverride", {
       width,
-      height: 900,
+      height,
       deviceScaleFactor: 1,
       mobile: width < 500,
     });
@@ -269,6 +287,18 @@ try {
     await until(
       "document.querySelector('dialog[open] .reading-description-form textarea')",
     );
+    const defaultEditor = await evaluate(`(() => {
+      const dialog=document.querySelector('dialog[open]');
+      const sidebar=dialog.querySelector('.reading-sidebar');
+      return {sidebarHeight:sidebar.getBoundingClientRect().height,
+        sidebarScroll:sidebar.scrollHeight>sidebar.clientHeight+1,
+        dialogScroll:dialog.scrollHeight>dialog.clientHeight+1};
+    })()`);
+    assert(
+      !defaultEditor.sidebarScroll,
+      `Default edit form scrolls at ${width}px: ${JSON.stringify(defaultEditor)}`,
+    );
+    if (width > 700) assert(!defaultEditor.dialogScroll);
     const metadataEditing = await evaluate(`(() => {
       const dialog=document.querySelector('dialog[open]');
       const textarea=dialog.querySelector('.reading-description-form textarea');
@@ -286,7 +316,7 @@ try {
     })()`);
     assert.equal(metadataEditing.preview, beforeEditing.preview);
     assert(
-      metadataEditing.sidebar <= 360 &&
+      metadataEditing.sidebar <= 480 &&
         metadataEditing.textarea <= 180 &&
         metadataEditing.scrollable,
     );
@@ -298,23 +328,15 @@ try {
         !metadataEditing.competingActions &&
         metadataEditing.accessDisabled,
     );
-    if (width === 1280 && process.env.ACCESS_VISUAL_SCREENSHOT) {
+    if (
+      width === 1280 &&
+      height === 900 &&
+      process.env.ACCESS_VISUAL_SCREENSHOT
+    ) {
       await evaluate(
         "document.querySelector('.detail-metadata-form textarea').style.height=''",
       );
-      const clip = await evaluate(`(() => {
-        const r=document.querySelector('dialog[open]').getBoundingClientRect();
-        return {x:r.x+window.scrollX,y:r.y+window.scrollY,width:r.width,height:r.height,scale:1};
-      })()`);
-      const image = await send("Page.captureScreenshot", {
-        format: "png",
-        captureBeyondViewport: true,
-        clip,
-      });
-      await writeFile(
-        process.env.ACCESS_VISUAL_SCREENSHOT,
-        Buffer.from(image.data, "base64"),
-      );
+      await captureDialog(process.env.ACCESS_VISUAL_SCREENSHOT);
     }
     await evaluate(`(() => {
       const input=document.querySelector('.detail-metadata-form input');
@@ -368,9 +390,11 @@ try {
     await until("document.querySelectorAll('dialog[open]').length === 0");
     results.push({
       viewport: width,
+      viewportHeight: height,
       result: "通过",
       card: geometry,
       filter,
+      defaultEditor,
       focusWidths: { unfocusedWidth, accessFocusedWidth, inputFocusedWidth },
       picker,
       metadataEditing,
@@ -393,6 +417,55 @@ try {
       `Array.from(document.querySelectorAll('.pin-card')).find(c => c.querySelector('.publication-badge')?.textContent === 'v1')?.querySelector('.pin-lock') === null`,
     ),
   );
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await evaluate(
+    `Array.from(document.querySelectorAll('.pin-card')).find(c=>c.querySelector('.publication-badge')?.textContent==='v3').querySelector('.pin-open').click()`,
+  );
+  await until(
+    "document.querySelector('dialog[open] [aria-label=\"Edit details\"]:not(:disabled)')",
+  );
+  await evaluate(
+    "document.querySelector('dialog[open] [aria-label=\"Edit details\"]').click()",
+  );
+  await until("document.querySelector('.detail-metadata-form')");
+  assert(
+    await evaluate(`(() => {
+    const form=document.querySelector('.detail-metadata-form');
+    const sidebar=form.closest('.reading-sidebar');
+    return form.querySelector('label').textContent.includes('Title')&&form.textContent.includes('Description changes create a new version')
+      && !document.querySelector('.detail-action-list')&&sidebar.scrollHeight<=sidebar.clientHeight+1
+      && document.querySelector('.detail-version-badge').disabled;
+  })()`),
+  );
+  await captureDialog(process.env.ACCESS_PUBLICATION_SCREENSHOT);
+  await evaluate(
+    `Array.from(document.querySelector('.detail-metadata-form').querySelectorAll('button')).find(b=>b.textContent==='Cancel').click()`,
+  );
+  await until("!document.querySelector('.detail-metadata-form')");
+  await evaluate("document.querySelector('.detail-version-badge').click()");
+  await until("document.querySelector('.detail-drawer')");
+  await evaluate(
+    `Array.from(document.querySelectorAll('.detail-drawer button')).find(b=>b.textContent.includes('View v1')).click()`,
+  );
+  await until("!document.querySelector('.detail-drawer')");
+  assert(
+    await evaluate(
+      "!document.querySelector('dialog[open] [aria-label=\"Edit details\"]')&&!document.querySelector('dialog[open] textarea')",
+    ),
+  );
+  await evaluate(
+    "document.querySelector('dialog[open] button[aria-label=\"Close Publication details\"]').click()",
+  );
+  results.push({
+    result: "通过",
+    publicationEditing:
+      "当前版本统一编辑标题与描述；历史版本只读，编辑时版本切换禁用，默认表单无滚动条",
+  });
   results.push({
     result: "通过",
     publicCard: "公开卡片不显示锁；访客只读图标由组件交互测试另行验证",

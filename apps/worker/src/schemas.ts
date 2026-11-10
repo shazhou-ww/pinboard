@@ -4,6 +4,18 @@ import { boundedBody } from "./content.js";
 import { itemFilterMaxLength } from "@shazhou/pinboard-contracts";
 
 export const nameSchema = z.string().trim().min(1).max(200);
+export const descriptionTextSchema = z
+  .string()
+  .max(8000)
+  .refine(
+    (text) =>
+      Array.from(text).every((character) => {
+        const code = character.charCodeAt(0);
+        return code >= 32 || code === 9 || code === 10 || code === 13;
+      }),
+    "Use plain text without control characters",
+  )
+  .nullable();
 export const itemFilterSchema = z.string().max(itemFilterMaxLength).optional();
 export const scopes = [
   "pins:read",
@@ -54,6 +66,12 @@ export const publicationPublishSchema = publicationWriteSchema
 export const publicationRollbackSchema = publicationWriteSchema
   .extend({
     revision: z.number().int().positive(),
+  })
+  .strict();
+export const publicationEditSchema = publicationWriteSchema
+  .extend({
+    title: nameSchema,
+    description: descriptionTextSchema,
   })
   .strict();
 

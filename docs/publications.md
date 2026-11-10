@@ -87,19 +87,38 @@ requires confirmation and the actual publication sequence; it does not create a
 revision. Publishing is a separate task using the current publication state,
 never the browsed snapshot as a write baseline.
 
-Public descriptions remain read-only immutable snapshots. Pin descriptions are
-private and shown read-only until explicit editing; cancel restores the
-original, conflicts preserve the draft, and unsaved closing requires
-confirmation. Technical root/reachable-child queries are available through API,
-CLI and MCP, not in the detail panel. Desktop content and description/history
-columns stack on narrow screens; copying lives below the title and downloads
-below the sidebar facts. The content preview reserves the same height while
-loading and after content arrives (360px on desktop, 240px on narrow screens).
-Long text, code and directory previews scroll inside that keyboard-focusable
-region instead of resizing the details; images and PDF thumbnails fit within it.
-Ready previews do not add explanatory footer lines. Generation status and
-failure retry actions stay inside this fixed-height area rather than pushing the
-content below it down.
+Publication details also have a unified **Edit details** sidebar on the current
+version. The owner can edit the item-level title and root description together.
+Changing only the title advances the sequence without creating a revision;
+changing the root description creates the next revision with the same CID and
+preserves all child descriptions. Earlier description snapshots and source Pin
+annotations are unchanged, and visibility is preserved. Historical versions and
+visitor pages remain read-only. Cancel and conflicts preserve draft safety;
+public edits require explicit exposure confirmation.
+
+`PATCH /api/publications/:id` accepts `title`, nullable `description`,
+`expectedSequence`, `requestId`, and `acknowledgePublicExposure:true` for public
+items. Owner publication read/write scopes are required, not source Pin scopes.
+The metadata transaction is atomic and request-ID replay is idempotent. Exact
+unchanged input is a NOP. The title belongs to the publication identity, not to
+individual historical revisions; immutable history refers to description
+snapshots, file CIDs and version records.
+
+Public descriptions remain immutable snapshots. Pin descriptions are private and
+shown read-only until explicit editing; cancel restores the original, conflicts
+preserve the draft, and unsaved closing requires confirmation. Technical
+root/reachable-child queries are available through API, CLI and MCP, not in the
+detail panel. Desktop content and description/history columns stack on narrow
+screens; copying lives below the title and downloads below the sidebar facts.
+The content preview reserves the same height while loading, reading and editing
+(up to 480px on desktop, adapting to window height; 240px preview on narrow
+screens). The normal editor fits without an initial sidebar scrollbar; long
+drafts and short windows still scroll when necessary. Long text, code and
+directory previews scroll inside that keyboard-focusable region instead of
+resizing the details; images and PDF thumbnails fit within it. Ready previews do
+not add explanatory footer lines. Generation status and failure retry actions
+stay inside this fixed-height area rather than pushing the content below it
+down.
 
 Settings → **Trash** directly lists pins and publications in the same compact
 table style as Tokens and OAuth, with deletion and expiry times and a restore

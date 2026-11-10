@@ -36,6 +36,14 @@ exports omit all sidecars. See [publication semantics](publications.md).
 root/child snapshot together with its system preview, including after the source
 Pin has expired.
 
+`publication_edit({id,title,description,expectedSequence,requestId})` edits the
+owned item's title and root description atomically with publication read/write
+scopes. Changed descriptions create a new same-CID revision with child and
+historical snapshots preserved; title-only edits do not add a revision.
+`description:null` clears the root text. Public edits require
+`acknowledgePublicExposure:true`. The existing `publication_publish` same-CID
+NOP remains unchanged; metadata edits use this separate operation.
+
 ## Publications and recovery tools
 
 These tools use the same services, CAS and recovery lifecycle as Web, CLI and

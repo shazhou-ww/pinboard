@@ -28,6 +28,9 @@ type EditorProps = {
     },
   ) => React.ReactNode;
   onRename?: ((name: string) => Promise<void>) | undefined;
+  onSaveDetails?:
+    | ((name: string, description: string | null) => Promise<void | false>)
+    | undefined;
   actions?: React.ReactNode;
   onDirtyChange?: ((dirty: boolean) => void) | undefined;
   onBusyChange?: ((busy: boolean) => void) | undefined;
@@ -70,6 +73,7 @@ function DescriptionEditor({
   onDirtyChange,
   onBusyChange,
   onRename,
+  onSaveDetails,
   client,
 }: EditorProps & { client: DescriptionClient }) {
   const [node, setNode] = useState(rootCid);
@@ -104,7 +108,8 @@ function DescriptionEditor({
   const [draftName, setDraftName] = useState(name ?? "");
   const [originalName, setOriginalName] = useState(name ?? "");
   const editTrigger = useRef<HTMLElement | null>(null);
-  const unified = readingFirst && !publicationId && !!onRename;
+  const unified =
+    readingFirst && ((!publicationId && !!onRename) || !!onSaveDetails);
   const editingRef = useRef(editing);
   editingRef.current = editing;
   const dirty =
@@ -220,10 +225,10 @@ function DescriptionEditor({
     }
   };
   const saveDetails = async () => {
-    if (!data || !onRename || busy) return;
+    if (!data || (!onRename && !onSaveDetails) || busy) return;
     const nextName = draftName.trim();
     if (!nextName || nextName.length > 200) {
-      setError("Pin names must contain 1-200 characters.");
+      setError("Names must contain 1-200 characters.");
       return;
     }
     setBusy(true);
@@ -232,19 +237,23 @@ function DescriptionEditor({
     let descriptionSaved = false;
     let nameSaved = false;
     try {
-      if (text !== draft.text) {
-        const next = await client.save(context, text || null, draft.version);
-        if (!next) throw new Error("Description save was not confirmed.");
-        const savedText = next.description.user.text ?? "";
-        setText(savedText);
-        setDraft({ text: savedText, version: next.description.user.version });
-        descriptionSaved = true;
-      }
-      if (nextName !== originalName) {
-        await onRename(nextName);
-        setOriginalName(nextName);
-        setDraftName(nextName);
-        nameSaved = true;
+      if (onSaveDetails) {
+        if ((await onSaveDetails(nextName, text || null)) === false) return;
+      } else if (onRename) {
+        if (text !== draft.text) {
+          const next = await client.save(context, text || null, draft.version);
+          if (!next) throw new Error("Description save was not confirmed.");
+          const savedText = next.description.user.text ?? "";
+          setText(savedText);
+          setDraft({ text: savedText, version: next.description.user.version });
+          descriptionSaved = true;
+        }
+        if (nextName !== originalName) {
+          await onRename(nextName);
+          setOriginalName(nextName);
+          setDraftName(nextName);
+          nameSaved = true;
+        }
       }
     } catch (failure) {
       setError(
@@ -255,7 +264,11 @@ function DescriptionEditor({
       setBusy(false);
     }
     finishEditing();
-    setNotice("Details saved. Published snapshots and content are unchanged.");
+    setNotice(
+      publicationId
+        ? "Publication details saved. Previous descriptions and file content are unchanged."
+        : "Details saved. Published snapshots and content are unchanged.",
+    );
     if (descriptionSaved || nameSaved) {
       try {
         await onChanged?.();
@@ -271,23 +284,25 @@ function DescriptionEditor({
       {error ? (
         <div role="alert">
           <p>{error}</p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              if (
-                dirty &&
-                !window.confirm(
-                  "Discard unsaved changes and reload description?",
+          {!(publicationId && onSaveDetails) && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  dirty &&
+                  !window.confirm(
+                    "Discard unsaved changes and reload description?",
+                  )
                 )
-              )
-                return;
-              setEditing(false);
-              setReload((value) => value + 1);
-            }}
-          >
-            Retry description
-          </button>
+                  return;
+                setEditing(false);
+                setReload((value) => value + 1);
+              }}
+            >
+              Retry description
+            </button>
+          )}
         </div>
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
@@ -369,7 +384,7 @@ function DescriptionEditor({
               >
                 <h4>Edit details</h4>
                 <label>
-                  Name
+                  {publicationId ? "Title" : "Name"}
                   <input
                     autoFocus
                     required
@@ -380,7 +395,7 @@ function DescriptionEditor({
                   />
                 </label>
                 <label>
-                  Private description
+                  {publicationId ? "Description" : "Private description"}
                   <textarea
                     rows={5}
                     maxLength={8000}
@@ -391,7 +406,9 @@ function DescriptionEditor({
                   />
                 </label>
                 <p className="muted">
-                  Only for this Pin. Published snapshots are unchanged.
+                  {publicationId
+                    ? "Description changes create a new version with the same file. Earlier versions stay unchanged."
+                    : "Only for this Pin. Published snapshots are unchanged."}
                 </p>
                 {errors}
                 <div className="actions">

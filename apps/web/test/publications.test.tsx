@@ -41,6 +41,82 @@ const publication: Publication = {
 const noop = () => {};
 afterEach(() => vi.unstubAllGlobals());
 describe("publication wall identity and management", () => {
+  it("saves unified publication metadata with sequence CAS and reuses an uncertain request ID", async () => {
+    let tree: ReactNode;
+    const changed = vi.fn(async () => {});
+    const fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Network uncertain"))
+      .mockResolvedValueOnce(
+        Response.json({
+          status: "updated",
+          publication: {
+            ...publication,
+            title: "Edited title",
+            sequence: 7,
+            currentRevision: 6,
+            revisionCount: 6,
+            current: {
+              ...publication.current,
+              revision: 6,
+              descriptions: { [pin.cid]: "Edited note" },
+            },
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetch);
+    vi.stubGlobal("window", { confirm: vi.fn(() => true) });
+    function Probe() {
+      tree = PublicationDialog({
+        publication,
+        pin: null,
+        pins: [pin],
+        publications: [publication],
+        onClose: noop,
+        onChanged: changed,
+      });
+      return tree;
+    }
+    renderToStaticMarkup(<Probe />);
+    const findEditor = (
+      node: ReactNode,
+    ):
+      ReactElement<Parameters<typeof NodeDescriptionEditor>[0]> | undefined => {
+      if (!isValidElement<{ children?: ReactNode }>(node)) return undefined;
+      if (node.type === NodeDescriptionEditor)
+        return node as ReactElement<
+          Parameters<typeof NodeDescriptionEditor>[0]
+        >;
+      for (const child of Children.toArray(node.props.children)) {
+        const found = findEditor(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const editor = findEditor(tree)!;
+    expect(editor.props.onSaveDetails).toBeDefined();
+    await expect(
+      editor.props.onSaveDetails!("Edited title", "Edited note"),
+    ).rejects.toThrow("Network uncertain");
+    await editor.props.onSaveDetails!("Edited title", "Edited note");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const [path, init] = fetch.mock.calls[0]!;
+    expect(path).toBe(`/api/publications/${publication.id}`);
+    expect(init).toMatchObject({ method: "PATCH" });
+    const first = JSON.parse(init.body);
+    expect(first).toMatchObject({
+      title: "Edited title",
+      description: "Edited note",
+      expectedSequence: 6,
+      acknowledgePublicExposure: true,
+    });
+    expect(JSON.parse(fetch.mock.calls[1]![1].body).requestId).toBe(
+      first.requestId,
+    );
+    expect(changed).toHaveBeenCalledOnce();
+    expect(window.confirm).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     { choicesLoading: true },
     { choicesError: "Could not load action choices." },

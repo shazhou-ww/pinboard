@@ -15,6 +15,7 @@ import {
   publicationWriteSchema,
   publicationPublishSchema,
   publicationRollbackSchema,
+  publicationEditSchema,
   visibilitySchema,
 } from "./schemas.js";
 import { PublicationService, publicationHistory } from "./publications.js";
@@ -351,6 +352,15 @@ export async function handleMcp(
     },
     ({ id, revision, ...write }) =>
       result(() => publications.rollback(id, revision, write)),
+  );
+  server.registerTool(
+    "publication_edit",
+    {
+      description:
+        "Edit an owned publication title and root description with sequence CAS and an idempotency key. A changed description creates a new revision with the same CID and preserved child descriptions; old snapshots remain unchanged. Title-only edits do not create a revision. Public edits require acknowledgePublicExposure:true.",
+      inputSchema: { id: z.string().max(128), ...publicationEditSchema.shape },
+    },
+    ({ id, ...input }) => result(() => publications.edit(id, input)),
   );
   server.registerTool(
     "publication_delete",
