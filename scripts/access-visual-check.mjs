@@ -88,6 +88,7 @@ try {
   });
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Page.navigate", { url: origin + "/#preview" });
   await until("document.querySelectorAll('.pin-card').length >= 4");
   for (const width of [1280, 390, 320]) {
@@ -98,6 +99,33 @@ try {
       mobile: width < 500,
     });
     await wait(250);
+    await evaluate("document.activeElement?.blur()");
+    await wait(250);
+    const unfocusedWidth = await evaluate(
+      "document.querySelector('.item-filter').getBoundingClientRect().width",
+    );
+    await evaluate("document.querySelector('.item-filter select').focus()");
+    await wait(250);
+    const accessFocusedWidth = await evaluate(
+      "document.querySelector('.item-filter').getBoundingClientRect().width",
+    );
+    assert.equal(accessFocusedWidth, unfocusedWidth);
+    await evaluate("document.querySelector('.item-filter input').focus()");
+    await wait(250);
+    const inputFocusedWidth = await evaluate(
+      "document.querySelector('.item-filter').getBoundingClientRect().width",
+    );
+    if (width > 959)
+      assert(
+        inputFocusedWidth > unfocusedWidth,
+        JSON.stringify({
+          width,
+          unfocusedWidth,
+          accessFocusedWidth,
+          inputFocusedWidth,
+        }),
+      );
+    else assert.equal(inputFocusedWidth, unfocusedWidth);
     await evaluate("document.querySelector('.item-filter select').focus()");
     await wait(250);
     const trigger = await evaluate(`(() => {
@@ -236,12 +264,12 @@ try {
         preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height};
     })()`);
     await evaluate(
-      "document.querySelector('dialog[open] [aria-label=\"Edit description\"]').click()",
+      "document.querySelector('dialog[open] [aria-label=\"Edit details\"]').focus(); document.querySelector('dialog[open] [aria-label=\"Edit details\"]').click()",
     );
     await until(
       "document.querySelector('dialog[open] .reading-description-form textarea')",
     );
-    const descriptionEditing = await evaluate(`(() => {
+    const metadataEditing = await evaluate(`(() => {
       const dialog=document.querySelector('dialog[open]');
       const textarea=dialog.querySelector('.reading-description-form textarea');
       textarea.style.height='800px';
@@ -249,42 +277,69 @@ try {
       return {height:dialog.getBoundingClientRect().height,
         preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height,
         sidebar:sidebar.getBoundingClientRect().height,textarea:textarea.getBoundingClientRect().height,
-        scrollable:getComputedStyle(sidebar).overflowY==='auto'};
+        scrollable:getComputedStyle(sidebar).overflowY==='auto',
+        titleReadOnly:!!dialog.querySelector('.detail-title h3'),
+        formCount:dialog.querySelectorAll('form').length,
+        hasName:!!dialog.querySelector('.detail-metadata-form input'),
+        competingActions:!!dialog.querySelector('.detail-action-list,[aria-label="Rename pin"],[aria-label="Edit description"]'),
+        accessDisabled:dialog.querySelector('.detail-access').disabled};
     })()`);
-    assert.equal(descriptionEditing.preview, beforeEditing.preview);
+    assert.equal(metadataEditing.preview, beforeEditing.preview);
     assert(
-      descriptionEditing.sidebar <= 360 &&
-        descriptionEditing.textarea <= 180 &&
-        descriptionEditing.scrollable,
+      metadataEditing.sidebar <= 360 &&
+        metadataEditing.textarea <= 180 &&
+        metadataEditing.scrollable,
     );
-    if (width > 700)
-      assert.equal(descriptionEditing.height, beforeEditing.height);
-    await evaluate(
-      `Array.from(document.querySelector('dialog[open]').querySelectorAll('button')).find(b=>b.textContent==='Cancel edit').click()`,
+    assert.equal(metadataEditing.height, beforeEditing.height);
+    assert(
+      metadataEditing.titleReadOnly &&
+        metadataEditing.formCount === 1 &&
+        metadataEditing.hasName &&
+        !metadataEditing.competingActions &&
+        metadataEditing.accessDisabled,
     );
-    await evaluate(
-      "document.querySelector('dialog[open] [aria-label=\"Rename pin\"]').click()",
-    );
-    await until("document.querySelector('dialog[open] .detail-title-editor')");
-    const renameEditing = await evaluate(`(() => {
-      const dialog=document.querySelector('dialog[open]'),form=dialog.querySelector('.detail-title-editor');
-      return {height:dialog.getBoundingClientRect().height,insideTitle:form.parentElement.classList.contains('detail-title'),
-        duplicateTitle:!!dialog.querySelector('.detail-title h3'),
-        preview:dialog.querySelector('.reading-preview-viewport').getBoundingClientRect().height,
-        overflow:dialog.scrollWidth>dialog.clientWidth};
+    if (width === 1280 && process.env.ACCESS_VISUAL_SCREENSHOT) {
+      await evaluate(
+        "document.querySelector('.detail-metadata-form textarea').style.height=''",
+      );
+      const clip = await evaluate(`(() => {
+        const r=document.querySelector('dialog[open]').getBoundingClientRect();
+        return {x:r.x+window.scrollX,y:r.y+window.scrollY,width:r.width,height:r.height,scale:1};
+      })()`);
+      const image = await send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: true,
+        clip,
+      });
+      await writeFile(
+        process.env.ACCESS_VISUAL_SCREENSHOT,
+        Buffer.from(image.data, "base64"),
+      );
+    }
+    await evaluate(`(() => {
+      const input=document.querySelector('.detail-metadata-form input');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Unified name draft');
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      const textarea=document.querySelector('.detail-metadata-form textarea');
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(textarea,'Unified description draft');
+      textarea.dispatchEvent(new Event('input',{bubbles:true}));
     })()`);
-    assert(
-      renameEditing.insideTitle &&
-        !renameEditing.duplicateTitle &&
-        !renameEditing.overflow,
-    );
-    assert(renameEditing.height <= beforeEditing.height + 1);
-    assert.equal(renameEditing.preview, beforeEditing.preview);
     await evaluate(
-      "document.querySelector('dialog[open] [aria-label=\"Cancel rename\"]').click()",
+      "document.querySelector('.detail-metadata-form .primary').click()",
     );
     await until(
-      "document.activeElement.getAttribute('aria-label')==='Rename pin'",
+      "document.querySelector('.detail-metadata-form [role=\"alert\"]')",
+    );
+    assert(
+      await evaluate(
+        `document.querySelector('.detail-metadata-form input').value==='Unified name draft'&&document.querySelector('.detail-metadata-form textarea').value==='Unified description draft'`,
+      ),
+    );
+    await evaluate(
+      `Array.from(document.querySelector('.detail-metadata-form').querySelectorAll('button')).find(b=>b.textContent==='Cancel').click()`,
+    );
+    await until(
+      "document.activeElement.getAttribute('aria-label')==='Edit details'",
     );
     await evaluate(
       "document.querySelector('dialog[open] .detail-access').focus(); document.querySelector('dialog[open] .detail-access').click()",
@@ -316,9 +371,9 @@ try {
       result: "通过",
       card: geometry,
       filter,
+      focusWidths: { unfocusedWidth, accessFocusedWidth, inputFocusedWidth },
       picker,
-      descriptionEditing,
-      renameEditing,
+      metadataEditing,
       detail: title,
       saveFailure:
         "只读预览拒绝保存，原私有状态保留；关闭分享对话框后焦点返回权限按钮",
@@ -363,5 +418,10 @@ try {
   socket?.close();
   for (let i = 0; i < 50 && chrome.exitCode === null; i++) await wait(100);
   if (chrome.exitCode === null) chrome.kill();
-  await rm(profile, { recursive: true, force: true });
+  await rm(profile, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 200,
+  });
 }

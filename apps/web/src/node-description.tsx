@@ -18,7 +18,16 @@ type EditorProps = {
   name?: string;
   facts?: React.ReactNode;
   sidebar?: React.ReactNode;
-  heading?: (contentType: string | null) => React.ReactNode;
+  heading?: (
+    contentType: string | null,
+    editor: {
+      editing: boolean;
+      busy: boolean;
+      ready: boolean;
+      start: () => void;
+    },
+  ) => React.ReactNode;
+  onRename?: ((name: string) => Promise<void>) | undefined;
   actions?: React.ReactNode;
   onDirtyChange?: ((dirty: boolean) => void) | undefined;
   onBusyChange?: ((busy: boolean) => void) | undefined;
@@ -60,6 +69,7 @@ function DescriptionEditor({
   actions,
   onDirtyChange,
   onBusyChange,
+  onRename,
   client,
 }: EditorProps & { client: DescriptionClient }) {
   const [node, setNode] = useState(rootCid);
@@ -91,17 +101,43 @@ function DescriptionEditor({
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
   const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(name ?? "");
+  const [originalName, setOriginalName] = useState(name ?? "");
+  const editTrigger = useRef<HTMLElement | null>(null);
+  const unified = readingFirst && !publicationId && !!onRename;
   const editingRef = useRef(editing);
   editingRef.current = editing;
-  const dirty = editing && text !== draft.text;
+  const dirty =
+    editing && (text !== draft.text || (unified && draftName !== originalName));
   const startEditing = () => {
     if (!data) return;
+    editTrigger.current =
+      typeof document !== "undefined" &&
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setDraftName(name ?? "");
+    setOriginalName(name ?? "");
+    setNotice("");
+    setError("");
     setText(data.description.user.text ?? "");
     setDraft({
       text: data.description.user.text ?? "",
       version: data.description.user.version,
     });
     setEditing(true);
+  };
+  const finishEditing = () => {
+    setEditing(false);
+    if (typeof requestAnimationFrame !== "undefined")
+      requestAnimationFrame(() => editTrigger.current?.focus());
+  };
+  const cancelEditing = () => {
+    if (dirty && !window.confirm("Discard unsaved changes?")) return;
+    setText(data?.description.user.text ?? "");
+    setDraftName(name ?? "");
+    setError("");
+    finishEditing();
   };
   useEffect(() => {
     if (!dirty) return;
@@ -183,6 +219,53 @@ function DescriptionEditor({
       setBusy(false);
     }
   };
+  const saveDetails = async () => {
+    if (!data || !onRename || busy) return;
+    const nextName = draftName.trim();
+    if (!nextName || nextName.length > 200) {
+      setError("Pin names must contain 1-200 characters.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    let descriptionSaved = false;
+    let nameSaved = false;
+    try {
+      if (text !== draft.text) {
+        const next = await client.save(context, text || null, draft.version);
+        if (!next) throw new Error("Description save was not confirmed.");
+        const savedText = next.description.user.text ?? "";
+        setText(savedText);
+        setDraft({ text: savedText, version: next.description.user.version });
+        descriptionSaved = true;
+      }
+      if (nextName !== originalName) {
+        await onRename(nextName);
+        setOriginalName(nextName);
+        setDraftName(nextName);
+        nameSaved = true;
+      }
+    } catch (failure) {
+      setError(
+        `${descriptionSaved ? "Description saved. Name was not confirmed; " : "Changes were not confirmed; "}${failure instanceof Error ? failure.message : String(failure)} Your remaining draft is preserved. Retry, or cancel to read the current saved values.`,
+      );
+      return;
+    } finally {
+      setBusy(false);
+    }
+    finishEditing();
+    setNotice("Details saved. Published snapshots and content are unchanged.");
+    if (descriptionSaved || nameSaved) {
+      try {
+        await onChanged?.();
+      } catch (failure) {
+        setError(
+          `Details saved, but the content list could not refresh. ${failure instanceof Error ? failure.message : String(failure)}`,
+        );
+      }
+    }
+  };
   const errors = (
     <>
       {error ? (
@@ -213,8 +296,13 @@ function DescriptionEditor({
   if (readingFirst)
     return (
       <>
-        {heading?.(preview?.contentType ?? null)}
-        <div className="reading-layout">
+        {heading?.(preview?.contentType ?? null, {
+          editing,
+          busy,
+          ready: !!data,
+          start: startEditing,
+        })}
+        <div className="reading-layout" data-mode={editing ? "edit" : "read"}>
           <section className="reading-content" aria-label="Content preview">
             {!heading ? <h4>Content</h4> : null}
             <div className="reading-preview-viewport">
@@ -260,106 +348,178 @@ function DescriptionEditor({
               ) : null}
             </div>
           </section>
-          <aside className="reading-sidebar">
-            <section
-              aria-label={
-                publicationId ? "Published description" : "Private description"
-              }
-            >
-              <div className="section-title">
-                <h4>
-                  {publicationId
-                    ? "Published description"
-                    : "Private description"}
-                </h4>
-                {!publicationId && data && !editing ? (
-                  <button
-                    type="button"
-                    className={heading ? "detail-description-edit" : undefined}
-                    aria-label="Edit description"
-                    title="Edit description"
+          <aside
+            className={`reading-sidebar${unified ? " metadata-sidebar" : ""}${unified && editing ? " editing-details" : ""}`}
+          >
+            {unified && editing ? (
+              <form
+                className="reading-description-form detail-metadata-form"
+                aria-label="Edit details"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void saveDetails();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!busy) cancelEditing();
+                  }
+                }}
+              >
+                <h4>Edit details</h4>
+                <label>
+                  Name
+                  <input
+                    autoFocus
+                    required
+                    maxLength={200}
+                    value={draftName}
                     disabled={busy}
-                    onClick={startEditing}
-                  >
-                    {heading ? (
-                      <Icon name="edit" size={16} />
-                    ) : (
-                      "Edit description"
-                    )}
+                    onChange={(event) => setDraftName(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Private description
+                  <textarea
+                    rows={5}
+                    maxLength={8000}
+                    placeholder="Add a note..."
+                    value={text}
+                    disabled={busy}
+                    onChange={(event) => setText(event.target.value)}
+                  />
+                </label>
+                <p className="muted">
+                  Only for this Pin. Published snapshots are unchanged.
+                </p>
+                {errors}
+                <div className="actions">
+                  <button type="button" disabled={busy} onClick={cancelEditing}>
+                    Cancel
                   </button>
-                ) : null}
-              </div>
-              {errors}
-              {data ? (
-                editing ? (
-                  <form
-                    className="reading-description-form"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void save(text);
-                    }}
+                  <button
+                    className="primary"
+                    disabled={busy || !dirty || !draftName.trim()}
                   >
-                    <label>
-                      User description (optional, plain text)
-                      <textarea
-                        autoFocus
-                        rows={5}
-                        maxLength={8000}
-                        value={text}
-                        disabled={busy}
-                        onChange={(event) => setText(event.target.value)}
-                      />
-                    </label>
-                    <p className="muted">
-                      Private for this root. Published snapshots and CAR exports
-                      are unchanged.
-                    </p>
-                    <div className="actions">
-                      <button disabled={busy}>Save description</button>
+                    {busy ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <section
+                  aria-label={
+                    publicationId
+                      ? "Published description"
+                      : "Private description"
+                  }
+                >
+                  <div className="section-title">
+                    <h4>
+                      {publicationId
+                        ? "Published description"
+                        : "Private description"}
+                    </h4>
+                    {!publicationId &&
+                    (!unified || !heading) &&
+                    data &&
+                    !editing ? (
                       <button
                         type="button"
+                        className={
+                          heading ? "detail-description-edit" : undefined
+                        }
+                        aria-label={
+                          unified ? "Edit details" : "Edit description"
+                        }
+                        title={unified ? "Edit details" : "Edit description"}
                         disabled={busy}
-                        onClick={() => {
-                          setText(data.description.user.text ?? "");
-                          setEditing(false);
+                        onClick={startEditing}
+                      >
+                        {unified ? (
+                          "Edit details"
+                        ) : heading ? (
+                          <Icon name="edit" size={16} />
+                        ) : (
+                          "Edit description"
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
+                  {errors}
+                  {data ? (
+                    editing ? (
+                      <form
+                        className="reading-description-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void save(text);
                         }}
                       >
-                        Cancel edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          void save(null);
-                        }}
-                      >
-                        Clear description
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <p className="node-user-description">
-                    {data.description.user.text ||
-                      (publicationId
-                        ? "No user description in this version."
-                        : "No private description.")}
+                        <label>
+                          User description (optional, plain text)
+                          <textarea
+                            autoFocus
+                            rows={5}
+                            maxLength={8000}
+                            value={text}
+                            disabled={busy}
+                            onChange={(event) => setText(event.target.value)}
+                          />
+                        </label>
+                        <p className="muted">
+                          Private for this root. Published snapshots and CAR
+                          exports are unchanged.
+                        </p>
+                        <div className="actions">
+                          <button disabled={busy}>Save description</button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setText(data.description.user.text ?? "");
+                              setEditing(false);
+                            }}
+                          >
+                            Cancel edit
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              void save(null);
+                            }}
+                          >
+                            Clear description
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <p className="node-user-description">
+                        {data.description.user.text ||
+                          (publicationId
+                            ? "No user description in this version."
+                            : "No private description.")}
+                      </p>
+                    )
+                  ) : !error ? (
+                    <p role="status">Loading description...</p>
+                  ) : null}
+                  {publicationId ? (
+                    <p className="muted">Read-only snapshot of this version.</p>
+                  ) : null}
+                </section>
+                {data ? (
+                  <p className="muted">
+                    Type: {data.description.preview.contentType ?? "Unknown"}
                   </p>
-                )
-              ) : !error ? (
-                <p role="status">Loading description...</p>
-              ) : null}
-              {publicationId ? (
-                <p className="muted">Read-only snapshot of this version.</p>
-              ) : null}
-            </section>
-            {data ? (
-              <p className="muted">
-                Type: {data.description.preview.contentType ?? "Unknown"}
-              </p>
-            ) : null}
-            {facts}
-            {actions}
-            {sidebar}
+                ) : null}
+                {facts}
+                {actions}
+                {sidebar}
+              </>
+            )}
           </aside>
         </div>
       </>

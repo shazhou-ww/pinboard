@@ -28,8 +28,9 @@ it("combines the access selector and search in one pill-shaped control", () => {
     /\.item-filter select\s*\{[^}]*border-right:\s*1px solid var\(--border\);/u,
   );
   expect(styles).toMatch(
-    /\.item-filter:focus-within\s*\{[^}]*width:\s*min\(420px,\s*calc\(100vw - 600px\)\);/u,
+    /\.item-filter:has\(input\[type="search"\]:focus\)\s*\{[^}]*width:\s*min\(420px,\s*calc\(100vw - 600px\)\);/u,
   );
+  expect(styles).not.toContain(".item-filter:focus-within");
 });
 
 it("keeps the clear action circular without clipping its keyboard focus", () => {

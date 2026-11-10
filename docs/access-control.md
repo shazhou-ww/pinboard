@@ -44,7 +44,9 @@ left, text in the middle and a clear-text action on the right. Clearing text
 empty state resets both. The access trigger follows the pill's left corners and
 keeps its focus ring inside. Browsers supporting customizable native selects
 show a themed, viewport-bounded picker; other browsers retain their native
-accessible picker.
+accessible picker. Only focusing the text input expands the desktop control.
+Access selection and its open picker keep the compact width; mobile remains
+full-width.
 
 Details replace the file-type icon with a leftmost inline lock/globe. The
 owner's button has a tinted background and aligns with the title's first line,
@@ -55,10 +57,20 @@ inherits the source Pin's visibility. Making a private source part of a public
 Publication requires confirmation of byte and description exposure; the source
 Pin stays private.
 
-Renaming replaces the title inline rather than inserting a second form above the
-preview. Description editing uses compact spacing and a bounded, scrollable
-sidebar so editing or resizing the text field does not stretch the desktop
-reading panel; the content preview keeps its reserved height.
+Owned Pin details have two modes: reading and **Edit details**. One header
+action replaces the sidebar with a unified name and private-description form,
+with one Save changes/Cancel pair. The title, CID and content preview stay in
+place; file facts, download and publication actions are hidden while editing,
+and access changes are disabled. Long fields scroll within the bounded sidebar.
+Dirty drafts require confirmation before canceling or closing. Publication
+snapshots remain read-only.
+
+The existing description CAS write and rename API remain separate operations:
+description saves first, then the name. If the second operation fails, the UI
+explicitly reports the saved description, retains the name draft and retries
+only remaining changes. Failure is never presented as an atomic save. Empty
+descriptions are cleared through Save changes rather than a separate clear
+action.
 
 Each visibility change requires fresh confirmation. Public confirmation covers
 all Publication history and irreversible downloads/caches. Revocation explains

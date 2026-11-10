@@ -292,6 +292,238 @@ afterEach(() => {
 });
 
 describe("cached detail reader integration", () => {
+  const unifiedReader = (
+    onRename = vi.fn<(name: string) => Promise<void>>().mockResolvedValue(),
+  ) => {
+    const cache = client();
+    cache.saved(ctx, value());
+    const props: Props = {
+      rootCid: "root",
+      name: "Original name",
+      readingFirst: true,
+      client: cache,
+      onRename,
+      heading: (_, editor) => (
+        <header>
+          <h3>Original name</h3>
+          {!editor.editing && (
+            <button onClick={editor.start}>Edit details</button>
+          )}
+        </header>
+      ),
+      facts: <p>File facts</p>,
+      actions: <button>Download content</button>,
+    };
+    return { instance: reader(props), onRename, cache };
+  };
+  const editName = (instance: Reader, name: string) => {
+    const input = instance.find((node) => node.type === "input");
+    (input.props.onChange as (event: unknown) => void)({
+      target: { value: name },
+    });
+  };
+
+  it("uses one sidebar form and one action pair for both fields, hiding reading actions", async () => {
+    const { instance } = unifiedReader();
+    expect(instance.render()).toContain("File facts");
+    instance.click("Edit details");
+    let html = instance.render();
+    expect(html).toContain('aria-label="Edit details"');
+    expect(html).toContain('data-mode="edit"');
+    expect(html).toContain("Private description");
+    expect(html).toContain("Save changes");
+    expect(html).not.toContain("Clear description");
+    expect(html).not.toContain("Edit description");
+    expect(html).not.toContain("Download content");
+    expect(html).not.toContain("File facts");
+    expect(html).toContain("<h3>Original name</h3>");
+    expect(html.match(/<form/g)).toHaveLength(1);
+    editName(instance, "Draft name");
+    instance.edit("Draft description");
+    instance.render();
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    instance.click("Cancel");
+    expect(instance.render()).toContain("Draft name");
+    expect(instance.render()).toContain("Draft description");
+    instance.click("Cancel");
+    html = instance.render();
+    expect(html).toContain('data-mode="read"');
+    expect(html).toContain("Download content");
+    expect(html).not.toContain("<textarea");
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ method: "PUT" }),
+    );
+    await flush();
+  });
+
+  it("preserves drafts on conflict and does not rename before the description succeeds", async () => {
+    const { instance, onRename } = unifiedReader();
+    instance.render();
+    await flush();
+    instance.render();
+    instance.click("Edit details");
+    instance.render();
+    editName(instance, "New name");
+    instance.edit("New description");
+    instance.render();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({ error: "Description conflict" }, { status: 409 }),
+    );
+    instance.submit();
+    await flush();
+    const html = instance.render();
+    expect(html).toContain("Description conflict");
+    expect(html).toContain("New name");
+    expect(html).toContain("New description");
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it("reports partial saves and retries only the name without rewriting a saved description", async () => {
+    const onRename = vi
+      .fn<(name: string) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("Name unavailable"))
+      .mockResolvedValueOnce();
+    const { instance } = unifiedReader(onRename);
+    instance.render();
+    await flush();
+    instance.render();
+    instance.click("Edit details");
+    instance.render();
+    editName(instance, "New name");
+    instance.edit("Updated description");
+    instance.render();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json(value("Updated description", 2)),
+    );
+    instance.submit();
+    await flush();
+    expect(instance.render()).toContain(
+      "Description saved. Name was not confirmed",
+    );
+    expect(instance.render()).toContain("New name");
+    expect(onRename).toHaveBeenCalledTimes(1);
+    const writes = () =>
+      vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "PUT");
+    expect(writes()).toHaveLength(1);
+    instance.submit();
+    await flush();
+    expect(onRename).toHaveBeenCalledTimes(2);
+    expect(writes()).toHaveLength(1);
+    expect(instance.render()).not.toContain("<textarea");
+    expect(instance.render()).toContain("Details saved");
+  });
+
+  it("saves name-only changes without changing descriptions and clears text using the same save action", async () => {
+    const { instance, onRename } = unifiedReader();
+    instance.render();
+    await flush();
+    instance.render();
+    instance.click("Edit details");
+    instance.render();
+    editName(instance, "Name only");
+    instance.render();
+    instance.submit();
+    await flush();
+    expect(onRename).toHaveBeenCalledWith("Name only");
+    expect(
+      vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "PUT"),
+    ).toHaveLength(0);
+    instance.render();
+    instance.click("Edit details");
+    instance.render();
+    instance.edit("");
+    instance.render();
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json(value("", 2)));
+    instance.submit();
+    await flush();
+    const write = vi
+      .mocked(fetch)
+      .mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(JSON.parse(write![1]!.body as string)).toEqual({
+      text: null,
+      expectedVersion: 1,
+    });
+    expect(instance.render()).not.toContain("<textarea");
+  });
+
+  it("keeps both draft fields across background updates and submits the original description version", async () => {
+    const { instance, cache, onRename } = unifiedReader();
+    instance.render();
+    await flush();
+    instance.render();
+    instance.click("Edit details");
+    instance.render();
+    editName(instance, "My name draft");
+    instance.edit("My note draft");
+    instance.render();
+    cache.saved(ctx, value("Background note", 4));
+    const html = instance.render();
+    expect(html).toContain("My name draft");
+    expect(html).toContain("My note draft");
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({ error: "Description conflict" }, { status: 409 }),
+    );
+    instance.submit();
+    await flush();
+    const write = vi
+      .mocked(fetch)
+      .mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(JSON.parse(write![1]!.body as string)).toEqual({
+      text: "My note draft",
+      expectedVersion: 1,
+    });
+    expect(onRename).not.toHaveBeenCalled();
+    expect(instance.render()).toContain("My name draft");
+  });
+
+  it("keeps the editor busy during saves and uses Escape to cancel the whole draft", async () => {
+    const { instance, onRename } = unifiedReader();
+    instance.render();
+    await flush();
+    instance.render();
+    instance.click("Edit details");
+    instance.render();
+    instance.edit("Saving note");
+    instance.render();
+    const pending = deferred();
+    vi.mocked(fetch).mockReturnValueOnce(pending.promise);
+    instance.submit();
+    instance.render();
+    expect(instance.find((node) => node.type === "input").props.disabled).toBe(
+      true,
+    );
+    expect(
+      instance.find((node) => node.type === "textarea").props.disabled,
+    ).toBe(true);
+    expect(
+      instance.find(
+        (node) => node.type === "button" && node.props.children === "Cancel",
+      ).props.disabled,
+    ).toBe(true);
+    pending.resolve(Response.json(value("Saving note", 2)));
+    await flush();
+    expect(instance.render()).not.toContain("<textarea");
+    expect(onRename).not.toHaveBeenCalled();
+    instance.click("Edit details");
+    instance.render();
+    editName(instance, "Discard me");
+    instance.render();
+    const form = instance.find((node) => node.type === "form");
+    const event = {
+      key: "Escape",
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+    (form.props.onKeyDown as (event: unknown) => void)(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(instance.render()).not.toContain("<textarea");
+    expect(vi.mocked(window.confirm)).toHaveBeenCalledWith(
+      "Discard unsaved changes?",
+    );
+  });
+
   it("does not render another publication's old resolved history while a new follow link resolves", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(

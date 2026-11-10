@@ -164,10 +164,6 @@ export function AccountManager({
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [descriptionBusy, setDescriptionBusy] = useState(false);
   const [descriptionDirty, setDescriptionDirty] = useState(false);
-  const [renaming, setRenaming] = useState<{
-    cid: string;
-    name: string;
-  } | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [operationBusy, setBusy] = useState(false);
@@ -317,7 +313,6 @@ export function AccountManager({
       if (target) {
         setSelected(null);
         setSelectedPublication(null);
-        setRenaming(null);
       }
       setUploadSelection(selection);
     });
@@ -597,30 +592,9 @@ export function AccountManager({
       await refresh();
     });
   };
-  const rename = (event: FormEvent) => {
-    event.preventDefault();
-    if (!renaming) return;
-    const { cid, name } = renaming;
-    if (!name.trim() || name.trim().length > 200) {
-      setError("Pin names must contain 1-200 characters.");
-      return;
-    }
-    void perform(async () => {
-      const pin = await requestJson<Pin>(`/api/pins/${cid}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
-      });
-      setSelected((previous) => (previous?.cid === pin.cid ? pin : previous));
-      await lists.refresh();
-      setRenaming(null);
-      setNotice("Pin renamed. CID and public content are unchanged.");
-    });
-  };
   const openPin = (pin: Pin) => {
     setSelected(pin);
     setDetailsLoading(true);
-    setRenaming(null);
     setError("");
     setNotice("");
     setProgress("");
@@ -636,7 +610,6 @@ export function AccountManager({
       await requestJson(`/api/pins/${pin.cid}`, { method: "DELETE" });
       descriptions.invalidateRoot(pin.cid);
       setSelected(null);
-      setRenaming(null);
       await refresh();
       setNotice(
         "Moved to recently deleted. Restore within 30 days in Settings. Publication references and public copies remain independent.",
@@ -1080,10 +1053,9 @@ export function AccountManager({
         busy={busy || descriptionBusy}
         dismissOnOutsideClick
         onClose={() => {
-          if (!discardDetailsDraft(descriptionDirty || !!renaming)) return;
+          if (!discardDetailsDraft(descriptionDirty)) return;
           setSelected(null);
           setDetailsLoading(false);
-          setRenaming(null);
         }}
       >
         {selected ? (
@@ -1098,86 +1070,43 @@ export function AccountManager({
               onChanged={lists.refresh}
               onBusyChange={setDescriptionBusy}
               onDirtyChange={setDescriptionDirty}
-              heading={(contentType) => (
+              onRename={async (name) => {
+                const pin = await requestJson<Pin>(
+                  `/api/pins/${selected.cid}`,
+                  {
+                    method: "PATCH",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ name }),
+                  },
+                );
+                setSelected((previous) =>
+                  previous?.cid === pin.cid ? pin : previous,
+                );
+              }}
+              heading={(contentType, editor) => (
                 <DetailHeading
                   name={selected.name}
                   visibility={selected.visibility}
                   onAccess={() => setAccessOpen(true)}
                   cid={selected.cid}
                   contentType={contentType}
-                  disabled={
-                    busy || descriptionBusy || descriptionDirty || !!renaming
-                  }
+                  disabled={busy || descriptionBusy || editor.editing}
                   onCopy={(text, onCopied) => {
                     void copy(text, onCopied);
                   }}
-                  titleEditor={
-                    renaming ? (
-                      <form
-                        className="detail-title-editor"
-                        onSubmit={rename}
-                        aria-label={`Rename ${selected.name}`}
-                      >
-                        <input
-                          aria-label="Pin name"
-                          autoFocus
-                          required
-                          maxLength={200}
-                          value={renaming.name}
-                          disabled={busy}
-                          onChange={(event) =>
-                            setRenaming({
-                              cid: renaming.cid,
-                              name: event.target.value,
-                            })
-                          }
-                        />
-                        <button
-                          type="submit"
-                          aria-label="Save name"
-                          title="Save name"
-                          disabled={busy || !renaming.name.trim()}
-                        >
-                          <Icon name="check" size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Cancel rename"
-                          title="Cancel rename"
-                          disabled={busy}
-                          onClick={() => {
-                            setRenaming(null);
-                            requestAnimationFrame(() =>
-                              document
-                                .querySelector<HTMLElement>(
-                                  'dialog[open] [aria-label="Rename pin"]',
-                                )
-                                ?.focus(),
-                            );
-                          }}
-                        >
-                          <Icon name="close" size={16} />
-                        </button>
-                      </form>
-                    ) : undefined
-                  }
                   badge={
-                    !renaming ? (
-                      <button
-                        className="detail-rename"
-                        aria-label="Rename pin"
-                        title="Rename pin"
-                        disabled={busy || descriptionBusy || descriptionDirty}
-                        onClick={() =>
-                          setRenaming({
-                            cid: selected.cid,
-                            name: selected.name,
-                          })
-                        }
-                      >
-                        <Icon name="edit" size={16} />
-                      </button>
-                    ) : null
+                    <button
+                      className="detail-rename"
+                      aria-label="Edit details"
+                      title="Edit name and description"
+                      aria-pressed={editor.editing}
+                      disabled={
+                        busy || editor.busy || editor.editing || !editor.ready
+                      }
+                      onClick={editor.start}
+                    >
+                      <Icon name="edit" size={16} /> Edit details
+                    </button>
                   }
                 />
               )}
@@ -1189,8 +1118,7 @@ export function AccountManager({
                     busy ||
                     detailsLoading ||
                     descriptionBusy ||
-                    descriptionDirty ||
-                    !!renaming
+                    descriptionDirty
                   }
                 >
                   <a

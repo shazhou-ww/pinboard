@@ -710,8 +710,10 @@ footer {
   background: var(--surface-glass-input);
   transition: width 180ms ease;
 }
-.item-filter:focus-within {
-  width: min(420px, calc(100vw - 600px));
+@media (min-width: 960px) {
+  .item-filter:has(input[type="search"]:focus) {
+    width: min(420px, calc(100vw - 600px));
+  }
 }
 .item-filter input[type="search"] {
   min-width: 0;
@@ -2318,6 +2320,40 @@ body:has(.canvas-dialog[open]) {
   margin: 0;
   font-size: 12px;
 }
+.reading-sidebar.metadata-sidebar {
+  height: 360px;
+}
+.reading-sidebar.editing-details {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-glass-light);
+}
+.detail-metadata-form h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.detail-metadata-form input {
+  min-width: 0;
+  padding: 8px;
+}
+.detail-metadata-form textarea {
+  height: 104px;
+}
+.detail-metadata-form .actions {
+  position: sticky;
+  bottom: -14px;
+  justify-content: flex-end;
+  padding-block: 8px;
+  background: var(--surface);
+}
+.reading-description-form.detail-metadata-form .actions .primary {
+  padding-inline: 12px;
+  text-decoration: none;
+}
+.detail-metadata-form [role="alert"] p {
+  color: var(--error);
+}
 .reading-description-form label {
   gap: 6px;
   font-size: 12px;
@@ -2410,30 +2446,6 @@ body:has(.canvas-dialog[open]) {
   margin: 0;
   font-size: inherit;
   line-height: inherit;
-}
-.pin-detail .detail-title-editor {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px 32px;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-  height: 1lh;
-  gap: 6px;
-  margin: 0;
-}
-.pin-detail .detail-title-editor input {
-  height: 32px;
-  min-width: 0;
-  padding: 4px 8px;
-  font-size: 14px;
-}
-.detail-title-editor button {
-  display: grid;
-  place-items: center;
-  height: 32px;
-  min-height: 32px;
-  padding: 0;
-  background: var(--subtle);
 }
 .detail-cid-combo {
   position: relative;

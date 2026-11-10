@@ -14,7 +14,7 @@ import { NodeDescriptionEditor } from "../src/node-description.js";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("reading details", () => {
-  it("replaces the title with an inline editor instead of appending another panel", () => {
+  it("keeps the title read-only while metadata is edited in the sidebar", () => {
     const html = renderToStaticMarkup(
       <DetailHeading
         name="Existing title"
@@ -23,22 +23,10 @@ describe("reading details", () => {
         visibility="private"
         disabled
         onCopy={() => {}}
-        titleEditor={
-          <form
-            className="detail-title-editor"
-            aria-label="Rename Existing title"
-          >
-            <input aria-label="Pin name" defaultValue="Existing title" />
-            <button aria-label="Save name">Save</button>
-          </form>
-        }
       />,
     );
-    expect(html).toContain('class="detail-title-editor"');
-    expect(html).not.toContain("<h3>");
-    expect(html.indexOf('class="detail-title-editor"')).toBeLessThan(
-      html.indexOf('class="detail-cid-combo"'),
-    );
+    expect(html).toContain("<h3>Existing title</h3>");
+    expect(html).not.toContain("<form");
   });
 
   it("bounds the reading sidebar and isolates compact editor spacing", () => {
@@ -56,7 +44,7 @@ describe("reading details", () => {
       /\.reading-description-form textarea\s*\{[^}]*max-height:\s*180px;/u,
     );
     expect(css).toMatch(
-      /\.pin-detail \.detail-title-editor\s*\{[^}]*height:\s*1lh;[^}]*margin:\s*0;/u,
+      /\.reading-sidebar\.metadata-sidebar\s*\{[^}]*height:\s*360px;/u,
     );
   });
 

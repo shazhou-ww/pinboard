@@ -114,14 +114,14 @@ export async function verifyItemPreviewCache({
     state.nodeDescriptions[${JSON.stringify(`${pins[0]}/${pins[0]}`)}] = {text:'External v2', version:2};
   })()`);
   await root(pins[0]);
-  await click("Edit description");
+  await click("Edit details");
   await setValue("dialog[open] textarea", "Draft remains based on v1");
   await waitDescription(privatePath);
   await check(
     "后台更新到 v2 时正在编辑的草稿不被覆盖",
     `document.querySelector('dialog[open] textarea').value === 'Draft remains based on v1' && document.querySelector('dialog[open] .reading-content').textContent.includes('preview v2')`,
   );
-  await click("Save description");
+  await click("Save changes");
   await wait("document.querySelector('dialog[open] [role=alert]')");
   await check(
     "刷新后保存仍使用原草稿 CAS v1，409 明示且保留草稿",
@@ -137,9 +137,9 @@ export async function verifyItemPreviewCache({
   await click("Retry description");
   await answer(true);
   await wait("!document.querySelector('dialog[open] textarea')");
-  await click("Edit description");
+  await click("Edit details");
   await setValue("dialog[open] textarea", "Saved v3");
-  await click("Save description");
+  await click("Save changes");
   await wait("!document.querySelector('dialog[open] textarea')");
   await check(
     "明确丢弃后重新编辑/保存显示 PUT 新响应 v3",
@@ -148,9 +148,9 @@ export async function verifyItemPreviewCache({
   await close();
   await evaluate("window.__readingTest.delayDescription = 1500");
   await root(pins[0]);
-  await click("Edit description");
+  await click("Edit details");
   await setValue("dialog[open] textarea", "PUT wins v4");
-  await click("Save description");
+  await click("Save changes");
   await wait("!document.querySelector('dialog[open] textarea')");
   await waitDescription(privatePath);
   await check(

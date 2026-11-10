@@ -212,12 +212,15 @@ try {
     });
   } else {
     await open();
+    await wait(
+      "document.querySelector('dialog[open] .reading-content').textContent.includes('Private content excerpt')",
+    );
     await check(
       "普通 Pin 默认只读说明、内容优先、无高级查询区",
       `document.querySelector('dialog[open] .reading-content').textContent.includes('Private content excerpt') && !document.querySelector('dialog[open] textarea') && !document.querySelector('dialog[open] .detail-advanced')`,
     );
     await screenshot("pin-desktop.png");
-    await click("Edit description");
+    await click("Edit details");
     await setValue("dialog[open] textarea", "Unsaved draft");
     await key("Escape");
     await answer(false);
@@ -225,31 +228,32 @@ try {
       "未保存编辑取消关闭后保留草稿",
       `document.querySelector('dialog[open] textarea').value === 'Unsaved draft'`,
     );
-    await click("Cancel edit");
+    await click("Cancel");
+    await answer(true);
     await check(
       "取消编辑恢复只读原文",
       `document.querySelector('dialog[open]').textContent.includes('Private fixture description') && !document.querySelector('dialog[open] textarea')`,
     );
-    await click("Edit description");
+    await click("Edit details");
     await setValue("dialog[open] textarea", "Conflict draft");
     await evaluate("window.__readingTest.conflict = true");
-    await click("Save description");
+    await click("Save changes");
     await wait(`document.querySelector('dialog[open] [role="alert"]')`);
     await check(
       "说明冲突保留草稿和 expectedVersion",
       `document.querySelector('dialog[open] textarea').value === 'Conflict draft' && window.__readingTest.requests.find(r=>r.method === 'PUT').body.expectedVersion === 1`,
     );
     await evaluate("window.__readingTest.conflict = false");
-    await click("Save description");
+    await click("Save changes");
     await wait("!document.querySelector('dialog[open] textarea')");
     await check(
       "保存私人说明后回到只读",
       `document.querySelector('dialog[open]').textContent.includes('Conflict draft')`,
     );
-    await click("Edit description");
+    await click("Edit details");
     await setValue("dialog[open] textarea", "Busy save draft");
     await evaluate("window.__readingTest.delayWrite = 2000");
-    await click("Save description");
+    await click("Save changes");
     await wait(
       `document.querySelector('dialog[open]')?.getAttribute('aria-busy') === 'true'`,
     );
@@ -285,12 +289,12 @@ try {
       `Array.from(document.querySelectorAll('dialog[open] .detail-action-list a')).every(a=>a.href.includes(window.__readingTest.pins[0].cid))`,
     );
     await check(
-      "CID 与复制图标为同一个点击区域、类型图标正方形",
-      `(() => { const d=document.querySelector('dialog[open]'); const r=d.querySelector('.detail-type-icon').getBoundingClientRect(); return d.querySelector('.detail-cid-copy code').textContent === window.__readingTest.pins[0].cid && Math.abs(r.width-r.height) < 1; })()`,
+      "CID 与复制图标为同一个点击区域、权限按钮正方形",
+      `(() => { const d=document.querySelector('dialog[open]'); const r=d.querySelector('.detail-access').getBoundingClientRect(); return d.querySelector('.detail-cid-copy code').textContent === window.__readingTest.pins[0].cid && Math.abs(r.width-r.height) < 1 && !d.querySelector('.detail-type-icon'); })()`,
     );
     await check(
-      "类型图标在正方形内纵向居中",
-      `(() => { const box=document.querySelector('dialog[open] .detail-type-icon').getBoundingClientRect(); const icon=document.querySelector('dialog[open] .detail-type-icon svg').getBoundingClientRect(); return Math.abs((box.top+box.bottom)/2-(icon.top+icon.bottom)/2) < 1; })()`,
+      "权限图标在按钮内纵向居中",
+      `(() => { const box=document.querySelector('dialog[open] .detail-access').getBoundingClientRect(); const icon=document.querySelector('dialog[open] .detail-access svg').getBoundingClientRect(); return Math.abs((box.top+box.bottom)/2-(icon.top+icon.bottom)/2) < 1; })()`,
     );
     await key("Escape");
     await check(
@@ -483,7 +487,7 @@ try {
       );
       await check(
         `${kind} 类型图标中心偏差小于 1px`,
-        `(() => { const box=document.querySelector('dialog[open] .detail-type-icon').getBoundingClientRect(); const icon=document.querySelector('dialog[open] .detail-type-icon svg').getBoundingClientRect(); return Math.abs((box.top+box.bottom)/2-(icon.top+icon.bottom)/2) < 1 && Math.abs((box.left+box.right)/2-(icon.left+icon.right)/2) < 1; })()`,
+        `(() => { const box=document.querySelector('dialog[open] .detail-access').getBoundingClientRect(); const icon=document.querySelector('dialog[open] .detail-access svg').getBoundingClientRect(); return Math.abs((box.top+box.bottom)/2-(icon.top+icon.bottom)/2) < 1 && Math.abs((box.left+box.right)/2-(icon.left+icon.right)/2) < 1; })()`,
       );
       if (kind === "image") await screenshot("image-icon-centered.png");
       await key("Escape");
