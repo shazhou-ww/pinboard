@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-11-12T04:58:32.229Z",
+  "client": "ipfs version 0.43.1",
+  "proofCids": [
+    "bafybeid76lrap2bbjtvflivc6s2upxwqqllpdaelbkhcccwgrmwhwens3u",
+    "bafybeiebjhtqzocy6xt4xtwmz5spx32o3wvemaoypizl4hhxrny6hj3gwq",
+    "bafkreibqiwt4zxlsjegqec5v3nm3rpm5ps2hg43zvoqazqw66g2cmqufvu"
+  ],
+  "proofBytes": 379,
+  "payloadSha256": "3045a7ccdd72490d020bb5db59b8bd9d7cb4737379aba00cc2def1b4264285ad",
+  "pathVerified": true,
+  "offlineKuboResolveAndCat": true,
+  "unrelatedSubtreeAbsent": true,
+  "missingIntermediateRejected": true,
+  "tamperedIntermediateRejected": true
+}
