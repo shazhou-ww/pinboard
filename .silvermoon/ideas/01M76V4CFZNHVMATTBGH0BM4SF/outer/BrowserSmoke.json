@@ -1,0 +1,117 @@
+{
+  "browser": "Chrome/157.0.8103.38",
+  "checkedAt": "2026-11-12T04:35:15.490Z",
+  "origin": "https://pinboard.shazhou.work",
+  "transport": "h3",
+  "fixtureCid": "bafkreickvvemn7qrqcm73vxm4jnkdbz6fgycb22noinfdoluu7fj3ag6fe",
+  "checks": [
+    {
+      "name": "Authenticated browser session",
+      "result": "passed"
+    },
+    {
+      "name": "Authenticated upload",
+      "result": "passed"
+    },
+    {
+      "name": "Fixture defaults private",
+      "result": "passed"
+    },
+    {
+      "name": "Private block stays hidden from anonymous conditional reads",
+      "result": "passed"
+    },
+    {
+      "name": "Owner raw GET",
+      "result": "passed"
+    },
+    {
+      "name": "Raw media type",
+      "result": "passed"
+    },
+    {
+      "name": "Raw attachment",
+      "result": "passed"
+    },
+    {
+      "name": "Private caching",
+      "result": "passed"
+    },
+    {
+      "name": "Raw bytes preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Independent raw CID verification",
+      "result": "passed"
+    },
+    {
+      "name": "Owner HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Weak validator",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Publish dedicated smoke fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous public raw",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous GET probe",
+      "result": "passed"
+    },
+    {
+      "name": "GET probe length",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous HEAD probe",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD probe length",
+      "result": "passed"
+    },
+    {
+      "name": "Unsupported CAR remains explicit",
+      "result": "passed"
+    },
+    {
+      "name": "Malformed Accept",
+      "result": "passed"
+    },
+    {
+      "name": "Browser service-worker root rejected with HTTP 400",
+      "result": "passed"
+    },
+    {
+      "name": "Page rendered",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke pin moved to trash",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke pin no longer anonymously readable",
+      "result": "passed"
+    }
+  ]
+}
