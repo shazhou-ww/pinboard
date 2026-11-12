@@ -1,0 +1,25 @@
+# Ledger
+
+## Implementation
+
+### Implementation steps
+
+- [ ] **I-S01:** 接入标准 CAR 与路径证明
+- [ ] **I-S02:** 验证流式失败与兼容性
+
+### Implementation acceptance criteria
+
+- [ ] **I-AC01:** 证明与实际响应一致
+- [ ] **I-AC02:** 资源及已有接口保持边界
+
+## Deployment
+
+### Deployment steps
+
+- [ ] **D-S01:** 验证独立 CAR 客户端
+- [ ] **D-S02:** 按授权核验目标环境
+
+### Deployment acceptance criteria
+
+- [ ] **D-AC01:** 外部证明可独立消费
+- [ ] **D-AC02:** 目标环境不扩大权限
