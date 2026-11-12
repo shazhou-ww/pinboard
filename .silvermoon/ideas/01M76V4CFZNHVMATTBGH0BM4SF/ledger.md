@@ -17,10 +17,10 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 验证独立客户端 raw 互操作
+- [x] **D-S01:** 验证独立客户端 raw 互操作
 - [ ] **D-S02:** 按授权验证目标环境
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** 冷缓存检索可独立复现
+- [x] **D-AC01:** 冷缓存检索可独立复现
 - [ ] **D-AC02:** 外部行为与声明一致
