@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-11-12T07:31:19.802Z",
+  "client": "Kubo v0.43.1 offline + independent CarReader/SHA256/DAG-PB/DAG-CBOR",
+  "results": [
+    {
+      "fixture": "unixfs",
+      "path": "nested/file.bin",
+      "scope": "block",
+      "resolved": "/ipfs/bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+      "offline": true,
+      "tamperedRejected": true,
+      "missingRejected": true
+    },
+    {
+      "fixture": "unixfs",
+      "path": "nested/file.bin",
+      "scope": "entity",
+      "resolved": "/ipfs/bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+      "fileSha256": "4d9116157955c71ba4bd7f93f160162e77da5640b94efff808f84899c7716fa9",
+      "offline": true,
+      "tamperedRejected": true,
+      "missingRejected": true
+    },
+    {
+      "fixture": "hamt",
+      "scope": "entity",
+      "enumerated": 60,
+      "childBlocksAbsent": true
+    },
+    {
+      "fixture": "cbor",
+      "scope": "all",
+      "selectedLinkPresent": true,
+      "siblingAbsent": true
+    }
+  ]
+}

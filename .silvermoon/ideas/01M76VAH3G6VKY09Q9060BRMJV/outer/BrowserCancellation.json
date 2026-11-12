@@ -1,0 +1,15 @@
+{
+  "browser": "Chrome/157.0.8103.38",
+  "checkedAt": "2026-11-12T07:35:11.109Z",
+  "checks": [
+    {
+      "name": "Browser cancels whole-scope request",
+      "result": "passed"
+    },
+    {
+      "name": "CAR probe recovers after cancellation",
+      "result": "passed"
+    }
+  ],
+  "results": []
+}

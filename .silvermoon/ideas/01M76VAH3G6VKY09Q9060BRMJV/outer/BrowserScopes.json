@@ -1,0 +1,2232 @@
+{
+  "browser": "Chrome/157.0.8103.38",
+  "checkedAt": "2026-11-12T07:31:13.004Z",
+  "origin": "https://pinboard.shazhou.work",
+  "transport": "h3",
+  "results": [
+    {
+      "fixture": "unixfs",
+      "path": "",
+      "scope": "block",
+      "bytes": 206,
+      "cids": ["bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4"],
+      "sha256": "f7a148303886fb52677ad297eb826ac88a9f699db5e0b7340212cad8f67f7059",
+      "etag": "\"b3305a971e3eafb071de739686e6f87134f42ecddc0d285d0b4b785f161cf1eb.car\""
+    },
+    {
+      "fixture": "unixfs",
+      "path": "",
+      "scope": "entity",
+      "bytes": 206,
+      "cids": ["bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4"],
+      "sha256": "f7a148303886fb52677ad297eb826ac88a9f699db5e0b7340212cad8f67f7059",
+      "etag": "\"238c38b5f498d864146b966043a97d147aa248f849717d4017dcfd3ea663c896.car\""
+    },
+    {
+      "fixture": "unixfs",
+      "path": "",
+      "scope": "all",
+      "bytes": 700687,
+      "cids": [
+        "bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+        "bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+        "bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+        "bafkreieuoelwf2cdsi2hjgtjciyann66icg33mgb62urog64y35ecwx2ym",
+        "bafkreic5n7he4e6h3lxckq6nio5cu36ynkfulukxajlhtkdexgmy2uxjoe",
+        "bafkreigtujhivchufiolzuaq2tbsay5udcu7ayjlsx4m554hbjdt33ovmu",
+        "bafkreibwb2vkb67zgecddzqdm3m3bvump3n7qoxnvi3lwazoig62o2sjoq"
+      ],
+      "sha256": "51aa808f5c4ce4f8414049b9d8365478191c338ec4358bf80eb2cac5c3880401",
+      "etag": "\"4c63c7342bc87127a42a040f6622ea11030245abcac7e96ecadbbd74dc9bf3e9.car\""
+    },
+    {
+      "fixture": "unixfs",
+      "path": "nested",
+      "scope": "entity",
+      "bytes": 301,
+      "cids": [
+        "bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+        "bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm"
+      ],
+      "sha256": "e8f77aa0369271b16695287cd08f9731a79e19525e85d2da8f0e53974c8b1a91",
+      "etag": "\"4255fb35c626155676c8f715306d72e27b8b6b379f06056be5b7771d82675906.car\""
+    },
+    {
+      "fixture": "unixfs",
+      "path": "nested",
+      "scope": "all",
+      "bytes": 700614,
+      "cids": [
+        "bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+        "bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+        "bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+        "bafkreieuoelwf2cdsi2hjgtjciyann66icg33mgb62urog64y35ecwx2ym",
+        "bafkreic5n7he4e6h3lxckq6nio5cu36ynkfulukxajlhtkdexgmy2uxjoe",
+        "bafkreigtujhivchufiolzuaq2tbsay5udcu7ayjlsx4m554hbjdt33ovmu"
+      ],
+      "sha256": "65ec01fecccb65527a80a37aaed0beea007b2c2e7680ada1d0994c76b5b3f42d",
+      "etag": "\"3962588526512e8a3539b47094640fd31fd9580b91b6a1dc94fbd796aca03cf7.car\""
+    },
+    {
+      "fixture": "unixfs",
+      "path": "nested/file.bin",
+      "scope": "block",
+      "bytes": 497,
+      "cids": [
+        "bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+        "bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+        "bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy"
+      ],
+      "sha256": "2a6a81c052ff470083c4ad205e83c870c391d68c353590874ac95e4e9d4fa0bd",
+      "etag": "\"74674c9d102a8015cb6c7173fecc7b292bdacfba55041a9f2c0fa5dc177ecc5c.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIg9gk91HGA68jt68CLd4Ofeqr7fy9DedrauVCFfJ3qhxdndmVyc2lvbgGRAQFwEiD2CT3UcYDryO3rwIt3g596qvt/L0N52tq5UIV8neqHFxIyCiQBcBIghpACIDiCCGY+pMqc6jvzLGjd93nKreKhvBhxOakqJXsSBm5lc3RlZBi43ioSMwokAVUSIDYOqqD7+TEEMeYDZtmw1ox+2/g67ao2uwMuQb2nakl0EglvdGhlci5iaW4YJAoCCAFeAXASIIaQAiA4gghmPqTKnOo78yxo3fd5yq3iobwYcTmpKiV7EjQKJAFwEiAqKkmViMSaJuBz2oZZbwSFseq62MJagTHSjvNCt3tvrhIIZmlsZS5iaW4Y/t0qCgIIAcIBAXASICoqSZWIxJom4HPahllvBIWx6rrYwlqBMdKO80K3e2+uEiwKJAFVEiCUcRdi6EOSNHSaaRIwBrfeQI29sMH2qRcb3Mb6QVr6wxIAGICAEBIsCiQBVRIgXW/OThPH2u4lQ81Duipv2GqLRdFXAlZ5qGS5mY1S6XESABiAgBASLAokAVUSINOiToqI9CocvNAQ1MMgY7QYqfBhK5X4zveHCkc97dVlEgAY4NwKChIIAhjg3CoggIAQIICAECDg3Ao="
+    },
+    {
+      "fixture": "unixfs",
+      "path": "nested/file.bin",
+      "scope": "entity",
+      "bytes": 700614,
+      "cids": [
+        "bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+        "bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+        "bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+        "bafkreieuoelwf2cdsi2hjgtjciyann66icg33mgb62urog64y35ecwx2ym",
+        "bafkreic5n7he4e6h3lxckq6nio5cu36ynkfulukxajlhtkdexgmy2uxjoe",
+        "bafkreigtujhivchufiolzuaq2tbsay5udcu7ayjlsx4m554hbjdt33ovmu"
+      ],
+      "sha256": "65ec01fecccb65527a80a37aaed0beea007b2c2e7680ada1d0994c76b5b3f42d",
+      "etag": "\"f615018de638a9011fbd798bc368d42a6f98a649facf91bdfba33d81eaa6d72d.car\"",
+      "proofPersistence": "Exact CID set, response SHA256 and independent reconstruction hash retained; large duplicate base64 omitted."
+    },
+    {
+      "fixture": "hamt",
+      "path": "",
+      "scope": "entity",
+      "bytes": 4212,
+      "cids": [
+        "bafybeigoahe367hckfj75ofevryrncqh34rjngjaktovzx3o66bcxedge4",
+        "bafybeiafbnxlycry6zu4e4qzlgl5xggqsyaripjjjs3d6iht5acac25ope",
+        "bafybeiby6d2nyhuyp4x6kj74rmra6kcjugxoq77q5ikuvytsxxqow3wlea",
+        "bafybeifo4d2dxtezltjlqy5ulud5aoje5phrj7nm3ftj5b4oajdfnqzrxi",
+        "bafybeidzpen6b4ffggi7rvv54e5brletoezl7kouu4itstviy73dcprw4q",
+        "bafybeieusu46eov664cvr4uiphjsmb4v3plym6avhkhkcsbrkmwf6bftra",
+        "bafybeihvoabbkvdv7samncu5qapxnoykc4hdtopd2dxmufmxkhrluiwqky",
+        "bafybeiafpinkjkhngezw2gi2py57byu64qegviksbkktfeffxsnafu2ej4"
+      ],
+      "sha256": "46ead307b9ea8aa2f83a225249f73b4a00ab134aa2c4bd34f17112298800234f",
+      "etag": "\"bf0306c6c4ff0ccad9ac3a63ed838e4a0e6c833f502ec0e6f647ddc66e637b6f.car\"",
+      "proof": "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"
+    },
+    {
+      "fixture": "hamt",
+      "path": "",
+      "scope": "all",
+      "bytes": 8762,
+      "cids": [
+        "bafybeigoahe367hckfj75ofevryrncqh34rjngjaktovzx3o66bcxedge4",
+        "bafkreiamoym4axmn3uytlsesscgvh74qplkozxjvsv7f2ranqu44kjrfdy",
+        "bafkreicy3soadgc6qeouxodrxcwjnmoxmkpujnubwhtdkqz2axdiqhpffa",
+        "bafkreibelgtbbzeyc7vk2btbuuv4ofa3e3lerxcb2p2ugybrkvl4wsjfpu",
+        "bafkreid7bqxahw7czjyajyqiqtxnyfbcisgvavbv6uacr5hpf74wzy3gqe",
+        "bafybeiafbnxlycry6zu4e4qzlgl5xggqsyaripjjjs3d6iht5acac25ope",
+        "bafkreif2qfm3xneqgywnglyk5yjzftxk4iooyid52u5tquwhwa6dkdow7m",
+        "bafkreifujuvqnwoj7iloenzu2tb2rcxpu36mjrxvwvjbehmujhyh2tsz4y",
+        "bafkreiaurkdc4sbxnswjexgzudumsbzx55l4ne32xalwljd3tt7pfj3tfy",
+        "bafkreibpyepvvventfkmhyumlfsohqrusdmo2pxhjgigaibvnmizvgxl3m",
+        "bafybeiby6d2nyhuyp4x6kj74rmra6kcjugxoq77q5ikuvytsxxqow3wlea",
+        "bafkreie36nwsb5c5rjdsflfyx2wme3w2lthdusglm5zwnxarn35ktbo6ve",
+        "bafkreifrydmyzznzhiccjtg3hvlpfaxxdkzedcsrv3ruskbdlpcng7gw34",
+        "bafybeifo4d2dxtezltjlqy5ulud5aoje5phrj7nm3ftj5b4oajdfnqzrxi",
+        "bafkreieess2wlrmndafiowswrm3r4ksg7ux7uo2jnsiqpfpfg5cbnsxvxq",
+        "bafkreic6vxv7k3at4y6p63sjsezyctua75v26akawiuldy3db4rsq5v65a",
+        "bafkreidyaarxf34suhwxhgbrziatmu6irhdqztbnsth3fcgxf6sdp43kxa",
+        "bafkreidey7b2jzvkpi4z5p7ayw2zmz5hqvkr5rzdjk3enizlqyhol7smse",
+        "bafkreiblizlbfs3d74q7dbr75e6lam4kquh45w4ixcvv2nfobtd5lydghm",
+        "bafkreidv35nvkvvidnjjujv4wuldkth4lmpncd2ex74ylgj6ovz7awggk4",
+        "bafkreigzdpzt62yd2xpfzf2yqgup2vsrivfvavl5e6xnkmuwhk4e3edzcy",
+        "bafkreid5vq3z3oggxratqq6pyd5fn3pd3dkaldcykpku2pg2jv7d2xulgu",
+        "bafkreifdn5bqfbinikxjwlm5p7qwv2bt2ojgsbmzfov63n4wj3bd2rjqoy",
+        "bafkreicpfy6eayj43dyeug4ioxvgzt6rdebxoo73optf566nxwqxbenwlu",
+        "bafkreif4hxa5wgqufcpepugb2milvoh4m5uia7sk7vsq4ojpmfxx7xbtki",
+        "bafkreiepfnczv5yeut4nu4rwamx2xtkrolufr3lmspikgmqdhxze4epff4",
+        "bafkreigb7a55gbe6v4tblyinjhwcszcz5sj7fyq4mbod5a3pwt5voikcga",
+        "bafybeidzpen6b4ffggi7rvv54e5brletoezl7kouu4itstviy73dcprw4q",
+        "bafkreiffqtflqbk25oio5tsj6ukp6bneizx54xrxg32kfgugkybbz6irv4",
+        "bafkreihgwcsivo2xgxpfc2w4vytdgvnfl5h7hx2nej43ohud7zedykuqwq",
+        "bafkreiegu3rskakyabev4fkfr7lak2wh3yjd4xudxn24ubitrfgdlbh67q",
+        "bafkreiad74eyxngf6pra2gnimpn3h66oq5pjzim2j7dn4fh72sreaccs2q",
+        "bafkreido2m2u6jnbxpxd44i44mbrdp34zhirylpwg5w4nho2lnacxn2fsi",
+        "bafybeieusu46eov664cvr4uiphjsmb4v3plym6avhkhkcsbrkmwf6bftra",
+        "bafkreihdbdj3wyup5nlf663ubvdy5xl3duumk25xrz2235ipwkz5aul2hi",
+        "bafkreihaownb7cqtrlyeni225m7lgxqdshkscm67verkgneoixkzmerbia",
+        "bafkreifascglwxgizjrz3dnhmkxe72attgephpwj6fdgisvvuwmkmdjf7q",
+        "bafkreicfb2pahmqjc4sxjg2oqbpm32fxnmghhdb23jdrs7pddqtuuglawq",
+        "bafkreigiynwnembaqdd4jfxrmtqwryz6irsgksa5datyhtn4ngmuxujxae",
+        "bafkreigz5hrve5ofz3skbcbv3eavlzlmxo4audhzikn3wcthf3jonahggq",
+        "bafybeihvoabbkvdv7samncu5qapxnoykc4hdtopd2dxmufmxkhrluiwqky",
+        "bafkreie6uhzkepzyz6mufdf6gx2dvks5ew6ep3i6bbrlucdc5rg4adolii",
+        "bafkreigwyciw7rbenfirujnzvv6cju42acu6xttie2e6njflzld3z7cywe",
+        "bafkreicnavoyabj7ntuzdwxbo7s4r7zswf5cf3ml2wz3rdzl7rr5krzbua",
+        "bafybeiafpinkjkhngezw2gi2py57byu64qegviksbkktfeffxsnafu2ej4",
+        "bafkreigos5udciezx5ackgiaat27dq22zuxhd4f2tzq3sipi2lp6ahtlvu",
+        "bafkreig3jrdvqxx3pnqv5ekr3crcua4pc5z6mgaht24ynugclqrsnqdeki",
+        "bafkreid46zx5prp7an5ede3nytjiw7f6lzsjeinfw7domecrprvkdxr44q",
+        "bafkreibp3kuandck2l6nrg3zmqbedn7jethkummqrbw5uv5u6ssfw3rwya",
+        "bafkreif6qcwk2bsfbcjemjzhxjrvuuf7wlvjh4wdsx2d67mmz7cvr2qh7m",
+        "bafkreietp3a5ddfjbntvyk2mj6k4lhxjhaannrlwk2leggmlh6yfmtxliq",
+        "bafkreidua2x7luuu5nihxykd57okemwvwow2hvyvh2fpceqc7hemoos24u",
+        "bafkreigsm4e5b42gwrj3sncy6ixz7gkynyxytlntec2p277nlzpzbt52im",
+        "bafkreihavuqoc62ty2b7ibsjvtu4dvpf5xdt5b5enq7yjmr66sijowaruq",
+        "bafkreicwrbemyb7yhupd6qtn2vvvwlb37zin6gmdqojbvrrkkxxwlnr24u",
+        "bafkreibkykty3q7h3eoob3iuidpytonkxp7ugj35dtghpyhqsrjd7uozyy",
+        "bafkreictxlxibddlqdqbjpd7nm5hkwm3nehul2gvszi5kcan7t7vej2tqe",
+        "bafkreihnfdr3fuw2harxje53eyqr35sk7iykrsxedlty3cpchxmdp2nnui",
+        "bafkreicxbl2u5cjyynw5sxggidcramqadgbdsenao5yffqbi6u5hj2s2fi",
+        "bafkreicnyrzionj3fgpe7eyf5twas4fjltwik5ixyszeom2tzqli3pbaaq",
+        "bafkreih4o7xlzcvlfk3azvpcmqolzag5nx5gyemzit5k6tna3o6jdbpvqe",
+        "bafkreidccm7rp4cmiqdvirc2uvly45cqmtrinrczeer6c7zp2sfnabskry",
+        "bafkreiaqozei33yby7cyuk256t3euby3ycryw4q2f7sr2nebpjqwnwllje",
+        "bafkreiblrg6y245q62ixc5pxrzyx6bkxbbmnn6wqzegeynq4ksxaotmwze",
+        "bafkreicjprnzoxl7i3b76r2emmymtagzhl6br2fw6vjyreajqm4hslzbke",
+        "bafkreifu2qlugo6n6nqflgwjmqgiyyuvk4anevlqcvtti2j54acnvtamoa",
+        "bafkreigud4ku2444vyxkqtitu7rkph3owp3gs3pm5kul4azvvjzz7zv6ca",
+        "bafkreifr77iobhpmhdbaftcb5oy4nu7t7tevoevbxqoxska43abgbkuegi"
+      ],
+      "sha256": "cf3e53125eb16b595a759c3a0013cfeaef59d593e39c5bd7e6e38d1a39e9f4d8",
+      "etag": "\"4e8e4791c3a18ee1a833b08de2a9bba800d78416bae7a38ec9906e41aa124c1e.car\""
+    },
+    {
+      "fixture": "cbor",
+      "path": "selected",
+      "scope": "all",
+      "bytes": 277,
+      "cids": [
+        "bafyreibkrid5mgg5hxm2zin3z32m6qmwbj342c7fwxrtakrpbpbzcblveu",
+        "bafkreie4pkccbmky5fwz2xyrjflv3th2l4onkyie7mhjkma5fyljh4aexy"
+      ],
+      "sha256": "d76dd31dc2d6360073b3c9d139858a5b7e3db6f97b6ab19f23b5d4bcc128b36b",
+      "etag": "\"1eedd09498132c25a237c19a5ac1d188e3502a03db6587e7961d45f62cd88722.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcRIgKooH1hjdPdmsobvO9M9Blgp3zQvlteMwKi8Lw5EFdSVndmVyc2lvbgGOAQFxEiAqigfWGN092ayhu870z0GWCnfNC+W14zAqLwvDkQV1JaJnc2libGluZ9gqWCUAAVUSIPG+sZACZzCsmJ+Cj0d4Tzh0Q51KBabeiyuOpl5ymyROaHNlbGVjdGVkoWRsaW5r2CpYJQABVRIgnHqEILFY6W2dXxFJV13M+l8c1WEE+w6VMB0uFpPwBL5JAVUSIJx6hCCxWOltnV8RSVddzPpfHNVhBPsOlTAdLhaT8AS+ZDM2N2RhYzYtY2YxOC00YWQ4LWFjNTUtMDc0ZTllZDc2NTBhKg=="
+    },
+    {
+      "fixture": "cbor",
+      "path": "selected",
+      "scope": "entity",
+      "bytes": 203,
+      "cids": ["bafyreibkrid5mgg5hxm2zin3z32m6qmwbj342c7fwxrtakrpbpbzcblveu"],
+      "sha256": "a3984c728a892205e6536d000f226bf87cb5a68d04daa2138bf4905e8e787d95",
+      "etag": "\"d3da3552db8e94db21e29ea0b3f980f510a61df3c26fdea331e35480f7176566.car\""
+    },
+    {
+      "fixture": "cbor",
+      "path": "",
+      "scope": "all",
+      "bytes": 351,
+      "cids": [
+        "bafyreibkrid5mgg5hxm2zin3z32m6qmwbj342c7fwxrtakrpbpbzcblveu",
+        "bafkreihrx2yzaathgcwjrh4cr5dxqtzyorbz2sqfu3piwk4ouzphfgzejy",
+        "bafkreie4pkccbmky5fwz2xyrjflv3th2l4onkyie7mhjkma5fyljh4aexy"
+      ],
+      "sha256": "76d0140ef1c81fb3a66cca7f4d37b437a62fa054acbf4ca07ffbb0be7201e649",
+      "etag": "\"31d3e43561c576f08860e0717dd85bca191b87eda543c775864f00f851422730.car\""
+    }
+  ],
+  "checks": [
+    {
+      "name": "Authenticated session",
+      "result": "passed"
+    },
+    {
+      "name": "Page rendered",
+      "result": "passed"
+    },
+    {
+      "name": "PNG encoded",
+      "result": "passed"
+    },
+    {
+      "name": "Image upload",
+      "result": "passed"
+    },
+    {
+      "name": "Preview status",
+      "result": "passed"
+    },
+    {
+      "name": "Preview status",
+      "result": "passed"
+    },
+    {
+      "name": "Preview ready",
+      "result": "passed"
+    },
+    {
+      "name": "WebP unchanged",
+      "result": "passed"
+    },
+    {
+      "name": "Raw unchanged",
+      "result": "passed"
+    },
+    {
+      "name": "Image raw bytes match",
+      "result": "passed"
+    },
+    {
+      "name": "Import unixfs",
+      "result": "passed"
+    },
+    {
+      "name": "Imported CID",
+      "result": "passed"
+    },
+    {
+      "name": "Default private",
+      "result": "passed"
+    },
+    {
+      "name": "Private scope denial",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs  block",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs  entity",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs  all",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreieuoelwf2cdsi2hjgtjciyann66icg33mgb62urog64y35ecwx2ym",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreic5n7he4e6h3lxckq6nio5cu36ynkfulukxajlhtkdexgmy2uxjoe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigtujhivchufiolzuaq2tbsay5udcu7ayjlsx4m554hbjdt33ovmu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreibwb2vkb67zgecddzqdm3m3bvump3n7qoxnvi3lwazoig62o2sjoq",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs nested entity",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs nested all",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreieuoelwf2cdsi2hjgtjciyann66icg33mgb62urog64y35ecwx2ym",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreic5n7he4e6h3lxckq6nio5cu36ynkfulukxajlhtkdexgmy2uxjoe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigtujhivchufiolzuaq2tbsay5udcu7ayjlsx4m554hbjdt33ovmu",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs nested/file.bin block",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "unixfs nested/file.bin entity",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihwbe65i4ma5peo326arn3yhh32vl5x6l2dphnnvokqqv6j32uhc4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiegsabcaoecbbtd5jgkttvdx4zmndo7o6okvxrkdpayoe42skrfpm",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeibkfjezlcgetitoa462qzmw6befwhvlvwgclkatduuo6nblo63pvy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreieuoelwf2cdsi2hjgtjciyann66icg33mgb62urog64y35ecwx2ym",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreic5n7he4e6h3lxckq6nio5cu36ynkfulukxajlhtkdexgmy2uxjoe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigtujhivchufiolzuaq2tbsay5udcu7ayjlsx4m554hbjdt33ovmu",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "Default all",
+      "result": "passed"
+    },
+    {
+      "name": "Default and explicit all bytes",
+      "result": "passed"
+    },
+    {
+      "name": "Default and explicit all ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Scope ETags separated",
+      "result": "passed"
+    },
+    {
+      "name": "Missing path remains404",
+      "result": "passed"
+    },
+    {
+      "name": "entity-bytes unsupported",
+      "result": "passed"
+    },
+    {
+      "name": "Custom wholeCAR preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Public fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous public all",
+      "result": "passed"
+    },
+    {
+      "name": "Import hamt",
+      "result": "passed"
+    },
+    {
+      "name": "Imported CID",
+      "result": "passed"
+    },
+    {
+      "name": "Default private",
+      "result": "passed"
+    },
+    {
+      "name": "Private scope denial",
+      "result": "passed"
+    },
+    {
+      "name": "hamt  entity",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeigoahe367hckfj75ofevryrncqh34rjngjaktovzx3o66bcxedge4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiafbnxlycry6zu4e4qzlgl5xggqsyaripjjjs3d6iht5acac25ope",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiby6d2nyhuyp4x6kj74rmra6kcjugxoq77q5ikuvytsxxqow3wlea",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeifo4d2dxtezltjlqy5ulud5aoje5phrj7nm3ftj5b4oajdfnqzrxi",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeidzpen6b4ffggi7rvv54e5brletoezl7kouu4itstviy73dcprw4q",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeieusu46eov664cvr4uiphjsmb4v3plym6avhkhkcsbrkmwf6bftra",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihvoabbkvdv7samncu5qapxnoykc4hdtopd2dxmufmxkhrluiwqky",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiafpinkjkhngezw2gi2py57byu64qegviksbkktfeffxsnafu2ej4",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "hamt  all",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeigoahe367hckfj75ofevryrncqh34rjngjaktovzx3o66bcxedge4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiamoym4axmn3uytlsesscgvh74qplkozxjvsv7f2ranqu44kjrfdy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicy3soadgc6qeouxodrxcwjnmoxmkpujnubwhtdkqz2axdiqhpffa",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreibelgtbbzeyc7vk2btbuuv4ofa3e3lerxcb2p2ugybrkvl4wsjfpu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreid7bqxahw7czjyajyqiqtxnyfbcisgvavbv6uacr5hpf74wzy3gqe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiafbnxlycry6zu4e4qzlgl5xggqsyaripjjjs3d6iht5acac25ope",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreif2qfm3xneqgywnglyk5yjzftxk4iooyid52u5tquwhwa6dkdow7m",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreifujuvqnwoj7iloenzu2tb2rcxpu36mjrxvwvjbehmujhyh2tsz4y",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiaurkdc4sbxnswjexgzudumsbzx55l4ne32xalwljd3tt7pfj3tfy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreibpyepvvventfkmhyumlfsohqrusdmo2pxhjgigaibvnmizvgxl3m",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiby6d2nyhuyp4x6kj74rmra6kcjugxoq77q5ikuvytsxxqow3wlea",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreie36nwsb5c5rjdsflfyx2wme3w2lthdusglm5zwnxarn35ktbo6ve",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreifrydmyzznzhiccjtg3hvlpfaxxdkzedcsrv3ruskbdlpcng7gw34",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeifo4d2dxtezltjlqy5ulud5aoje5phrj7nm3ftj5b4oajdfnqzrxi",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreieess2wlrmndafiowswrm3r4ksg7ux7uo2jnsiqpfpfg5cbnsxvxq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreic6vxv7k3at4y6p63sjsezyctua75v26akawiuldy3db4rsq5v65a",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreidyaarxf34suhwxhgbrziatmu6irhdqztbnsth3fcgxf6sdp43kxa",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreidey7b2jzvkpi4z5p7ayw2zmz5hqvkr5rzdjk3enizlqyhol7smse",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiblizlbfs3d74q7dbr75e6lam4kquh45w4ixcvv2nfobtd5lydghm",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreidv35nvkvvidnjjujv4wuldkth4lmpncd2ex74ylgj6ovz7awggk4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigzdpzt62yd2xpfzf2yqgup2vsrivfvavl5e6xnkmuwhk4e3edzcy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreid5vq3z3oggxratqq6pyd5fn3pd3dkaldcykpku2pg2jv7d2xulgu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreifdn5bqfbinikxjwlm5p7qwv2bt2ojgsbmzfov63n4wj3bd2rjqoy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicpfy6eayj43dyeug4ioxvgzt6rdebxoo73optf566nxwqxbenwlu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreif4hxa5wgqufcpepugb2milvoh4m5uia7sk7vsq4ojpmfxx7xbtki",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiepfnczv5yeut4nu4rwamx2xtkrolufr3lmspikgmqdhxze4epff4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigb7a55gbe6v4tblyinjhwcszcz5sj7fyq4mbod5a3pwt5voikcga",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeidzpen6b4ffggi7rvv54e5brletoezl7kouu4itstviy73dcprw4q",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiffqtflqbk25oio5tsj6ukp6bneizx54xrxg32kfgugkybbz6irv4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreihgwcsivo2xgxpfc2w4vytdgvnfl5h7hx2nej43ohud7zedykuqwq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiegu3rskakyabev4fkfr7lak2wh3yjd4xudxn24ubitrfgdlbh67q",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiad74eyxngf6pra2gnimpn3h66oq5pjzim2j7dn4fh72sreaccs2q",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreido2m2u6jnbxpxd44i44mbrdp34zhirylpwg5w4nho2lnacxn2fsi",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeieusu46eov664cvr4uiphjsmb4v3plym6avhkhkcsbrkmwf6bftra",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreihdbdj3wyup5nlf663ubvdy5xl3duumk25xrz2235ipwkz5aul2hi",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreihaownb7cqtrlyeni225m7lgxqdshkscm67verkgneoixkzmerbia",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreifascglwxgizjrz3dnhmkxe72attgephpwj6fdgisvvuwmkmdjf7q",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicfb2pahmqjc4sxjg2oqbpm32fxnmghhdb23jdrs7pddqtuuglawq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigiynwnembaqdd4jfxrmtqwryz6irsgksa5datyhtn4ngmuxujxae",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigz5hrve5ofz3skbcbv3eavlzlmxo4audhzikn3wcthf3jonahggq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeihvoabbkvdv7samncu5qapxnoykc4hdtopd2dxmufmxkhrluiwqky",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreie6uhzkepzyz6mufdf6gx2dvks5ew6ep3i6bbrlucdc5rg4adolii",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigwyciw7rbenfirujnzvv6cju42acu6xttie2e6njflzld3z7cywe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicnavoyabj7ntuzdwxbo7s4r7zswf5cf3ml2wz3rdzl7rr5krzbua",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafybeiafpinkjkhngezw2gi2py57byu64qegviksbkktfeffxsnafu2ej4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigos5udciezx5ackgiaat27dq22zuxhd4f2tzq3sipi2lp6ahtlvu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreig3jrdvqxx3pnqv5ekr3crcua4pc5z6mgaht24ynugclqrsnqdeki",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreid46zx5prp7an5ede3nytjiw7f6lzsjeinfw7domecrprvkdxr44q",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreibp3kuandck2l6nrg3zmqbedn7jethkummqrbw5uv5u6ssfw3rwya",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreif6qcwk2bsfbcjemjzhxjrvuuf7wlvjh4wdsx2d67mmz7cvr2qh7m",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreietp3a5ddfjbntvyk2mj6k4lhxjhaannrlwk2leggmlh6yfmtxliq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreidua2x7luuu5nihxykd57okemwvwow2hvyvh2fpceqc7hemoos24u",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigsm4e5b42gwrj3sncy6ixz7gkynyxytlntec2p277nlzpzbt52im",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreihavuqoc62ty2b7ibsjvtu4dvpf5xdt5b5enq7yjmr66sijowaruq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicwrbemyb7yhupd6qtn2vvvwlb37zin6gmdqojbvrrkkxxwlnr24u",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreibkykty3q7h3eoob3iuidpytonkxp7ugj35dtghpyhqsrjd7uozyy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreictxlxibddlqdqbjpd7nm5hkwm3nehul2gvszi5kcan7t7vej2tqe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreihnfdr3fuw2harxje53eyqr35sk7iykrsxedlty3cpchxmdp2nnui",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicxbl2u5cjyynw5sxggidcramqadgbdsenao5yffqbi6u5hj2s2fi",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicnyrzionj3fgpe7eyf5twas4fjltwik5ixyszeom2tzqli3pbaaq",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreih4o7xlzcvlfk3azvpcmqolzag5nx5gyemzit5k6tna3o6jdbpvqe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreidccm7rp4cmiqdvirc2uvly45cqmtrinrczeer6c7zp2sfnabskry",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiaqozei33yby7cyuk256t3euby3ycryw4q2f7sr2nebpjqwnwllje",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreiblrg6y245q62ixc5pxrzyx6bkxbbmnn6wqzegeynq4ksxaotmwze",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreicjprnzoxl7i3b76r2emmymtagzhl6br2fw6vjyreajqm4hslzbke",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreifu2qlugo6n6nqflgwjmqgiyyuvk4anevlqcvtti2j54acnvtamoa",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreigud4ku2444vyxkqtitu7rkph3owp3gs3pm5kul4azvvjzz7zv6ca",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreifr77iobhpmhdbaftcb5oy4nu7t7tevoevbxqoxska43abgbkuegi",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "Default all",
+      "result": "passed"
+    },
+    {
+      "name": "Default and explicit all bytes",
+      "result": "passed"
+    },
+    {
+      "name": "Default and explicit all ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Scope ETags separated",
+      "result": "passed"
+    },
+    {
+      "name": "Missing path remains404",
+      "result": "passed"
+    },
+    {
+      "name": "entity-bytes unsupported",
+      "result": "passed"
+    },
+    {
+      "name": "Custom wholeCAR preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Public fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous public all",
+      "result": "passed"
+    },
+    {
+      "name": "Import cbor",
+      "result": "passed"
+    },
+    {
+      "name": "Imported CID",
+      "result": "passed"
+    },
+    {
+      "name": "Default private",
+      "result": "passed"
+    },
+    {
+      "name": "Private scope denial",
+      "result": "passed"
+    },
+    {
+      "name": "cbor selected all",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafyreibkrid5mgg5hxm2zin3z32m6qmwbj342c7fwxrtakrpbpbzcblveu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreie4pkccbmky5fwz2xyrjflv3th2l4onkyie7mhjkma5fyljh4aexy",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "cbor selected entity",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafyreibkrid5mgg5hxm2zin3z32m6qmwbj342c7fwxrtakrpbpbzcblveu",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "cbor  all",
+      "result": "passed"
+    },
+    {
+      "name": "CAR variant",
+      "result": "passed"
+    },
+    {
+      "name": "Content length",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafyreibkrid5mgg5hxm2zin3z32m6qmwbj342c7fwxrtakrpbpbzcblveu",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreihrx2yzaathgcwjrh4cr5dxqtzyorbz2sqfu3piwk4ouzphfgzejy",
+      "result": "passed"
+    },
+    {
+      "name": "CAR CIDv1",
+      "result": "passed"
+    },
+    {
+      "name": "CAR SHA2-256",
+      "result": "passed"
+    },
+    {
+      "name": "Block digest bafkreie4pkccbmky5fwz2xyrjflv3th2l4onkyie7mhjkma5fyljh4aexy",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "304",
+      "result": "passed"
+    },
+    {
+      "name": "Default all",
+      "result": "passed"
+    },
+    {
+      "name": "Default and explicit all bytes",
+      "result": "passed"
+    },
+    {
+      "name": "Default and explicit all ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Scope ETags separated",
+      "result": "passed"
+    },
+    {
+      "name": "Missing path remains404",
+      "result": "passed"
+    },
+    {
+      "name": "entity-bytes unsupported",
+      "result": "passed"
+    },
+    {
+      "name": "Custom wholeCAR preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Public fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous public all",
+      "result": "passed"
+    },
+    {
+      "name": "CARprobe block",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "CARprobe entity",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "CARprobe all",
+      "result": "passed"
+    },
+    {
+      "name": "Unique CID count",
+      "result": "passed"
+    },
+    {
+      "name": "Exact scope CID set",
+      "result": "passed"
+    },
+    {
+      "name": "Rawprobe",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup Pin",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup public access",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup Pin",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup public access",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup Pin",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup public access",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup Pin",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup public access",
+      "result": "passed"
+    }
+  ]
+}
