@@ -1,0 +1,581 @@
+{
+  "browser": "Chrome/157.0.8103.38",
+  "checkedAt": "2026-11-12T08:57:02.153Z",
+  "origin": "https://pinboard.shazhou.work",
+  "transport": "h3",
+  "fixtureCid": "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+  "checks": [
+    {
+      "name": "Authenticated session",
+      "result": "passed"
+    },
+    {
+      "name": "Import synthetic CAR",
+      "result": "passed"
+    },
+    {
+      "name": "Root unchanged",
+      "result": "passed"
+    },
+    {
+      "name": "New fixture private",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous range hidden",
+      "result": "passed"
+    },
+    {
+      "name": "Range 5:8",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 5:8",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 5:8",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range 2:10",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 2:10",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 2:10",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range -5:*",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD -5:*",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 -5:*",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range -999:2",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD -999:2",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 -999:2",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range 16:999",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 16:999",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 16:999",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range 0:*",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 0:*",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 0:*",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range 4:4",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 4:4",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 4:4",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range 10:2",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 10:2",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 10:2",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Range 999999999999999999999999:2",
+      "result": "passed"
+    },
+    {
+      "name": "CAR type",
+      "result": "passed"
+    },
+    {
+      "name": "Length",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location entity scope",
+      "result": "passed"
+    },
+    {
+      "name": "Content-Location range present",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD 999999999999999999999999:2",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "304 999999999999999999999999:2",
+      "result": "passed"
+    },
+    {
+      "name": "304 body",
+      "result": "passed"
+    },
+    {
+      "name": "Implicit entity overrides block",
+      "result": "passed"
+    },
+    {
+      "name": "Same effective scope ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Implicit entity overrides all",
+      "result": "passed"
+    },
+    {
+      "name": "Same effective scope ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Implicit entity overrides entity",
+      "result": "passed"
+    },
+    {
+      "name": "Same effective scope ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Normalized range ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside 18:*",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside -999:-100",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside 999999999999999999999999:*",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside :1",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside 1:",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside 1.5:2",
+      "result": "passed"
+    },
+    {
+      "name": "Invalid/outside 0:1,3:4",
+      "result": "passed"
+    },
+    {
+      "name": "Duplicate range",
+      "result": "passed"
+    },
+    {
+      "name": "Malformed scope",
+      "result": "passed"
+    },
+    {
+      "name": "Non-file range empty",
+      "result": "passed"
+    },
+    {
+      "name": "Non-file range cbor/map",
+      "result": "passed"
+    },
+    {
+      "name": "Non-file range cbor/bytes",
+      "result": "passed"
+    },
+    {
+      "name": "Canonical UnixFS range",
+      "result": "passed"
+    },
+    {
+      "name": "Inline bytes logical bounds",
+      "result": "passed"
+    },
+    {
+      "name": "Negotiation ?format=car application/vnd.ipld.car;version=2",
+      "result": "passed"
+    },
+    {
+      "name": "Negotiation ?format=car&car-version=1 application/vnd.ipld.car;version=2",
+      "result": "passed"
+    },
+    {
+      "name": "Negotiation ?format=car&car-dups=y application/vnd.ipld.car",
+      "result": "passed"
+    },
+    {
+      "name": "Negotiation ?entity-bytes=5:8 application/vnd.ipld.raw;q=1, application/vnd.ipld.car;q=0.1",
+      "result": "passed"
+    },
+    {
+      "name": "Negotiation ?entity-bytes=5:8 application/vnd.ipld.car;version=1;order=dfs;dups=n",
+      "result": "passed"
+    },
+    {
+      "name": "Root raw wins higher quality",
+      "result": "passed"
+    },
+    {
+      "name": "Specific q0 exclusion",
+      "result": "passed"
+    },
+    {
+      "name": "Specific raw q0 CAR fallback",
+      "result": "passed"
+    },
+    {
+      "name": "Publish dedicated fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Public anonymous range",
+      "result": "passed"
+    },
+    {
+      "name": "Existing wholeCAR export",
+      "result": "passed"
+    },
+    {
+      "name": "Existing all scope",
+      "result": "passed"
+    },
+    {
+      "name": "CAR probe with range",
+      "result": "passed"
+    },
+    {
+      "name": "Page rendered",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke Pin cleanup",
+      "result": "passed"
+    },
+    {
+      "name": "Cleanup anonymous access",
+      "result": "passed"
+    }
+  ],
+  "results": [
+    {
+      "range": "5:8",
+      "bytes": 730,
+      "etag": "\"5ba801c29d13d81c203a63f1e3d2b277c480018f5de966506161c46b21676541.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIASFAQFwEiDpkzwBwP9AXpkp38/IIPjhore82ubjbfgY1qRzZRL5QBIoCiQBVRIgTIpDmASYY26cHRWV+l0RWveTfCQi3+aKJSClK3pftN4SABIoCiQBVRIg+jumTyBT7Qb8NO9dWIiYPKbuIse9fT1n1Is/r46sOokSAAoLCAISATEYCiAEIAUoAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeZGVmZw=="
+    },
+    {
+      "range": "2:10",
+      "bytes": 812,
+      "etag": "\"2c740a6f361a6cc6e152a5be2dd0d8d8a23911b1660a0892c6f75b49fceaeb9d.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIAQnAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtYWJjhQEBcBIg6ZM8AcD/QF6ZKd/PyCD44aK3vNrm4234GNakc2US+UASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgASKAokAVUSIPo7pk8gU+0G/DTvXViImDym7iLHvX09Z9SLP6+OrDqJEgAKCwgCEgExGAogBCAFKAFVEiBMikOYBJhjbpwdFZX6XRFa95N8JCLf5oolIKUrel+03mRlZmcpAVUSIPo7pk8gU+0G/DTvXViImDym7iLHvX09Z9SLP6+OrDqJaGlqa2w="
+    },
+    {
+      "range": "-5:*",
+      "bytes": 772,
+      "etag": "\"e92b88f5351446861204a99838f0d7a20902e36dd1f203b8c4a04f1594e60286.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIASFAQFwEiDpkzwBwP9AXpkp38/IIPjhore82ubjbfgY1qRzZRL5QBIoCiQBVRIgTIpDmASYY26cHRWV+l0RWveTfCQi3+aKJSClK3pftN4SABIoCiQBVRIg+jumTyBT7Qb8NO9dWIiYPKbuIse9fT1n1Is/r46sOokSAAoLCAISATEYCiAEIAUpAVUSIPo7pk8gU+0G/DTvXViImDym7iLHvX09Z9SLP6+OrDqJaGlqa2woAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeZGVmZw=="
+    },
+    {
+      "range": "-999:2",
+      "bytes": 594,
+      "etag": "\"35689f84dc9849a7af4c728f8905fb2d6ec710a2fdb74aa0e89deed64738e9f0.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIAQnAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtYWJj"
+    },
+    {
+      "range": "16:999",
+      "bytes": 595,
+      "etag": "\"c94c19487a8179d4284b4d45d0794cae80296bada0341b92f577e9b990e900ef.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIAQoAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeZGVmZw=="
+    },
+    {
+      "range": "0:*",
+      "bytes": 812,
+      "etag": "\"e55add2c627bb210e72f128ea4a7527139a79f5327912d9d74594a4872a116fa.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIAQnAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtYWJjhQEBcBIg6ZM8AcD/QF6ZKd/PyCD44aK3vNrm4234GNakc2US+UASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgASKAokAVUSIPo7pk8gU+0G/DTvXViImDym7iLHvX09Z9SLP6+OrDqJEgAKCwgCEgExGAogBCAFKAFVEiBMikOYBJhjbpwdFZX6XRFa95N8JCLf5oolIKUrel+03mRlZmcpAVUSIPo7pk8gU+0G/DTvXViImDym7iLHvX09Z9SLP6+OrDqJaGlqa2w="
+    },
+    {
+      "range": "4:4",
+      "bytes": 689,
+      "etag": "\"6bc870e8799dc5e95d7e84e232d87ed248cd9950c82b75964b7fc3a8222bad36.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIASFAQFwEiDpkzwBwP9AXpkp38/IIPjhore82ubjbfgY1qRzZRL5QBIoCiQBVRIgTIpDmASYY26cHRWV+l0RWveTfCQi3+aKJSClK3pftN4SABIoCiQBVRIg+jumTyBT7Qb8NO9dWIiYPKbuIse9fT1n1Is/r46sOokSAAoLCAISATEYCiAEIAU="
+    },
+    {
+      "range": "10:2",
+      "bytes": 554,
+      "etag": "\"e3c39b8785e475791a385fc5be2b08de8926c4954ea512f7a1fc718aa7e63827.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIAQ="
+    },
+    {
+      "range": "999999999999999999999999:2",
+      "bytes": 554,
+      "etag": "\"95fd0108c8678525cb65b8e9ec4ab3c4c87a53232b264e96a2c44e8073ea4dbb.car\"",
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBsQEBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAXASIOmTPAHA/0BemSnfz8gg+OGit7za5uNt+BjWpHNlEvlAEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKDQgCEgEwGBIgAyAKIAQ="
+    },
+    {
+      "path": "empty",
+      "range": "0:*",
+      "bytes": 420,
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBLAFwEiCzpr70ZminQluGp4SC95pyJhWCun601xjklM4B7MTPVgoGCAISABgA"
+    },
+    {
+      "path": "cbor/map",
+      "range": "999:*",
+      "bytes": 474,
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBYgFxEiBXi2aIbbSAzncSPacvkHFRs9DRId46pzJqUq30zQr5KKJjbWFwoWRsaW5r2CpYJQABVRIgungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa1lYnl0ZXNDYWJj"
+    },
+    {
+      "path": "cbor/bytes",
+      "range": "0:1",
+      "bytes": 474,
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBYgFxEiBXi2aIbbSAzncSPacvkHFRs9DRId46pzJqUq30zQr5KKJjbWFwoWRsaW5r2CpYJQABVRIgungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa1lYnl0ZXNDYWJj"
+    },
+    {
+      "path": "canonical",
+      "range": "3:4",
+      "bytes": 550,
+      "proof": "OqJlcm9vdHOB2CpYJQABcBIgHrgRjdBkV75VWQr75APqsaXYq9aNUayIjWqZ+X9lck1ndmVyc2lvbgG6AgFwEiAeuBGN0GRXvlVZCvvkA+qxpdir1o1RrIiNapn5f2VyTRIxCiQBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASCWNhbm9uaWNhbBIsCiQBcRIgV4tmiG20gM53Ej2nL5BxUbPQ0SHeOqcyalKt9M0K+SgSBGNib3ISLQokAXASILOmvvRmaKdCW4anhIL3mnImFYK6frTXGOSUzgHsxM9WEgVlbXB0eRIsCiQBcBIgxWYxcmW3AuV2g0TicrrtcVDYyjCfsQ6gkuG+1PGbeKsSBGZpbGUSUgokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEipub25jZS00ZmE1YWYyMS1lNmI2LTRjYmItYjJiNy1mMGZjZjg1MmE5MjcKAggBhAEBcBIgxeryzAnqsepwdRh2d/vPU1wsTN+Haa2SvBkWNMoJNSASKAokAVUSILp4Fr+PAc/qQUFA3l2uIiOwA2Gjlhd6nLQQ/2HyABWtEgASKAokAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeEgAKCggCEgAYByADIAQoAVUSIEyKQ5gEmGNunB0VlfpdEVr3k3wkIt/miiUgpSt6X7TeZGVmZw=="
+    }
+  ]
+}

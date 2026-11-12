@@ -1,0 +1,150 @@
+{
+  "checkedAt": "2026-11-12T08:57:04.951Z",
+  "verifier": "Independent CAR/SHA256/original UnixFS protobuf interval reconstruction",
+  "missingRequiredLeafRejected": true,
+  "tamperedRequiredLeafRejected": true,
+  "results": [
+    {
+      "range": "5:8",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafybeihjsm6adqh7ibpjsko7z7ecb6hbuk33zwxg4nw7qggwurzwkexzia",
+        "bafkreicmrjbzqbeymnxjyhivsx5f2ek266jxyjbc37tiujjauuvxux5u3y"
+      ],
+      "bytes": 730,
+      "reconstructed": "defg"
+    },
+    {
+      "range": "2:10",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafkreif2pall7dybz7vecqka3zo24irdwabwdi4wc55jznaq75q7eaavvu",
+        "bafybeihjsm6adqh7ibpjsko7z7ecb6hbuk33zwxg4nw7qggwurzwkexzia",
+        "bafkreicmrjbzqbeymnxjyhivsx5f2ek266jxyjbc37tiujjauuvxux5u3y",
+        "bafkreih2hote6ict5udpynhplvmirgb4u3xcfr55pu6wpvelh6xy5lb2re"
+      ],
+      "bytes": 812,
+      "reconstructed": "bc1defghi"
+    },
+    {
+      "range": "-5:*",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafybeihjsm6adqh7ibpjsko7z7ecb6hbuk33zwxg4nw7qggwurzwkexzia",
+        "bafkreih2hote6ict5udpynhplvmirgb4u3xcfr55pu6wpvelh6xy5lb2re",
+        "bafkreicmrjbzqbeymnxjyhivsx5f2ek266jxyjbc37tiujjauuvxux5u3y"
+      ],
+      "bytes": 772,
+      "reconstructed": "ldefg"
+    },
+    {
+      "range": "-999:2",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafkreif2pall7dybz7vecqka3zo24irdwabwdi4wc55jznaq75q7eaavvu"
+      ],
+      "bytes": 594,
+      "reconstructed": "0ab"
+    },
+    {
+      "range": "16:999",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafkreicmrjbzqbeymnxjyhivsx5f2ek266jxyjbc37tiujjauuvxux5u3y"
+      ],
+      "bytes": 595,
+      "reconstructed": "fg"
+    },
+    {
+      "range": "0:*",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafkreif2pall7dybz7vecqka3zo24irdwabwdi4wc55jznaq75q7eaavvu",
+        "bafybeihjsm6adqh7ibpjsko7z7ecb6hbuk33zwxg4nw7qggwurzwkexzia",
+        "bafkreicmrjbzqbeymnxjyhivsx5f2ek266jxyjbc37tiujjauuvxux5u3y",
+        "bafkreih2hote6ict5udpynhplvmirgb4u3xcfr55pu6wpvelh6xy5lb2re"
+      ],
+      "bytes": 812,
+      "reconstructed": "0abc1defghijkldefg"
+    },
+    {
+      "range": "4:4",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+        "bafybeihjsm6adqh7ibpjsko7z7ecb6hbuk33zwxg4nw7qggwurzwkexzia"
+      ],
+      "bytes": 689,
+      "reconstructed": "1"
+    },
+    {
+      "range": "10:2",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm"
+      ],
+      "bytes": 554,
+      "reconstructed": ""
+    },
+    {
+      "range": "999999999999999999999999:2",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm"
+      ],
+      "bytes": 554,
+      "reconstructed": ""
+    },
+    {
+      "path": "empty",
+      "range": "0:*",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeiftu27piztiu5bfxbvhqsbppgtseykyfot6wtlrrzeuzya6zrgpky"
+      ]
+    },
+    {
+      "path": "cbor/map",
+      "range": "999:*",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafyreicxrntiq3nuqdhhoer5u4xza4krwpincio6hktte2ssvx2m2cxzfa"
+      ]
+    },
+    {
+      "path": "cbor/bytes",
+      "range": "0:1",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafyreicxrntiq3nuqdhhoer5u4xza4krwpincio6hktte2ssvx2m2cxzfa"
+      ]
+    },
+    {
+      "path": "canonical",
+      "range": "3:4",
+      "cids": [
+        "bafybeia6xaiy3udek67fkwik7psah2vruxmkxvunkgwirdlkth4x6zlsju",
+        "bafybeigf5lzmycpkwhvha5iyoz37xt2tlqwezx4hngwzfpazcy2mucjvea",
+        "bafkreicmrjbzqbeymnxjyhivsx5f2ek266jxyjbc37tiujjauuvxux5u3y"
+      ],
+      "reconstructed": "de"
+    }
+  ],
+  "kubo": {
+    "version": "ipfs version 0.43.1",
+    "fullFile": "abcdefghijkldefg",
+    "fullArchiveOffset5Length4": "fghi",
+    "expectedOffset5Length4": "defg",
+    "partialProofResolve": "/ipfs/bafybeigfmyyxeznxalsxna2e4jzlv3lrkdmmume7wehkbexbx3kpdg3yvm",
+    "partialSeekStatus": 1,
+    "partialSeekOutput": "fg",
+    "partialSeekError": "Error: failed to fetch all nodes",
+    "canonicalOfflinePartialRange": "de"
+  }
+}
