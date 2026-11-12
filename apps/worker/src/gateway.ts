@@ -9,6 +9,7 @@ import {
   onlyIfCached,
 } from "./gateway-http.js";
 import { blobBytes, getBlock, headBlock, type D1Blob } from "./storage.js";
+import { carResponse, gatewayPath, negotiateCar } from "./gateway-car.js";
 
 export const gateway = new Hono<AppEnv>();
 gateway.use("*", async (c, next) => {
@@ -16,17 +17,25 @@ gateway.use("*", async (c, next) => {
   await next();
 });
 
-gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
+gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
   if (c.req.header("service-worker")?.trim().toLowerCase() === "script")
     return c.json(
       { error: "Service workers are not allowed at an IPFS root" },
       400,
     );
-  const cid = parseCid(c.req.param("cid"));
+  const { root, parts } = gatewayPath(c.req.raw);
+  const cid = root.toV1();
   if (key(cid) !== PROBE_CID)
     await authorizeBlock(c.env, key(cid), await optionalIdentity(c));
   const format = c.req.query("format");
   const accept = c.req.header("accept");
+  if (negotiateCar(c.req.raw, key(cid) === PROBE_CID && !parts.length))
+    return carResponse(c.env, c.req.raw, root, parts);
+  if (parts.length)
+    return c.json(
+      { error: "Paths require a supported CAR representation" },
+      406,
+    );
   if (
     format === undefined &&
     (accept === undefined ||
@@ -72,7 +81,7 @@ gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
     return c.json(
       {
         error:
-          "Raw blocks only; request ?format=raw or Accept: application/vnd.ipld.raw",
+          "Request ?format=raw or ?format=car&dag-scope=block, or an acceptable raw/CAR Accept header (CAR requires dag-scope=block)",
       },
       406,
     );

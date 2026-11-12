@@ -453,21 +453,23 @@ retrieval. Select raw with `?format=raw` or an `Accept` header:
   regardless of availability or credentials. This endpoint cannot be used to
   register a service worker with a parent `/ipfs/` scope.
 - Explicit `format=raw` takes precedence over `Accept`, even if the header is
-  malformed or excludes raw. Empty or unsupported `format` values return 406.
-  Omitting both `format` and `Accept` returns 400.
+  malformed or excludes raw. Empty or unsupported `format` values return 406
+  (`format=car` has the separate partial-CAR contract below). Omitting both
+  `format` and `Accept` returns 400.
 - Without `format`, `application/vnd.ipld.raw`, `application/*` and `*/*` are
   supported media ranges, matched case-insensitively. Quality values must be
   between 0 and 1 with at most three decimal places; `q=0` excludes a range. The
   most specific matching range determines raw's quality, so an exact `q=0`
   overrides a positive wildcard. Equal-specificity duplicates use the highest
-  quality. Higher-quality unsupported formats never select another
-  representation. Raw has no media-type parameters, so parameterized ranges do
-  not match it (a separate unparameterized wildcard can still match).
-- A valid header that does not accept raw returns 406, including similar but
-  different types such as `application/vnd.ipld.raw-extra`. Empty or malformed
-  `Accept` returns 400, even if another member accepts raw. This includes
-  invalid media ranges, parameters, duplicate parameter names and quality
-  values; quoted quality values are rejected.
+  quality. Unsupported CAR offers can fall back to acceptable raw. Raw has no
+  media-type parameters, so parameterized ranges do not match it (a separate
+  unparameterized wildcard can still match).
+- When no other supported representation is selected, a valid header that does
+  not accept raw returns 406, including similar but different types such as
+  `application/vnd.ipld.raw-extra`. Empty or malformed `Accept` returns 400,
+  even if another member accepts raw. This includes invalid media ranges,
+  parameters, duplicate parameter names and quality values; quoted quality
+  values are rejected.
 - Successful responses retain raw bytes and length, attachment disposition,
   CORS, browser safety headers and private/no-store caching. GET and HEAD share
   the ETag `"<normalized-CIDv1>.raw"`; equivalent CIDv0/v1 inputs share this
@@ -499,11 +501,67 @@ trustless-only mode. Thumbnail URLs and default image selection remain
 unchanged. This does not add credentialed cross-origin access or CORS preflight
 support for private content.
 
-This is a non-recursive gateway, not a general UnixFS rendering service.
-Standard CAR negotiation, IPNS, gateway path traversal and byte-range responses
-are not supported. The separate `/api/public/:cid/car` endpoint exports a
-complete CARv1 DAG; it is not standard trustless CAR gateway negotiation.
-Clients must still verify retrieved CIDs.
+### Partial CAR path-proof HTTP contract
+
+`GET` and `HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=block` return standard
+CARv1 containing the requested root, the blocks needed to authenticate its path,
+and the terminal block, **not** the terminal file's chunks or directory subtree.
+An explicit `Accept: application/vnd.ipld.car` also selects CAR when
+`dag-scope=block` is supplied. This is a partial, non-recursive trustless
+gateway capability, not full gateway conformance.
+
+- The supported variant is `version=1; order=dfs; dups=n`, accurately advertised
+  in `Content-Type`. Blocks appear root-first in path traversal order; HAMT
+  sub-shards are included, and equivalent CIDv0/v1 blocks are emitted only once.
+  Original block payloads and the request root's CID version are preserved.
+- `car-version=1`, `car-order=dfs` and `car-dups=n` are the supported query
+  variants. Query variants override corresponding Accept media parameters.
+  Explicit `format=car` overrides Accept entirely (including malformed headers);
+  otherwise the whole Accept header is validated using the raw parser's rules.
+  An explicit positive-quality, supported CAR offer is preferred to raw/image;
+  wildcard-only Accept retains existing raw/image selection. Among CAR offers,
+  any supported positive-quality offer suffices; full weighted cross-format
+  preference expansion is not implemented.
+- Omitted `dag-scope` means `all`, not `block`. `all`, `entity`, `entity-bytes`,
+  CARv2, duplicate-enabled output and other variants are unsupported (406 for
+  explicit CAR). Invalid scope or repeated CAR query parameters return 400.
+  Without `format`, an unsupported CAR offer may fall back to acceptable raw or
+  the existing image representation; CAR-only requests return 406.
+- Exception: `/ipfs/bafkqaaa?format=car` or CAR Accept without scope returns a
+  valid header-only CAR with that identity CID as its sole root and no data
+  blocks. Explicit `all`/`entity` remain unsupported. The probe has no child
+  path.
+- Paths support ordinary and HAMT UnixFS directory names, and DAG-CBOR map keys,
+  canonical zero-based list indices and CID links. Inline DAG-CBOR terminal
+  values are proven by their containing block. Raw/file/symlink child traversal,
+  non-UnixFS DAG-PB field paths and other codecs are not supported. Symlinks are
+  never followed. Missing paths return 404; unsupported UnixFS path forms
+  return 422. Names are decoded once as UTF-8 URL components; Unicode, spaces,
+  colons, reserved Windows filenames and other ordinary IPLD names are not
+  ZIP-filtered. Encode `?`, `#`, `%` and other URL delimiters. Empty interior
+  components, dot segments received by the server, encoded slashes, backslashes,
+  controls and malformed escapes are rejected (400). URL clients may normalize
+  literal dot segments before transmission. Paths are limited to 256 components
+  and 8192 encoded pathname characters.
+- Authorization uses only live roots/members, before retrieval. Proofs use only
+  local storage, never fetch remotely or write to the database. All required
+  blocks are read and hash-verified before GET, HEAD or 304 succeeds, including
+  `If-None-Match: *`. An unavailable authorized root returns 404, or 412 with
+  the bare `Cache-Control: only-if-cached` directive, as for raw. Unknown or
+  unreadable roots and missing paths remain 404 even with that directive;
+  missing required proof blocks or invalid stored bytes return 503.
+  Indexed-storage failures remain errors rather than missing paths.
+- Preflight is cancellation-aware and bounded to 256 blocks, 32 MiB of block
+  payloads and 2 MiB per block. Responses have attachment disposition,
+  `nosniff`, sandbox CSP, private/no-store and wildcard CORS as with raw. Strong
+  `.car` ETags distinguish the request root CID version, decoded path, scope and
+  supported variants from raw and image representations.
+
+IPNS, full DAG scopes, range responses and UnixFS rendering remain unsupported.
+Raw remains root-block-only; paths do not change its response body or headers.
+The separate `/api/public/:cid/car` endpoint still exports a complete CARv1 DAG,
+independently of standard partial-CAR negotiation. Clients must verify CIDs and
+root-to-path relationships; parsing a CAR alone is not proof validation.
 
 ### Deliberate first-version limits
 

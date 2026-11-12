@@ -384,7 +384,6 @@ describe("raw gateway protocol", () => {
         ["", "application/vnd.ipld.raw;q=0, */*", 406],
         ["", "application/vnd.ipld.raw-extra", 406],
         ["?format=", "application/vnd.ipld.raw", 406],
-        ["?format=car", "application/vnd.ipld.raw", 406],
         ["?format=raw", undefined, 200],
         ["?format=raw", "text/html", 200],
         ["", "application/*", 200],

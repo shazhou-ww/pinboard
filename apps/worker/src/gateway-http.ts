@@ -35,32 +35,10 @@ export function acceptsRaw(accept: string): boolean {
 }
 
 export function acceptsMedia(accept: string, requested: string): boolean {
-  const ranges = splitQuoted(accept, ",") ?? malformedAccept();
   let specificity = -1;
   let quality = 0;
-  for (const range of ranges) {
-    const [media, ...parameters] = splitQuoted(range, ";") ?? malformedAccept();
-    const match = MEDIA_RANGE.exec(media!);
-    if (!match || (match[1] === "*" && match[2] !== "*")) malformedAccept();
-    const names = new Set<string>();
-    let q = 1;
-    let hasMediaParameters = false;
-    for (const parameter of parameters) {
-      const parsed = PARAMETER.exec(parameter);
-      if (!parsed) malformedAccept();
-      const name = parsed[1]!.toLowerCase();
-      if (names.has(name)) malformedAccept();
-      names.add(name);
-      if (name === "q") {
-        if (!/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(parsed[2]!))
-          malformedAccept();
-        q = Number(parsed[2]);
-      } else {
-        hasMediaParameters = true;
-      }
-    }
-    const type = media!.toLowerCase();
-    if (hasMediaParameters) continue;
+  for (const { type, q, parameters } of parseAccept(accept)) {
+    if (parameters.size) continue;
     const rank =
       type === requested
         ? 2
@@ -78,6 +56,41 @@ export function acceptsMedia(accept: string, requested: string): boolean {
     }
   }
   return specificity >= 0 && quality > 0;
+}
+
+export function parseAccept(accept: string) {
+  const ranges = splitQuoted(accept, ",") ?? malformedAccept();
+  const result = [];
+  for (const range of ranges) {
+    const [media, ...parameters] = splitQuoted(range, ";") ?? malformedAccept();
+    const match = MEDIA_RANGE.exec(media!);
+    if (!match || (match[1] === "*" && match[2] !== "*")) malformedAccept();
+    const names = new Set<string>();
+    let q = 1;
+    const mediaParameters = new Map<string, string>();
+    for (const parameter of parameters) {
+      const parsed = PARAMETER.exec(parameter);
+      if (!parsed) malformedAccept();
+      const name = parsed[1]!.toLowerCase();
+      if (names.has(name)) malformedAccept();
+      names.add(name);
+      if (name === "q") {
+        if (!/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(parsed[2]!))
+          malformedAccept();
+        q = Number(parsed[2]);
+      } else {
+        const value = parsed[2]!;
+        mediaParameters.set(
+          name,
+          value.startsWith('"')
+            ? value.slice(1, -1).replace(/\\(.)/g, "$1")
+            : value,
+        );
+      }
+    }
+    result.push({ type: media!.toLowerCase(), q, parameters: mediaParameters });
+  }
+  return result;
 }
 
 export function matchesEtag(value: string | undefined, etag: string): boolean {

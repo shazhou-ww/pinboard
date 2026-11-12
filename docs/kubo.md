@@ -32,8 +32,20 @@ it; omitting both selectors returns 400 except for the existing thumbnail image
 representation. Thumbnail bytes also match their CID, but image and raw
 responses have separate representation headers and ETags. Requests with
 `Service-Worker: script` at the root are rejected with 400 before content
-access. This raw-only scope does not include standard CAR negotiation, IPNS,
-path traversal or byte ranges. Custom CAR export remains a separate API.
+access. Raw behavior remains unchanged by the
+[partial CAR path-proof contract](../README.md#partial-car-path-proof-http-contract):
+`/ipfs/{cid}/{path}?format=car&dag-scope=block` (or explicit CAR Accept with
+that scope) supports CARv1 root-to-path proofs for UnixFS/HAMT and DAG-CBOR. It
+advertises `version=1; order=dfs; dups=n`; no full DAG traversal is implied.
+Omitted scope means unsupported `all` (406), except the dedicated empty identity
+probe, whose CAR response contains only its root header. `entity`, `all`,
+`entity-bytes`, CARv2 and duplicate-enabled variants are unsupported. HEAD and
+conditional responses verify the actual path and all proof bytes before success.
+An authorized root with no stored block returns 404 normally or 412 with
+`Cache-Control: only-if-cached`, including wildcard conditional requests.
+Unknown/unreadable roots and missing paths remain 404; missing child proof
+blocks and genuine indexed-storage failures remain 503. The probe is unaffected.
+IPNS and byte ranges remain unsupported. Custom full-CAR export is separate.
 
 ### Local protocol regression coverage
 
@@ -52,6 +64,13 @@ authentication setup. The requirement-to-test mapping is:
 
 These are local protocol assertions, not a production compatibility
 certification or a replacement for independent client CID verification.
+[`gateway-car.test.ts`](../apps/worker/test/gateway-car.test.ts) independently
+parses CARs and checks SHA-256/CIDs and exact root-to-path block sets for nested
+UnixFS, a real HAMT sub-shard, DAG-CBOR maps/lists/inline values and CIDv0.
+Deleting or tampering with a required block fails the independent verifier. It
+also tests missing paths/blocks, negotiation, probe GET/HEAD, authorization,
+conditional availability, resource limits and cancellation. These do not replace
+an external client's production smoke test or claim full Kubo CAR conformance.
 [`access.test.ts`](../apps/worker/test/access.test.ts) additionally covers
 authorization-first missing-block behavior and service-worker registration
 rejection through the complete Worker app.

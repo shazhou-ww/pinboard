@@ -4,13 +4,14 @@
 
 ### Implementation steps
 
-- [ ] **I-S01:** 接入标准 CAR 与路径证明
-- [ ] **I-S02:** 验证流式失败与兼容性
+- [x] **I-S01:** 接入标准 CAR 与路径证明
+- [x] **I-S02:** 验证预检失败与兼容性
 
 ### Implementation acceptance criteria
 
-- [ ] **I-AC01:** 证明与实际响应一致
-- [ ] **I-AC02:** 资源及已有接口保持边界
+- [x] **I-AC01:** 证明与实际响应一致
+- [x] **I-AC02:** 资源及已有接口保持边界
+- [x] **I-AC03:** 最终候选通过完整检查
 
 ## Deployment
 
