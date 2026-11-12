@@ -6,14 +6,16 @@
 
 ## 结果
 
-标准 CAR 客户端按 dag-scope 选择可验证范围，省略参数时取得默认 all，且无需使用 Pinboard 专用导出 API。
+标准 CAR 客户端按 dag-scope 选择可验证范围，省略参数时取得默认 all，且无需使用 Pinboard 专用导出 API。范围与取舍见
+[ScopeSemantics.md](ScopeSemantics.md)。
 
 ## 边界
 
 - 前置为
   [迭代 2](../../../../01M76V81QD1FFYDDGNDX97WA0M/outer/inner/ideal/Idea.md)
   完成；之后推进局部读取及 CAR 参数协商。
-- 保持非递归及现有授权与资源限额；明确 raw、DAG-PB/UnixFS、DAG-CBOR 的 scope 语义及支持矩阵，不隐含支持任意 codec。
+- 保持非递归及现有授权；路径证明和目标范围共用去重后的 256 blocks / 32
+  MiB 载荷预算，明确支持矩阵，不隐含支持任意 codec。
 - 不含 entity-bytes 或 IPNS；存储中存在完整 CAR 不代表可以忽略请求范围、输出额外无关内容或绕过访问检查。
 
 ## 验收标准
