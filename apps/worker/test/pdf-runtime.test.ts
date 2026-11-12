@@ -240,14 +240,14 @@ it("uses actual CAR/R2 range reads, preserves complete pixels and saves >75%", a
   const partial = await runtime.dispatchFetch(
     `https://pdf.test/render?cid=${cid}&rgba`,
   );
+  const partialBytes = new Uint8Array(await partial.arrayBuffer());
+  expect(partial.status, new TextDecoder().decode(partialBytes)).toBe(200);
   const full = await runtime.dispatchFetch(
     `https://pdf.test/render?cid=${cid}&rgba&full`,
   );
-  expect(partial.status, await partial.clone().text()).toBe(200);
-  expect(full.status, await full.clone().text()).toBe(200);
-  expect(new Uint8Array(await partial.arrayBuffer())).toEqual(
-    new Uint8Array(await full.arrayBuffer()),
-  );
+  const fullBytes = new Uint8Array(await full.arrayBuffer());
+  expect(full.status, new TextDecoder().decode(fullBytes)).toBe(200);
+  expect(partialBytes).toEqual(fullBytes);
   const a = JSON.parse(partial.headers.get("x-stats")!) as {
     reads: number;
     bytes: number;
