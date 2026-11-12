@@ -44,15 +44,36 @@ follows only links inside the selected value, not its containing block's
 siblings. The variant remains `version=1; order=dfs; dups=n`, with
 normalized-CID deduplication across proof and scope. No recursive network
 fetching is implied. The identity probe remains header-only for all scopes.
-`entity-bytes`, CARv2 and duplicate-enabled variants remain unsupported. HEAD
-and conditional responses verify the actual path and **entire requested scope**
-before success: up to 256 unique block reads / 32 MiB payload (2 MiB per block),
-plus authorization queries. Those are not peak-memory limits or cheap metadata
-checks. An authorized root with no stored block returns 404 normally or 412 with
-`Cache-Control: only-if-cached`, including wildcard conditional requests.
-Unknown/unreadable roots and missing paths remain 404; missing child proof
-blocks and genuine indexed-storage failures remain 503. The probe is unaffected.
-IPNS and byte ranges remain unsupported. Custom full-CAR export is separate.
+`entity-bytes=from:to` selects an inclusive logical byte interval with exact
+integer offsets, negative offsets and an EOF `*` end. It overrides valid scope
+with `entity`, pruning UnixFS files by verified size indexes before reading
+children, not after fetching the whole DAG. Whole blocks are returned for CID
+verification. Partial overlap is intersected; a determinable wholly
+out-of-bounds nonempty range returns 400. Empty entities and explicitly reversed
+intervals retain only the path/block proof. Nonbyte entities ignore selection;
+decoded DAG-CBOR byte strings, including inline values, use their logical byte
+length and complete containing block. CARv2 and duplicate-enabled variants
+remain unsupported.
+
+Explicit format selects the representation, but valid explicit CAR media
+parameters still constrain its variant unless overridden by the corresponding
+CAR query parameter. Unsupported combinations return 406, not another variant.
+Without format, supported candidates use Accept quality/specificity, including
+specific `q=0` exclusions and quoted parameters. CAR candidates require an
+explicit CAR media range; otherwise wildcards retain the raw/image baseline.
+During CAR negotiation, an acceptable wildcard can admit the supported variant
+even when another explicit variant is unsupported, but cannot revive a matching
+specific `q=0`. Raw/CAR `Content-Location` identifies the actual representation
+URL; ETags include normalized requested ranges even when a nonbyte entity
+ignores them. HEAD and conditional responses verify the actual path and **entire
+requested scope** before success: up to 256 unique block reads / 32 MiB payload
+(2 MiB per block), plus authorization queries. Those are not peak-memory limits
+or cheap metadata checks. An authorized root with no stored block returns 404
+normally or 412 with `Cache-Control: only-if-cached`, including wildcard
+conditional requests. Unknown/unreadable roots and missing paths remain 404;
+missing child proof blocks and genuine indexed-storage failures remain 503. The
+probe is unaffected. IPNS and HTTP `Range` remain unsupported. Custom full-CAR
+export is separate.
 
 ### Local protocol regression coverage
 

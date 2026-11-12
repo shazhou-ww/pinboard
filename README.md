@@ -524,19 +524,53 @@ capability, not full gateway conformance or recursive network retrieval.
   preserved.
 - `car-version=1`, `car-order=dfs` and `car-dups=n` are the supported query
   variants. Query variants override corresponding Accept media parameters.
-  Explicit `format=car` overrides Accept entirely (including malformed headers);
-  otherwise the whole Accept header is validated using the raw parser's rules.
-  An explicit positive-quality, supported CAR offer is preferred to raw/image;
-  wildcard-only Accept retains existing raw/image selection. Among CAR offers,
-  any supported positive-quality offer suffices; full weighted cross-format
-  preference expansion is not implemented.
+  Explicit `format` chooses the representation ahead of Accept. For
+  `format=car`, malformed Accept is ignored (as before), and header quality
+  values do not override the explicit format; however, valid explicit CAR offers
+  still constrain the variant. Thus `format=car` with
+  `Accept: application/vnd.ipld.car;version=2` returns 406 unless
+  `car-version=1` overrides that parameter. A non-CAR Accept alone does not
+  constrain explicit CAR. Without `format`, supported CAR/raw/available image
+  candidates are compared by quality, then media specificity (including matching
+  parameters); exact `q=0` exclusions override broader wildcards. Explicit CAR
+  wins equal ties. An unsupported CAR offer may fall back only to an actually
+  acceptable candidate. CAR is considered only when an explicit CAR media range
+  is present; wildcard-only headers retain the raw/image baseline, including raw
+  exclusions. Within CAR negotiation, a wildcard can accept the supported
+  variant when an unsupported explicit variant does not match it. Explicit raw
+  retains its image tie preference. Quoted parameters are supported; malformed
+  Accept returns 400. Relative `Content-Location` identifies the actual raw/CAR
+  URL, including CAR variant query parameters, without copying an untrusted
+  header or origin.
 - Omitted `dag-scope` and explicit `all` have identical bytes and ETags.
   Different scopes have distinct ETags even when their block sets coincide.
-  `entity-bytes`, CARv2, duplicate-enabled output and other variants are
-  unsupported (406 for explicit CAR). Invalid scope or repeated CAR query
-  parameters return 400. Without `format`, an unsupported CAR offer may fall
-  back to acceptable raw or the existing image representation; CAR-only requests
-  return 406.
+  CARv2, duplicate-enabled output and other variants are unsupported (406 for
+  explicit CAR). Invalid scope, malformed query encoding, repeated CAR query
+  parameters or malformed `entity-bytes` return 400.
+- `entity-bytes=from:to` selects an inclusive logical byte range and implies
+  **entity**, overriding valid explicit `block`/`all` scopes. Offsets are exact
+  decimal integers with an optional minus sign; negative offsets are relative to
+  the entity length, and only the end may be `*` (EOF). Empty endpoints,
+  multiple ranges, plus signs, fractions and exponents are rejected (400).
+  Verified UnixFS `blocksizes` select only the necessary ancestors and data
+  blocks, including files with embedded data and intermediate file nodes. Shared
+  blocks are read once and emitted once in DFS order; an unavailable unselected
+  branch does not fail a partial request. Partial out-of-bounds intervals use
+  their intersection; a nonempty entity's wholly out-of-bounds interval returns
+  400 when determinable during preflight. Empty entities and explicitly reversed
+  resolved intervals return the path and terminal block proof only. `from:*`
+  beyond a nonempty EOF is out of bounds, not an explicitly reversed interval.
+- Raw terminals and DAG-CBOR byte strings (including inline byte values)
+  represent their decoded bytes, but always require the complete containing
+  block for CID verification. Nonbyte terminals such as maps, lists, scalars and
+  directories ignore byte selection and retain entity semantics, including HAMT
+  enumeration. Requested ranges still distinguish ETags for these entities.
+  Range ETags normalize integer spelling and effective scope, but do not merge
+  different requested intervals merely because their selected blocks coincide.
+  False declared file sizes, missing size indexes, selected child-size
+  mismatches and invalid/overflowing metadata fail preflight (503); logical
+  UnixFS file sizes above the existing 32 MiB source limit return 413.
+  Unselected child metadata is not fetched or certified.
 - Exception: `/ipfs/bafkqaaa?format=car` or CAR Accept without scope returns a
   valid header-only CAR with that identity CID as its sole root and no data
   blocks, for omitted scope and every supported explicit scope. The probe has no
@@ -574,9 +608,9 @@ capability, not full gateway conformance or recursive network retrieval.
   `.car` ETags distinguish the request root CID version, decoded path, scope and
   supported variants from raw and image representations.
 
-IPNS, range responses and UnixFS rendering remain unsupported. Raw remains
-root-block-only; paths do not change its response body or headers. The separate
-`/api/public/:cid/car` endpoint still exports a complete CARv1 DAG,
+IPNS, HTTP `Range` responses and UnixFS rendering remain unsupported. Raw
+remains root-block-only; paths do not change its response body or headers. The
+separate `/api/public/:cid/car` endpoint still exports a complete CARv1 DAG,
 independently of standard partial-CAR negotiation. Clients must verify CIDs and
 root-to-path relationships; parsing a CAR alone is not proof validation.
 

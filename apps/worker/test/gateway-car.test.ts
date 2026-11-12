@@ -6,6 +6,7 @@ import { exporter } from "ipfs-unixfs-exporter";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
+import { identity } from "multiformats/hashes/identity";
 import {
   afterAll,
   afterEach,
@@ -29,6 +30,7 @@ import { storeDag } from "../src/storage.js";
 import { createToken } from "../src/tokens.js";
 import { migrate } from "./migrations.js";
 import { budgetDag } from "./gateway-scope-fixtures.js";
+import { fileMetadata } from "../src/gateway-range.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -50,6 +52,7 @@ let cbor: Dag;
 let hamt: Dag;
 let hamtPath: string[];
 let hamtCids: CID[];
+let partial: Awaited<ReturnType<typeof partialFixture>>;
 const query = "?format=car&dag-scope=block";
 const get = (
   root: CID | string,
@@ -88,6 +91,114 @@ async function directory(children: { name: string; dag: Dag }[]) {
     dagPb.code,
     children.map(({ dag }) => dag),
   );
+}
+function uint(value: bigint): number[] {
+  const bytes: number[] = [];
+  do {
+    const byte = Number(value & 127n);
+    value >>= 7n;
+    bytes.push(byte | (value ? 128 : 0));
+  } while (value);
+  return bytes;
+}
+async function unixFile(
+  inline: string,
+  children: { dag: Dag; size: number }[] = [],
+  declared = BigInt(
+    text(inline).length + children.reduce((n, c) => n + c.size, 0),
+  ),
+) {
+  return node(
+    dagPb.encode({
+      Data: Uint8Array.from([
+        8,
+        2,
+        18,
+        ...uint(BigInt(text(inline).length)),
+        ...text(inline),
+        24,
+        ...uint(declared),
+        ...children.flatMap(({ size }) => [32, ...uint(BigInt(size))]),
+      ]),
+      Links: children.map(({ dag }) => ({ Hash: dag.root, Name: "" })),
+    }),
+    dagPb.code,
+    children.map(({ dag }) => dag),
+  );
+}
+async function partialFixture(prefix = "0") {
+  const a = await node(text("abc"), 0x55);
+  const b = await node(text("defg"), 0x55);
+  const c = await node(text("hijkl"), 0x55);
+  const inner = await unixFile("1", [
+    { dag: b, size: 4 },
+    { dag: c, size: 5 },
+  ]);
+  const root = await unixFile(prefix, [
+    { dag: a, size: 3 },
+    { dag: inner, size: 10 },
+    { dag: b, size: 4 },
+  ]);
+  const parent = await directory([{ name: "file", dag: root }]);
+  return { a, b, c, inner, root, parent };
+}
+
+// Independent fixture decoder/reconstructor: no gateway range/metadata helpers.
+function reconstructRange(
+  blocks: Map<string, Uint8Array>,
+  root: CID,
+  start: number,
+  end: number,
+): Uint8Array {
+  const bytes =
+    root.multihash.code === 0 ? root.multihash.digest : blocks.get(key(root));
+  if (!bytes) throw new Error("Missing range block");
+  if (root.code === 0x55) return bytes.slice(start, end);
+  const pb = dagPb.decode(bytes);
+  const data = pb.Data!;
+  let position = 0;
+  const read = () => {
+    let value = 0;
+    let power = 1;
+    for (;;) {
+      const byte = data[position++]!;
+      value += (byte & 127) * power;
+      if (byte < 128) return value;
+      power *= 128;
+    }
+  };
+  const sizes: number[] = [];
+  let inline: Uint8Array = new Uint8Array();
+  let declared = 0;
+  while (position < data.length) {
+    const tag = read();
+    if (tag === 8) expect(read()).toBe(2);
+    else if (tag === 18) {
+      const length = read();
+      inline = data.slice(position, position + length);
+      position += length;
+    } else if (tag === 24) declared = read();
+    else if (tag === 32) sizes.push(read());
+    else throw new Error("Unexpected fixture field");
+  }
+  expect(sizes.length).toBe(pb.Links.length);
+  expect(inline.length + sizes.reduce((n, size) => n + size, 0)).toBe(declared);
+  const chunks: Uint8Array[] = [inline.slice(start, end)];
+  let offset = inline.length;
+  for (let index = 0; index < sizes.length; index++) {
+    const size = sizes[index]!;
+    if (start < offset + size && end > offset)
+      chunks.push(
+        reconstructRange(
+          blocks,
+          pb.Links[index]!.Hash,
+          Math.max(0, start - offset),
+          Math.min(size, end - offset),
+        ),
+      );
+    offset += size;
+  }
+  return Uint8Array.from(Buffer.concat(chunks));
 }
 async function save(dag: Dag, visibility = "public") {
   await storeDag(env, dag);
@@ -260,11 +371,655 @@ beforeAll(async () => {
   hamtPath = [leaf.Name!.slice(2)];
   hamtCids = [hamt.root, shard.Hash, leaf.Hash];
   for (const dag of [nested, cbor, hamt]) await save(dag);
+  partial = await partialFixture();
+  await save(partial.parent);
 }, 30000);
 afterEach(() => vi.restoreAllMocks());
 afterAll(() => mf.dispose());
 
 describe("bounded standard CAR path proofs", () => {
+  it("prunes balanced files using authenticated sizes, with exact DFS/read sets and independent range reconstruction", async () => {
+    const { a, b, c, inner, root, parent } = partial;
+    const full = "0abc1defghijkldefg";
+    for (const [range, start, end, selected] of [
+      ["5:8", 5, 9, [inner, b]],
+      ["2:10", 2, 11, [a, inner, b, c]],
+      ["-5:*", 13, 18, [inner, c, b]],
+      ["-6:*", 12, 18, [inner, c, b]],
+      ["-999:2", 0, 3, [a]],
+      ["16:999", 16, 18, [b]],
+      ["0:*", 0, 18, [a, inner, b, c]],
+      ["499:-1000", 0, 0, []],
+      ["9:8", 0, 0, []],
+      ["999:998", 0, 0, []],
+      ["9007199254740993:9007199254740992", 0, 0, []],
+      ["0:-9007199254740993", 0, 0, []],
+      ["0:0", 0, 1, []],
+      ["4:4", 4, 5, [inner]],
+    ] as const) {
+      const expected = [parent, root, ...selected].map(({ root }) => key(root));
+      const read = vi.spyOn(env.BLOCKS, "get");
+      const response = await get(
+        parent.root,
+        "/file",
+        `?format=car&dag-scope=all&entity-bytes=${range}`,
+      );
+      const proof = await readProof(response, parent.root);
+      expect(proof.cids.map(key), range).toEqual(expected);
+      expect(read, range).toHaveBeenCalledTimes(expected.length);
+      const rows = await env.DB.prepare(
+        "SELECT cid, byte_offset, byte_length FROM car_blocks WHERE object_key = (SELECT object_key FROM car_dags WHERE root = ?)",
+      )
+        .bind(key(parent.root))
+        .all<{ cid: string; byte_offset: number; byte_length: number }>();
+      const actual = read.mock.calls.map(([, options]) => {
+        const bounds = options!.range as { offset: number; length: number };
+        return rows.results.find(
+          (row) =>
+            row.byte_offset === bounds.offset &&
+            row.byte_length === bounds.length,
+        )!.cid;
+      });
+      expect(actual, range).toEqual(expected);
+      expect(await verifyUnixFS(proof.blocks, parent.root, ["file"])).toEqual([
+        parent.root,
+        root.root,
+      ]);
+      expect(reconstructRange(proof.blocks, root.root, start, end)).toEqual(
+        text(full.slice(start, end)),
+      );
+      read.mockRestore();
+    }
+    const proof = await readProof(
+      await get(root.root, "", "?format=car&entity-bytes=5:8"),
+      root.root,
+    );
+    proof.blocks.delete(key(b.root));
+    expect(() => reconstructRange(proof.blocks, root.root, 5, 9)).toThrow(
+      "Missing",
+    );
+  });
+
+  it("normalizes exact integer syntax and effective scope in ETags, preflights GET/HEAD/304 and rejects malformed ranges", async () => {
+    const base = "?format=car&entity-bytes=+0005:0008".replace("+", "%2B");
+    // Plus signs are not part of the signed-offset subset; minus and leading zeros are.
+    expect((await get(partial.root.root, "", base)).status).toBe(400);
+    const search = "?format=car&entity-bytes=5:8";
+    const response = await get(partial.root.root, "", search);
+    const etag = response.headers.get("etag")!;
+    const bytes = await response.arrayBuffer();
+    for (const scope of ["block", "all", "entity"]) {
+      const equivalent = await get(
+        partial.root.root,
+        "",
+        `${search.replace("5:8", "0005:0008")}&dag-scope=${scope}`,
+      );
+      expect(equivalent.headers.get("etag")).toBe(etag);
+      expect(await equivalent.arrayBuffer()).toEqual(bytes);
+    }
+    const head = await get(partial.root.root, "", search, "HEAD");
+    expect([...head.headers]).toEqual([...response.headers]);
+    expect(await head.text()).toBe("");
+    const read = vi.spyOn(env.BLOCKS, "get");
+    const cached = await get(partial.root.root, "", search, "GET", {
+      "if-none-match": etag,
+    });
+    expect(cached.status).toBe(304);
+    expect(cached.headers.get("etag")).toBe(etag);
+    expect(read).toHaveBeenCalledTimes(3);
+    read.mockRestore();
+    for (const range of [
+      "",
+      ":1",
+      "1:",
+      "*:1",
+      "1:2,3:4",
+      "1.5:2",
+      "1e2:3",
+      "1:NaN",
+      "18:*",
+      "-999:-99",
+      "9007199254740993:*",
+      "184467440737095516160000:*",
+    ])
+      for (const method of ["GET", "HEAD"])
+        expect(
+          (
+            await get(
+              partial.root.root,
+              "",
+              `?format=car&entity-bytes=${range}`,
+              method,
+              { "if-none-match": "*" },
+            )
+          ).status,
+          range,
+        ).toBe(400);
+    for (const suffix of [
+      "&entity-bytes=0:*",
+      "&dag-scope=bad",
+      "&dag-scope=all&dag-scope=block",
+      "&bad=%ff",
+      "&bad=%",
+      "&entity%2dbytes=0:*",
+      "&format=car",
+    ])
+      expect((await get(partial.root.root, "", search + suffix)).status).toBe(
+        400,
+      );
+    const other = await get(
+      partial.root.root,
+      "",
+      "?format=car&entity-bytes=6:8",
+    );
+    expect(other.headers.get("etag")).not.toBe(etag);
+    await other.body?.cancel();
+  });
+
+  it("handles empty/raw/UnixFS raw/inline byte entities, ignores nonbyte selectors and keeps HAMT enumeration", async () => {
+    const empty = await unixFile("");
+    const embedded = await unixFile("inline bytes");
+    const emptyRaw = await node(new Uint8Array(), 0x55);
+    const emptyChunked = await unixFile("", [{ dag: emptyRaw, size: 0 }]);
+    const cborBytes = await node(dagCbor.encode(text("abc")), dagCbor.code);
+    const unixRaw = await node(
+      dagPb.encode({
+        Data: Uint8Array.from([8, 0, 18, 3, 97, 98, 99, 24, 3]),
+        Links: [],
+      }),
+      dagPb.code,
+    );
+    const inline = await node(
+      dagCbor.encode({
+        bytes: text("abc"),
+        scalar: 42,
+        object: { linked: partial.a.root },
+      }),
+      dagCbor.code,
+      [partial.a],
+    );
+    for (const dag of [
+      empty,
+      emptyRaw,
+      emptyChunked,
+      embedded,
+      unixRaw,
+      inline,
+      cborBytes,
+    ])
+      await save(dag);
+    for (const [dag, path, range] of [
+      [empty, "", "999:*"],
+      [emptyRaw, "", "-999:99"],
+      [emptyChunked, "", "999:*"],
+      [cborBytes, "", "1:1"],
+      [embedded, "", "2:4"],
+      [unixRaw, "", "1:1"],
+      [partial.a, "", "1:1"],
+      [inline, "/bytes", "1:1"],
+      [inline, "/object", "999:*"],
+      [inline, "", "999:*"],
+      [inline, "/scalar", "999:*"],
+      [nested, "", "999:*"],
+    ] as const) {
+      const proof = await readProof(
+        await get(dag.root, path, `?format=car&entity-bytes=${range}`),
+        dag.root,
+      );
+      expect(proof.cids.map(key)).toEqual([key(dag.root)]);
+      expect(proof.blocks.get(key(dag.root))).toEqual(
+        dag.blocks.get(key(dag.root)),
+      );
+    }
+    for (const [dag, path] of [
+      [embedded, ""],
+      [unixRaw, ""],
+      [partial.a, ""],
+      [inline, "/bytes"],
+      [cborBytes, ""],
+    ] as const)
+      expect(
+        (await get(dag.root, path, "?format=car&entity-bytes=999:*")).status,
+      ).toBe(400);
+    const ordinary = await get(
+      inline.root,
+      "/object",
+      "?format=car&dag-scope=entity",
+    );
+    const ignored = await get(
+      inline.root,
+      "/object",
+      "?format=car&entity-bytes=999:*",
+    );
+    expect(ordinary.headers.get("etag")).not.toBe(ignored.headers.get("etag"));
+    expect(await ordinary.arrayBuffer()).toEqual(await ignored.arrayBuffer());
+    const read = vi.spyOn(env.BLOCKS, "get");
+    const proof = await readProof(
+      await get(hamt.root, "", "?format=car&entity-bytes=999:*"),
+      hamt.root,
+    );
+    expect(proof.cids.every((cid) => cid.code === dagPb.code)).toBe(true);
+    expect(read).toHaveBeenCalledTimes(proof.cids.length);
+    expect(proof.cids.length).toBeGreaterThan(1);
+  });
+
+  it("ignores an unavailable unneeded branch but fails necessary GET/HEAD/304 after GC, corruption and index faults", async () => {
+    const fixture = await partialFixture("G");
+    await save(fixture.parent);
+    // Remove only this archive's index entry; the retained root remains authorized.
+    await env.DB.prepare("DELETE FROM car_blocks WHERE cid = ?")
+      .bind(key(fixture.c.root))
+      .run();
+    const search = "?format=car&entity-bytes=1:2";
+    for (const method of ["GET", "HEAD"]) {
+      const ok = await get(fixture.parent.root, "/file", search, method, {
+        "if-none-match": "*",
+      });
+      expect(ok.status).toBe(304);
+      const needed = await get(
+        fixture.parent.root,
+        "/file",
+        "?format=car&entity-bytes=10:11",
+        method,
+        { "if-none-match": "*" },
+      );
+      expect(needed.status).toBe(503);
+      expect(
+        (await get(fixture.parent.root, "/file", "?format=car", method)).status,
+      ).toBe(503);
+    }
+    await env.BLOCKS.put(key(fixture.c.root), text("invalid digest"));
+    expect(
+      (
+        await get(
+          fixture.parent.root,
+          "/file",
+          "?format=car&entity-bytes=10:11",
+        )
+      ).status,
+    ).toBe(503);
+    await save(fixture.parent);
+    const read = vi
+      .spyOn(env.BLOCKS, "get")
+      .mockRejectedValueOnce(new Error("index outage"));
+    expect(
+      (await get(fixture.parent.root, "/file", search, "HEAD")).status,
+    ).toBe(503);
+    read.mockRestore();
+    await save(partial.parent);
+  });
+
+  it("rejects inconsistent, truncated and oversized UnixFS metadata without reading arbitrary siblings", async () => {
+    const child = await node(text("wrong child size"), 0x55);
+    const badDeclared = await unixFile("", [{ dag: child, size: 1 }], 2n);
+    const badChild = await unixFile("", [{ dag: child, size: 1 }]);
+    const wrongCodec = await unixFile("", [{ dag: cbor, size: 1 }]);
+    const badIntermediate = await unixFile("", [
+      { dag: partial.inner, size: 1 },
+    ]);
+    const truncated = await node(
+      dagPb.encode({ Data: Uint8Array.from([8, 2, 24, 128]), Links: [] }),
+      dagPb.code,
+    );
+    const overflow = await node(
+      dagPb.encode({
+        Data: Uint8Array.from([8, 2, 24, ...uint(1n << 64n)]),
+        Links: [],
+      }),
+      dagPb.code,
+    );
+    const oversized = await unixFile("", [
+      { dag: child, size: 32 * 1024 * 1024 + 1 },
+    ]);
+    for (const [dag, status, count] of [
+      [badDeclared, 503, 1],
+      [badChild, 503, 2],
+      [wrongCodec, 503, 2],
+      [badIntermediate, 503, 2],
+      [truncated, 503, 1],
+      [overflow, 503, 1],
+      [oversized, 413, 1],
+    ] as const) {
+      await save(dag);
+      const read = vi.spyOn(env.BLOCKS, "get");
+      expect(
+        (await get(dag.root, "", "?format=car&entity-bytes=0:*")).status,
+      ).toBe(status);
+      expect(read).toHaveBeenCalledTimes(count);
+      read.mockRestore();
+    }
+  });
+
+  it("negotiates quality/specificity, quoted parameters and explicit query variants honestly", async () => {
+    for (const [search, accept, type, status] of [
+      [
+        "",
+        "application/vnd.ipld.car;q=0.1,application/vnd.ipld.raw;q=0.9",
+        "raw",
+        200,
+      ],
+      [
+        "",
+        "application/vnd.ipld.car;q=0.9,application/vnd.ipld.raw;q=0.1",
+        "car",
+        200,
+      ],
+      ["", "application/vnd.ipld.car;q=0,*/*;q=1", "raw", 200],
+      ["", "application/vnd.ipld.car;version=2,*/*;q=0.5", "raw", 200],
+      [
+        "",
+        "application/vnd.ipld.car;version=2,*/*;q=0.5,application/vnd.ipld.raw;q=0,image/webp;q=0",
+        "car",
+        200,
+      ],
+      ["", "*/*,application/vnd.ipld.raw;q=0,image/webp;q=0", "", 406],
+      ["", "application/*;version=1", "", 406],
+      [
+        "",
+        "application/vnd.ipld.car;version=2,application/*;version=1",
+        "car",
+        200,
+      ],
+      [
+        "",
+        'application/vnd.ipld.car;version=2;q=1,application/vnd.ipld.car;version="1";order="dfs";dups="n";q=0.2',
+        "car",
+        200,
+      ],
+      [
+        "",
+        "application/vnd.ipld.car;q=1,application/vnd.ipld.car;version=1;q=0,application/vnd.ipld.raw;q=0",
+        "",
+        406,
+      ],
+      [
+        "",
+        "application/vnd.ipld.car;q=0,application/vnd.ipld.car;version=1;q=0.5",
+        "car",
+        200,
+      ],
+      ["?format=car", "application/vnd.ipld.car;version=2", "", 406],
+      ["?format=car", "application/vnd.ipld.car;dups=y", "", 406],
+      ["?format=car", "application/vnd.ipld.car;order=unk", "", 406],
+      [
+        "?format=car&car-version=1&car-dups=n",
+        "application/vnd.ipld.car;version=2;dups=y",
+        "car",
+        200,
+      ],
+      ["?format=car", "application/vnd.ipld.raw", "car", 200],
+      ["?format=raw", "application/vnd.ipld.car;version=2", "raw", 200],
+      ["?format=car", "application/vnd.ipld.car;q=0", "car", 200],
+      ["", "application/vnd.ipld.car;q=.5", "", 400],
+      ["", 'application/vnd.ipld.car;version="1', "", 400],
+    ] as const) {
+      const response = await get(partial.a.root, "", search, "GET", { accept });
+      expect(response.status, accept + search).toBe(status);
+      if (type) {
+        expect(response.headers.get("content-type")).toContain(
+          `application/vnd.ipld.${type}`,
+        );
+        const location = response.headers.get("content-location")!;
+        expect(location).toContain(`format=${type}`);
+        expect(location).not.toContain("example.test");
+        const canonical = await gateway.request(
+          `http://example.test${location}`,
+          {},
+          env,
+        );
+        expect(canonical.status).toBe(200);
+        expect(canonical.headers.get("etag")).toBe(
+          response.headers.get("etag"),
+        );
+        expect(await canonical.arrayBuffer()).toEqual(
+          await response.arrayBuffer(),
+        );
+      }
+    }
+    const response = await get(
+      partial.parent.root,
+      "/file",
+      "?entity-bytes=0005:0008&dag-scope=all",
+      "HEAD",
+      {
+        accept: 'application/vnd.ipld.car;version="1";order="dfs";dups="n"',
+      },
+    );
+    const location = new URL(
+      response.headers.get("content-location")!,
+      "http://example.test",
+    );
+    expect(location.searchParams.get("entity-bytes")).toBe("5:8");
+    expect(location.searchParams.get("dag-scope")).toBe("entity");
+    for (const [name, value] of [
+      ["format", "car"],
+      ["car-version", "1"],
+      ["car-order", "dfs"],
+      ["car-dups", "n"],
+    ])
+      expect(location.searchParams.get(name!)).toBe(value);
+  });
+
+  it("validates protobuf wire metadata rather than rounded or recomputed filesize", () => {
+    expect(
+      fileMetadata(
+        Uint8Array.from([
+          8,
+          2,
+          18,
+          1,
+          97,
+          24,
+          2,
+          34,
+          1,
+          1,
+          40,
+          0,
+          49,
+          ...Array<number>(8).fill(0),
+          61,
+          0,
+          0,
+          0,
+          0,
+        ]),
+        1,
+      ),
+    ).toEqual({ size: 2n, inline: 1n, sizes: [1n] });
+    expect(fileMetadata(Uint8Array.from([8, 1]), 0)).toBeUndefined();
+    for (const data of [
+      [0],
+      [8, 2, 8, 2],
+      [8, 2, 18, 10],
+      [8, 2, 16, 0],
+      [8, 2, 26, 0],
+      [10, 0],
+      [8, 2, 33, ...Array<number>(8).fill(0)],
+      [8, 2, 41],
+      [8, 2, 43],
+      [8, 2, 34, 1, 128],
+      [8, 0, 32, 1],
+      [8, 2, 32, 0],
+      [8, 2, 24, 1],
+      [8, 2, 24, ...Array<number>(10).fill(128)],
+    ])
+      expect(() =>
+        fileMetadata(Uint8Array.from(data), data[1] === 0 ? 1 : 0),
+      ).toThrow();
+  });
+
+  it("uses virtual identity bytes without storage reads or identity CAR sections", async () => {
+    const virtual = CID.createV1(0x55, identity.digest(text("virtual")));
+    const bytes = dagPb.encode({
+      Data: Uint8Array.from([8, 2, 24, 7, 32, 7]),
+      Links: [{ Hash: virtual, Name: "" }],
+    });
+    const root = CID.createV1(dagPb.code, await sha256.digest(bytes));
+    const dag = {
+      root,
+      blocks: new Map([[key(root), bytes]]),
+      size: bytes.length,
+    };
+    await save(dag);
+    for (const search of ["?format=car", "?format=car&entity-bytes=2:4"]) {
+      const read = vi.spyOn(env.BLOCKS, "get");
+      const proof = await readProof(await get(root, "", search), root);
+      expect(proof.cids.map(key)).toEqual([key(root)]);
+      expect(read).toHaveBeenCalledTimes(1);
+      expect(reconstructRange(proof.blocks, root, 2, 5)).toEqual(text("rtu"));
+      read.mockRestore();
+    }
+    const probe = await readProof(
+      await get(PROBE_CID, "", "?format=car&entity-bytes=999:*"),
+      CID.parse(PROBE_CID),
+    );
+    expect(probe.blocks.size).toBe(0);
+  });
+
+  it("releases a cancelled necessary range storage body before headers and preserves range budgets", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const leaf = await node(text("cancel range"), 0x55);
+    const root = await unixFile("", [{ dag: leaf, size: 12 }]);
+    await save(root);
+    await env.DB.prepare("DELETE FROM car_blocks WHERE cid = ?")
+      .bind(key(leaf.root))
+      .run();
+    const abort = new AbortController();
+    const cancel = vi.fn();
+    const original = env.BLOCKS.get.bind(env.BLOCKS);
+    const read = vi
+      .spyOn(env.BLOCKS, "get")
+      .mockImplementationOnce(original)
+      .mockImplementationOnce(() => {
+        setTimeout(() => {
+          abort.abort(new Error("range client disconnected"));
+        }, 10);
+        return Promise.resolve({
+          size: 12,
+          body: new ReadableStream<Uint8Array>({ cancel }),
+        } as R2ObjectBody);
+      });
+    const response = await gateway.request(
+      new Request(
+        `http://example.test/ipfs/${key(root.root)}?format=car&entity-bytes=1:2`,
+        { signal: abort.signal },
+      ),
+      undefined,
+      env,
+    );
+    expect(response.status).toBe(500);
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(cancel).toHaveBeenCalledWith(abort.signal.reason);
+    read.mockRestore();
+    const truncated = vi
+      .spyOn(env.BLOCKS, "get")
+      .mockImplementationOnce(original)
+      .mockResolvedValueOnce({
+        size: 12,
+        body: new Blob([text("x")]).stream(),
+      } as R2ObjectBody);
+    expect(
+      (await get(root.root, "", "?format=car&entity-bytes=1:2")).status,
+    ).toBe(503);
+    expect(truncated).toHaveBeenCalledTimes(2);
+    truncated.mockRestore();
+    for (const scope of ["block", "all"])
+      await expect(
+        pathProof(
+          partial.root.root,
+          [],
+          (cid) => partial.root.blocks.get(key(cid)),
+          signal(),
+          404,
+          scope as "block" | "all",
+          { from: 5n, to: 8n },
+        ),
+      ).resolves.toHaveLength(3);
+    const virtual = Array.from({ length: 256 }, (_, i) =>
+      CID.createV1(0x55, identity.digest(text(String(i)))),
+    );
+    const sizes = virtual.map((cid) => cid.multihash.digest.length);
+    const bytes = dagPb.encode({
+      Data: Uint8Array.from([
+        8,
+        2,
+        24,
+        ...uint(BigInt(sizes.reduce((a, b) => a + b))),
+        ...sizes.flatMap((size) => [32, ...uint(BigInt(size))]),
+      ]),
+      Links: virtual.map((Hash) => ({ Hash, Name: "" })),
+    });
+    const rootCid = CID.createV1(dagPb.code, await sha256.digest(bytes));
+    await expect(
+      pathProof(rootCid, [], () => bytes, signal(), 404, "entity", {
+        from: 0n,
+        to: null,
+      }),
+    ).rejects.toMatchObject({ status: 413 });
+    await expect(
+      pathProof(
+        partial.root.root,
+        [],
+        (cid) =>
+          key(cid) === key(partial.root.root)
+            ? partial.root.blocks.get(key(cid))
+            : new Uint8Array(2 * 1024 * 1024 + 1),
+        signal(),
+        404,
+        "entity",
+        { from: 5n, to: 8n },
+      ),
+    ).rejects.toMatchObject({ status: 413 });
+  });
+
+  it("keeps only-if-cached authorization/root semantics for ranged conditional requests", async () => {
+    const absent = await node(text("absent ranged root"), 0x55);
+    await env.DB.prepare(
+      "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES ('car-owner', ?, 'Missing range root', 18, 1, 'public')",
+    )
+      .bind(key(absent.root))
+      .run();
+    const unknown = await node(text("unknown ranged root"), 0x55);
+    for (const method of ["GET", "HEAD"])
+      for (const cache of ["", "only-if-cached"]) {
+        const headers = { "cache-control": cache, "if-none-match": "*" };
+        expect(
+          (
+            await get(
+              absent.root,
+              "",
+              "?format=car&entity-bytes=0:*",
+              method,
+              headers,
+            )
+          ).status,
+        ).toBe(cache ? 412 : 404);
+        expect(
+          (
+            await get(
+              unknown.root,
+              "",
+              "?format=car&entity-bytes=0:*",
+              method,
+              headers,
+            )
+          ).status,
+        ).toBe(404);
+        expect(
+          (
+            await get(
+              partial.parent.root,
+              "/absent",
+              "?format=car&entity-bytes=0:*",
+              method,
+              headers,
+            )
+          ).status,
+        ).toBe(404);
+      }
+  });
+
   it("reconstructs entity files, emits exact DFS sets and makes default all byte-identical", async () => {
     const leafCids = dagPb
       .decode(file.blocks.get(key(file.root))!)
@@ -850,7 +1605,6 @@ describe("bounded standard CAR path proofs", () => {
       [query + "&car-version=2", 406],
       [query + "&car-order=unk", 406],
       [query + "&car-dups=y", 406],
-      [query + "&entity-bytes=0:1", 406],
       ["?format=car&dag-scope=", 400],
       ["?format=car&dag-scope=bad", 400],
       [query + "&dag-scope=block", 400],
@@ -868,10 +1622,7 @@ describe("bounded standard CAR path proofs", () => {
         (await get(nested.root, "", "?dag-scope=block", "GET", { accept }))
           .status,
       ).toBe(406);
-    for (const search of [
-      "?dag-scope=block&car-version=2",
-      "?dag-scope=block&entity-bytes=0:1",
-    ]) {
+    for (const search of ["?dag-scope=block&car-version=2"]) {
       const response = await get(nested.root, "", search, "GET", {
         accept: "application/vnd.ipld.car, application/vnd.ipld.raw;q=0.2",
       });
@@ -1252,6 +2003,26 @@ describe("bounded standard CAR path proofs", () => {
     expect(
       (await readProof(car, image.root)).blocks.get(key(image.root)),
     ).toEqual(imageBytes);
+    for (const [accept, type] of [
+      ["image/webp;q=1,application/vnd.ipld.car;q=0.1", "image/webp"],
+      [
+        "image/webp;q=0.1,application/vnd.ipld.car;q=1",
+        "application/vnd.ipld.car",
+      ],
+      ["image/webp;q=1,application/vnd.ipld.raw;q=0.1", "image/webp"],
+      ["image/webp;q=0,*/*", "application/vnd.ipld.raw"],
+      ["application/vnd.ipld.car;q=0,image/webp;q=1", "image/webp"],
+      [
+        "application/vnd.ipld.car;version=2,image/webp;q=0,*/*;q=0.2",
+        "application/vnd.ipld.raw",
+      ],
+    ]) {
+      const selected = await get(image.root, "", "", "GET", {
+        accept: accept!,
+      });
+      expect(selected.headers.get("content-type")).toContain(type);
+      await selected.body?.cancel();
+    }
   });
 
   it("bounds proof blocks, total bytes, individual bytes and checks cancellation", async () => {

@@ -3,6 +3,8 @@ import { promisify } from "node:util";
 import { readdir, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { CarReader } from "@ipld/car";
+import * as dagPb from "@ipld/dag-pb";
+import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { afterAll, beforeAll, expect, it } from "vitest";
@@ -140,6 +142,83 @@ beforeAll(async () => {
       socket.send(JSON.stringify({ id: requestId, method }));
     });
 }, 120000);
+
+it("preflights only the necessary UnixFS range blocks in actual workerd", async () => {
+  const left = new Uint8Array(65536).fill(1);
+  const right = new Uint8Array(65536).fill(2);
+  const leftCid = CID.createV1(0x55, await sha256.digest(left));
+  const rightCid = CID.createV1(0x55, await sha256.digest(right));
+  const bytes = dagPb.encode({
+    Data: Uint8Array.from([
+      8, 2, 24, 128, 128, 8, 32, 128, 128, 4, 32, 128, 128, 4,
+    ]),
+    Links: [
+      { Hash: leftCid, Name: "" },
+      { Hash: rightCid, Name: "" },
+    ],
+  });
+  const root = CID.createV1(dagPb.code, await sha256.digest(bytes));
+  const blocks = new Map([
+    [key(root), bytes],
+    [key(leftCid), left],
+    [key(rightCid), right],
+  ]);
+  const env = await runtime.getBindings<Bindings>();
+  await storeDag(env, {
+    root,
+    blocks,
+    size: bytes.length + left.length + right.length,
+  });
+  await env.DB.prepare(
+    "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES ('scope-owner', ?, 'Partial worker fixture', ?, 3, 'public')",
+  )
+    .bind(key(root), bytes.length + left.length + right.length)
+    .run();
+  const measurements = [];
+  let etag = "";
+  for (const [method, conditional] of [
+    ["GET", false],
+    ["HEAD", false],
+    ["GET", true],
+  ] as const) {
+    const response = await runtime.dispatchFetch(
+      `https://gateway.test/ipfs/${key(root)}?format=car&entity-bytes=65536:65537`,
+      { method, headers: conditional ? { "if-none-match": etag } : {} },
+    );
+    expect(response.status).toBe(conditional ? 304 : 200);
+    etag = response.headers.get("etag")!;
+    const cost = JSON.parse(response.headers.get("x-gateway-cost")!) as {
+      d1: number;
+      r2: number;
+      payload: number;
+    };
+    expect(cost).toEqual({
+      d1: 3,
+      r2: 2,
+      payload: bytes.length + right.length,
+    });
+    measurements.push({ method, conditional, cost });
+    if (method === "GET" && !conditional) {
+      const car = await CarReader.fromBytes(
+        new Uint8Array(await response.arrayBuffer()),
+      );
+      const actual = [];
+      for await (const block of car.blocks()) {
+        expect((await sha256.digest(block.bytes)).digest).toEqual(
+          block.cid.multihash.digest,
+        );
+        actual.push(key(block.cid));
+        if (block.cid.equals(rightCid))
+          expect(block.bytes.slice(0, 2)).toEqual(right.slice(0, 2));
+      }
+      expect(actual).toEqual([key(root), key(rightCid)]);
+    } else expect(await response.text()).toBe("");
+  }
+  console.log(
+    "Gateway partial-range workerd evidence",
+    JSON.stringify(measurements),
+  );
+});
 afterAll(async () => {
   closeInspector?.();
   await disposeRuntime?.();

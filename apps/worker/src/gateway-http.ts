@@ -35,10 +35,19 @@ export function acceptsRaw(accept: string): boolean {
 }
 
 export function acceptsMedia(accept: string, requested: string): boolean {
+  return mediaQuality(parseAccept(accept), requested).q > 0;
+}
+
+export function mediaQuality(
+  ranges: ReturnType<typeof parseAccept>,
+  requested: string,
+  supports: (parameters: Map<string, string>) => boolean = (parameters) =>
+    parameters.size === 0,
+) {
   let specificity = -1;
   let quality = 0;
-  for (const { type, q, parameters } of parseAccept(accept)) {
-    if (parameters.size) continue;
+  for (const { type, q, parameters } of ranges) {
+    if (!supports(parameters)) continue;
     const rank =
       type === requested
         ? 2
@@ -48,14 +57,15 @@ export function acceptsMedia(accept: string, requested: string): boolean {
             ? 0
             : -1;
     // A specific exclusion overrides a broader positive wildcard.
-    if (rank > specificity) {
-      specificity = rank;
+    const weight = rank < 0 ? -1 : rank * 100 + parameters.size;
+    if (weight > specificity) {
+      specificity = weight;
       quality = q;
-    } else if (rank === specificity) {
+    } else if (weight === specificity) {
       quality = Math.max(quality, q);
     }
   }
-  return specificity >= 0 && quality > 0;
+  return { q: specificity >= 0 ? quality : 0, specificity };
 }
 
 export function parseAccept(accept: string) {
