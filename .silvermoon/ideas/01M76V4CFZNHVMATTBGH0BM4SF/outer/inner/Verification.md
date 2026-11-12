@@ -27,6 +27,10 @@ dist 及预生成 jpeg.wasm；使用仓库已有构建命令生成后，同一�
 
 ## 门限约束
 
+独立 Kubo 验证发现旧的本地 PoC 上传器只保存归档，不建立公开引用，因此在当前授权模型下 provider
+discovery 正确返回空集。修正仅限本地 poc-entry：仍走 readCar/storeDag 验证与存储，并为专用测试账号创建公开 Pin；生产入口不导入该上传器，没有放宽生产授权。修正后 3 个冷缓存客户端完成 TLS/HTTP2
+cat/get 与浏览器目录重建，完整结果另记 Outer World。
+
 上述结果是源码与本地 Worker 模拟环境证据，不是生产部署证明。补充本文件及部署契约后，最终候选必须重新运行 pnpm
 check 并通过，才能将 I-AC03 标记完成并提交准确 implementationRevision。部署、独立 Kubo/TLS 检索和真实浏览器 smoke 的结果记录在 Outer
 World。
