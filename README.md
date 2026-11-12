@@ -449,6 +449,9 @@ scopes.
 `GET` and `HEAD /ipfs/:cid` serve a single locally stored block, without remote
 retrieval. Select raw with `?format=raw` or an `Accept` header:
 
+- Root requests with `Service-Worker: script` return 400 before content access,
+  regardless of availability or credentials. This endpoint cannot be used to
+  register a service worker with a parent `/ipfs/` scope.
 - Explicit `format=raw` takes precedence over `Accept`, even if the header is
   malformed or excludes raw. Empty or unsupported `format` values return 406.
   Omitting both `format` and `Accept` returns 400.
@@ -473,16 +476,28 @@ retrieval. Select raw with `?format=raw` or an `Accept` header:
   returns a bodyless 304 only after local availability is confirmed. Malformed
   validator lists are ignored. HEAD and matching conditional requests use
   metadata without downloading block bytes.
-- Missing roots return 404, or 412 when `Cache-Control` includes the
-  case-insensitive, bare `only-if-cached` directive. Storage failures remain
+- Authorization precedes representation selection, storage reads and conditional
+  responses. Unknown or unreadable roots return 404 even with `only-if-cached`
+  or a matching validator; invalid credentials retain their authentication
+  errors. For an authorized root whose block is unavailable, ordinary reads
+  return 404, or 412 when `Cache-Control` includes the case-insensitive, bare
+  `only-if-cached` directive. Neither case triggers remote retrieval. An indexed
+  CAR that is missing or truncated returns 503; other storage failures remain
   errors rather than cache hits or missing roots. The empty identity probe
-  `bafkqaaa` is always available, with length 0 and the same conditional rules.
+  `bafkqaaa` requires no identity, has length 0 and follows the same
+  representation and conditional rules.
 
 Generated thumbnail CIDs additionally serve WebP at `/ipfs/:cid` when the client
 accepts images (or sends no `Accept`). Explicit raw requests still deliver the
 exact CID-encoded block bytes. Images have their own `.webp` ETag,
 private/no-store caching, `nosniff` and sandbox headers; conditional GET/HEAD
-work independently of the private, non-cacheable preview description.
+work independently of the private, non-cacheable preview description. The WebP
+payload is itself the raw block identified by the thumbnail CID, not a
+transformation of the original file at retrieval time. Explicit raw selection
+guarantees the raw HTTP contract; the shared endpoint is not a strict
+trustless-only mode. Thumbnail URLs and default image selection remain
+unchanged. This does not add credentialed cross-origin access or CORS preflight
+support for private content.
 
 This is a non-recursive gateway, not a general UnixFS rendering service.
 Standard CAR negotiation, IPNS, gateway path traversal and byte-range responses

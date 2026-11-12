@@ -8,7 +8,8 @@
 
 ### I-S02: 实现记录响应并验证互操作
 
-增加原始记录协商、有效期和版本校验，使用独立验签与重启 fixture 验证；同步文档并运行 pnpm check。
+增加原始记录协商、有效期和版本校验，使用独立验签与重启 fixture 验证；同步文档并运行 pnpm
+check。
 
 ## Acceptance criteria
 
@@ -18,4 +19,5 @@
 
 ### I-AC02: HTTP 与授权边界一致
 
-GET/HEAD、协商、条件缓存、来源失败与无记录测试通过；不存在未授权写入或 raw/CAR 回归，pnpm check 通过。
+GET/HEAD、协商、条件缓存、来源失败与无记录测试通过；不存在未授权写入或 raw/CAR 回归，pnpm
+check 通过。

@@ -23,11 +23,17 @@ Kubo probes `HEAD /ipfs/bafkqaaa?format=raw` (empty identity block), expects a
 
 The [raw HTTP contract](../README.md#raw-gateway-http-contract) also covers GET
 probes, weak/list/wildcard `If-None-Match` (bodyless 304), normalized
-`"<CIDv1>.raw"` ETags, weighted Accept ranges and `only-if-cached` (412 for an
-unavailable root, rather than ordinary 404). An explicit `format=raw` works
-without Accept and overrides it; omitting both selectors returns 400. This
-raw-only scope does not include standard CAR negotiation, IPNS, path traversal
-or byte ranges. Custom CAR export remains a separate API.
+`"<CIDv1>.raw"` ETags, weighted Accept ranges and `only-if-cached`. Unknown or
+unreadable roots remain 404 to preserve the access boundary; an authorized root
+with no available block returns 412 with `only-if-cached`, rather than
+ordinary 404. Missing or truncated indexed CARs remain storage failures (503),
+not cache misses. An explicit `format=raw` works without Accept and overrides
+it; omitting both selectors returns 400 except for the existing thumbnail image
+representation. Thumbnail bytes also match their CID, but image and raw
+responses have separate representation headers and ETags. Requests with
+`Service-Worker: script` at the root are rejected with 400 before content
+access. This raw-only scope does not include standard CAR negotiation, IPNS,
+path traversal or byte ranges. Custom CAR export remains a separate API.
 
 ### Local protocol regression coverage
 
@@ -46,6 +52,12 @@ authentication setup. The requirement-to-test mapping is:
 
 These are local protocol assertions, not a production compatibility
 certification or a replacement for independent client CID verification.
+[`access.test.ts`](../apps/worker/test/access.test.ts) additionally covers
+authorization-first missing-block behavior and service-worker registration
+rejection through the complete Worker app.
+[`previews.test.ts`](../apps/worker/test/previews.test.ts) verifies thumbnail
+CID integrity, unchanged image URLs and explicit raw GET/HEAD selection with
+separate representation validators.
 
 Provider responses use the `peer` schema, a stable Peer ID and a
 `/dns4/.../tcp/443/tls/http` multiaddr. The Peer ID here is an HTTP provider
@@ -153,7 +165,9 @@ causing a recursive internet fetch.
 - Check GET/HEAD probes and stored blocks for matching weak/list/wildcard
   validators (304 with no body), nonmatching validators (200), identical
   normalized raw ETags and unchanged payload bytes. Check missing roots return
-  404 normally and 412 with `only-if-cached`.
+  404 for unknown or unreadable roots even with `only-if-cached`. An authorized
+  root lacking a block returns 404 normally and 412 with `only-if-cached`;
+  indexed CAR loss or truncation remains 503.
 - Check raw Accept negotiation, including wildcards, exact `q=0` overriding
   wildcards, malformed headers (400), unacceptable formats (406), and missing
   selectors (400). Confirm explicit `format=raw` still works without Accept.

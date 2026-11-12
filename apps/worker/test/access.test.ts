@@ -19,7 +19,7 @@ import { createToken } from "../src/tokens.js";
 import { PinService } from "../src/service.js";
 import { PublicationService } from "../src/publications.js";
 import { DescriptionService } from "../src/descriptions.js";
-import { completeDag, importFile, key } from "../src/content.js";
+import { completeDag, importFile, key, PROBE_CID } from "../src/content.js";
 import { encodeCar } from "../src/car.js";
 import { storeDag } from "../src/storage.js";
 import { restorePin } from "../src/recently-deleted.js";
@@ -115,6 +115,44 @@ afterAll(() => mf.dispose());
 afterEach(() => vi.restoreAllMocks());
 
 describe("live root access, not CID knowledge or retention", () => {
+  it.each(["GET", "HEAD"])(
+    "%s rejects root service-worker registration before content access",
+    async (method) => {
+      const pin = await pins().upload(
+        text("service worker " + crypto.randomUUID()),
+        "file",
+        "Service worker fixture",
+      );
+      const missing = CID.createV1(
+        0x55,
+        await sha256.digest(text("missing service worker fixture")),
+      ).toString();
+      const get = vi.spyOn(env.BLOCKS, "get");
+      const head = vi.spyOn(env.BLOCKS, "head");
+      for (const root of [pin.cid, missing, PROBE_CID]) {
+        for (const token of [undefined, ownerToken]) {
+          for (const query of ["", "?format=raw"]) {
+            const response = await request(`/ipfs/${root}${query}`, token, {
+              method,
+              headers: {
+                "service-worker": "script",
+                "if-none-match": "*",
+                "cache-control": "only-if-cached",
+              },
+            });
+            expect(response.status).toBe(400);
+            expect(response.headers.get("cache-control")).toBe(
+              "private, no-store",
+            );
+            if (method === "HEAD") expect(await response.text()).toBe("");
+          }
+        }
+      }
+      expect(get).not.toHaveBeenCalled();
+      expect(head).not.toHaveBeenCalled();
+    },
+  );
+
   it("checks share access, refuses OAuth outside MCP and treats invalid sessions as anonymous only", async () => {
     const pin = await pins().upload(
       text("share check " + crypto.randomUUID()),

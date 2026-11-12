@@ -10,8 +10,12 @@ raw/CAR 只能验证不可变内容，尚不能为 IPNS 名称提供客户端可
 
 ## 边界
 
-- 前置为 [迭代 5](../../../../01M76VEYBW0J9Y0E1BB9QRWT50/outer/inner/ideal/Idea.md) 完成；不依赖递归回源或 DHT，也不要求观测网络全局最新版本。
-- 仅含 IPNS key 的签名记录 GET/HEAD；不含 DNSLink、密钥托管、记录发布或未经证明的服务端名称解析，Pinboard Publication 不直接等同于 IPNS。
+- 前置为
+  [迭代 5](../../../../01M76VEYBW0J9Y0E1BB9QRWT50/outer/inner/ideal/Idea.md)
+  完成；不依赖递归回源或 DHT，也不要求观测网络全局最新版本。
+- 仅含 IPNS
+  key 的签名记录 GET/HEAD；不含 DNSLink、密钥托管、记录发布或未经证明的服务端名称解析，Pinboard
+  Publication 不直接等同于 IPNS。
 - 实施前明确可信记录来源、写入授权及持久化新鲜度策略；不能新增匿名写入或绕过私有内容授权，所需生产迁移另行授权。
 
 ## 验收标准

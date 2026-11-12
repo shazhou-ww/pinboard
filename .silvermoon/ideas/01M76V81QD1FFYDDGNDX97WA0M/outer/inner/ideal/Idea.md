@@ -2,7 +2,8 @@
 
 ## 问题
 
-现有自定义 CAR 导出不能被标准 trustless CAR 客户端协商使用，也不能证明请求根到子路径终点的关系。
+现有自定义 CAR 导出不能被标准 trustless
+CAR 客户端协商使用，也不能证明请求根到子路径终点的关系。
 
 ## 结果
 
@@ -10,12 +11,15 @@
 
 ## 边界
 
-- 前置为 [迭代 1](../../../../01M76V4CFZNHVMATTBGH0BM4SF/outer/inner/ideal/Idea.md) 完成；之后补齐 DAG scope。
+- 前置为
+  [迭代 1](../../../../01M76V4CFZNHVMATTBGH0BM4SF/outer/inner/ideal/Idea.md)
+  完成；之后补齐 DAG scope。
 - 首期仅支持显式 dag-scope=block；省略时的规范默认 all 尚不可用，必须明确拒绝，不能静默降为 block。保留自定义 CAR 导出 API。
 - 非递归、原始 block 不重编码；路径证明的全部输出须符合现有访问授权，不因客户端知道 CID 而放行。
 
 ## 验收标准
 
 - 独立验证器可验证根到终点的 UnixFS 与已声明 IPLD 路径；删除或篡改证明会失败，非法或缺失路径不会伪装成完整成功。
-- 标准 CAR 协商、GET/HEAD、CAR probe、版本标注、附件及表示专属条件请求符合声明范围，未实现的请求明确失败。
+- 标准 CAR 协商、GET/HEAD、CAR
+  probe、版本标注、附件及表示专属条件请求符合声明范围，未实现的请求明确失败。
 - 缺块、断连和慢客户端的响应完整性可判定；流受预算、取消与背压约束，raw 和自定义导出行为不回归。

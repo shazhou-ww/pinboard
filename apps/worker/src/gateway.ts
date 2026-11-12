@@ -17,6 +17,11 @@ gateway.use("*", async (c, next) => {
 });
 
 gateway.on(["GET", "HEAD"], "/ipfs/:cid", async (c) => {
+  if (c.req.header("service-worker")?.trim().toLowerCase() === "script")
+    return c.json(
+      { error: "Service workers are not allowed at an IPFS root" },
+      400,
+    );
   const cid = parseCid(c.req.param("cid"));
   if (key(cid) !== PROBE_CID)
     await authorizeBlock(c.env, key(cid), await optionalIdentity(c));

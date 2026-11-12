@@ -815,6 +815,38 @@ describe("real images, CID delivery and retention references", () => {
       env,
     );
     expect(new Uint8Array(await raw.arrayBuffer())).toEqual(bytes);
+    for (const method of ["GET", "HEAD"]) {
+      for (const [query, accept] of [
+        ["?format=raw", "image/webp"],
+        ["", "application/vnd.ipld.raw"],
+      ] as const) {
+        const response = await gateway.request(
+          `http://local/ipfs/${cid}${query}`,
+          { method, headers: { accept } },
+          env,
+        );
+        expect(response.status).toBe(200);
+        expect(response.headers.get("content-type")).toBe(
+          "application/vnd.ipld.raw",
+        );
+        expect(response.headers.get("content-disposition")).toBe(
+          `attachment; filename="${cid}.bin"`,
+        );
+        expect(response.headers.get("etag")).toBe(`"${cid}.raw"`);
+        expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+          method === "GET" ? bytes : new Uint8Array(),
+        );
+        const conditional = await gateway.request(
+          `http://local/ipfs/${cid}${query}`,
+          {
+            method,
+            headers: { accept, "if-none-match": etag },
+          },
+          env,
+        );
+        expect(conditional.status).toBe(200);
+      }
+    }
     expect(await readBlock(env, cid)).toEqual(bytes);
     expect(await getBlock(env, cid)).not.toBeNull();
     expect(
