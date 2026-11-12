@@ -1,5 +1,5 @@
-import { CarWriter } from "@ipld/car";
 import * as dagCbor from "@ipld/dag-cbor";
+import * as dagPb from "@ipld/dag-pb";
 import {
   exporter,
   resolvers,
@@ -52,7 +52,7 @@ export function gatewayPath(request: Request): { root: CID; parts: string[] } {
 
 // Explicit format wins over Accept. Only explicit CAR media ranges select CAR;
 // wildcards retain the existing raw/image behavior.
-export function negotiateCar(request: Request, probe: boolean): boolean {
+export function negotiateCar(request: Request): boolean {
   const query = new URL(request.url).searchParams;
   const format = query.get("format");
   if (format !== null && format !== "car") return false;
@@ -76,8 +76,6 @@ export function negotiateCar(request: Request, probe: boolean): boolean {
   const scope = query.get("dag-scope") ?? "all";
   if (!["block", "entity", "all"].includes(scope))
     throw new HTTPException(400, { message: "Invalid dag-scope" });
-  const supportedScope =
-    scope === "block" || (probe && !query.has("dag-scope"));
   const supported = ranges.some(({ parameters }) => {
     if (
       [...parameters.keys()].some(
@@ -91,11 +89,11 @@ export function negotiateCar(request: Request, probe: boolean): boolean {
       (query.get("car-dups") ?? parameters.get("dups") ?? "n") === "n"
     );
   });
-  if (supportedScope && supported && !query.has("entity-bytes")) return true;
+  if (supported && !query.has("entity-bytes")) return true;
   if (format !== "car") return false;
   throw new HTTPException(406, {
     message:
-      "Supported CAR: explicit dag-scope=block, version=1, order=dfs, dups=n; entity-bytes is unsupported",
+      "Supported CAR: dag-scope=block|entity|all (default all), version=1, order=dfs, dups=n; entity-bytes is unsupported",
   });
 }
 
@@ -105,6 +103,7 @@ export async function pathProof(
   read: (cid: CID) => Promise<Uint8Array | undefined> | Uint8Array | undefined,
   signal: AbortSignal,
   missingRootStatus: 404 | 412 = 404,
+  scope: "block" | "entity" | "all" = "block",
 ): Promise<{ cid: CID; bytes: Uint8Array }[]> {
   const blocks = new Map<string, { cid: CID; bytes: Uint8Array }>();
   let size = 0;
@@ -114,7 +113,15 @@ export async function pathProof(
     if (cached) return cached.bytes;
     if (blocks.size >= MAX_BLOCKS)
       throw new HTTPException(413, { message: "Proof exceeds 256 blocks" });
-    const bytes = await read(cid);
+    let bytes: Uint8Array | undefined;
+    try {
+      bytes = await read(cid);
+    } catch (error) {
+      if (error instanceof HTTPException || signal.aborted) throw error;
+      throw new HTTPException(503, {
+        message: "Stored proof block unavailable",
+      });
+    }
     signal.throwIfAborted();
     if (!bytes)
       throw new HTTPException(blocks.size ? 503 : missingRootStatus, {
@@ -137,6 +144,20 @@ export async function pathProof(
       yield await load(cid);
     },
   };
+  function decodeCbor(bytes: Uint8Array): unknown {
+    try {
+      return dagCbor.decode(bytes);
+    } catch {
+      throw new HTTPException(503, { message: "Invalid DAG-CBOR block" });
+    }
+  }
+  function decodePb(bytes: Uint8Array) {
+    try {
+      return dagPb.decode(bytes);
+    } catch {
+      throw new HTTPException(503, { message: "Invalid DAG-PB block" });
+    }
+  }
   let cid = root;
   let value: unknown;
   let inValue = false;
@@ -167,11 +188,7 @@ export async function pathProof(
     if (!inValue) {
       if (cid.code !== dagCbor.code)
         throw new HTTPException(404, { message: "Block has no child path" });
-      try {
-        value = dagCbor.decode(await load(cid));
-      } catch {
-        throw new HTTPException(503, { message: "Invalid DAG-CBOR block" });
-      }
+      value = decodeCbor(await load(cid));
       inValue = true;
     }
     if (
@@ -188,6 +205,92 @@ export async function pathProof(
       cid = link;
       await load(cid);
       inValue = false;
+    }
+  }
+  const visited = new Set<string>();
+  function valueLinks(value: unknown): CID[] {
+    const link = CID.asCID(value);
+    if (link) {
+      return [link];
+    } else if (Array.isArray(value)) {
+      return value.flatMap(valueLinks);
+    } else if (
+      value !== null &&
+      typeof value === "object" &&
+      !(value instanceof Uint8Array)
+    ) {
+      // DAG-CBOR map order is encoded-key length, then unsigned UTF-8 bytes.
+      const encoder = new TextEncoder();
+      const names = Object.keys(value).map((name) => ({
+        name,
+        bytes: encoder.encode(name),
+      }));
+      names.sort((a, b) => {
+        if (a.bytes.length !== b.bytes.length)
+          return a.bytes.length - b.bytes.length;
+        for (let i = 0; i < a.bytes.length; i++) {
+          const difference = a.bytes[i]! - b.bytes[i]!;
+          if (difference) return difference;
+        }
+        return 0;
+      });
+      return names.flatMap(({ name }) =>
+        valueLinks((value as Record<string, unknown>)[name]),
+      );
+    }
+    return [];
+  }
+  async function walk(cid: CID): Promise<void> {
+    if (visited.has(key(cid))) return;
+    visited.add(key(cid));
+    const bytes = await load(cid);
+    if (cid.code === dagPb.code) {
+      const links = decodePb(bytes).Links.map((link) => link.Hash);
+      for (const link of links) await walk(link);
+    } else if (cid.code === dagCbor.code) {
+      const links = valueLinks(decodeCbor(bytes));
+      for (const link of links) await walk(link);
+    }
+  }
+  if (scope === "all") {
+    if (inValue) {
+      const links = valueLinks(value);
+      for (const link of links) await walk(link);
+    } else await walk(cid);
+  } else if (scope === "entity" && !inValue && cid.code === dagPb.code) {
+    const node = decodePb(await load(cid));
+    if (node.Data) {
+      const entry = await exporter(cid, store, { signal }).catch(
+        (error: unknown) => {
+          if (error instanceof HTTPException || signal.aborted) throw error;
+          if (error instanceof Error && error.name === "NotUnixFSError")
+            return undefined;
+          throw new HTTPException(503, { message: "Invalid UnixFS entity" });
+        },
+      );
+      try {
+        if (
+          entry?.type === "file" &&
+          (entry.unixfs.type === "file" || entry.unixfs.type === "raw")
+        )
+          await walk(cid);
+        else if (
+          entry?.type === "directory" &&
+          entry.unixfs.type === "hamt-sharded-directory"
+        ) {
+          // This directory iterator reads shards, not child blocks to infer
+          // entry types. The read-count regression test enforces that boundary.
+          const entries = entry.entries({ signal });
+          try {
+            while (!(await entries.next()).done) signal.throwIfAborted();
+          } finally {
+            await entries.return();
+          }
+        }
+      } catch (error) {
+        if (error instanceof HTTPException || signal.aborted) throw error;
+        throw new HTTPException(503, { message: "Invalid UnixFS entity" });
+      }
     }
   }
   signal.throwIfAborted();
@@ -257,25 +360,24 @@ export async function carResponse(
         onlyIfCached(request.headers.get("cache-control") ?? undefined)
           ? 412
           : 404,
+        (new URL(request.url).searchParams.get("dag-scope") ?? "all") as
+          "block" | "entity" | "all",
       );
-  const { writer, out } = CarWriter.create([root]);
-  const writing = (async () => {
-    for (const block of blocks) await writer.put(block);
-    await writer.close();
-  })();
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  for await (const chunk of out) {
-    chunks.push(chunk);
-    length += chunk.length;
+  function varint(value: number): Uint8Array<ArrayBuffer> {
+    const bytes: number[] = [];
+    do {
+      const byte = value % 128;
+      value = Math.floor(value / 128);
+      bytes.push(byte | (value ? 128 : 0));
+    } while (value);
+    return Uint8Array.from(bytes);
   }
-  await writing;
-  signal.throwIfAborted();
-  const bytes = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.length;
+  const header = dagCbor.encode({ version: 1, roots: [root] });
+  const headerLength = varint(header.length);
+  let length = headerLength.length + header.length;
+  for (const { cid, bytes } of blocks) {
+    const section = cid.bytes.length + bytes.length;
+    length += varint(section).length + section;
   }
   const representation = new TextEncoder().encode(
     JSON.stringify([
@@ -295,7 +397,46 @@ export async function carResponse(
     request.headers.get("if-none-match") ?? undefined,
     etag,
   );
-  return new Response(request.method === "HEAD" || notModified ? null : bytes, {
+  // Preflight retains one bounded payload set. Framing never concatenates it
+  // into a second CAR-sized buffer, and cancellation releases retained blocks.
+  const chunks = (function* () {
+    yield headerLength;
+    yield header;
+    for (const { cid, bytes } of blocks) {
+      yield varint(cid.bytes.length + bytes.length);
+      yield cid.bytes;
+      yield bytes;
+    }
+  })();
+  const clear = () => {
+    chunks.return(undefined);
+    blocks.length = 0;
+  };
+  const body =
+    request.method === "HEAD" || notModified
+      ? null
+      : new ReadableStream<Uint8Array>({
+          pull(controller) {
+            if (signal.aborted) {
+              clear();
+              controller.error(signal.reason);
+              return;
+            }
+            const chunk = chunks.next();
+            if (chunk.done) {
+              clear();
+              controller.close();
+            } else controller.enqueue(chunk.value);
+          },
+          cancel: clear,
+        });
+  if (!body) clear();
+  signal.throwIfAborted();
+  const output =
+    body && typeof FixedLengthStream !== "undefined"
+      ? body.pipeThrough(new FixedLengthStream(length))
+      : body;
+  return new Response(output, {
     status: notModified ? 304 : 200,
     headers: {
       "Content-Type": `${CAR_TYPE}; version=1; order=dfs; dups=n`,

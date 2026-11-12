@@ -224,7 +224,7 @@ describe("raw gateway protocol", () => {
         "application/*",
         "*/*",
         "text/html;q=1, application/vnd.ipld.raw;q=0.2",
-        "application/vnd.ipld.car;q=1, application/*;q=0.5",
+        "application/vnd.ipld.car;version=2;q=1, application/*;q=0.5",
         "*/*;q=0, application/*;q=0.5",
         "application/*;q=0, application/vnd.ipld.raw;q=0.001",
         "application/vnd.ipld.raw;q=0, application/vnd.ipld.raw;q=1",
@@ -245,7 +245,7 @@ describe("raw gateway protocol", () => {
         "application/vnd.ipld.raw;q=0.000",
         "application/vnd.ipld.raw-extra",
         "text/html",
-        "application/vnd.ipld.car",
+        "application/vnd.ipld.car;version=2",
         "application/vnd.ipld.raw;q=0, */*;q=1",
         "application/*;q=0, */*;q=1",
         "application/vnd.ipld.raw;q=0, application/*;q=1",
@@ -256,6 +256,17 @@ describe("raw gateway protocol", () => {
           (await request(cid, method, { accept }, "")).status,
           accept,
         ).toBe(406);
+      }
+      for (const accept of [
+        "application/vnd.ipld.car",
+        "application/vnd.ipld.car;q=1, application/*;q=0.5",
+      ]) {
+        const response = await request(cid, method, { accept }, "");
+        expect(response.status).toBe(200);
+        expect(response.headers.get("content-type")).toBe(
+          "application/vnd.ipld.car; version=1; order=dfs; dups=n",
+        );
+        await response.arrayBuffer();
       }
     },
   );
@@ -293,7 +304,7 @@ describe("raw gateway protocol", () => {
       expect((await request(cid, method)).status).toBe(200);
       for (const query of [
         "?format=",
-        "?format=car",
+        "?format=car&car-version=2",
         "?format=RAW",
         "?format=html",
       ]) {
@@ -311,6 +322,17 @@ describe("raw gateway protocol", () => {
       for (const accept of ["application/vnd.ipld.raw;q=0", "text/html"]) {
         expect((await request(cid, method, { accept })).status).toBe(200);
       }
+      const car = await request(
+        cid,
+        method,
+        { accept: "application/vnd.ipld.raw" },
+        "?format=car",
+      );
+      expect(car.status).toBe(200);
+      expect(car.headers.get("content-type")).toBe(
+        "application/vnd.ipld.car; version=1; order=dfs; dups=n",
+      );
+      await car.arrayBuffer();
     },
   );
 

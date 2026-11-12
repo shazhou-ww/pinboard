@@ -503,17 +503,25 @@ support for private content.
 
 ### Partial CAR path-proof HTTP contract
 
-`GET` and `HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=block` return standard
-CARv1 containing the requested root, the blocks needed to authenticate its path,
-and the terminal block, **not** the terminal file's chunks or directory subtree.
-An explicit `Accept: application/vnd.ipld.car` also selects CAR when
-`dag-scope=block` is supplied. This is a partial, non-recursive trustless
-gateway capability, not full gateway conformance.
+`GET` and `HEAD /ipfs/{cid}[/{path}]?format=car` return standard CARv1. An
+explicit `Accept: application/vnd.ipld.car` also selects CAR. Every scope
+includes the requested root and the blocks needed to authenticate the path:
+
+| `dag-scope`     | Additional terminal content                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `block`         | Only the terminal block (the existing path-proof representation)                                                                                                                                 |
+| `entity`        | Complete UnixFS file data, or directory representation including HAMT shards needed to enumerate that directory, **not** child files or subdirectory contents; other IPLD entities equal `block` |
+| `all` (default) | The terminal's entire reachable DAG, not unrelated request-root siblings                                                                                                                         |
+
+For inline DAG-CBOR terminals, `all` follows only links inside the selected
+value; a scalar adds no blocks. This is a partial, local-only trustless gateway
+capability, not full gateway conformance or recursive network retrieval.
 
 - The supported variant is `version=1; order=dfs; dups=n`, accurately advertised
-  in `Content-Type`. Blocks appear root-first in path traversal order; HAMT
-  sub-shards are included, and equivalent CIDv0/v1 blocks are emitted only once.
-  Original block payloads and the request root's CID version are preserved.
+  in `Content-Type`. Blocks appear proof-first, then terminal depth-first order;
+  HAMT sub-shards are included, and equivalent CIDv0/v1 blocks are emitted only
+  once. Original block payloads and the request root's CID version are
+  preserved.
 - `car-version=1`, `car-order=dfs` and `car-dups=n` are the supported query
   variants. Query variants override corresponding Accept media parameters.
   Explicit `format=car` overrides Accept entirely (including malformed headers);
@@ -522,15 +530,17 @@ gateway capability, not full gateway conformance.
   wildcard-only Accept retains existing raw/image selection. Among CAR offers,
   any supported positive-quality offer suffices; full weighted cross-format
   preference expansion is not implemented.
-- Omitted `dag-scope` means `all`, not `block`. `all`, `entity`, `entity-bytes`,
-  CARv2, duplicate-enabled output and other variants are unsupported (406 for
-  explicit CAR). Invalid scope or repeated CAR query parameters return 400.
-  Without `format`, an unsupported CAR offer may fall back to acceptable raw or
-  the existing image representation; CAR-only requests return 406.
+- Omitted `dag-scope` and explicit `all` have identical bytes and ETags.
+  Different scopes have distinct ETags even when their block sets coincide.
+  `entity-bytes`, CARv2, duplicate-enabled output and other variants are
+  unsupported (406 for explicit CAR). Invalid scope or repeated CAR query
+  parameters return 400. Without `format`, an unsupported CAR offer may fall
+  back to acceptable raw or the existing image representation; CAR-only requests
+  return 406.
 - Exception: `/ipfs/bafkqaaa?format=car` or CAR Accept without scope returns a
   valid header-only CAR with that identity CID as its sole root and no data
-  blocks. Explicit `all`/`entity` remain unsupported. The probe has no child
-  path.
+  blocks, for omitted scope and every supported explicit scope. The probe has no
+  child path.
 - Paths support ordinary and HAMT UnixFS directory names, and DAG-CBOR map keys,
   canonical zero-based list indices and CID links. Inline DAG-CBOR terminal
   values are proven by their containing block. Raw/file/symlink child traversal,
@@ -551,15 +561,22 @@ gateway capability, not full gateway conformance.
   unreadable roots and missing paths remain 404 even with that directive;
   missing required proof blocks or invalid stored bytes return 503.
   Indexed-storage failures remain errors rather than missing paths.
-- Preflight is cancellation-aware and bounded to 256 blocks, 32 MiB of block
-  payloads and 2 MiB per block. Responses have attachment disposition,
+- Preflight is cancellation-aware; proof and terminal content share
+  normalized-CID budgets of 256 unique blocks, 32 MiB of block payloads and 2
+  MiB per block. HEAD and conditional 304 requests also read and verify the
+  **entire selected scope**, potentially 32 MiB and 256 indexed D1/R2 block
+  reads, plus authorization queries. They are not cheap metadata probes; raw
+  HEAD's optimization is unchanged. CAR framing is additional to the payload
+  budget, and 32 MiB is not a peak-memory guarantee. Encoding streams the
+  verified buffers without concatenating another full CAR; no stored-archive
+  fast path bypasses selection. Responses have attachment disposition,
   `nosniff`, sandbox CSP, private/no-store and wildcard CORS as with raw. Strong
   `.car` ETags distinguish the request root CID version, decoded path, scope and
   supported variants from raw and image representations.
 
-IPNS, full DAG scopes, range responses and UnixFS rendering remain unsupported.
-Raw remains root-block-only; paths do not change its response body or headers.
-The separate `/api/public/:cid/car` endpoint still exports a complete CARv1 DAG,
+IPNS, range responses and UnixFS rendering remain unsupported. Raw remains
+root-block-only; paths do not change its response body or headers. The separate
+`/api/public/:cid/car` endpoint still exports a complete CARv1 DAG,
 independently of standard partial-CAR negotiation. Clients must verify CIDs and
 root-to-path relationships; parsing a CAR alone is not proof validation.
 

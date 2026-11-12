@@ -29,7 +29,7 @@ gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
     await authorizeBlock(c.env, key(cid), await optionalIdentity(c));
   const format = c.req.query("format");
   const accept = c.req.header("accept");
-  if (negotiateCar(c.req.raw, key(cid) === PROBE_CID && !parts.length))
+  if (negotiateCar(c.req.raw))
     return carResponse(c.env, c.req.raw, root, parts);
   if (parts.length)
     return c.json(
@@ -81,7 +81,7 @@ gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
     return c.json(
       {
         error:
-          "Request ?format=raw or ?format=car&dag-scope=block, or an acceptable raw/CAR Accept header (CAR requires dag-scope=block)",
+          "Request ?format=raw or ?format=car, or an acceptable raw/CAR Accept header (CAR supports dag-scope=block|entity|all, default all)",
       },
       406,
     );

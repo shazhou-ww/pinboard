@@ -2,6 +2,7 @@ import { CarReader } from "@ipld/car";
 import * as dagCbor from "@ipld/dag-cbor";
 import * as dagPb from "@ipld/dag-pb";
 import { importer } from "ipfs-unixfs-importer";
+import { exporter } from "ipfs-unixfs-exporter";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { CID } from "multiformats/cid";
 import { sha256 } from "multiformats/hashes/sha2";
@@ -27,6 +28,7 @@ import { pathProof } from "../src/gateway-car.js";
 import { storeDag } from "../src/storage.js";
 import { createToken } from "../src/tokens.js";
 import { migrate } from "./migrations.js";
+import { budgetDag } from "./gateway-scope-fixtures.js";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -160,6 +162,24 @@ async function verifyUnixFS(
   return visited;
 }
 
+async function reconstructFile(blocks: Map<string, Uint8Array>, root: CID) {
+  const entry = await exporter(root, {
+    async *get(cid) {
+      const bytes = blocks.get(key(cid));
+      if (!bytes) throw new Error("Missing file block");
+      if (
+        !CID.createV1(cid.code, await sha256.digest(bytes)).equals(cid.toV1())
+      )
+        throw new Error("Invalid file block");
+      yield bytes;
+    },
+  });
+  if (entry.type !== "file") throw new Error("Expected file");
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of entry.content()) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
 beforeAll(async () => {
   const bindings = await mf.getBindings<Bindings>();
   const bucket = bindings.BLOCKS;
@@ -187,7 +207,10 @@ beforeAll(async () => {
   ]);
   nested = await directory([
     { name: "nested", dag: folder },
-    { name: "sibling", dag: sibling },
+    {
+      name: "sibling",
+      dag: await importFile(text("outside selected subtree")),
+    },
   ]);
   const child = await node(
     dagCbor.encode({ list: ["inline", { leaf: file.root }], null: null }),
@@ -242,6 +265,331 @@ afterEach(() => vi.restoreAllMocks());
 afterAll(() => mf.dispose());
 
 describe("bounded standard CAR path proofs", () => {
+  it("reconstructs entity files, emits exact DFS sets and makes default all byte-identical", async () => {
+    const leafCids = dagPb
+      .decode(file.blocks.get(key(file.root))!)
+      .Links.map((link) => link.Hash);
+    const expectedFile = [...new Set([file.root, ...leafCids].map(key))];
+    for (const scope of ["entity", "all"]) {
+      const response = await get(
+        nested.root,
+        "/nested/copy",
+        `?format=car&dag-scope=${scope}`,
+      );
+      const proof = await readProof(response, nested.root);
+      expect(proof.cids.map(key)).toEqual([
+        key(nested.root),
+        key(folder.root),
+        ...expectedFile,
+      ]);
+      expect(await reconstructFile(proof.blocks, file.root)).toEqual(
+        Buffer.alloc(700000, 42),
+      );
+      const missing = new Map(proof.blocks);
+      missing.delete(key(leafCids[0]!));
+      await expect(reconstructFile(missing, file.root)).rejects.toThrow(
+        "Missing",
+      );
+      const tampered = new Map(proof.blocks);
+      tampered.set(key(leafCids[0]!), text("tampered full file"));
+      await expect(reconstructFile(tampered, file.root)).rejects.toThrow(
+        "Invalid",
+      );
+    }
+    const implicit = await get(nested.root, "/nested", "?format=car");
+    const explicit = await get(
+      nested.root,
+      "/nested",
+      "?format=car&dag-scope=all",
+    );
+    expect(implicit.headers.get("etag")).toBe(explicit.headers.get("etag"));
+    const bytes = new Uint8Array(await implicit.arrayBuffer());
+    expect(bytes).toEqual(new Uint8Array(await explicit.arrayBuffer()));
+    const proof = await readProof(new Response(bytes), nested.root);
+    expect(proof.cids.map(key)).toEqual([
+      key(nested.root),
+      key(folder.root),
+      ...expectedFile,
+      key(sibling.root),
+    ]);
+    const tags = new Set<string | null>();
+    for (const scope of ["block", "entity", "all"]) {
+      const response = await get(
+        sibling.root,
+        "",
+        `?format=car&dag-scope=${scope}`,
+      );
+      tags.add(response.headers.get("etag"));
+      expect((await readProof(response, sibling.root)).cids.map(key)).toEqual([
+        key(sibling.root),
+      ]);
+    }
+    expect(tags.size).toBe(3);
+  });
+
+  it("enumerates ordinary and HAMT entity directories without reading child blocks", async () => {
+    for (const dag of [nested, folder, hamt]) {
+      const expected: CID[] = [];
+      const names: string[] = [];
+      function enumerate(cid: CID) {
+        expected.push(cid);
+        const pb = dagPb.decode(dag.blocks.get(key(cid))!);
+        for (const link of pb.Links) {
+          if (dag === hamt && link.Name?.length === 2) enumerate(link.Hash);
+          else names.push(dag === hamt ? link.Name!.slice(2) : link.Name!);
+        }
+      }
+      enumerate(dag.root);
+      const read = vi.spyOn(env.BLOCKS, "get");
+      const proof = await readProof(
+        await get(dag.root, "", "?format=car&dag-scope=entity"),
+        dag.root,
+      );
+      expect(proof.cids.map(key)).toEqual(expected.map(key));
+      expect(read).toHaveBeenCalledTimes(expected.length);
+      const actualNames = proof.cids.flatMap((cid) =>
+        dagPb
+          .decode(proof.blocks.get(key(cid))!)
+          .Links.filter((link) => dag !== hamt || link.Name!.length > 2)
+          .map((link) => (dag === hamt ? link.Name!.slice(2) : link.Name!)),
+      );
+      expect(actualNames.sort()).toEqual(names.sort());
+      expect(names.length).toBe(dag === hamt ? 60 : dag === nested ? 2 : 4);
+      read.mockRestore();
+    }
+  });
+
+  it("traverses only the actual inline CBOR terminus, generic links and shared descendants", async () => {
+    const a = await node(dagCbor.encode({ target: file.root }), dagCbor.code, [
+      file,
+    ]);
+    const selected = await node(
+      dagCbor.encode({
+        selected: { first: a.root, again: a.root },
+        sibling: sibling.root,
+        scalar: 42,
+      }),
+      dagCbor.code,
+      [a, sibling],
+    );
+    await save(selected);
+    const fileOrder = [
+      ...new Set([
+        key(file.root),
+        ...dagPb
+          .decode(file.blocks.get(key(file.root))!)
+          .Links.map((link) => key(link.Hash)),
+      ]),
+    ];
+    const proof = await readProof(
+      await get(selected.root, "/selected", "?format=car"),
+      selected.root,
+    );
+    expect(proof.cids.map(key)).toEqual([
+      key(selected.root),
+      key(a.root),
+      ...fileOrder,
+    ]);
+    for (const [path, scope] of [
+      ["/selected", "entity"],
+      ["/scalar", "all"],
+      ["", "entity"],
+    ]) {
+      const proof = await readProof(
+        await get(selected.root, path, `?format=car&dag-scope=${scope}`),
+        selected.root,
+      );
+      expect(proof.cids.map(key)).toEqual([key(selected.root)]);
+    }
+    const generic = await node(
+      dagPb.encode({ Links: [{ Hash: sibling.root }] }),
+      dagPb.code,
+      [sibling],
+    );
+    await save(generic);
+    expect(
+      (
+        await readProof(
+          await get(generic.root, "", "?format=car&dag-scope=entity"),
+          generic.root,
+        )
+      ).cids.map(key),
+    ).toEqual([key(generic.root)]);
+    expect(
+      (
+        await readProof(
+          await get(generic.root, "", "?format=car"),
+          generic.root,
+        )
+      ).cids.map(key),
+    ).toEqual([key(generic.root), key(sibling.root)]);
+    const ordered = await node(
+      dagCbor.encode({ "10": sibling.root, "2": file.root, a: a.root }),
+      dagCbor.code,
+      [file, sibling, a],
+    );
+    await save(ordered);
+    const network = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("No network fallback"));
+    expect(
+      (
+        await readProof(
+          await get(ordered.root, "", "?format=car"),
+          ordered.root,
+        )
+      ).cids.map(key),
+    ).toEqual([
+      key(ordered.root),
+      ...fileOrder,
+      key(a.root),
+      key(sibling.root),
+    ]);
+    expect(network).not.toHaveBeenCalled();
+  });
+
+  it("validates the whole scope before GET, HEAD or 304, including GC and corrupt children", async () => {
+    const leaf = await importFile(text("scope-specific missing child"));
+    const root = await directory([{ name: "child", dag: leaf }]);
+    await save(root);
+    await env.DB.prepare("DELETE FROM car_blocks WHERE cid = ?")
+      .bind(key(leaf.root))
+      .run();
+    for (const method of ["GET", "HEAD"]) {
+      for (const scope of ["all", "entity", "block"]) {
+        const response = await get(
+          root.root,
+          "",
+          `?format=car&dag-scope=${scope}`,
+          method,
+          { "if-none-match": "*", "cache-control": "only-if-cached" },
+        );
+        expect(response.status).toBe(scope === "all" ? 503 : 304);
+      }
+    }
+    await env.BLOCKS.put(key(leaf.root), text("bad hash"));
+    expect((await get(root.root, "", "?format=car")).status).toBe(503);
+    await env.BLOCKS.put(key(leaf.root), leaf.blocks.get(key(leaf.root))!);
+    const location = await env.DB.prepare(
+      "SELECT object_key FROM car_dags WHERE root = ?",
+    )
+      .bind(key(root.root))
+      .first<{ object_key: string }>();
+    const original = env.BLOCKS.get.bind(env.BLOCKS);
+    const read = vi
+      .spyOn(env.BLOCKS, "get")
+      .mockImplementationOnce(async (...args) => {
+        const object = await original(...args);
+        await env.BLOCKS.delete(key(leaf.root));
+        return object;
+      });
+    expect((await get(root.root, "", "?format=car")).status).toBe(503);
+    read.mockRestore();
+    await env.BLOCKS.delete(location!.object_key);
+    expect((await get(root.root, "", "?format=car")).status).toBe(503);
+    const incompleteFile = await importFile(new Uint8Array(700001).fill(43));
+    await save(incompleteFile);
+    const chunk = dagPb.decode(
+      incompleteFile.blocks.get(key(incompleteFile.root))!,
+    ).Links[0]!.Hash;
+    await env.DB.prepare("DELETE FROM car_blocks WHERE cid = ?")
+      .bind(key(chunk))
+      .run();
+    for (const method of ["GET", "HEAD"]) {
+      for (const scope of ["block", "entity", "all"]) {
+        expect(
+          (
+            await get(
+              incompleteFile.root,
+              "",
+              `?format=car&dag-scope=${scope}`,
+              method,
+              { "if-none-match": "*" },
+            )
+          ).status,
+        ).toBe(scope === "block" ? 304 : 503);
+      }
+    }
+    const malformedShard = await node(
+      dagPb.encode({
+        Data: dagPb.decode(hamt.blocks.get(key(hamt.root))!).Data!,
+        Links: [{ Name: "00", Hash: leaf.root }],
+      }),
+      dagPb.code,
+      [leaf],
+    );
+    await save(malformedShard);
+    expect(
+      (await get(malformedShard.root, "", "?format=car&dag-scope=entity"))
+        .status,
+    ).toBe(503);
+  });
+
+  it("accepts exact 256-block/32MiB/2MiB boundaries and rejects each excess with shared proof budgets", async () => {
+    const dag = await budgetDag();
+    expect(dag.blocks.size).toBe(256);
+    expect([...dag.blocks.values()].reduce((sum, b) => sum + b.length, 0)).toBe(
+      32 * 1024 * 1024,
+    );
+    expect(Math.max(...[...dag.blocks.values()].map((b) => b.length))).toBe(
+      2 * 1024 * 1024,
+    );
+    const read = vi.fn((cid: CID) => dag.blocks.get(key(cid)));
+    const proof = await pathProof(dag.root, [], read, signal(), 404, "all");
+    expect(proof).toHaveLength(256);
+    expect(read).toHaveBeenCalledTimes(256);
+    const wrapperBytes = dagCbor.encode({ selected: dag.root });
+    const wrapper = CID.createV1(
+      dagCbor.code,
+      await sha256.digest(wrapperBytes),
+    );
+    await expect(
+      pathProof(
+        wrapper,
+        ["selected"],
+        (cid) => (cid.equals(wrapper) ? wrapperBytes : read(cid)),
+        signal(),
+        404,
+        "all",
+      ),
+    ).rejects.toMatchObject({ status: 413 });
+    const countOnly = await budgetDag(256, 16384);
+    const countWrapperBytes = dagCbor.encode({ selected: countOnly.root });
+    const countWrapper = CID.createV1(
+      dagCbor.code,
+      await sha256.digest(countWrapperBytes),
+    );
+    await expect(
+      pathProof(
+        countWrapper,
+        ["selected"],
+        (cid) =>
+          cid.equals(countWrapper)
+            ? countWrapperBytes
+            : countOnly.blocks.get(key(cid)),
+        signal(),
+        404,
+        "all",
+      ),
+    ).rejects.toMatchObject({ status: 413 });
+    const overBytes = await budgetDag(256, 32 * 1024 * 1024 + 1);
+    await expect(
+      pathProof(
+        overBytes.root,
+        [],
+        (cid) => overBytes.blocks.get(key(cid)),
+        signal(),
+        404,
+        "all",
+      ),
+    ).rejects.toMatchObject({ status: 413 });
+    const oversized = new Uint8Array(2 * 1024 * 1024 + 1);
+    const cid = CID.createV1(0x55, await sha256.digest(oversized));
+    await expect(
+      pathProof(cid, [], () => oversized, signal(), 404, "all"),
+    ).rejects.toMatchObject({ status: 413 });
+  });
+
   it("proves nested Unicode UnixFS paths, excludes siblings and terminal file chunks", async () => {
     const parts = ["nested", "资料:CON?.bin"];
     const response = await get(
@@ -335,6 +683,11 @@ describe("bounded standard CAR path proofs", () => {
     expect(proof.cids.map((cid) => cid.version)).toEqual([0, 0]);
     await verifyUnixFS(proof.blocks, root, ["old"]);
     expect(proof.blocks.get(key(root))).toEqual(bytes);
+    const full = await readProof(await get(root, "/old", "?format=car"), root);
+    expect(full.cids.slice(0, 2).map((cid) => cid.version)).toEqual([0, 0]);
+    expect(await reconstructFile(full.blocks, v0)).toEqual(
+      Buffer.alloc(700000, 42),
+    );
   });
 
   it.each(["GET", "HEAD"])(
@@ -397,6 +750,8 @@ describe("bounded standard CAR path proofs", () => {
         ["?format=car", {}],
         ["", { accept: "application/vnd.ipld.car" }],
         [query, {}],
+        ["?format=car&dag-scope=all", {}],
+        ["?format=car&dag-scope=entity", {}],
       ] as const) {
         const response = await get(PROBE_CID, "", search, method, headers);
         expect(response.status).toBe(200);
@@ -492,13 +847,10 @@ describe("bounded standard CAR path proofs", () => {
       expect((await readProof(response, nested.root)).blocks.size).toBe(1);
     }
     for (const [search, status] of [
-      ["?format=car", 406],
       [query + "&car-version=2", 406],
       [query + "&car-order=unk", 406],
       [query + "&car-dups=y", 406],
       [query + "&entity-bytes=0:1", 406],
-      ["?format=car&dag-scope=entity", 406],
-      ["?format=car&dag-scope=all", 406],
       ["?format=car&dag-scope=", 400],
       ["?format=car&dag-scope=bad", 400],
       [query + "&dag-scope=block", 400],
@@ -517,9 +869,6 @@ describe("bounded standard CAR path proofs", () => {
           .status,
       ).toBe(406);
     for (const search of [
-      "",
-      "?dag-scope=all",
-      "?dag-scope=entity",
       "?dag-scope=block&car-version=2",
       "?dag-scope=block&entity-bytes=0:1",
     ]) {
@@ -681,7 +1030,7 @@ describe("bounded standard CAR path proofs", () => {
       expect(
         (await get(nested.root, "", query, method, { "if-none-match": "*" }))
           .status,
-      ).toBe(500);
+      ).toBe(503);
       read.mockRestore();
     }
     const broken = await directory([
@@ -747,7 +1096,7 @@ describe("bounded standard CAR path proofs", () => {
           "if-none-match": "*",
         })
       ).status,
-    ).toBe(500);
+    ).toBe(503);
     expect(shardFailure).toHaveBeenCalledTimes(2);
   });
 
@@ -804,6 +1153,41 @@ describe("bounded standard CAR path proofs", () => {
     expect(cancel).toHaveBeenCalledWith(abort.signal.reason);
   });
 
+  it("cancels an outstanding descendant read during whole-scope preflight", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const leaf = await importFile(text("cancelled scope child"));
+    const root = await directory([{ name: "child", dag: leaf }]);
+    await save(root);
+    await env.DB.prepare("DELETE FROM car_blocks WHERE cid = ?")
+      .bind(key(leaf.root))
+      .run();
+    const abort = new AbortController();
+    const cancel = vi.fn();
+    const original = env.BLOCKS.get.bind(env.BLOCKS);
+    const read = vi
+      .spyOn(env.BLOCKS, "get")
+      .mockImplementationOnce(original)
+      .mockImplementationOnce(() => {
+        setTimeout(() => {
+          abort.abort(new Error("scope client disconnected"));
+        }, 10);
+        return Promise.resolve({
+          size: 10,
+          body: new ReadableStream<Uint8Array>({ cancel }),
+        } as R2ObjectBody);
+      });
+    const response = await gateway.request(
+      new Request(`http://example.test/ipfs/${key(root.root)}?format=car`, {
+        signal: abort.signal,
+      }),
+      undefined,
+      env,
+    );
+    expect(response.status).toBe(500);
+    expect(cancel).toHaveBeenCalledWith(abort.signal.reason);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
   it("explicitly rejects non-UnixFS DAG-PB paths, invalid CBOR and scalar child traversal", async () => {
     const pb = await node(dagPb.encode({ Links: [] }), dagPb.code);
     await save(pb);
@@ -816,6 +1200,7 @@ describe("bounded standard CAR path proofs", () => {
       size: bytes.length,
     });
     expect((await get(root, "/child")).status).toBe(503);
+    expect((await get(root, "", "?format=car")).status).toBe(503);
     expect((await get(sibling.root, "/child")).status).toBe(404);
     const raw = await importFile(text("byte array"));
     const byteMap = await node(
@@ -845,11 +1230,7 @@ describe("bounded standard CAR path proofs", () => {
     )
       .bind(key(image.root), imageBytes)
       .run();
-    for (const headers of [
-      {},
-      { accept: "image/webp" },
-      { accept: "application/vnd.ipld.car, image/webp" },
-    ]) {
+    for (const headers of [{}, { accept: "image/webp" }]) {
       const response = await get(image.root, "", "", "GET", headers);
       expect(response.headers.get("content-type")).toBe("image/webp");
       expect(response.headers.get("etag")).toBe(
@@ -860,6 +1241,12 @@ describe("bounded standard CAR path proofs", () => {
     const raw = await get(image.root, "", "?format=raw");
     expect(raw.headers.get("content-type")).toBe("application/vnd.ipld.raw");
     expect(new Uint8Array(await raw.arrayBuffer())).toEqual(imageBytes);
+    const preferred = await get(image.root, "", "", "GET", {
+      accept: "application/vnd.ipld.car, image/webp",
+    });
+    expect(
+      (await readProof(preferred, image.root)).blocks.get(key(image.root)),
+    ).toEqual(imageBytes);
     const car = await get(image.root);
     expect(car.headers.get("etag")).not.toBe(raw.headers.get("etag"));
     expect(
