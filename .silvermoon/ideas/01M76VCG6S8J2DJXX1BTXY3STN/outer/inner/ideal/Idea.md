@@ -6,7 +6,8 @@
 
 ## 结果
 
-标准客户端仅获取验证指定实体字节范围所需的 blocks，并通过明确协商取得受支持的 CAR 表示。
+标准客户端仅获取验证指定实体字节范围所需的 blocks，并通过明确协商取得受支持的 CAR 表示。已确认语义见
+[范围与协商边界](RangeSemantics.md)。
 
 ## 边界
 
@@ -14,7 +15,8 @@
   [迭代 3](../../../../01M76VAH3G6VKY09Q9060BRMJV/outer/inner/ideal/Idea.md)
   完成；之后推进兼容性与运行保障收口。
 - entity-bytes 选择实体内容及证明，不是截断 CAR 序列化字节；保持非递归、授权与既有资源限额。
-- 支持明确声明的 version/order/dups 组合及 query/header 优先级，不要求所有未来版本或变体；不支持的请求不得静默降级。
+- 本轮保持 CARv1 / dfs /
+  dups=n，补齐 query/header 优先级及准确声明；dups=y、CARv2 等其他变体明确拒绝，不扩大重复输出预算。
 
 ## 验收标准
 
