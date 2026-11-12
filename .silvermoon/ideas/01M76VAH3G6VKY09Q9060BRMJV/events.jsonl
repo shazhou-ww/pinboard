@@ -1,3 +1,4 @@
 {"type":"setAlias","timestamp":"2026-11-12T03:03:22.337Z","payload":{"alias":"gateway-03-dag-scopes"}}
 {"type":"submitIdeal","timestamp":"2026-11-12T03:11:23.510Z","payload":{"idealRevision":"3dc4bb78b251b937ca4e078260abf5de44094a93"}}
 {"type":"submitIdeal","timestamp":"2026-11-12T06:01:35.974Z","payload":{"idealRevision":"b6e660449a5a1a3ba0abaf1e29ec82ef8bf10f60"}}
+{"type":"acceptIdeal","timestamp":"2026-11-12T06:17:59.505Z","payload":{"idealRevision":"b6e660449a5a1a3ba0abaf1e29ec82ef8bf10f60"}}
