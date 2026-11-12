@@ -1,0 +1,167 @@
+{
+  "browser": "Chrome/157.0.8103.38",
+  "checkedAt": "2026-11-12T05:19:38.674Z",
+  "origin": "https://pinboard.shazhou.work",
+  "transport": "h3",
+  "fixtureCid": "bafybeihc5er463jay3fo2ka4nmwniuvhtnjfdmrt3onw23uimsta3xkyyu",
+  "proofBytes": 416,
+  "archiveBytes": 300640,
+  "fixtureImageCid": "bafkreicd3v7w4doolcxgb5e75pkyoldnhxwi23sh7uirworfyazshxu6sa",
+  "proof": "OqJlcm9vdHOB2CpYJQABcBIg4ukjz20gxsrtKBxrLNRSp5tSUbIz25ttbohkpg3dWMVndmVyc2lvbgGWAQFwEiDi6SPPbSDGyu0oHGss1FKnm1JRsjPbm21uiGSmDd1YxRIxCiQBcBIgFvvkx3aSTe86WygZ7RKvw+yIGxnMH/fL71pK6urCj1ISBm5lc3RlZBiDARI5CiQBcBIgAzGT/N+SsOOTDAwkaZv87JO+3pzBeMJib1dCeCOORJoSDXVucmVsYXRlZC5iaW4YzKgSCgIIAV0BcBIgFvvkx3aSTe86WygZ7RKvw+yIGxnMH/fL71pK6urCj1ISMwokAVUSIA4/sztrcgT21R3DV7NYgeZUc2QNORcmLGQlTUIsK/xLEgloZWxsby50eHQYSgoCCAFuAVUSIA4/sztrcgT21R3DV7NYgeZUc2QNORcmLGQlTUIsK/xLSW5kZXBlbmRlbnQgZ2F0ZXdheSBwYXRoIHByb29mIHNtb2tlLgowOTFkMjIzMS01YjBlLTQwOGUtYWZlYS0wNDhkYjk3YzAzMzE=",
+  "checks": [
+    {
+      "name": "Authenticated browser session",
+      "result": "passed"
+    },
+    {
+      "name": "Authenticated CAR import",
+      "result": "passed"
+    },
+    {
+      "name": "Fixture root unchanged",
+      "result": "passed"
+    },
+    {
+      "name": "Fixture defaults private",
+      "result": "passed"
+    },
+    {
+      "name": "Private proof hidden from anonymous",
+      "result": "passed"
+    },
+    {
+      "name": "Owner CAR path proof",
+      "result": "passed"
+    },
+    {
+      "name": "CAR version declaration",
+      "result": "passed"
+    },
+    {
+      "name": "CAR attachment",
+      "result": "passed"
+    },
+    {
+      "name": "Path proof is smaller than whole DAG",
+      "result": "passed"
+    },
+    {
+      "name": "CAR HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "CAR HEAD ETag",
+      "result": "passed"
+    },
+    {
+      "name": "Conditional CAR",
+      "result": "passed"
+    },
+    {
+      "name": "Missing path remains missing with wildcard validator",
+      "result": "passed"
+    },
+    {
+      "name": "Default all is not silently narrowed",
+      "result": "passed"
+    },
+    {
+      "name": "Unsupported entity scope explicit",
+      "result": "passed"
+    },
+    {
+      "name": "Unsupported CARv2 explicit",
+      "result": "passed"
+    },
+    {
+      "name": "Publish dedicated fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Anonymous public path proof",
+      "result": "passed"
+    },
+    {
+      "name": "Custom whole CAR export preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Standard CAR probe without scope",
+      "result": "passed"
+    },
+    {
+      "name": "Raw probe remains available",
+      "result": "passed"
+    },
+    {
+      "name": "Synthetic image encoded",
+      "result": "passed"
+    },
+    {
+      "name": "Authenticated synthetic image upload",
+      "result": "passed"
+    },
+    {
+      "name": "Authorized preview descriptor",
+      "result": "passed"
+    },
+    {
+      "name": "Authorized preview descriptor",
+      "result": "passed"
+    },
+    {
+      "name": "Image preview ready",
+      "result": "passed"
+    },
+    {
+      "name": "Existing WebP selection preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Image GET",
+      "result": "passed"
+    },
+    {
+      "name": "Thumbnail explicit raw preserved",
+      "result": "passed"
+    },
+    {
+      "name": "Thumbnail bytes unchanged across representations",
+      "result": "passed"
+    },
+    {
+      "name": "Thumbnail image validator cannot match raw",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke pin moved to trash",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke pin no longer anonymously readable",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke pin moved to trash",
+      "result": "passed"
+    },
+    {
+      "name": "Smoke pin no longer anonymously readable",
+      "result": "passed"
+    },
+    {
+      "name": "Browser aborts throttled CAR request and subsequently recovers",
+      "result": "passed"
+    }
+  ],
+  "connectionInterruption": {
+    "aborted": true,
+    "error": "AbortError",
+    "requestObserved": true,
+    "canceledNetworkRequest": true,
+    "recovery": {
+      "status": 200,
+      "bytes": 26
+    }
+  }
+}

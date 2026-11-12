@@ -18,9 +18,9 @@
 ### Deployment steps
 
 - [x] **D-S01:** 验证独立 CAR 客户端
-- [ ] **D-S02:** 按授权核验目标环境
+- [x] **D-S02:** 按授权核验目标环境
 
 ### Deployment acceptance criteria
 
 - [x] **D-AC01:** 外部证明可独立消费
-- [ ] **D-AC02:** 目标环境不扩大权限
+- [x] **D-AC02:** 目标环境不扩大权限
