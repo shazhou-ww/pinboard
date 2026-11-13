@@ -19,7 +19,7 @@ catalog:
   "@ipld/dag-cbor": ^9.2.7
   "@ipld/dag-pb": ^4.2.0
   "@modelcontextprotocol/sdk": ^1.25.0
-  ipfs-unixfs-importer: ^16.1.1
+  ipfs-unixfs-importer: ^17.1.1
   multiformats: ^14.0.5
   miniflare: 5.20261012.0-beta
   zod: ^4.6.7
