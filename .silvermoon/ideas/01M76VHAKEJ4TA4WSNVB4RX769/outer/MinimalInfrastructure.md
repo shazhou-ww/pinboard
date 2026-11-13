@@ -1,5 +1,9 @@
 # 最小设施建议：待确认，不执行
 
+**后续用户方向：不采用本提案。** 用户明确要求一次性迁移及配置直接通过 Cloudflare
+token 执行，不新增 GitHub 运维设施。当前实际执行方式见
+[DirectRollout.md](DirectRollout.md)；本文件只保留历史提案，不能作为已授权资源、24h 恢复窗口、费用或 SLA 的依据。
+
 ## 建议结论
 
 建议复用 **D1 Time Travel + 现有 R2 + GitHub

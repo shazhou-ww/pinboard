@@ -13,11 +13,13 @@ CID；拒绝篡改、错名及过期记录。在隔离 D1/R2 中验证私有权�
 
 ### D-S02: 按授权验证续签与目标环境
 
-2026-11-13 用户已单独授权有界生产操作。先核对既有目标及安全备份，在明确可用的既有 master 托管/恢复与告警设施后，再应用
+2026-11-13 用户已单独授权有界生产操作，并进一步指示一次性迁移/密钥配置直接使用 Cloudflare
+token，不采用新的 GitHub 运维设施。按 [DirectRollout.md](DirectRollout.md)
+核对既有目标、Windows DPAPI 加密备份及恢复能力后，再应用
 `apps/worker/migrations/0010_publication_ipns.sql`（空表及索引，无回填），再按
 `docs/publication-ipns.md` 配置独立 master
 secret、备份恢复及外部续签告警，通过既有 tag-driven
-workflow 发布并以专用测试数据验证、清理。不得创建新云资源，缺少安全条件时停止，不得为推进阶段而先部署一个缺少 schema 的版本。
+workflow 发布并以专用测试数据验证、清理。不新增云资源、GitHub 运维 environment/token/workflow/scheduler；不把未批准的长期设施方案当作一次性迁移前提，也不降低真实密钥恢复与最终 D-AC02 的证明要求。缺少真正安全条件时停止，不得部署一个缺少 schema 的版本。
 
 先在隔离环境演示每轮 32 条续签上限、失败事件及低于两小时 EOL 余量的观察结果；本地演示不是目标环境告警、调度 SLA 或负载容量证据。生产验收仍需明确授权：指定数据库的 additive
 migration、独立 `IPNS_MASTER_KEY` secret 配置、既有 Worker 的 tag-driven
