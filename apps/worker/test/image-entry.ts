@@ -6,7 +6,7 @@ import type { Bindings } from "../src/env.js";
 
 export default {
   async fetch(request: Request, env: Bindings, context: ExecutionContext) {
-    if (/^\/(?:api|mcp|ipfs)(?:\/|$)/u.test(new URL(request.url).pathname))
+    if (/^\/(?:api|mcp|ipfs|ipns)(?:\/|$)/u.test(new URL(request.url).pathname))
       return app.fetch(request, env, context);
     try {
       if (new URL(request.url).pathname === "/inspect") {

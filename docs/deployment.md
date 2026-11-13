@@ -60,6 +60,15 @@ authorization and is not part of tag-driven deployment.
 
 ## 1. Provision production resources once
 
+The Publication IPNS candidate additionally requires the separately authorized
+[`0010_publication_ipns.sql`](../apps/worker/migrations/0010_publication_ipns.sql)
+schema before deploying its code, even when no Publication has opted in. It
+creates an empty binding table/index without backfill. IPNS opt-in requires
+separately authorized master-secret provisioning, backup/recovery verification
+and renewal alerting described in [Publication IPNS](publication-ipns.md). No
+production migration, secret configuration or deployment is authorized by the
+implementation task.
+
 The workflow expects these resources to exist in the intended Cloudflare
 account:
 

@@ -41,6 +41,20 @@ import { completeDag, importFile, key } from "../src/content.js";
 import * as dagCbor from "@ipld/dag-cbor";
 import { sha256 } from "multiformats/hashes/sha2";
 import { DescriptionService } from "../src/descriptions.js";
+import {
+  checkedIpnsBytes,
+  enableIpns,
+  ipnsBinding,
+  IPNS_LIFETIME,
+  parseIpnsName,
+  publicationIpns,
+  renewIpns,
+  runIpnsRenewal,
+} from "../src/ipns.js";
+import { unmarshalIPNSRecord } from "ipns";
+import { ipnsValidator } from "ipns/validator";
+import { ipnsSelector } from "ipns/selector";
+import { base36 } from "multiformats/bases/base36";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -51,7 +65,7 @@ const mf = new Miniflare(
     r2Buckets: ["BLOCKS"],
   }),
 );
-let env: Bindings;
+let env: { -readonly [P in keyof Bindings]: Bindings[P] };
 let owner: Principal;
 let pins: PinService;
 let publications: PublicationService;
@@ -161,10 +175,495 @@ beforeAll(async () => {
   publications = new PublicationService(env, owner);
 }, 30000);
 afterEach(() => {
+  delete env.IPNS_MASTER_KEY;
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
 afterAll(() => mf.dispose());
+
+describe("Publication standard IPNS records", () => {
+  const media = "application/vnd.ipfs.ipns-record";
+  const master = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+  async function setup(visibility: "public" | "private" = "public") {
+    env.IPNS_MASTER_KEY = master;
+    const pin = await upload();
+    const created = await publications.create(
+      "IPNS publication",
+      pin.cid,
+      write(1).requestId,
+    );
+    const id = created.publication.id;
+    if (visibility === "public")
+      await publications.setVisibility(id, visibility);
+    const info = await enableIpns(env, owner, id, true);
+    if (typeof info.name !== "string") throw new Error("Missing IPNS name");
+    const path = `/ipns/${info.name}?format=ipns-record`;
+    return { id, pin, info: { ...info, name: info.name }, path };
+  }
+  async function binding(id: string) {
+    const row = await ipnsBinding(env, id);
+    if (!row) throw new Error("Missing IPNS binding");
+    return row;
+  }
+  async function independent(name: string, bytes: Uint8Array) {
+    const nameCid = CID.parse(name, base36);
+    const record = unmarshalIPNSRecord(bytes);
+    const publicKey = await crypto.subtle.importKey(
+      "raw",
+      Uint8Array.from(nameCid.multihash.digest.slice(4)),
+      "Ed25519",
+      false,
+      ["verify"],
+    );
+    const prefix = new TextEncoder().encode("ipns-signature:");
+    const signed = new Uint8Array(prefix.length + record.data.length);
+    signed.set(prefix);
+    signed.set(record.data, prefix.length);
+    expect(
+      await crypto.subtle.verify(
+        "Ed25519",
+        publicKey,
+        Uint8Array.from(record.signatureV2),
+        signed,
+      ),
+    ).toBe(true);
+    const routingKey = new Uint8Array(6 + nameCid.multihash.bytes.length);
+    routingKey.set(new TextEncoder().encode("/ipns/"));
+    routingKey.set(nameCid.multihash.bytes, 6);
+    await ipnsValidator(routingKey, bytes);
+    return record;
+  }
+
+  it("serves verifiable V2 wire bytes, HEAD, negotiation and authorization-aware ETags", async () => {
+    const { id, pin, info, path } = await setup();
+    const response = await httpRequest(path);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(media);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const record = await independent(info.name, bytes);
+    expect(record.value).toBe(`/ipfs/${pin.cid}`);
+    expect(record.sequence).toBe(0n);
+    expect(record.ttl).toBe(300_000_000_000n);
+    expect(bytes.length).toBeLessThan(10241);
+    const head = await httpRequest(path, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-length")).toBe(String(bytes.length));
+    expect(await head.text()).toBe("");
+    expect(
+      (await httpRequest(`/ipns/${info.name}`, { headers: { accept: media } }))
+        .status,
+    ).toBe(200);
+    const base32Name = CID.parse(info.name, base36).toString();
+    expect(
+      (await httpRequest(`/ipns/${base32Name}?format=ipns-record`)).status,
+    ).toBe(200);
+    const etag = response.headers.get("etag")!;
+    expect(
+      (await httpRequest(path, { headers: { "if-none-match": etag } })).status,
+    ).toBe(304);
+    for (const suffix of [
+      "",
+      "?format=raw",
+      "?format=ipns-record&format=ipns-record",
+      "/file?format=ipns-record",
+      "?format=ipns-record&download=1",
+    ])
+      expect((await httpRequest(`/ipns/${info.name}${suffix}`)).status).toBe(
+        406,
+      );
+    expect(
+      (
+        await httpRequest(path, {
+          headers: { accept: `${media};q=0, */*;q=1` },
+        })
+      ).status,
+    ).toBe(406);
+    expect(
+      (await httpRequest(path, { headers: { accept: "application/json" } }))
+        .status,
+    ).toBe(406);
+    expect(
+      (await httpRequest(`/ipns/not-a-key?format=ipns-record`)).status,
+    ).toBe(400);
+    expect(() => parseIpnsName(pin.cid)).toThrow();
+    const api = await client();
+    const metadata = await api(`/api/publications/${id}/ipns`);
+    expect(await metadata.json()).toMatchObject({
+      name: info.name,
+      custody: "pinboard",
+    });
+    expect(JSON.stringify(await publicationIpns(env, owner, id))).not.toMatch(
+      /encrypted|nonce|private_key|public_key/,
+    );
+    expect((await httpRequest(`/ipfs/${pin.cid}?format=raw`)).status).toBe(200);
+  });
+
+  it("keeps a stable name, advances only content changes and signs rollback with a newer sequence", async () => {
+    const { id, pin, info } = await setup("private");
+    const original = await binding(id);
+    const edit = await publications.edit(id, {
+      ...write(1),
+      title: "New title",
+      description: "New description",
+    });
+    expect((await binding(id)).record).toEqual(original.record);
+    const other = await upload();
+    const published = await publications.publish(
+      id,
+      other.cid,
+      write(edit.publication.sequence),
+    );
+    const next = await binding(id);
+    expect(next).toMatchObject({
+      name: info.name,
+      record_cid: other.cid,
+      sequence: 1,
+    });
+    await independent(next.name, await checkedIpnsBytes(next));
+    const rolled = await publications.rollback(
+      id,
+      1,
+      write(published.publication.sequence),
+    );
+    expect(await binding(id)).toMatchObject({
+      name: info.name,
+      record_cid: pin.cid,
+      sequence: 2,
+    });
+    await publications.publish(id, pin.cid, write(rolled.publication.sequence));
+    expect((await binding(id)).generation).toBe(2);
+    await expect(
+      publications.publish(id, other.cid, write(1)),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await binding(id)).sequence).toBe(2);
+  });
+
+  it("renews without a business revision and recovers the same name from encrypted custody", async () => {
+    const { id, info } = await setup("private");
+    const before = await publicationHistory(env, id);
+    const original = await binding(id);
+    const oldBytes = await checkedIpnsBytes(original);
+    const clock = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(original.expires_at - IPNS_LIFETIME / 4);
+    await runIpnsRenewal({ ...env, IPNS_MASTER_KEY: master });
+    const after = await binding(id);
+    expect(after).toMatchObject({
+      name: info.name,
+      sequence: 0,
+      generation: 1,
+    });
+    expect(after.expires_at).toBeGreaterThan(original.expires_at);
+    const renewedBytes = await checkedIpnsBytes(after);
+    await independent(info.name, renewedBytes);
+    expect(ipnsSelector(new Uint8Array(), [oldBytes, renewedBytes])).toBe(1);
+    expect(await publicationHistory(env, id)).toEqual(before);
+    clock.mockRestore();
+    expect(await enableIpns(env, owner, id, false)).toMatchObject({
+      name: info.name,
+    });
+    const publicBytes = parseIpnsName(info.name).raw;
+    expect(publicBytes.length).toBe(32);
+  });
+
+  it("blocks private pointer leaks, even with conditional requests, and honors read scopes", async () => {
+    const { id, path } = await setup("private");
+    expect((await httpRequest(path)).status).toBe(404);
+    expect(
+      (
+        await httpRequest(path, {
+          method: "HEAD",
+          headers: { "if-none-match": "*" },
+        })
+      ).status,
+    ).toBe(404);
+    const api = await client();
+    const response = await api(path);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    const limited = await client(owner, ["pins:read"]);
+    expect((await limited(path)).status).toBe(404);
+    expect((await limited(`/api/publications/${id}/ipns`)).status).toBe(403);
+    expect(
+      (await limited(`/api/publications/${id}/ipns`, json({}))).status,
+    ).toBe(403);
+    const stranger: Principal = {
+      ...owner,
+      accountId: await accountForGoogle(env.DB, "ipns-stranger"),
+    };
+    const foreign = await client(stranger);
+    expect((await foreign(path)).status).toBe(404);
+    expect(
+      (await foreign(`/api/publications/${id}/ipns`, json({}))).status,
+    ).toBe(404);
+    await publications.setVisibility(id, "public");
+    expect((await httpRequest(path)).status).toBe(200);
+    await publications.setVisibility(id, "private");
+    expect(
+      (
+        await httpRequest(path, {
+          headers: { "if-none-match": response.headers.get("etag")! },
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it("stops deleted service and renewal, restores the same identity, and renews expired reads", async () => {
+    const { id, path, info } = await setup();
+    const original = await binding(id);
+    await publications.delete(id);
+    const clock = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(original.expires_at + 1);
+    const api = await client();
+    expect((await api(path)).status).toBe(404);
+    await runIpnsRenewal(env);
+    expect((await binding(id)).generation).toBe(0);
+    await publications.restore(id);
+    expect((await httpRequest(path)).status).toBe(200);
+    const restored = await binding(id);
+    expect(restored).toMatchObject({
+      name: info.name,
+      sequence: 0,
+      generation: 1,
+    });
+    await independent(info.name, await checkedIpnsBytes(restored));
+    clock.mockRestore();
+  });
+
+  it("rejects tampered, expired, wrong-name and inconsistent records", async () => {
+    const { id } = await setup();
+    const row = await binding(id);
+    const bytes = Uint8Array.from(await checkedIpnsBytes(row));
+    bytes[bytes.length - 1]! ^= 1;
+    await expect(
+      checkedIpnsBytes({ ...row, record: bytes.buffer }),
+    ).rejects.toMatchObject({ status: 503 });
+    const other = await setup();
+    const otherRow = await binding(other.id);
+    for (const invalid of [
+      { ...row, name: otherRow.name },
+      { ...row, record_cid: other.pin.cid },
+      { ...row, sequence: 1 },
+      { ...row, expires_at: Date.now() - 1 },
+      { ...row, expires_at: row.expires_at + 1 },
+      { ...row, record: new ArrayBuffer(10241) },
+    ])
+      await expect(checkedIpnsBytes(invalid)).rejects.toMatchObject({
+        status: 503,
+      });
+  });
+
+  it("fails closed with missing or wrong master keys without breaking unbound publications or metadata edits", async () => {
+    const { id, path } = await setup("private");
+    const other = await upload();
+    const row = await binding(id);
+    const api = await client();
+    for (const secret of [undefined, "invalid", "00".repeat(32)]) {
+      if (secret === undefined) delete env.IPNS_MASTER_KEY;
+      else env.IPNS_MASTER_KEY = secret;
+      await expect(renewIpns(env, row)).rejects.toMatchObject({ status: 503 });
+      await expect(
+        publications.publish(id, other.cid, write(1)),
+      ).rejects.toMatchObject({ status: 503 });
+      expect((await api(path)).status).toBe(200);
+    }
+    const edited = await publications.edit(id, {
+      ...write(1),
+      title: "No signer needed",
+      description: null,
+    });
+    expect(edited.publication.sequence).toBe(2);
+    const unbound = await publications.create(
+      "Without IPNS",
+      other.cid,
+      write(1).requestId,
+    );
+    expect(await publicationIpns(env, owner, unbound.publication.id)).toEqual({
+      enabled: false,
+    });
+    delete env.IPNS_MASTER_KEY;
+    await expect(
+      enableIpns(env, owner, unbound.publication.id, true),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(
+      (await publications.publish(unbound.publication.id, other.cid, write(1)))
+        .status,
+    ).toBe("nop");
+    expect((await binding(id)).record).toEqual(row.record);
+  });
+
+  it("requires exposure acknowledgement and supports owner HTTP opt-in without key disclosure", async () => {
+    env.IPNS_MASTER_KEY = master;
+    const pin = await upload();
+    const created = await publications.create(
+      "Opt in",
+      pin.cid,
+      write(1).requestId,
+    );
+    const id = created.publication.id;
+    await publications.setVisibility(id, "public");
+    const api = await client();
+    expect((await api(`/api/publications/${id}/ipns`, json({}))).status).toBe(
+      400,
+    );
+    expect(
+      (await api(`/api/publications/${id}/ipns`, json({ unexpected: true })))
+        .status,
+    ).toBe(400);
+    const response = await api(
+      `/api/publications/${id}/ipns`,
+      json({ acknowledgePublicExposure: true }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      enabled: true,
+      sequence: 0,
+      value: `/ipfs/${pin.cid}`,
+    });
+  });
+
+  it("fences stale renewal and business updates against concurrent signing generations", async () => {
+    const { id } = await setup("private");
+    const stale = await binding(id);
+    const second = await upload();
+    const batch = env.DB.batch.bind(env.DB);
+    let injected = false;
+    vi.spyOn(env.DB, "batch").mockImplementation(async (statements) => {
+      if (!injected && statements.length > 3) {
+        injected = true;
+        await renewIpns(env, stale);
+      }
+      return batch(statements);
+    });
+    await expect(
+      publications.publish(id, second.cid, write(1)),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(injected).toBe(true);
+    expect((await publications.owned(id)).current.cid).toBe(stale.record_cid);
+    vi.restoreAllMocks();
+    await publications.publish(id, second.cid, write(1));
+    await renewIpns(env, stale);
+    const row = await binding(id);
+    expect(row).toMatchObject({
+      sequence: 1,
+      generation: 2,
+      record_cid: second.cid,
+    });
+    await independent(row.name, await checkedIpnsBytes(row));
+  });
+
+  it("rolls back signed bytes with failed business transactions", async () => {
+    const { id } = await setup("private");
+    const before = await binding(id);
+    const second = await upload();
+    const batch = env.DB.batch.bind(env.DB);
+    let injected = false;
+    vi.spyOn(env.DB, "batch").mockImplementation((statements) => {
+      if (statements.length > 3) {
+        injected = true;
+        return batch([
+          ...statements,
+          env.DB.prepare(
+            "INSERT INTO publication_ipns (publication_id) VALUES ('invalid')",
+          ),
+        ]);
+      }
+      return batch(statements);
+    });
+    await expect(
+      publications.publish(id, second.cid, write(1)),
+    ).rejects.toThrow();
+    expect(injected).toBe(true);
+    expect(await binding(id)).toEqual(before);
+    expect((await publications.owned(id)).current.cid).toBe(before.record_cid);
+  });
+
+  it("binds encrypted custody to identity, version and public key and rejects sequence overflow", async () => {
+    const { id } = await setup("private");
+    const row = await binding(id);
+    for (const invalid of [
+      { ...row, publication_id: "another-publication" },
+      { ...row, key_version: 2 },
+      { ...row, public_key: new ArrayBuffer(36) },
+      { ...row, public_key: new ArrayBuffer(1) },
+      { ...row, encrypted_key: new ArrayBuffer(80) },
+      { ...row, sequence: Number.MAX_SAFE_INTEGER + 1 },
+    ])
+      await expect(renewIpns(env, invalid)).rejects.toMatchObject({
+        status: 503,
+      });
+    expect(await binding(id)).toEqual(row);
+  });
+
+  it("fences an enable racing a previously unbound business update and converges concurrent opt-ins", async () => {
+    env.IPNS_MASTER_KEY = master;
+    const first = await upload();
+    const created = await publications.create(
+      "Enable race",
+      first.cid,
+      write(1).requestId,
+    );
+    const id = created.publication.id;
+    const second = await upload();
+    const batch = env.DB.batch.bind(env.DB);
+    let injected = false;
+    vi.spyOn(env.DB, "batch").mockImplementation(async (statements) => {
+      if (!injected && statements.length > 3) {
+        injected = true;
+        const results = await Promise.all([
+          enableIpns(env, owner, id, false),
+          enableIpns(env, owner, id, false),
+        ]);
+        expect(results[0]).toEqual(results[1]);
+      }
+      return batch(statements);
+    });
+    await expect(
+      publications.publish(id, second.cid, write(1)),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(injected).toBe(true);
+    expect((await binding(id)).record_cid).toBe(first.cid);
+    vi.restoreAllMocks();
+    await publications.publish(id, second.cid, write(1));
+    const row = await binding(id);
+    expect(row.record_cid).toBe(second.cid);
+    await independent(row.name, await checkedIpnsBytes(row));
+    await publications.delete(id);
+    await expect(enableIpns(env, owner, id, false)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it("retries scheduled signing failures without logging identifiers and fails expired reads closed", async () => {
+    const { id, path } = await setup();
+    const row = await binding(id);
+    vi.spyOn(Date, "now").mockReturnValue(row.expires_at + 1);
+    delete env.IPNS_MASTER_KEY;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await runIpnsRenewal(env);
+    expect(log).toHaveBeenCalledWith(
+      JSON.stringify({
+        event: "ipns_renewal_failed",
+        reason: "sign_or_persist",
+      }),
+    );
+    expect((await httpRequest(path)).status).toBe(503);
+    const stored = await env.DB.prepare(
+      "SELECT retry_at FROM publication_ipns WHERE publication_id = ?",
+    )
+      .bind(id)
+      .first<{ retry_at: number }>();
+    expect(stored!.retry_at).toBe(row.expires_at + 1 + 3600000);
+    expect((await binding(id)).generation).toBe(0);
+    env.IPNS_MASTER_KEY = master;
+    expect((await httpRequest(path)).status).toBe(200);
+  });
+});
 
 describe("publication metadata editing", () => {
   it("creates same-CID revisions for root description edits and preserves old and child snapshots", async () => {

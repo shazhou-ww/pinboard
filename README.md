@@ -444,6 +444,18 @@ also require an Origin matching `AUTH_URL` (or `PUBLIC_ORIGIN`). Agent names are
 labels, not credentials. Web and MCP use the same `PinService`, accountId and
 scopes.
 
+### Publication IPNS records
+
+Owners can opt a Publication into a stable, hosted Ed25519 IPNS name through
+`/api/publications/{id}/ipns`. Standard GET/HEAD
+`/ipns/{name}?format=ipns-record` returns signed bytes with the existing
+visibility rules; it does not render files or participate in distributed
+discovery. See
+[the IPNS contract, custody and recovery requirements](docs/publication-ipns.md).
+The additive `0010_publication_ipns.sql` migration requires separate
+authorization before deployment; master-secret provisioning and production
+rollout are not performed by this implementation.
+
 ### Raw gateway HTTP contract
 
 `GET` and `HEAD /ipfs/:cid` serve a single locally stored block, without remote

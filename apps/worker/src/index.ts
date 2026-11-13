@@ -124,7 +124,11 @@ export default Object.assign(app, {
     _controller: ScheduledController,
     env: Bindings,
   ): Promise<void> {
-    await Promise.all([runRetention(env), runPreviews(env), runIpnsRenewal(env)]);
+    await Promise.all([
+      runRetention(env),
+      runPreviews(env),
+      runIpnsRenewal(env),
+    ]);
   },
 });
 

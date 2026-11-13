@@ -262,10 +262,22 @@ publicationApi.get("/api/publications/:id/ipns", async (c) =>
   c.json(await publicationIpns(c.env, c.get("principal"), c.req.param("id"))),
 );
 publicationApi.post("/api/publications/:id/ipns", async (c) => {
-  const input = validate(z.object({
-    acknowledgePublicExposure: z.boolean().default(false),
-  }).strict(), await jsonBody(c.req.raw));
-  return c.json(await enableIpns(c.env, c.get("principal"), c.req.param("id"), input.acknowledgePublicExposure));
+  const input = validate(
+    z
+      .object({
+        acknowledgePublicExposure: z.boolean().default(false),
+      })
+      .strict(),
+    await jsonBody(c.req.raw),
+  );
+  return c.json(
+    await enableIpns(
+      c.env,
+      c.get("principal"),
+      c.req.param("id"),
+      input.acknowledgePublicExposure,
+    ),
+  );
 });
 publicationApi.patch("/api/publications/:id/visibility", async (c) => {
   const input = validate(visibilitySchema, await jsonBody(c.req.raw));

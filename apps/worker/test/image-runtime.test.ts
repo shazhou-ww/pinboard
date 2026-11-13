@@ -12,6 +12,12 @@ import type { ContentPreview, Pin } from "@shazhou/pinboard-contracts";
 import { importFile } from "../src/content.js";
 import { encodeCar } from "../src/car.js";
 import { crc32, deflateSync } from "node:zlib";
+import { PinService } from "../src/service.js";
+import { PublicationService } from "../src/publications.js";
+import { scopes } from "../src/schemas.js";
+import { unmarshalIPNSRecord } from "ipns";
+import { validate } from "ipns/validator";
+import { parseIpnsName } from "../src/ipns.js";
 
 let runtime: Miniflare;
 let disposeRuntime: (() => Promise<void>) | undefined;
@@ -65,6 +71,10 @@ beforeAll(async () => {
         APP_NAME: "Preview runtime test",
         PUBLIC_ORIGIN: "https://local.test",
         AUTH_SECRET: "synthetic-preview-test-only-not-a-real-secret",
+        IPNS_MASTER_KEY: Array.from(
+          crypto.getRandomValues(new Uint8Array(32)),
+          (byte) => byte.toString(16).padStart(2, "0"),
+        ).join(""),
       },
     }),
   );
@@ -95,6 +105,78 @@ afterAll(async () => {
       force: true,
     });
   }
+});
+
+it("allocates, decrypts and signs Publication IPNS records in the bundled workerd runtime", async () => {
+  const env = await runtime.getBindings<Bindings>();
+  const principal: Principal = {
+    accountId: await accountForGoogle(env.DB, "runtime-ipns-owner"),
+    kind: "session",
+    scopes,
+  };
+  const pins = new PinService(env, principal);
+  const first = await pins.upload(
+    new TextEncoder().encode("first IPNS"),
+    "file",
+    "first",
+  );
+  const second = await pins.upload(
+    new TextEncoder().encode("next IPNS"),
+    "file",
+    "next",
+  );
+  const created = await new PublicationService(env, principal).create(
+    "Runtime IPNS",
+    first.cid,
+    crypto.randomUUID(),
+  );
+  const { token } = await createToken(env, principal, {
+    name: "IPNS runtime",
+    scopes,
+    expiresInDays: 1,
+  });
+  const headers = {
+    authorization: `Bearer ${token}`,
+    "content-type": "application/json",
+  };
+  const enabled = await runtime.dispatchFetch(
+    `https://local.test/api/publications/${created.publication.id}/ipns`,
+    {
+      method: "POST",
+      headers,
+      body: "{}",
+    },
+  );
+  expect(enabled.status, await enabled.clone().text()).toBe(200);
+  const { name } = (await enabled.json()) as { name: string };
+  const path = `https://local.test/ipns/${name}?format=ipns-record`;
+  expect((await runtime.dispatchFetch(path)).status).toBe(404);
+  const original = await runtime.dispatchFetch(path, { headers });
+  expect(original.status).toBe(200);
+  const originalBytes = new Uint8Array(await original.arrayBuffer());
+  await validate(parseIpnsName(name), originalBytes);
+  expect(unmarshalIPNSRecord(originalBytes).value).toBe(`/ipfs/${first.cid}`);
+  const updated = await runtime.dispatchFetch(
+    `https://local.test/api/publications/${created.publication.id}/publish`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        cid: second.cid,
+        expectedSequence: 1,
+        requestId: crypto.randomUUID(),
+      }),
+    },
+  );
+  expect(updated.status, await updated.clone().text()).toBe(200);
+  const response = await runtime.dispatchFetch(path, { headers });
+  expect(response.status).toBe(200);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  await validate(parseIpnsName(name), bytes);
+  expect(unmarshalIPNSRecord(bytes)).toMatchObject({
+    value: `/ipfs/${second.cid}`,
+    sequence: 1n,
+  });
 });
 
 it.each([
