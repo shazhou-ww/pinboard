@@ -87,16 +87,31 @@ handler 实际执行过，不只是存在 cron 配置。这些执行早于本轮
 0、12 小时内 eligible live backlog 0。最后一条测试 binding
 generation 为 3，sequence 为 2。仍在恢复窗口的加密密钥和签名受既有保留协议管理，不声称已物理擦除。
 
+## 用户提供的加密 master 恢复核对
+
+用户随后提供 PGP 加密 master 文件，并同意在本机密码窗口解密。
+`2026-11-13T10:08:14.829Z`，通过本机 GnuPG `2.4.5`
+解密成功；密码未通过聊天、命令参数或日志传入。明文只经子进程 stdout
+pipe 进入验证进程，没有写入文件、仓库或生产 secret。
+
+对上文最终合成 Publication 的实际生产 binding 做只读查询，在内存中使用恢复出的 master 解密其 AES-GCM 私钥，校验绑定 Publication
+ID/name/key-version 的 AAD、存储公钥及 Ed25519 名称，确认该备份确实对应当前生产加密密钥，而不只是格式正确。随后重建同名、同 CID、sequence
+2 的新 IPNS 记录并以 Node/OpenSSL 独立验签：
+
+- 名称：`k51qzi5uqu5dmd4hut6ufqnbwnq9t4p8fnx43lmxvxbwvuhptupznbk1gbgr5i`。
+- EOL：`2026-11-14T10:08:14.827000000Z`。
+- 新记录 SHA-256：
+  `f6bf01f448b52f4bb1779294be914c120c71d4a2f20956cf5f2de531081cc778`。
+- 新签名字节不同于存储记录，签名有效；没有公开或写回该恢复签名。
+
+验证结果为
+`passed=true`；生产 SQL 写入量为 0，没有恢复已删除对象、覆盖 master 或改变 sequence。恢复内容和可访问的原始私钥 buffer 使用后清零，但不保证 JavaScript/crypto 内部副本的完全内存擦除。本项证明独立加密备份可恢复当前 signer，不等于完整一致 D1/R2 备份在受限运行时中恢复、HTTP 私有权限及内容读取的端到端演练。
+
 ## 尚不能完成 D-S02 / D-AC02 的具体缺口
 
-1. **同一 master 的目标备份恢复。**
-   当前设备的已知仓库和 session 根目录中，对规范恢复文件名
-   `.dev.vars.ipns-recovery/master-v1.dpapi`
-   的有界定位未找到原备份；cfg 中精确命名的 `IPNS_MASTER_KEY` 也没有可用的 64
-   hex 恢复值。这只描述本轮查找范围，不断言其他设备或位置没有备份。Worker
-   secret 的存在及正常签名不能代替可恢复备份。需要原执行环境中恢复包的准确位置、可解密的 CurrentUser
-   DPAPI
-   profile，或已经保存的同一 master 的授权恢复通道；不能通过覆盖 master 或重建身份绕过。没有把生产数据或密钥复制到通用测试 fixture，也没有宣称完成实际恢复。
+1. **一致数据备份的端到端恢复。**
+   原 master 材料缺失的阻塞已由上述 PGP 备份及生产 signer 恢复核对解除，不再需要寻找原 DPAPI
+   profile。仍需同一 master 与一致数据库/内容备份在受限运行时中恢复，验证名称、sequence、新签名、私有访问拒绝和 raw 内容。单条实际 binding 的只读重建不冒充完整一致备份恢复；不通过覆盖 master、重建身份或恢复生产旧 sequence 绕过。
 2. **外部告警接收验证。** 控制面已见的两条启用 policy 均为 billing
    budget，没有 IPNS renewal/cron/headroom
    policy。没有获准既有 IPNS 告警通道的实际送达证据；不改写无关 billing

@@ -28,7 +28,8 @@ release、备份恢复演练及外部告警接收验证。该有界生产授权�
 
 后续真实生产核对及 HTTPS 执行结果见
 [ProductionEvidence.md](ProductionEvidence.md)。既有 `release-261113-2`
-已上线，schema 和 master 名称已存在；本轮已完成专用数据的独立验签、更新/回滚、权限、删除恢复和读取续签并正常清理，也取得发布后真实 cron 执行记录。尚缺原 master 的可用恢复材料、外部告警送达及目标 cron 续签/容量证明；不重复迁移、覆盖 master 或因设备归属说明而跳过这些结果要求。
+已上线，schema 和 master 名称已存在；本轮已完成专用数据的独立验签、更新/回滚、权限、删除恢复和读取续签并正常清理，也取得发布后真实 cron 执行记录。用户后续提供的 PGP
+master 备份已成功解密，并用实际生产测试 binding 重建同名 signer、新签名独立验签通过；恢复材料缺失不再是阻塞。尚缺一致备份的受限运行时端到端恢复、外部告警送达及目标 cron 续签/容量证明；不重复迁移或覆盖 master。
 
 ## Acceptance criteria
 
