@@ -1,5 +1,11 @@
 # Implementation
 
+## 当前讨论与未决范围
+
+基于内存阻塞，新增
+[Worker 能力取舍与标准路由对照](CapabilityChoices.md)，逐项区分标准 raw/CAR/IPNS、Delegated
+Routing 和 Pinboard 自有接口。它是待确认的职责调整建议，不表示本次已批准删除线上能力或替换已接受契约。若决定将动态 entity/all/entity-bytes 收缩为 raw 主导及受限路径证明，应先修订 Ideal、兼容迁移与验收范围，再按准确 revision 重新审批；下列原实施与验收项保持未完成，原失败证据不撤销，不继续生产实现或部署。
+
 ## Steps
 
 ### I-S01: 建立可复现的官方一致性检查
