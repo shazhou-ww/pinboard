@@ -23,6 +23,7 @@ export interface Bindings extends Omit<
   readonly AUTH_MICROSOFT_ENTRA_ID_ISSUER?: string;
   readonly AUTH_MICROSOFT_ENTRA_ID_SECRET?: string;
   readonly AUTH_SECRET: string;
+  readonly IPNS_MASTER_KEY?: string;
   readonly AUTH_URL?: string;
   readonly OAUTH_REGISTRATION_LIMITER?: RateLimit;
   readonly OAUTH_AUTHORIZATION_LIMITER?: RateLimit;

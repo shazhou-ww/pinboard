@@ -45,6 +45,9 @@ catalogs:
     '@jsquash/webp':
       specifier: ^1.5.0
       version: 1.5.0
+    '@libp2p/crypto':
+      specifier: ^5.2.0
+      version: 5.2.0
     '@modelcontextprotocol/sdk':
       specifier: ^1.25.0
       version: 1.32.2
@@ -90,6 +93,9 @@ catalogs:
     ipfs-unixfs-importer:
       specifier: ^16.1.1
       version: 16.1.5
+    ipns:
+      specifier: ^11.0.1
+      version: 11.0.1
     miniflare:
       specifier: 5.20261012.0-beta
       version: 5.20261012.0-beta
@@ -324,6 +330,9 @@ importers:
       '@jsquash/webp':
         specifier: 'catalog:'
         version: 1.5.0
+      '@libp2p/crypto':
+        specifier: 'catalog:'
+        version: 5.2.0
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.32.2(supports-color@10.2.2)(zod@4.6.7)
@@ -345,6 +354,9 @@ importers:
       ipfs-unixfs-importer:
         specifier: 'catalog:'
         version: 16.1.5(supports-color@10.2.2)
+      ipns:
+        specifier: 'catalog:'
+        version: 11.0.1
       multiformats:
         specifier: 'catalog:'
         version: 14.0.5
@@ -991,6 +1003,9 @@ packages:
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
+  '@libp2p/crypto@5.2.0':
+    resolution: {integrity: sha512-nLKTzyX6PKQoGFrb+OKds4NyFnedBcCgr50jYd5sIwFPVOEiQiCYBeQSdBbqjn9crFFca/l7dxBcFtXQ5qKiVw==}
+
   '@libp2p/interface@3.4.0':
     resolution: {integrity: sha512-WBBw0NyLAWZz2HYfG2bXjBB2Qa0Aa6ssrQQCLZXHaMEJTdXiEagmQDojqXpy2Y6uvn1C+c4vBJkUulrgV0nfsg==}
 
@@ -1015,6 +1030,14 @@ packages:
 
   '@multiformats/murmur3@2.2.8':
     resolution: {integrity: sha512-CrsYnnoWbTYPkLl9D6zKaFPlRbnOekofvi93/1IrXc5eaT5QChRscEFV93kVqHwL2phi8u1hj9UnaeFOq2PYMQ==}
+
+  '@noble/curves@2.4.0':
+    resolution: {integrity: sha512-P4/62zrgfH33CneE3Dn4WhJVA22YUU0eR51wKIan4NVRvwsA0YnPTwWGpNbpuacSujmSFLvyzpyuR30+fbq2Ew==}
+    engines: {node: '>= 20.19.0'}
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
+    engines: {node: '>= 20.19.0'}
 
   '@oxc-project/types@0.153.0':
     resolution: {integrity: sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw==}
@@ -1746,6 +1769,9 @@ packages:
   ipfs-unixfs@13.1.2:
     resolution: {integrity: sha512-N8LDphmWAEQbRXu35l4iOXrFbBGmYl0o1PKw9kxsp1dcOHG+CCLdF68gt6jREObFsC48VXm4fbgNXIfoNUIcuA==}
 
+  ipns@11.0.1:
+    resolution: {integrity: sha512-e6moct6UhKSFIIPbBZnCQDZFDajRbL2yzV4V+hJaLZsb8q+QAkM5NveXN8qyZsRspFWg2vTPfkRe+N+nns8B/g==}
+
   is-extglob@2.1.1:
     resolution: {integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==}
     engines: {node: '>=0.10.0'}
@@ -2096,6 +2122,9 @@ packages:
   protons-runtime@6.0.2:
     resolution: {integrity: sha512-hiyjyANwGcgmzc+tXc1/ZcSZhKnl5MDjaVNWkISHBgadaU0sjTgKIKZMZ62d9J9zlSTyKHCs/osPkQ/3Z+7yeA==}
 
+  protons-runtime@7.1.2:
+    resolution: {integrity: sha512-j7Y7MfCwPCxYwopyqDt8+CoJULzdajSBrFAzzfBHEhOTfdvOJ2z1QLK9aK34bSBz6V/9JAAlrsc/rFkIbqppuw==}
+
   protons-runtime@8.0.2:
     resolution: {integrity: sha512-RzXCCgmKls60jsoRbeb2RtbnDTxOqIbL+yupOcpI00IannJRw3H1iFdD5rsX6nGpHtP5Sqc9yKgOg9CJRK93eg==}
 
@@ -2242,6 +2271,10 @@ packages:
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
+
+  timestamp-nano@1.0.1:
+    resolution: {integrity: sha512-4oGOVZWTu5sl89PtCDnhQBSt7/vL1zVEwAfxH1p49JhTosxzVQWYBYFRFZ8nJmo0G6f824iyP/44BFAwIoKvIA==}
+    engines: {node: '>= 4.5.0'}
 
   tinybench@6.2.2:
     resolution: {integrity: sha512-nIZ2N2dFpjBsg2hgitKu7mA+FvsIJuGJOwysRngmVRRmWgR/UyPjwJj8c/fT/dhm8EkHnF5EOogRf+0Z2qrimA==}
@@ -2921,6 +2954,16 @@ snapshots:
 
   '@leichtgewicht/ip-codec@2.0.5': {}
 
+  '@libp2p/crypto@5.2.0':
+    dependencies:
+      '@libp2p/interface': 3.4.0
+      '@noble/curves': 2.4.0
+      '@noble/hashes': 2.4.0
+      multiformats: 14.0.5
+      protons-runtime: 7.1.2
+      uint8arraylist: 3.0.2
+      uint8arrays: 6.1.1
+
   '@libp2p/interface@3.4.0':
     dependencies:
       '@multiformats/dns': 1.0.15
@@ -2979,6 +3022,12 @@ snapshots:
   '@multiformats/murmur3@2.2.8':
     dependencies:
       multiformats: 14.0.5
+
+  '@noble/curves@2.4.0':
+    dependencies:
+      '@noble/hashes': 2.4.0
+
+  '@noble/hashes@2.4.0': {}
 
   '@oxc-project/types@0.153.0': {}
 
@@ -3749,6 +3798,19 @@ snapshots:
       uint8arraylist: 3.0.2
       uint8arrays: 6.1.1
 
+  ipns@11.0.1:
+    dependencies:
+      '@libp2p/crypto': 5.2.0
+      '@libp2p/interface': 3.4.0
+      '@libp2p/logger': 6.2.16
+      cborg: 6.2.1
+      interface-datastore: 10.0.1
+      multiformats: 14.0.5
+      protons-runtime: 7.1.2
+      timestamp-nano: 1.0.1
+      uint8arraylist: 3.0.2
+      uint8arrays: 6.1.1
+
   is-extglob@2.1.1: {}
 
   is-glob@4.0.3:
@@ -4047,6 +4109,12 @@ snapshots:
       uint8arraylist: 2.4.9
       uint8arrays: 5.1.1
 
+  protons-runtime@7.1.2:
+    dependencies:
+      uint8-varint: 3.0.0
+      uint8arraylist: 3.0.2
+      uint8arrays: 6.1.1
+
   protons-runtime@8.0.2:
     dependencies:
       uint8-varint: 3.0.0
@@ -4262,6 +4330,8 @@ snapshots:
       ansi-regex: 6.5.0
 
   supports-color@10.2.2: {}
+
+  timestamp-nano@1.0.1: {}
 
   tinybench@6.2.2: {}
 

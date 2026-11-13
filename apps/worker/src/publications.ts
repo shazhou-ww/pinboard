@@ -21,6 +21,7 @@ import {
 import { getCar, readBlock, storeDag } from "./storage.js";
 import { matchesItemFilter } from "./item-filter.js";
 import { authorizePublication } from "./access.js";
+import { prepareIpnsChange } from "./ipns.js";
 
 const fields = `p.id, p.title, p.visibility, p.current_revision AS currentRevision,
   p.sequence, p.created_at AS createdAt, p.updated_at AS updatedAt,
@@ -539,10 +540,11 @@ export class PublicationService {
     const attempt = crypto.randomUUID();
     const guard =
       "EXISTS (SELECT 1 FROM publication_requests WHERE attempt_id = ?)";
+    const ipns = await prepareIpnsChange(this.env, id, cid);
     const statements = [
       this.env.DB.prepare(
         `INSERT OR IGNORE INTO publication_requests (account_id, request_id, payload, attempt_id, result)
-        SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM publications WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND sequence = ?)
+        SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM publications WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND sequence = ?) AND ${ipns.guard}
         ${rollback || nop || metadata ? "" : `AND ${availablePin} AND (? OR EXISTS (SELECT 1 FROM publications p JOIN pins pin ON pin.account_id = p.account_id WHERE p.id = ? AND pin.cid = ? AND (p.visibility = 'private' OR pin.visibility = 'public')))`}`,
       ).bind(
         this.principal.accountId,
@@ -553,6 +555,7 @@ export class PublicationService {
         id,
         this.principal.accountId,
         write.expectedSequence,
+        ...ipns.values,
         ...(rollback || nop || metadata
           ? []
           : [
@@ -603,6 +606,7 @@ export class PublicationService {
         this.snapshotResult(attempt, id, current.revision),
       );
     }
+    statements.push(...ipns.statements(attempt));
     await this.env.DB.batch(statements);
     const saved = await this.replay(write.requestId, payload);
     if (!saved) throw conflict();

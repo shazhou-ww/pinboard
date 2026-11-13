@@ -3,3 +3,7 @@ AUTH_URL=http://localhost:5173/api/auth
 
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
+
+# Optional until an owner explicitly enables IPNS. Independent AES-256-GCM key,
+# exactly 64 hexadecimal characters (32 random bytes); never reuse AUTH_SECRET.
+IPNS_MASTER_KEY=

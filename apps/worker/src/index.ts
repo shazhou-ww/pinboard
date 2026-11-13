@@ -13,6 +13,8 @@ import { createAuthConfig, getConfiguredProviders } from "./auth.js";
 import type { Bindings } from "./env.js";
 import { api } from "./api.js";
 import { gateway } from "./gateway.js";
+import { ipnsGateway } from "./ipns-gateway.js";
+import { runIpnsRenewal } from "./ipns.js";
 import { key, parseCid } from "./content.js";
 import { getCar } from "./storage.js";
 import { downloadContent } from "./download.js";
@@ -42,6 +44,7 @@ app.onError((error, context) => {
   return context.json({ error: "Internal server error" }, 500);
 });
 app.route("/", gateway);
+app.route("/", ipnsGateway);
 app.use("/api/public/*", async (c, next) => {
   c.header("Cache-Control", "private, no-store");
   await next();
@@ -121,7 +124,7 @@ export default Object.assign(app, {
     _controller: ScheduledController,
     env: Bindings,
   ): Promise<void> {
-    await Promise.all([runRetention(env), runPreviews(env)]);
+    await Promise.all([runRetention(env), runPreviews(env), runIpnsRenewal(env)]);
   },
 });
 
