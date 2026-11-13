@@ -17,10 +17,10 @@
 
 ### Deployment steps
 
-- [ ] **D-S01:** 独立验证 Publication 标准读取
+- [x] **D-S01:** 独立验证 Publication 标准读取
 - [ ] **D-S02:** 按授权验证续签与目标环境
 
 ### Deployment acceptance criteria
 
-- [ ] **D-AC01:** 标准指针可被外部验证
+- [x] **D-AC01:** 标准指针可被外部验证
 - [ ] **D-AC02:** 生命周期声明与实际结果一致
