@@ -109,6 +109,9 @@ ID/name/key-version 的 AAD、存储公钥及 Ed25519 名称，确认该备份�
 
 ## 尚不能完成 D-S02 / D-AC02 的具体缺口
 
+后续实际定点一致备份与完整测试 Publication 的受限运行时恢复已通过，32 条真实 cron 批次验证正在等待调度；最新结果见
+[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)。下面第 1 项的历史缺口已由该演练补齐，不再要求寻找原 DPAPI 包；真实批次结果及告警送达尚未完成。
+
 1. **一致数据备份的端到端恢复。**
    原 master 材料缺失的阻塞已由上述 PGP 备份及生产 signer 恢复核对解除，不再需要寻找原 DPAPI
    profile。仍需同一 master 与一致数据库/内容备份在受限运行时中恢复，验证名称、sequence、新签名、私有访问拒绝和 raw 内容。单条实际 binding 的只读重建不冒充完整一致备份恢复；不通过覆盖 master、重建身份或恢复生产旧 sequence 绕过。
