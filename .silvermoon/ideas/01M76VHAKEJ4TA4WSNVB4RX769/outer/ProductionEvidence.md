@@ -1,5 +1,12 @@
 # 生产部署与 HTTPS 验证证据
 
+## 本次验收范围调整
+
+2026-11-13 用户明确将告警演练排除本次验收，后续统一开展。最新范围见
+[Deployment.md](Deployment.md)
+的 Scope；实际恢复、真实 32 条生产 cron 续签及清理结果见
+[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)。本文件保留各时窗的原始发现，原告警缺口不再阻塞本次提交，但外部告警配置与送达仍未验证，不作已通过声明。
+
 ## 契约、版本及范围
 
 本轮按用户 2026-11-13 的继续推进指示，使用既有应用凭据和专用合成数据执行验证。没有重新迁移、覆盖 master、创建 release

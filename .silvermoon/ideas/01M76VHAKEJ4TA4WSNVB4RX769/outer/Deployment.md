@@ -1,5 +1,11 @@
 # Deployment
 
+## Scope
+
+2026-11-13 用户明确决定将告警演练从此次验收排除，后续统一开展。本次不以外部告警配置、故障触发或通知送达演练作为 D-S02
+/ D-AC02 完成条件，不将其记为已配置或已通过。续签失败、cron 失败及低于两小时 EOL
+headroom 的告警需求仍保留为后续运维工作；本次不创建告警设施，也不宣称具备端到端告警保障。下文及历史支持文件中的原告警门限由本次明确范围调整替代，不改写历史执行事实或应用运维建议。
+
 ## Steps
 
 ### D-S01: 独立验证 Publication 标准读取
@@ -20,20 +26,19 @@ ETag；只保存 CurrentUser
 DPAPI 密文，再实际解密恢复到仅回环监听、ACL 限制的 workerd，以用户提供的 PGP
 master 验证新签名、raw
 CID 和私有拒绝。该证据限于测试 Publication 的完整恢复，不宣称全服务灾难恢复。随后仅为这 32 个绑定注入六小时 headroom 的到期元数据，最多等待 65 分钟观察真实 hourly
-cron 的 generation/EOL 变化，期间不读记录触发续签；以真实调度日志交叉核对。结束或失败均正常 soft-delete 本轮对象并清理本地运行态。不注入生产 signer/cron 故障、不改其他数据，告警证明仍需既有通道或新增设施授权。
+cron 的 generation/EOL 变化，期间不读记录触发续签；以真实调度日志交叉核对。结束或失败均正常 soft-delete 本轮对象并清理本地运行态。不注入生产 signer/cron 故障、不改其他数据，告警演练按 Scope 留待后续统一开展。
 
 2026-11-13 用户已单独授权有界生产操作，并进一步指示一次性迁移/密钥配置直接使用 Cloudflare
 token，不采用新的 GitHub 运维设施。按 [DirectRollout.md](DirectRollout.md)
 核对既有目标、Windows DPAPI 加密备份及恢复能力后，再应用
 `apps/worker/migrations/0010_publication_ipns.sql`（空表及索引，无回填），再按
-`docs/publication-ipns.md` 配置独立 master
-secret、备份恢复及外部续签告警，通过既有 tag-driven
+`docs/publication-ipns.md` 配置独立 master secret、备份恢复，通过既有 tag-driven
 workflow 发布并以专用测试数据验证、清理。不新增云资源、GitHub 运维 environment/token/workflow/scheduler；不把未批准的长期设施方案当作一次性迁移前提，也不降低真实密钥恢复与最终 D-AC02 的证明要求。缺少真正安全条件时停止，不得部署一个缺少 schema 的版本。
 
 先在隔离环境演示每轮 32 条续签上限、失败事件及低于两小时 EOL 余量的观察结果；本地演示不是目标环境告警、调度 SLA 或负载容量证据。生产验收仍需明确授权：指定数据库的 additive
 migration、独立 `IPNS_MASTER_KEY` secret 配置、既有 Worker 的 tag-driven
-release、备份恢复演练及外部告警接收验证。该有界生产授权已由用户另行给出，不是从父 Agent 门限委托推断。只读预检和当前安全前提阻塞见
-[ProductionPreflight.md](ProductionPreflight.md)；未具备条件时保留本项及 D-AC02 未完成，不提交 submitOuter。
+release、备份恢复演练。该有界生产授权已由用户另行给出，不是从父 Agent 门限委托推断。历史只读预检与当时停止条件见
+[ProductionPreflight.md](ProductionPreflight.md)；后续实际结果以下述证据为准。
 
 后续真实生产核对及 HTTPS 执行结果见
 [ProductionEvidence.md](ProductionEvidence.md)。既有 `release-261113-2`
@@ -42,7 +47,7 @@ master 备份已成功解密，并用实际生产测试 binding 重建同名 sig
 
 后续一致数据与内容备份的受限运行时端到端恢复已通过，32 条专用绑定也已在真实 hourly
 cron 中全部续签，逐条独立验签及业务历史保持通过，测试对象已正常清理。结果、当前规模的容量边界和清理核对见
-[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)。以该文件的新观测覆盖此前的恢复/调度缺口；剩余外部告警送达证明未完成，不提交 outer。
+[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)。以该文件的新观测覆盖此前的恢复/调度缺口；告警演练按 Scope 排除后，本次剩余执行项与证据已齐备，可提交准确修订供用户验收。
 
 ## Acceptance criteria
 
@@ -60,9 +65,13 @@ cron 中全部续签，逐条独立验签及业务历史保持通过，测试对
 
 续签不需要用户发版本，缓存不过 EOL，删除关闭服务及续签，明确已缓存签名的剩余有效窗口；原业务历史和 raw 权限不回归。
 
-部署证据须包括同一 master 与一致数据库备份恢复后名称不变及新记录独立验签，续签失败/cron 失败及低于两小时 EOL 余量告警，并确认每小时 32 条批次足够；这些外部验证未由本次仓库测试代替。
+部署证据须包括同一 master 与一致数据库/内容备份恢复后名称不变、新记录独立验签、私有访问拒绝与 raw
+CID 校验，以及真实 hourly
+cron 在当前规模下完成 32 条批次续签、名称/sequence/业务历史保持及测试对象正常清理。当前规模的批次证明不承诺无限容量或未来 SLA；这些外部验证不能由仓库测试代替。告警演练依 Scope 排除，不作通过声明。
 
-目标环境的授权、迁移/secret/release、真实调度、告警接收、备份恢复及容量余量均有证据后方可完成本项；隔离演示只能作为先行证据，不降低门限。
+目标环境的授权、迁移/secret/release、真实调度、备份恢复及当前规模的容量均有证据后方可完成本项；隔离演示不替代目标环境证明。
 
 当前安全前提、已获授权范围、精确 SQL/影响及拟议安全顺序见
-[TargetAuthorization.md](TargetAuthorization.md)。本项未完成，不提交 outer。
+[TargetAuthorization.md](TargetAuthorization.md)。本次范围内结果见
+[ProductionEvidence.md](ProductionEvidence.md) 与
+[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)；执行完成不等于用户已验收。
