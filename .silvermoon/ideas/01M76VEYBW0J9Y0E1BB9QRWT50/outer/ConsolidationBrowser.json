@@ -1,0 +1,180 @@
+{
+  "browser": "Chrome/157.0.8103.38",
+  "checkedAt": "2026-11-13T04:02:49.844Z",
+  "origin": "https://pinboard.shazhou.work",
+  "transport": "h3",
+  "fixtureCid": "bafkreihhwufxp3wp3ytsgepltdmxdges5dwva3pgiowwoovi75eh7sk6ui",
+  "archive": "OqJlcm9vdHOB2CpYJQABVRIg57ULd+7P3icjEeuY2XGYkujtUG3mQ61nOqj/SH/JXqJndmVyc2lvbgFcAVUSIOe1C3fuz94nIxHrmNlxmJLo7VBt5kOtZzqo/0h/yV6iY29uc29saWRhdGlvbi1zbW9rZS05MDE3MWU3NS0zNTUzLTQ0ZTctYjE2Zi00MjI1ODA4MGI0YzY=",
+  "checks": [
+    {
+      "name": "Authenticated session",
+      "result": "passed"
+    },
+    {
+      "name": "Upload",
+      "result": "passed"
+    },
+    {
+      "name": "Default private",
+      "result": "passed"
+    },
+    {
+      "name": "Private rejected",
+      "result": "passed"
+    },
+    {
+      "name": "Raw GET",
+      "result": "passed"
+    },
+    {
+      "name": "Raw bytes",
+      "result": "passed"
+    },
+    {
+      "name": "Raw HEAD",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD length",
+      "result": "passed"
+    },
+    {
+      "name": "Raw 304",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported ?format=car",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported ?format=car&dag-scope=block",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported ?format=car&dag-scope=entity",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported ?format=car&dag-scope=all",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported ?format=car&entity-bytes=0:1",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported /child?format=raw",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported /?format=raw",
+      "result": "passed"
+    },
+    {
+      "name": "GET unsupported ?format=raw&dag-scope=all",
+      "result": "passed"
+    },
+    {
+      "name": "GET CAR probe removed",
+      "result": "passed"
+    },
+    {
+      "name": "GET raw probe",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported ?format=car",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported ?format=car&dag-scope=block",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported ?format=car&dag-scope=entity",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported ?format=car&dag-scope=all",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported ?format=car&entity-bytes=0:1",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported /child?format=raw",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported /?format=raw",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD unsupported ?format=raw&dag-scope=all",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD CAR probe removed",
+      "result": "passed"
+    },
+    {
+      "name": "HEAD raw probe",
+      "result": "passed"
+    },
+    {
+      "name": "CAR-only Accept",
+      "result": "passed"
+    },
+    {
+      "name": "Stored archive",
+      "result": "passed"
+    },
+    {
+      "name": "Raw HTTP Range remains unsupported",
+      "result": "passed"
+    },
+    {
+      "name": "Whole raw returned",
+      "result": "passed"
+    },
+    {
+      "name": "Public fixture",
+      "result": "passed"
+    },
+    {
+      "name": "Public raw",
+      "result": "passed"
+    },
+    {
+      "name": "Provider discovery",
+      "result": "passed"
+    },
+    {
+      "name": "Provider count",
+      "result": "passed"
+    },
+    {
+      "name": "Original download",
+      "result": "passed"
+    },
+    {
+      "name": "Rendered UI",
+      "result": "passed"
+    },
+    {
+      "name": "Pin cleanup",
+      "result": "passed"
+    },
+    {
+      "name": "No anonymous access after cleanup",
+      "result": "passed"
+    }
+  ],
+  "independentArchiveVerification": {
+    "root": "bafkreihhwufxp3wp3ytsgepltdmxdges5dwva3pgiowwoovi75eh7sk6ui",
+    "blocks": 1,
+    "sha256": "e7b50b77eecfde272311eb98d9719892e8ed506de643ad673aa8ff487fc95ea2",
+    "passed": true
+  }
+}
