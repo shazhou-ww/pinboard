@@ -99,3 +99,6 @@ ms**，包含既有 cron 的其他工作；这不是生产吞吐量、成本、�
 tag、部署 Worker、创建云资源或更改生产数据。目标 schema、目标 secret 存在性、实际 HTTPS 服务、真实 hourly
 cron、告警投递、备份恢复及容量余量均未观测。目标操作仍需
 [单独授权与安全顺序](TargetAuthorization.md)，不能以父 Agent 的门限受托身份替代该授权。
+
+后续状态：用户已另行给出有界生产授权；最新目标只读核对与安全停止原因见
+[ProductionPreflight.md](ProductionPreflight.md)。本文件保留为上述隔离时窗的原始证明范围，不把后续授权或健康检查倒推为隔离时已完成生产部署。

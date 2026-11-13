@@ -13,14 +13,16 @@ CID；拒绝篡改、错名及过期记录。在隔离 D1/R2 中验证私有权�
 
 ### D-S02: 按授权验证续签与目标环境
 
-未来单独获得发布及所需迁移授权后，先应用
+2026-11-13 用户已单独授权有界生产操作。先核对既有目标及安全备份，在明确可用的既有 master 托管/恢复与告警设施后，再应用
 `apps/worker/migrations/0010_publication_ipns.sql`（空表及索引，无回填），再按
 `docs/publication-ipns.md` 配置独立 master
-secret、备份恢复及外部续签告警，验证调度容量、私有权限和删除恢复。本次已授权仓库实现及隔离测试，不发布生产记录、不操作生产数据库、不配置生产 secret 或部署。
+secret、备份恢复及外部续签告警，通过既有 tag-driven
+workflow 发布并以专用测试数据验证、清理。不得创建新云资源，缺少安全条件时停止，不得为推进阶段而先部署一个缺少 schema 的版本。
 
 先在隔离环境演示每轮 32 条续签上限、失败事件及低于两小时 EOL 余量的观察结果；本地演示不是目标环境告警、调度 SLA 或负载容量证据。生产验收仍需明确授权：指定数据库的 additive
 migration、独立 `IPNS_MASTER_KEY` secret 配置、既有 Worker 的 tag-driven
-release、备份恢复演练及外部告警接收验证。门限验收已委托父 Agent，不构成上述生产授权。若边界未开放，保留本项及 D-AC02 未完成，不提交 submitOuter。
+release、备份恢复演练及外部告警接收验证。该有界生产授权已由用户另行给出，不是从父 Agent 门限委托推断。只读预检和当前安全前提阻塞见
+[ProductionPreflight.md](ProductionPreflight.md)；未具备条件时保留本项及 D-AC02 未完成，不提交 submitOuter。
 
 ## Acceptance criteria
 
@@ -42,5 +44,5 @@ release、备份恢复演练及外部告警接收验证。门限验收已委托�
 
 目标环境的授权、迁移/secret/release、真实调度、告警接收、备份恢复及容量余量均有证据后方可完成本项；隔离演示只能作为先行证据，不降低门限。
 
-当前授权阻塞、精确 SQL/影响及拟议安全顺序见
+当前安全前提、已获授权范围、精确 SQL/影响及拟议安全顺序见
 [TargetAuthorization.md](TargetAuthorization.md)。本项未完成，不提交 outer。
