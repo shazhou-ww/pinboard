@@ -241,14 +241,57 @@ try {
   deleted = false;
   const restored = await record(name);
   assert.deepEqual(restored.bytes, rolledBack.bytes);
-  const history = await json(`/api/publications/${publicationId}/history`);
-  assert(history);
+  const historyPath = `/api/public/publications/${publicationId}/history`;
+  const history = await json(historyPath);
+  assert.equal(history.publication.id, publicationId);
+  assert.equal(history.revisions.length, 2);
+  assert.deepEqual(
+    new Set(history.revisions.map((revision) => revision.cid)),
+    new Set(result.pins),
+  );
+  const cfToken = execFileSync(
+    "powershell.exe",
+    ["-NoProfile", "-Command", "cfg get --remote CLOUDFLARE_API_TOKEN"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  ).trim();
+  assert(cfToken && !cfToken.includes("\n"));
+  const injection = await fetch(
+    "https://api.cloudflare.com/client/v4/accounts/92c3c4fdcc84a1590555bccf4f111de2/d1/database/9f15fd50-e103-459f-9f3f-9db3036f91de/query",
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${cfToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sql: "UPDATE publication_ipns SET expires_at = ? WHERE publication_id = ? AND name = ?",
+        params: [Date.now() - 1, publicationId, name],
+      }),
+      signal: AbortSignal.timeout(60000),
+      redirect: "error",
+    },
+  );
+  assert.equal(injection.status, 200);
+  const injectionResult = await injection.json();
+  assert.equal(injectionResult.success, true);
+  assert.equal(injectionResult.result[0].meta.changes, 1);
+  const renewed = await record(name);
+  assert.equal(renewed.parsed.sequence, 2n);
+  assert.equal(renewed.parsed.value, restored.parsed.value);
+  assert(
+    Date.parse(renewed.parsed.validity) > Date.parse(restored.parsed.validity),
+  );
+  assert.notDeepEqual(renewed.bytes, restored.bytes);
+  assert.deepEqual(await json(historyPath), history);
+  result.checks.push(
+    "仅对本轮绑定注入过期元数据后，真实 HTTPS 读取生成新签名；同名同 sequence、EOL 延长、业务历史完全不变。这不是实际时间过期或 cron 续签证明",
+  );
   result.finalRecord = {
-    sha256: hash(restored.bytes).toString("hex"),
-    sequence: restored.parsed.sequence.toString(),
-    value: restored.parsed.value,
-    eol: restored.parsed.validity,
-    bytes: restored.bytes.length,
+    sha256: hash(renewed.bytes).toString("hex"),
+    sequence: renewed.parsed.sequence.toString(),
+    value: renewed.parsed.value,
+    eol: renewed.parsed.validity,
+    bytes: renewed.bytes.length,
   };
   result.checks.push(
     "Delete stops serving; restore preserves name, sequence and signed bytes; business history remains readable",
