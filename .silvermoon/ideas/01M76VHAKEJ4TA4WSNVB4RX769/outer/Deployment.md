@@ -26,6 +26,10 @@ migration、独立 `IPNS_MASTER_KEY` secret 配置、既有 Worker 的 tag-drive
 release、备份恢复演练及外部告警接收验证。该有界生产授权已由用户另行给出，不是从父 Agent 门限委托推断。只读预检和当前安全前提阻塞见
 [ProductionPreflight.md](ProductionPreflight.md)；未具备条件时保留本项及 D-AC02 未完成，不提交 submitOuter。
 
+后续真实生产核对及 HTTPS 执行结果见
+[ProductionEvidence.md](ProductionEvidence.md)。既有 `release-261113-2`
+已上线，schema 和 master 名称已存在；本轮已完成专用数据的独立验签、更新/回滚、权限、删除恢复和读取续签并正常清理，也取得发布后真实 cron 执行记录。尚缺原 master 的可用恢复材料、外部告警送达及目标 cron 续签/容量证明；不重复迁移、覆盖 master 或因设备归属说明而跳过这些结果要求。
+
 ## Acceptance criteria
 
 ### D-AC01: 标准指针可被外部验证
