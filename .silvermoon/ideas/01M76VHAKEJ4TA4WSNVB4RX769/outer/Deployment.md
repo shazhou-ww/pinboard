@@ -13,6 +13,15 @@ CID；拒绝篡改、错名及过期记录。在隔离 D1/R2 中验证私有权�
 
 ### D-S02: 按授权验证续签与目标环境
 
+后续有界验证使用
+[VerifyTargetRecovery.mjs](VerifyTargetRecovery.mjs)：仅创建最多 32 个合成 Publication 共用一个专用 raw
+Pin。对一个测试 Publication 所需的 D1 行用单条 SELECT 取得一致快照，备份原 CAR，并在下载前后比较快照和 CAR
+ETag；只保存 CurrentUser
+DPAPI 密文，再实际解密恢复到仅回环监听、ACL 限制的 workerd，以用户提供的 PGP
+master 验证新签名、raw
+CID 和私有拒绝。该证据限于测试 Publication 的完整恢复，不宣称全服务灾难恢复。随后仅为这 32 个绑定注入六小时 headroom 的到期元数据，最多等待 65 分钟观察真实 hourly
+cron 的 generation/EOL 变化，期间不读记录触发续签；以真实调度日志交叉核对。结束或失败均正常 soft-delete 本轮对象并清理本地运行态。不注入生产 signer/cron 故障、不改其他数据，告警证明仍需既有通道或新增设施授权。
+
 2026-11-13 用户已单独授权有界生产操作，并进一步指示一次性迁移/密钥配置直接使用 Cloudflare
 token，不采用新的 GitHub 运维设施。按 [DirectRollout.md](DirectRollout.md)
 核对既有目标、Windows DPAPI 加密备份及恢复能力后，再应用
