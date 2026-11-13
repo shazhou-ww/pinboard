@@ -10,7 +10,8 @@ tag 或云资源，不更改其他业务对象。
 开始时间为 `2026-11-13T10:31:19.813Z`。执行前 live IPNS
 binding 为 0。本轮创建 32 个合成 Publication，共用专用 raw CID
 `bafkreic27gotqbb6vq4lyw2e635f5vku2fcstyc25cpgo4fmfncdj6of4q`，标记
-`ipns-cron-recovery-a4b782c1-3450-4515-83c6-119f7596b214`。这些对象仍在等待真实 cron 的过程中，尚未宣称清理完成。
+`ipns-cron-recovery-a4b782c1-3450-4515-83c6-119f7596b214`。最终探针于
+`2026-11-13T11:17:46.732Z` 退出 0，`passed=true`；真实批次续签和正常清理均完成。
 
 ## 实际目标数据备份与隔离恢复：通过
 
@@ -46,16 +47,46 @@ master 在本机 GPG 子进程解密后经内存 pipe 传入运行时。
 恢复运行时随后已 dispose，未将恢复签名写回生产或对外发布，未从备份恢复生产 sequence。这是该合成 Publication 所需完整数据和内容的一致备份恢复，不是整个生产账户/服务的灾难恢复、跨设备 DPAPI 可恢复性或长期备份 SLA 证明。DPAPI 文件依赖当前 Windows
 profile，应与独立 PGP master 备份分别保管。
 
-## 真实 cron 与批次容量：等待调度
+## 真实 cron 与批次容量：通过
 
 `2026-11-13T10:32:22.579Z` 起等待实际 `17 * * * *`
 生产 cron。仅对本轮 32 个具名 binding 注入六小时 headroom 的 `expires_at`
 元数据，SQL 确认影响 32 行，注入值为
 `2026-11-13T16:32:21.336Z`。原始签名中的 EOL 没有篡改；测试对象在该元数据与签名不一致期间不作为可用服务示例。
 
-观察进程最多等待 65 分钟，每分钟只读查询本轮 binding 的 generation 和 expiry。在观察到全部 32 个 generation=1 且 EOL 已延长之前，不请求标准记录，不手动调用 scheduled
+观察进程每分钟只读查询本轮 binding 的 generation 和 expiry，在
+`2026-11-13T11:17:37.747Z` 观察到全部 32 条续签成功：generation 均为 1，IPNS
+sequence 均保持 0。在该观测之前不请求标准记录，也未手动调用 scheduled
 handler，从而避免把读取续签或手动触发冒充真实 hourly
-cron。届时还需对照目标 telemetry、验证同名同 sequence 新签名与业务历史，再正常 soft-delete 本轮 32 个对象及专用 Pin、清理本地运行态。超时或失败也走正常清理，保留失败事实。
+cron。随后首个名称的真实 HTTPS 新记录独立验签通过，业务历史 JSON 与恢复前快照完全相等；记录 SHA-256 为
+`a7d5628f342f8d0fe1e6af1a8ff2f8fb570d8232cac092f80ae7f3abb8e3543d`。
 
-当前不把等待状态当作真实 cron 续签通过，也不把一次满批次演示当作无限容量或未来 SLA。外部告警送达仍无证据，本轮没有配置新设施或改写 billing 告警。因此 D-S02
+目标 Workers Observability 的只读查询交叉核对实际生产调度：
+
+| 项目                  | 实际结果                                                |
+| --------------------- | ------------------------------------------------------- |
+| cron / scheduled time | `17 * * * *` / `2026-11-13T11:17:01.792Z`               |
+| Worker version        | `0fa83d9d-a513-4f86-92a2-1e5a0b212c33`                  |
+| outcome / wall / CPU  | `ok` / 1243 ms / 89 ms                                  |
+| invocation request ID | `1fd6d1c14f2d96573a5fc326e3d3bead`                      |
+| event ID              | `01M7AA065Q00000000000000J0`                            |
+| 最早 / 最晚新 EOL     | `2026-11-14T11:17:03.221Z` / `2026-11-14T11:17:04.139Z` |
+
+`2026-11-13T11:18:54.578Z`
+又通过只读 D1 查询取得本轮全部 32 条已续签记录，逐条独立校验名称公钥、Ed25519
+V2 签名、Value、sequence、generation 及 signed
+EOL 与存储 expiry 一致，全部通过；SQL 写入量为 0。不是只用 generation 计数或首条样本推定全部签名有效。
+
+本轮证明空 live
+baseline 下单次真实 hourly 调度能处理 32 条，且返回约 24 小时 EOL 余量。当前没有持续生产负载或积压；固定容量仍是 32 次/小时，不能由一次满批次宣称无限绑定或长期 SLA。应以实际续签需求、失败重试及 backlog 约束后续启用规模；增加规模仍需另行容量验证，告警不可省略。
+
+## 清理与剩余验收条件
+
+探针在 `2026-11-13T11:17:46.732Z` 前通过正常 API
+soft-delete 全部 32 个 Publication 及共用专用 Pin，不绕过恢复窗口或物理删除数据。后续只读核对确认本轮 32 条 Publication 全部已删除、binding 均 generation=1；专用 Pin 只有一个 owner
+row，且存在正常 deleted-pin 记录。 `2026-11-13T11:18:37.488Z` 的全局 live
+binding 和 eligible backlog 均为 0。恢复 listener `127.0.0.1:58630`
+已不响应，本轮精确 operation-owned scratch 目录已删除，无遗留本地运行时。
+
+备份恢复、真实调度及当前规模的满批次证明均已完成。外部告警送达仍无证据，本轮没有配置新设施或改写 billing 告警。需要既有接收渠道及实际投递验证，或另行明确新增设施授权。因此 D-S02
 / D-AC02 仍未完成，不提交 `submitOuter`。

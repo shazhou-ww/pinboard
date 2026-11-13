@@ -40,8 +40,9 @@ release、备份恢复演练及外部告警接收验证。该有界生产授权�
 已上线，schema 和 master 名称已存在；本轮已完成专用数据的独立验签、更新/回滚、权限、删除恢复和读取续签并正常清理，也取得发布后真实 cron 执行记录。用户后续提供的 PGP
 master 备份已成功解密，并用实际生产测试 binding 重建同名 signer、新签名独立验签通过；恢复材料缺失不再是阻塞。不重复迁移或覆盖 master。
 
-后续一致数据与内容备份的受限运行时端到端恢复已通过，真实 32 条批次正在等待 hourly 调度，进展与范围见
-[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)。以该文件的新观测覆盖此前的恢复缺口，不提前宣称 cron 或告警通过。
+后续一致数据与内容备份的受限运行时端到端恢复已通过，32 条专用绑定也已在真实 hourly
+cron 中全部续签，逐条独立验签及业务历史保持通过，测试对象已正常清理。结果、当前规模的容量边界和清理核对见
+[TargetRecoveryEvidence.md](TargetRecoveryEvidence.md)。以该文件的新观测覆盖此前的恢复/调度缺口；剩余外部告警送达证明未完成，不提交 outer。
 
 ## Acceptance criteria
 
