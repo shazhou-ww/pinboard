@@ -106,8 +106,8 @@ catalogs:
       specifier: ^3.9.10
       version: 3.9.10
     react:
-      specifier: ^19.3.0
-      version: 19.3.0
+      specifier: ^19.3.1
+      version: 19.3.1
     react-dom:
       specifier: ^19.3.0
       version: 19.3.0
@@ -160,7 +160,7 @@ importers:
         version: 5.3.0
       '@hono/auth-js':
         specifier: 'catalog:'
-        version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.0)
+        version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.1)
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
@@ -196,10 +196,10 @@ importers:
         version: 3.9.10
       react:
         specifier: 'catalog:'
-        version: 19.3.0
+        version: 19.3.1
       react-dom:
         specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
+        version: 19.3.0(react@19.3.1)
       turbo:
         specifier: 'catalog:'
         version: 2.11.10
@@ -256,13 +256,13 @@ importers:
         version: 5.3.0
       '@hono/auth-js':
         specifier: 'catalog:'
-        version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.0)
+        version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.1)
       '@ipld/car':
         specifier: 'catalog:'
         version: 5.4.7
       '@phosphor-icons/react':
         specifier: 'catalog:'
-        version: 2.1.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 2.1.10(react-dom@19.3.0(react@19.3.1))(react@19.3.1)
       '@shazhou/pinboard-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -277,10 +277,10 @@ importers:
         version: 14.0.5
       react:
         specifier: 'catalog:'
-        version: 19.3.0
+        version: 19.3.1
       react-dom:
         specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
+        version: 19.3.0(react@19.3.1)
       react-engraved-background:
         specifier: workspace:*
         version: link:../../packages/react-engraved-background
@@ -308,7 +308,7 @@ importers:
         version: 0.41.3
       '@hono/auth-js':
         specifier: 'catalog:'
-        version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.0)
+        version: 1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.1)
       '@hyzyla/pdfium':
         specifier: 'catalog:'
         version: 3.0.0
@@ -410,10 +410,10 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       react:
         specifier: 'catalog:'
-        version: 19.3.0
+        version: 19.3.1
       react-dom:
         specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
+        version: 19.3.0(react@19.3.1)
 
 packages:
 
@@ -2164,8 +2164,8 @@ packages:
     peerDependencies:
       react: ^19.3.0
 
-  react@19.3.0:
-    resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
+  react@19.3.1:
+    resolution: {integrity: sha512-QNhWdt7nrgVWWQG58QuGsAR3jv3Hbe4mb4vz7w2csnHavciZJgda1CPNaldF6eVxv90ud3jUXpKlHL69gO38yw==}
     engines: {node: '>=0.10.0'}
 
   readable-stream@3.6.2:
@@ -2762,11 +2762,11 @@ snapshots:
 
   '@fontsource-variable/newsreader@5.3.0': {}
 
-  '@hono/auth-js@1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.0)':
+  '@hono/auth-js@1.1.1(@auth/core@0.41.3)(hono@4.13.13)(react@19.3.1)':
     dependencies:
       '@auth/core': 0.41.3
       hono: 4.13.13
-      react: 19.3.0
+      react: 19.3.1
 
   '@hono/node-server@2.1.6(hono@4.13.13)':
     dependencies:
@@ -3033,10 +3033,10 @@ snapshots:
 
   '@panva/hkdf@1.2.1': {}
 
-  '@phosphor-icons/react@2.1.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@phosphor-icons/react@2.1.10(react-dom@19.3.0(react@19.3.1))(react@19.3.1)':
     dependencies:
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
+      react: 19.3.1
+      react-dom: 19.3.0(react@19.3.1)
 
   '@poppinss/colors@4.1.6':
     dependencies:
@@ -4160,12 +4160,12 @@ snapshots:
       iconv-lite: 0.7.3
       unpipe: 1.0.0
 
-  react-dom@19.3.0(react@19.3.0):
+  react-dom@19.3.0(react@19.3.1):
     dependencies:
-      react: 19.3.0
+      react: 19.3.1
       scheduler: 0.28.0
 
-  react@19.3.0: {}
+  react@19.3.1: {}
 
   readable-stream@3.6.2:
     dependencies:
