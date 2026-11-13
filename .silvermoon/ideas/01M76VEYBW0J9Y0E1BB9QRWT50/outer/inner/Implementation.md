@@ -4,7 +4,7 @@
 
 基于内存阻塞，新增
 [Worker 能力取舍与标准路由对照](CapabilityChoices.md)，逐项区分标准 raw/CAR/IPNS、Delegated
-Routing 和 Pinboard 自有接口。它是待确认的职责调整建议，不表示本次已批准删除线上能力或替换已接受契约。若决定将动态 entity/all/entity-bytes 收缩为 raw 主导及受限路径证明，应先修订 Ideal、兼容迁移与验收范围，再按准确 revision 重新审批；下列原实施与验收项保持未完成，原失败证据不撤销，不继续生产实现或部署。
+Routing 和 Pinboard 自有接口。2026-11-13 用户明确选择不提供服务端 UnixFS 路径及动态 DAG 聚合，IPNS 后续构想改为 Publication 的标准读取层。此前“受限路径证明”建议已被取代；本次只记录决定，不修改线上代码。需先重定 Ideal、调用方迁移、自有归档兼容回退及验收范围，再重新审批；下列原实施与验收项保持未完成，原失败证据不撤销，不继续生产实现或部署。
 
 ## Steps
 
