@@ -11,30 +11,30 @@
 ## 能力与路由
 
 `{cid}` 是根 CID，`{path}` 是子路径，`{key}` 是 IPNS
-Name。标准 raw 仅支持根路径；HEAD、条件请求和 CORS 没有额外内容路由。下表为目标方向，不冒充已部署的支持矩阵。
+Name。标准 raw 仅支持根路径；HEAD、条件请求和 CORS 没有额外内容路由。取舍列仅使用“保留”“不做”“待做”；细节放在说明列。下表为目标方向，不冒充已部署的支持矩阵。
 
-| 能力                               | 目标取舍                  | 标准路由/请求方式                                                                                                              | 说明                                                                                                     |
-| ---------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Raw block GET                      | 保留，核心                | `GET /ipfs/{cid}?format=raw`，或同路径 `Accept: application/vnd.ipld.raw`                                                      | 本地单块授权读取，保留 2 MiB 限额；客户端校验 CID                                                        |
-| Raw HEAD/ETag/304                  | 保留                      | 同 raw URL 的 HEAD，以及 GET/HEAD 的 `If-None-Match`                                                                           | 授权与可用性检查先于命中，保留元数据优化                                                                 |
-| identity probe                     | 保留 raw                  | `GET/HEAD /ipfs/bafkqaaa?format=raw`                                                                                           | CAR probe `/ipfs/bafkqaaa?format=car` 必须随真实 CAR 支持收缩，不能继续暗示提供通用 CAR                  |
-| 格式/变体协商                      | 保留准确选择与拒绝        | `/ipfs/{cid}` 的 `format`/`Accept`；标准 CAR 查询含 `car-version/order/dups`                                                   | 不支持的 CAR 明确拒绝，不能静默换 raw 或把默认 all 改 block                                              |
-| 公开 CORS/安全头/预检              | 保留必要部分              | 实际 raw/IPNS URL；预检为同 URL 的 `OPTIONS`                                                                                   | HTTP/CORS，不是能力 manifest；不开放跨站私有 Cookie 或根 service worker                                  |
-| Provider discovery                 | 保留                      | `GET /routing/v1/providers/{cid}`                                                                                              | Delegated Routing V1，不是 Trustless Gateway 内容路由；只声明 HTTP provider，不宣称 libp2p 或 CAR 全功能 |
-| 完整能力清单                       | 可选扩展，未定接口        | 没有统一标准能力清单路由                                                                                                       | 如新增需版本化 Pinboard API；不捏造标准 `/.well-known/...`，客户端仍需 probe/协商                        |
-| UnixFS 路径定位 CID                | 不做服务端能力            | 标准可验证路径入口原为 `GET/HEAD /ipfs/{cid}/{path}?format=car&dag-scope=block`；单独 resolve-CID 无统一 Trustless Gateway API | 客户端读目录/HAMT 块自行定位；不新建 `/resolve`，不偷偷把路径 raw 解释为终点块                           |
-| 路径证明 CAR                       | 不做，包括“受限”版本      | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=block`                                                                     | 不保留服务端路径解析；根的 block CAR 包装也不作为核心目标，raw 足够                                      |
-| 普通/HAMT 目录枚举                 | 不做服务端遍历            | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=entity`，终点为目录                                                        | 无标准 `/ls`；客户端通过 raw 重建目录，已存归档下载不是目录查询                                          |
-| 完整文件 entity                    | 不做动态获取/聚合         | 同 `?format=car&dag-scope=entity`，终点为文件                                                                                  | 不为小文件或单节点特设例外，避免内容布局决定接口承诺                                                     |
-| 子树 all                           | 不做动态获取/聚合         | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=all`，省略 scope 也为 all                                                  | 不将省略默认值改为 block；停用时准确拒绝，不返回伪完整 CAR                                               |
-| entity-bytes                       | 不做服务端范围证明        | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&entity-bytes={from}:{to}`                                                            | 不再维护动态范围选择；客户端按 UnixFS 索引取所需 raw 块                                                  |
-| 已存完整 CAR 下载                  | 保留自有流式扩展          | 现有 `GET /api/public/{cid}/car`；标准根 CAR 入口为 `/ipfs/{cid}?format=car`，但本方向不自动复用                               | 仅直接流式返回已存在归档，不遍历/现场打包。不冒充任意标准 CAR 查询                                       |
-| 现场组装完整 CAR                   | 不做                      | 无额外专用标准路由，通常体现为 all/文件 entity 或自有导出的实现                                                                | 客户端组装；既有自有导出的 legacy/未索引兼容回退也需检查，不能保留隐藏的服务端整 DAG 聚合                |
-| 普通 raw HTTP Range                | 不做                      | raw URL 加 `Range: bytes=...`                                                                                                  | 不是 entity-bytes；不宣称 206/416，整块读取才能独立校验 CID                                              |
-| 任意 CID 回源/DHT/Bitswap          | 不做                      | 无专门 Trustless Gateway 回源路由；是否回源是 `/ipfs/{cid}` 的策略，DHT/Bitswap 为其他协议                                     | 保持非递归，客户端选择其他 provider                                                                      |
-| Publication IPNS 记录              | 明确新增目标，iteration 6 | `GET/HEAD /ipns/{key}?format=ipns-record` 或 `Accept: application/vnd.ipfs.ipns-record`                                        | Pinboard 托管密钥、原始签名指针、有限 EOL 自动续签；不是返回 Publication JSON 或内容重定向               |
-| 通用 IPNS 解析/记录获取            | 不做                      | 通用 `/ipns/{key}`，以及可选 Delegated Routing `GET /routing/v1/ipns/{name}`                                                   | 首期只服务自己的 Publication 名称，不任意网络查找；额外 routing IPNS API 不默认新增                      |
-| 网站渲染/DNSLink/Subdomain Gateway | 不做                      | Path Gateway 的 `/ipfs/{cid}/{path}`、`/ipns/{name}/{path}`；`https://{cid}.ipfs.{gateway}/{path}` 等                          | 非本服务标准读取目标，不提供网站执行或 DNS 解析                                                          |
+| 能力                               | 目标取舍 | 标准路由/请求方式                                                                                                              | 说明                                                                                                               |
+| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Raw block GET                      | 保留     | `GET /ipfs/{cid}?format=raw`，或同路径 `Accept: application/vnd.ipld.raw`                                                      | 核心单块授权读取，保留 2 MiB 限额；客户端校验 CID                                                                  |
+| Raw HEAD/ETag/304                  | 保留     | 同 raw URL 的 HEAD，以及 GET/HEAD 的 `If-None-Match`                                                                           | 授权与可用性检查先于命中，保留元数据优化                                                                           |
+| identity probe                     | 保留     | `GET/HEAD /ipfs/bafkqaaa?format=raw`                                                                                           | 仅保留 raw probe；CAR probe `/ipfs/bafkqaaa?format=car` 随动态 CAR 撤出，不暗示提供通用 CAR                        |
+| 格式/变体协商                      | 保留     | `/ipfs/{cid}` 的 `format`/`Accept`；标准 CAR 查询含 `car-version/order/dups`                                                   | 保留 raw 选择及不支持项的准确拒绝；CAR 变体执行逻辑不保留，不静默换 raw 或把默认 all 改 block                      |
+| 公开 CORS/安全头/预检              | 保留     | 实际 raw/IPNS URL；预检为同 URL 的 `OPTIONS`                                                                                   | 保留必要公开读取支持；IPNS 随 iteration 6 增加。不开放跨站私有 Cookie 或根 service worker                          |
+| Provider discovery                 | 保留     | `GET /routing/v1/providers/{cid}`                                                                                              | Delegated Routing V1，不是 Trustless Gateway 内容路由；只声明 HTTP provider，不宣称 libp2p 或 CAR 全功能           |
+| 完整能力清单                       | 不做     | 没有统一标准能力清单路由                                                                                                       | 自有客户端不消费，标准客户端不识别；不新增自有 manifest/API 或 `/.well-known/...`，仅保留标准 probe/协商及文档声明 |
+| UnixFS 路径定位 CID                | 不做     | 标准可验证路径入口原为 `GET/HEAD /ipfs/{cid}/{path}?format=car&dag-scope=block`；单独 resolve-CID 无统一 Trustless Gateway API | 客户端读目录/HAMT 块自行定位；不新建 `/resolve`，不偷偷把路径 raw 解释为终点块                                     |
+| 路径证明 CAR                       | 不做     | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=block`                                                                     | 包括受限版本；不保留服务端路径解析或根的 block CAR 包装，raw 足够                                                  |
+| 普通/HAMT 目录枚举                 | 不做     | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=entity`，终点为目录                                                        | 无标准 `/ls`；客户端通过 raw 重建目录，已存归档下载不是目录查询                                                    |
+| 完整文件 entity                    | 不做     | 同 `?format=car&dag-scope=entity`，终点为文件                                                                                  | 不做动态获取/聚合，不为小文件或单节点特设例外                                                                      |
+| 子树 all                           | 不做     | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&dag-scope=all`，省略 scope 也为 all                                                  | 不做动态获取/聚合，不将省略默认值改为 block；准确拒绝，不返回伪完整 CAR                                            |
+| entity-bytes                       | 不做     | `GET/HEAD /ipfs/{cid}[/{path}]?format=car&entity-bytes={from}:{to}`                                                            | 不做服务端范围证明；客户端按 UnixFS 索引取所需 raw 块                                                              |
+| 已存完整 CAR 下载                  | 保留     | 现有 `GET /api/public/{cid}/car`；标准根 CAR 入口为 `/ipfs/{cid}?format=car`，但本方向不自动复用                               | 自有流式扩展，仅返回已存在归档，不遍历/现场打包，不冒充任意标准 CAR 查询                                           |
+| 现场组装完整 CAR                   | 不做     | 无额外专用标准路由，通常体现为 all/文件 entity 或自有导出的实现                                                                | 客户端组装；既有自有导出的 legacy/未索引兼容回退也需检查，不能保留隐藏的服务端整 DAG 聚合                          |
+| 普通 raw HTTP Range                | 不做     | raw URL 加 `Range: bytes=...`                                                                                                  | 不是 entity-bytes；不宣称 206/416，整块读取才能独立校验 CID                                                        |
+| 任意 CID 回源/DHT/Bitswap          | 不做     | 无专门 Trustless Gateway 回源路由；是否回源是 `/ipfs/{cid}` 的策略，DHT/Bitswap 为其他协议                                     | 保持非递归，客户端选择其他 provider                                                                                |
+| Publication IPNS 记录              | 待做     | `GET/HEAD /ipns/{key}?format=ipns-record` 或 `Accept: application/vnd.ipfs.ipns-record`                                        | iteration 6：Pinboard 托管密钥、原始签名指针、有限 EOL 自动续签，不返回 Publication JSON 或内容重定向              |
+| 通用 IPNS 解析/记录获取            | 不做     | 通用 `/ipns/{key}`，以及可选 Delegated Routing `GET /routing/v1/ipns/{name}`                                                   | 首期只服务自己的 Publication 名称，不任意网络查找；额外 routing IPNS API 不默认新增                                |
+| 网站渲染/DNSLink/Subdomain Gateway | 不做     | Path Gateway 的 `/ipfs/{cid}/{path}`、`/ipns/{name}/{path}`；`https://{cid}.ipfs.{gateway}/{path}` 等                          | 非本服务标准读取目标，不提供网站执行或 DNS 解析                                                                    |
 
 ## 核心组合与 Publication
 
@@ -43,7 +43,7 @@ discovery、已有完整 CAR 流式下载，加
 [Publication 标准 IPNS 读取层](../../../../01M76VHAKEJ4TA4WSNVB4RX769/outer/inner/ideal/Idea.md)。服务端没有 UnixFS 路径时，客户端仍可在一次用户下载操作内部发出多个块请求；IPNS 先验签得到当前根 CID，再在客户端解析目录和文件。
 
 raw 是规范 MUST，CAR/IPNS record 是 SHOULD；不以精简范围宣称完整 Path/Trustless
-Gateway。能力清单可作扩展，但不会让 CAR-only 客户端自动回退。
+Gateway。不做完整能力清单；用标准 probe、协商及准确文档表达范围，不假定 CAR-only 客户端自动回退。
 
 ## 撤出与验收前必须确认
 
@@ -51,7 +51,7 @@ Gateway。能力清单可作扩展，但不会让 CAR-only 客户端自动回退
 - 自有完整 CAR 只保留直接归档流式路径。legacy/未索引根若仍需遍历重编码，应在实施前决定明确拒绝、离线准备归档或迁移办法，不能用静默回退继续承受原风险。
 - 自有原文件/ZIP 下载、预览生成属于产品扩展，不因本表宣称已迁移到客户端；它们可能仍有聚合与内存成本，需独立清点，不能据网关收缩宣布整个 Worker 安全。
 - CAR
-  probe、文档、能力清单及官方测试选择必须与新范围同步；不只删失败测试就把旧资源保障标为通过。
+  probe、文档及官方测试选择必须与新范围同步；不新增能力清单，不只删失败测试就把旧资源保障标为通过。
 - 不执行发布、生产迁移、数据删除或真实密钥生成。按重定后的 iteration
   5 契约审阅和清点兼容边界，保留此前全部失败证据。
 

@@ -21,6 +21,8 @@ HistoricalConformanceBudget.md，失败证据不删除。本次更新契约，�
   framing；保留通用 raw Accept/ETag 等实际使用的共享逻辑。
 - 不保留“仅小请求”“受限路径”或 feature
   flag 作为未批准的例外。CAR-only 请求明确拒绝；省略 scope 的默认 all 不能偷偷变成 block。
+- 完整能力清单不做：自有客户端不消费，标准客户端不识别，不新增自有能力 manifest、发现 API 或
+  `/.well-known/...`。范围以标准 probe、协商/拒绝行为及准确文档表达。
 - CAR
   probe 必须随实际支持更新，不能只保留 header-only 成功而暗示通用 CAR。普通 raw
   HTTP Range、DHT/Bitswap、DNSLink/网站托管继续不做。
