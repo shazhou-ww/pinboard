@@ -82,6 +82,17 @@ afterEach(() => vi.restoreAllMocks());
 afterAll(() => mf.dispose());
 
 describe("raw gateway protocol", () => {
+  it("ignores HTTP Range and retains the complete independently verifiable raw block", async () => {
+    const response = await request(cid, "GET", { range: "bytes=1-2" });
+    expect(response.status).toBe(200);
+    expect(response.headers.has("content-range")).toBe(false);
+    const actual = new Uint8Array(await response.arrayBuffer());
+    expect(actual).toEqual(bytes);
+    expect(CID.createV1(0x55, await sha256.digest(actual)).toString()).toBe(
+      cid,
+    );
+  });
+
   it.each(["GET", "HEAD"])(
     "%s preserves raw bytes, representation headers and the empty probe",
     async (method) => {
@@ -225,6 +236,7 @@ describe("raw gateway protocol", () => {
         "*/*",
         "text/html;q=1, application/vnd.ipld.raw;q=0.2",
         "application/vnd.ipld.car;version=2;q=1, application/*;q=0.5",
+        "application/vnd.ipld.car;q=1, application/*;q=0.5",
         "*/*;q=0, application/*;q=0.5",
         "application/*;q=0, application/vnd.ipld.raw;q=0.001",
         "application/vnd.ipld.raw;q=0, application/vnd.ipld.raw;q=1",
@@ -251,22 +263,12 @@ describe("raw gateway protocol", () => {
         "application/vnd.ipld.raw;q=0, application/*;q=1",
         "application/vnd.ipld.raw;version=1",
         'application/vnd.ipld.raw;version="a,b;c"',
+        "application/vnd.ipld.car",
       ]) {
         expect(
           (await request(cid, method, { accept }, "")).status,
           accept,
         ).toBe(406);
-      }
-      for (const accept of [
-        "application/vnd.ipld.car",
-        "application/vnd.ipld.car;q=1, application/*;q=0.5",
-      ]) {
-        const response = await request(cid, method, { accept }, "");
-        expect(response.status).toBe(200);
-        expect(response.headers.get("content-type")).toBe(
-          "application/vnd.ipld.car; version=1; order=dfs; dups=n",
-        );
-        await response.arrayBuffer();
       }
     },
   );
@@ -328,10 +330,7 @@ describe("raw gateway protocol", () => {
         { accept: "application/vnd.ipld.raw" },
         "?format=car",
       );
-      expect(car.status).toBe(200);
-      expect(car.headers.get("content-type")).toBe(
-        "application/vnd.ipld.car; version=1; order=dfs; dups=n",
-      );
+      expect(car.status).toBe(406);
       await car.arrayBuffer();
     },
   );

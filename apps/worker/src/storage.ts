@@ -1,7 +1,7 @@
 import { CarIndexer } from "@ipld/car";
 import { HTTPException } from "hono/http-exception";
 import { encodeCar } from "./car.js";
-import { completeDag, key, parseCid, type Dag } from "./content.js";
+import { key, parseCid, type Dag } from "./content.js";
 import type { Bindings } from "./env.js";
 
 type Storage = Pick<Bindings, "DB" | "BLOCKS">;
@@ -175,7 +175,7 @@ export async function getCar(
   env: Storage,
   cid: string,
 ): Promise<{
-  body: ReadableStream | Uint8Array<ArrayBuffer>;
+  body: ReadableStream;
   size: number;
   etag: string;
 } | null> {
@@ -187,7 +187,10 @@ export async function getCar(
     .first<{ object_key: string; size: number }>();
   if (manifest) {
     const object = await env.BLOCKS.get(manifest.object_key);
-    if (!object || object.size !== manifest.size) unavailable();
+    if (!object || object.size !== manifest.size) {
+      await object?.body.cancel().catch(() => undefined);
+      unavailable();
+    }
     return {
       body: object.body,
       size: manifest.size,
@@ -195,16 +198,8 @@ export async function getCar(
     };
   }
   if (!(await headBlock(env, key(root)))) return null;
-  const dag = await completeDag(root, async (link) => {
-    const legacy = await env.BLOCKS.get(key(link));
-    return legacy
-      ? new Uint8Array(await legacy.arrayBuffer())
-      : readBlock(env, key(link));
+  throw new HTTPException(503, {
+    message:
+      "Stored CAR is unavailable; re-upload the CAR or explicitly pin the root to prepare an archive",
   });
-  const bytes = await encodeCar(dag);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  const etag = Array.from(digest, (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
-  return { body: bytes, size: bytes.length, etag };
 }

@@ -10,7 +10,7 @@ import type {
 } from "@shazhou/pinboard-contracts";
 import type { Bindings } from "./env.js";
 import { requireScope, type Principal } from "./identity.js";
-import { key, parseCid, readCar } from "./content.js";
+import { completeDag, key, parseCid } from "./content.js";
 import { PinService } from "./service.js";
 import {
   itemFilterSchema,
@@ -18,7 +18,7 @@ import {
   publicationEditSchema,
   validate,
 } from "./schemas.js";
-import { getCar, storeDag } from "./storage.js";
+import { getCar, readBlock, storeDag } from "./storage.js";
 import { matchesItemFilter } from "./item-filter.js";
 import { authorizePublication } from "./access.js";
 
@@ -627,18 +627,27 @@ export class PublicationService {
   }
 
   private async prepareTarget(cid: string): Promise<void> {
+    const manifest = await this.env.DB.prepare(
+      "SELECT root FROM car_dags WHERE root = ?",
+    )
+      .bind(cid)
+      .first();
+    if (!manifest) {
+      // Publication writes already prepare legacy targets before retaining them.
+      // Keep that explicit write separate from archive reads.
+      await storeDag(
+        this.env,
+        await completeDag(parseCid(cid), (link) =>
+          readBlock(this.env, key(link)),
+        ),
+      );
+    }
     const car = await getCar(this.env, cid);
     if (!car)
       throw new HTTPException(503, {
         message: "Publication target content is unavailable",
       });
-    if (car.body instanceof ReadableStream) {
-      await car.body.cancel();
-    } else {
-      // Legacy independent blocks need a fresh indexed, GC-fenced archive
-      // before the unchanged atomic ready/member checks can retain them.
-      await storeDag(this.env, await readCar(car.body));
-    }
+    await car.body.cancel();
   }
 
   async delete(id: string): Promise<void> {

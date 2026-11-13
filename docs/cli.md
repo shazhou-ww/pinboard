@@ -204,6 +204,14 @@ Both fetch content from the selected endpoint's authorization-aware CAR API,
 using an optional scoped Agent credential. Endpoint and timeout options still
 apply; redirects are refused. No pin is created by either command.
 
+The API now streams only an already stored archive. Legacy and unprepared
+sub-DAG roots may remain readable as raw blocks but return **503** for both
+commands, rather than silently packing on read. Re-upload a verified CAR or
+explicitly pin through `POST /api/pins` or MCP `pinboard_pin` with write
+authorization to prepare the available DAG, then retry (the CLI has no pin
+command). An unknown/unreadable root remains 404. Original file/ZIP HTTP
+downloads are a separate retained product extension.
+
 `--output` always wins and skips filename metadata, not byte authorization.
 Otherwise, an available `PINBOARD_AGENT_TOKEN` or endpoint-bound stored token is
 used for private byte reads and to inspect the pin's name (`pins:read`

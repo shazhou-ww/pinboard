@@ -116,6 +116,115 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("live root access, not CID knowledge or retention", () => {
   it.each(["GET", "HEAD"])(
+    "%s rejects removed gateway capabilities after authorization without R2 reads",
+    async (method) => {
+      const pin = await pins().upload(
+        text("removed gateway " + crypto.randomUUID()),
+        "file",
+        "Removed capability fixture",
+      );
+      const missing = CID.createV1(
+        0x55,
+        await sha256.digest(text("unknown removed gateway")),
+      ).toString();
+      const get = vi.spyOn(env.BLOCKS, "get");
+      const head = vi.spyOn(env.BLOCKS, "head");
+      const variants = [
+        ["", "?format=car", {}],
+        ["", "?format=car&dag-scope=block", {}],
+        ["", "?format=car&dag-scope=entity", {}],
+        ["", "?format=car&dag-scope=all", {}],
+        ["", "?format=raw&entity-bytes=0:1", {}],
+        ["", "?format=raw&dag-scope=block", {}],
+        ["", "?format=raw&car-order=dfs", {}],
+        ["", "?format=raw&unknown=1", {}],
+        ["/file", "?format=raw", {}],
+        ["/file", "?format=car", {}],
+        ["/", "?format=raw", {}],
+        ["", "", { accept: "application/vnd.ipld.car" }],
+      ] as const;
+      for (const root of [pin.cid, missing, PROBE_CID]) {
+        for (const token of [undefined, ownerToken, otherToken]) {
+          for (const [path, query, headers] of variants) {
+            const response = await request(
+              `/ipfs/${root}${path}${query}`,
+              token,
+              { method, headers },
+            );
+            expect(response.status, `${root}${path}${query}`).toBe(
+              root === PROBE_CID || (root === pin.cid && token === ownerToken)
+                ? 406
+                : 404,
+            );
+            expect(response.headers.get("cache-control")).toBe(
+              "private, no-store",
+            );
+            if (method === "HEAD") expect(await response.text()).toBe("");
+          }
+        }
+      }
+      expect(get).not.toHaveBeenCalled();
+      expect(head).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps legacy raw readable but requires explicit archive preparation", async () => {
+    const dag = await importFile(
+      text("unindexed archive " + crypto.randomUUID()),
+    );
+    for (const [cid, bytes] of dag.blocks) await env.BLOCKS.put(cid, bytes);
+    await env.DB.prepare(
+      "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, 'Legacy archive', ?, ?, 'public')",
+    )
+      .bind(alice.accountId, key(dag.root), dag.size, dag.blocks.size)
+      .run();
+    expect((await request(`/ipfs/${key(dag.root)}?format=raw`)).status).toBe(
+      200,
+    );
+    const get = vi.spyOn(env.BLOCKS, "get");
+    const archive = await request(`/api/public/${key(dag.root)}/car`);
+    expect(archive.status).toBe(503);
+    expect(await archive.json<{ error: string }>()).toEqual({
+      error:
+        "Stored CAR is unavailable; re-upload the CAR or explicitly pin the root to prepare an archive",
+    });
+    expect(get).not.toHaveBeenCalled();
+    await pins().pin(key(dag.root), "Legacy archive");
+    expect((await request(`/api/public/${key(dag.root)}/car`)).status).toBe(
+      200,
+    );
+  });
+
+  it("does not pack a live indexed DAG member on archive download", async () => {
+    const child = await importFile(
+      text("unprepared member " + crypto.randomUUID()),
+    );
+    const bytes = dagCbor.encode({ child: child.root });
+    const root = CID.createV1(dagCbor.code, await sha256.digest(bytes));
+    const dag = await completeDag(root, (cid) =>
+      key(cid) === key(root) ? bytes : child.blocks.get(key(cid)),
+    );
+    await storeDag(env, dag);
+    await env.DB.prepare(
+      "INSERT INTO pins (account_id, cid, name, size, blocks, visibility) VALUES (?, ?, 'Member archive', ?, ?, 'public')",
+    )
+      .bind(alice.accountId, key(root), dag.size, dag.blocks.size)
+      .run();
+    expect((await request(`/ipfs/${key(child.root)}?format=raw`)).status).toBe(
+      200,
+    );
+    const get = vi.spyOn(env.BLOCKS, "get");
+    const put = vi.spyOn(env.BLOCKS, "put");
+    expect((await request(`/api/public/${key(child.root)}/car`)).status).toBe(
+      503,
+    );
+    expect(get).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+    expect((await request(`/api/public/${key(root)}/car`)).status).toBe(200);
+    expect(get).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["GET", "HEAD"])(
     "%s rejects root service-worker registration before content access",
     async (method) => {
       const pin = await pins().upload(

@@ -5,7 +5,8 @@
 用户已将本轮目标改为能力收敛与代码清理，旧的动态 CAR 接纳/期限保障方案不再实施。此前失败保留于
 [联合渲染证据](JointRenderFeasibility.md)，旧计划保留于
 [历史方案](HistoricalConformanceBudget.md)；新支持矩阵见
-[能力与路由表](CapabilityChoices.md)。当前只更新契约，未执行代码删除。
+[能力与路由表](CapabilityChoices.md)。已完成候选代码清理与本地验证，具体删除、调用方兼容和独立客户端证据见
+[清理证据](InnerCleanUpEvidence.md)；未提交、同步、变更事件或发布。父会话负责全部门禁、提交、CI、生产发布和浏览器验收。
 
 ## Steps
 
@@ -15,7 +16,7 @@
 
 ### I-S02: 撤出能力并清理关联代码
 
-未来获准后删除路径/目录、动态 CAR
+删除路径/目录、动态 CAR
 scope/范围及现场归档回退，保留 raw 通用解析和实际被使用的共享工具。同步调用方、probe、文档、测试及无用依赖，不留下开关或隐藏路由继续提供撤出能力。
 
 ## Acceptance criteria
@@ -31,5 +32,5 @@ GET/HEAD/304、CID 校验、授权、provider、图片及已存 CAR 流式下载
 
 ### I-AC03: 最终候选通过完整检查
 
-未来最终候选执行 pnpm
+最终候选执行 pnpm
 check；候选变化后重新验证。历史内存失败保留，不把移除不做的能力等同旧资源保障实验通过。

@@ -56,8 +56,8 @@ records are kept for 30 days from the earlier invalidation time. The Web token
 list defaults to active entries, with a separate history view.
 
 New uploads use one CAR object and a CID-to-object/offset/length index, with
-legacy independent-block fallback. Complete indexed CAR downloads stream one
-object; raw block reads use R2 ranges. See
+legacy independent-block fallback for raw reads only. Complete indexed CAR
+downloads stream one object; raw block reads use R2 ranges. See
 [storage and recovery](docs/storage.md) for duplication tradeoffs, publication
 guarantees and rollout requirements.
 
@@ -454,8 +454,7 @@ retrieval. Select raw with `?format=raw` or an `Accept` header:
   register a service worker with a parent `/ipfs/` scope.
 - Explicit `format=raw` takes precedence over `Accept`, even if the header is
   malformed or excludes raw. Empty or unsupported `format` values return 406
-  (`format=car` has the separate partial-CAR contract below). Omitting both
-  `format` and `Accept` returns 400.
+  (including `format=car`). Omitting both `format` and `Accept` returns 400.
 - Without `format`, `application/vnd.ipld.raw`, `application/*` and `*/*` are
   supported media ranges, matched case-insensitively. Quality values must be
   between 0 and 1 with at most three decimal places; `q=0` excludes a range. The
@@ -501,118 +500,38 @@ trustless-only mode. Thumbnail URLs and default image selection remain
 unchanged. This does not add credentialed cross-origin access or CORS preflight
 support for private content.
 
-### Partial CAR path-proof HTTP contract
+### Gateway scope and stored archive compatibility
 
-`GET` and `HEAD /ipfs/{cid}[/{path}]?format=car` return standard CARv1. An
-explicit `Accept: application/vnd.ipld.car` also selects CAR. Every scope
-includes the requested root and the blocks needed to authenticate the path:
+Iteration 5 intentionally removes the dynamic CAR/path capabilities shipped in
+release `release-261112-4`. GET and HEAD reject `format=car`, CAR-only Accept,
+all `/ipfs/{cid}/{path}` requests (including a trailing slash), and unsupported
+query parameters with **406**, after authorization. This includes `dag-scope`,
+`entity-bytes`, `car-version`, `car-order` and `car-dups`, even with
+`format=raw`. Only `format` and the existing `access=v1` cache partition marker
+are accepted; repeated `format` returns 400. Unknown/unreadable roots
+remain 404. The CAR identity probe also returns 406, not a header-only success.
+Accept may still select acceptable raw or an existing thumbnail; no dynamic CAR
+candidate, path resolution, directory enumeration or hidden small-DAG exception
+remains.
 
-| `dag-scope`     | Additional terminal content                                                                                                                                                                      |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `block`         | Only the terminal block (the existing path-proof representation)                                                                                                                                 |
-| `entity`        | Complete UnixFS file data, or directory representation including HAMT shards needed to enumerate that directory, **not** child files or subdirectory contents; other IPLD entities equal `block` |
-| `all` (default) | The terminal's entire reachable DAG, not unrelated request-root siblings                                                                                                                         |
+The separate `/api/public/:cid/car` and Publication download endpoints retain
+direct streaming of **already stored** complete archives. An indexed export uses
+one manifest lookup and one R2 GET, excluding authorization. Unindexed legacy or
+sub-DAG archive exports return actionable **503** when the root block exists,
+and 404 when it does not; no block traversal or packing occurs on read.
+Re-upload a verified CAR or explicitly pin the available root to prepare an
+archive. Existing explicit Publication writes also retain their legacy archive
+preparation; merely reading a Publication does not prepare anything. Raw legacy
+block reads remain available. No schema change, record deletion or automatic
+archive backfill accompanies this breaking change.
 
-For inline DAG-CBOR terminals, `all` follows only links inside the selected
-value; a scalar adds no blocks. This is a partial, local-only trustless gateway
-capability, not full gateway conformance or recursive network retrieval.
-
-- The supported variant is `version=1; order=dfs; dups=n`, accurately advertised
-  in `Content-Type`. Blocks appear proof-first, then terminal depth-first order;
-  HAMT sub-shards are included, and equivalent CIDv0/v1 blocks are emitted only
-  once. Original block payloads and the request root's CID version are
-  preserved.
-- `car-version=1`, `car-order=dfs` and `car-dups=n` are the supported query
-  variants. Query variants override corresponding Accept media parameters.
-  Explicit `format` chooses the representation ahead of Accept. For
-  `format=car`, malformed Accept is ignored (as before), and header quality
-  values do not override the explicit format; however, valid explicit CAR offers
-  still constrain the variant. Thus `format=car` with
-  `Accept: application/vnd.ipld.car;version=2` returns 406 unless
-  `car-version=1` overrides that parameter. A non-CAR Accept alone does not
-  constrain explicit CAR. Without `format`, supported CAR/raw/available image
-  candidates are compared by quality, then media specificity (including matching
-  parameters); exact `q=0` exclusions override broader wildcards. Explicit CAR
-  wins equal ties. An unsupported CAR offer may fall back only to an actually
-  acceptable candidate. CAR is considered only when an explicit CAR media range
-  is present; wildcard-only headers retain the raw/image baseline, including raw
-  exclusions. Within CAR negotiation, a wildcard can accept the supported
-  variant when an unsupported explicit variant does not match it. Explicit raw
-  retains its image tie preference. Quoted parameters are supported; malformed
-  Accept returns 400. Relative `Content-Location` identifies the actual raw/CAR
-  URL, including CAR variant query parameters, without copying an untrusted
-  header or origin.
-- Omitted `dag-scope` and explicit `all` have identical bytes and ETags.
-  Different scopes have distinct ETags even when their block sets coincide.
-  CARv2, duplicate-enabled output and other variants are unsupported (406 for
-  explicit CAR). Invalid scope, malformed query encoding, repeated CAR query
-  parameters or malformed `entity-bytes` return 400.
-- `entity-bytes=from:to` selects an inclusive logical byte range and implies
-  **entity**, overriding valid explicit `block`/`all` scopes. Offsets are exact
-  decimal integers with an optional minus sign; negative offsets are relative to
-  the entity length, and only the end may be `*` (EOF). Empty endpoints,
-  multiple ranges, plus signs, fractions and exponents are rejected (400).
-  Verified UnixFS `blocksizes` select only the necessary ancestors and data
-  blocks, including files with embedded data and intermediate file nodes. Shared
-  blocks are read once and emitted once in DFS order; an unavailable unselected
-  branch does not fail a partial request. Partial out-of-bounds intervals use
-  their intersection; a nonempty entity's wholly out-of-bounds interval returns
-  400 when determinable during preflight. Empty entities and explicitly reversed
-  resolved intervals return the path and terminal block proof only. `from:*`
-  beyond a nonempty EOF is out of bounds, not an explicitly reversed interval.
-- Raw terminals and DAG-CBOR byte strings (including inline byte values)
-  represent their decoded bytes, but always require the complete containing
-  block for CID verification. Nonbyte terminals such as maps, lists, scalars and
-  directories ignore byte selection and retain entity semantics, including HAMT
-  enumeration. Requested ranges still distinguish ETags for these entities.
-  Range ETags normalize integer spelling and effective scope, but do not merge
-  different requested intervals merely because their selected blocks coincide.
-  False declared file sizes, missing size indexes, selected child-size
-  mismatches and invalid/overflowing metadata fail preflight (503); logical
-  UnixFS file sizes above the existing 32 MiB source limit return 413.
-  Unselected child metadata is not fetched or certified.
-- Exception: `/ipfs/bafkqaaa?format=car` or CAR Accept without scope returns a
-  valid header-only CAR with that identity CID as its sole root and no data
-  blocks, for omitted scope and every supported explicit scope. The probe has no
-  child path.
-- Paths support ordinary and HAMT UnixFS directory names, and DAG-CBOR map keys,
-  canonical zero-based list indices and CID links. Inline DAG-CBOR terminal
-  values are proven by their containing block. Raw/file/symlink child traversal,
-  non-UnixFS DAG-PB field paths and other codecs are not supported. Symlinks are
-  never followed. Missing paths return 404; unsupported UnixFS path forms
-  return 422. Names are decoded once as UTF-8 URL components; Unicode, spaces,
-  colons, reserved Windows filenames and other ordinary IPLD names are not
-  ZIP-filtered. Encode `?`, `#`, `%` and other URL delimiters. Empty interior
-  components, dot segments received by the server, encoded slashes, backslashes,
-  controls and malformed escapes are rejected (400). URL clients may normalize
-  literal dot segments before transmission. Paths are limited to 256 components
-  and 8192 encoded pathname characters.
-- Authorization uses only live roots/members, before retrieval. Proofs use only
-  local storage, never fetch remotely or write to the database. All required
-  blocks are read and hash-verified before GET, HEAD or 304 succeeds, including
-  `If-None-Match: *`. An unavailable authorized root returns 404, or 412 with
-  the bare `Cache-Control: only-if-cached` directive, as for raw. Unknown or
-  unreadable roots and missing paths remain 404 even with that directive;
-  missing required proof blocks or invalid stored bytes return 503.
-  Indexed-storage failures remain errors rather than missing paths.
-- Preflight is cancellation-aware; proof and terminal content share
-  normalized-CID budgets of 256 unique blocks, 32 MiB of block payloads and 2
-  MiB per block. HEAD and conditional 304 requests also read and verify the
-  **entire selected scope**, potentially 32 MiB and 256 indexed D1/R2 block
-  reads, plus authorization queries. They are not cheap metadata probes; raw
-  HEAD's optimization is unchanged. CAR framing is additional to the payload
-  budget, and 32 MiB is not a peak-memory guarantee. Encoding streams the
-  verified buffers without concatenating another full CAR; no stored-archive
-  fast path bypasses selection. Responses have attachment disposition,
-  `nosniff`, sandbox CSP, private/no-store and wildcard CORS as with raw. Strong
-  `.car` ETags distinguish the request root CID version, decoded path, scope and
-  supported variants from raw and image representations.
-
-IPNS, HTTP `Range` responses and UnixFS rendering remain unsupported. Raw
-remains root-block-only; paths do not change its response body or headers. The
-separate `/api/public/:cid/car` endpoint still exports a complete CARv1 DAG,
-independently of standard partial-CAR negotiation. Clients must verify CIDs and
-root-to-path relationships; parsing a CAR alone is not proof validation.
+UnixFS upload/client encoding, original-file/ZIP downloads and previews are
+separate retained product extensions. Their existing traversal/resource costs
+are not removed or newly certified by gateway cleanup. Raw HTTP `Range` is
+ignored (200 with the full block); IPNS is deferred to iteration 6. No
+capability manifest/API or full Trustless Gateway certification is claimed.
+Clients verify block CIDs and reconstruct paths locally; see
+[Kubo](docs/kubo.md).
 
 ### Deliberate first-version limits
 

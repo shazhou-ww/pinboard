@@ -32,48 +32,17 @@ it; omitting both selectors returns 400 except for the existing thumbnail image
 representation. Thumbnail bytes also match their CID, but image and raw
 responses have separate representation headers and ETags. Requests with
 `Service-Worker: script` at the root are rejected with 400 before content
-access. Raw behavior remains unchanged by the
-[partial CAR path-proof contract](../README.md#partial-car-path-proof-http-contract):
-`/ipfs/{cid}/{path}?format=car` (or explicit CAR Accept) supports CARv1
-root-to-path proofs for UnixFS/HAMT and DAG-CBOR. `dag-scope=block` adds only
-the terminal block; `entity` adds complete UnixFS file data or directory
-enumeration shards without fetching child content (other IPLD entities equal
-`block`); `all` adds the terminal's full reachable DAG. Omitted scope equals
-explicit `all`, including representation bytes and ETag. Inline DAG-CBOR `all`
-follows only links inside the selected value, not its containing block's
-siblings. The variant remains `version=1; order=dfs; dups=n`, with
-normalized-CID deduplication across proof and scope. No recursive network
-fetching is implied. The identity probe remains header-only for all scopes.
-`entity-bytes=from:to` selects an inclusive logical byte interval with exact
-integer offsets, negative offsets and an EOF `*` end. It overrides valid scope
-with `entity`, pruning UnixFS files by verified size indexes before reading
-children, not after fetching the whole DAG. Whole blocks are returned for CID
-verification. Partial overlap is intersected; a determinable wholly
-out-of-bounds nonempty range returns 400. Empty entities and explicitly reversed
-intervals retain only the path/block proof. Nonbyte entities ignore selection;
-decoded DAG-CBOR byte strings, including inline values, use their logical byte
-length and complete containing block. CARv2 and duplicate-enabled variants
-remain unsupported.
-
-Explicit format selects the representation, but valid explicit CAR media
-parameters still constrain its variant unless overridden by the corresponding
-CAR query parameter. Unsupported combinations return 406, not another variant.
-Without format, supported candidates use Accept quality/specificity, including
-specific `q=0` exclusions and quoted parameters. CAR candidates require an
-explicit CAR media range; otherwise wildcards retain the raw/image baseline.
-During CAR negotiation, an acceptable wildcard can admit the supported variant
-even when another explicit variant is unsupported, but cannot revive a matching
-specific `q=0`. Raw/CAR `Content-Location` identifies the actual representation
-URL; ETags include normalized requested ranges even when a nonbyte entity
-ignores them. HEAD and conditional responses verify the actual path and **entire
-requested scope** before success: up to 256 unique block reads / 32 MiB payload
-(2 MiB per block), plus authorization queries. Those are not peak-memory limits
-or cheap metadata checks. An authorized root with no stored block returns 404
-normally or 412 with `Cache-Control: only-if-cached`, including wildcard
-conditional requests. Unknown/unreadable roots and missing paths remain 404;
-missing child proof blocks and genuine indexed-storage failures remain 503. The
-probe is unaffected. IPNS and HTTP `Range` remain unsupported. Custom full-CAR
-export is separate.
+access. Iteration 5 removes the dynamic CAR/path capabilities of release
+`release-261112-4`: CAR-only requests (including the identity probe), paths and
+CAR scope/range/variant query parameters return 406 after authorization, with no
+R2 payload reads. Unknown/private roots still return 404. See the
+[current scope and compatibility contract](../README.md#gateway-scope-and-stored-archive-compatibility).
+Kubo's cold raw retrieval protocol is unchanged: Kubo resolves UnixFS paths and
+assembles files on the client, not through server-side path requests. Accept may
+choose raw when actually acceptable; explicit `format=raw` still overrides it.
+Raw HTTP Range remains a full-body 200, not 206/416. IPNS remains future work.
+Custom stored-CAR export remains separate; an unprepared legacy or sub-DAG root
+requires re-upload/explicit pin (503), never on-read packing.
 
 ### Local protocol regression coverage
 
@@ -92,16 +61,15 @@ authentication setup. The requirement-to-test mapping is:
 
 These are local protocol assertions, not a production compatibility
 certification or a replacement for independent client CID verification.
-[`gateway-car.test.ts`](../apps/worker/test/gateway-car.test.ts) independently
-parses CARs and checks SHA-256/CIDs and exact root-to-path block sets for nested
-UnixFS, a real HAMT sub-shard, DAG-CBOR maps/lists/inline values and CIDv0.
-Deleting or tampering with a required block fails the independent verifier. It
-also tests missing paths/blocks, negotiation, probe GET/HEAD, authorization,
-conditional availability, resource limits and cancellation. These do not replace
-an external client's production smoke test or claim full Kubo CAR conformance.
 [`access.test.ts`](../apps/worker/test/access.test.ts) additionally covers
 authorization-first missing-block behavior and service-worker registration
-rejection through the complete Worker app.
+rejection through the complete Worker app, removed-capability GET/HEAD
+rejections without R2 reads, and legacy raw availability/archive preparation.
+[`storage.test.ts`](../apps/worker/test/storage.test.ts) checks direct stored
+archive byte equality, independent CAR parsing and the one-manifest/one-GET read
+cost. Removed dynamic-CAR runtime tests/fixtures are not evidence that the
+historical joint-memory experiment passed. The official all-capability gateway
+suite is not claimed; only retained raw behavior applies.
 [`previews.test.ts`](../apps/worker/test/previews.test.ts) verifies thumbnail
 CID integrity, unchanged image URLs and explicit raw GET/HEAD selection with
 separate representation validators.

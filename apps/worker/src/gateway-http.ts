@@ -31,23 +31,17 @@ function malformedAccept(): never {
 }
 
 export function acceptsRaw(accept: string): boolean {
-  return acceptsMedia(accept, RAW_TYPE);
-}
-
-export function acceptsMedia(accept: string, requested: string): boolean {
-  return mediaQuality(parseAccept(accept), requested).q > 0;
+  return mediaQuality(parseAccept(accept), RAW_TYPE).q > 0;
 }
 
 export function mediaQuality(
   ranges: ReturnType<typeof parseAccept>,
   requested: string,
-  supports: (parameters: Map<string, string>) => boolean = (parameters) =>
-    parameters.size === 0,
 ) {
   let specificity = -1;
   let quality = 0;
   for (const { type, q, parameters } of ranges) {
-    if (!supports(parameters)) continue;
+    if (parameters.size !== 0) continue;
     const rank =
       type === requested
         ? 2

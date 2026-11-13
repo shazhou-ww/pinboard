@@ -153,7 +153,9 @@ describe("CAR primary storage", () => {
     expect(objects.objects[0]!.key).toMatch(/^cars\//);
     const get = vi.spyOn(env.BLOCKS, "get");
     const encode = vi.spyOn(encoding, "encodeCar");
+    const prepare = vi.spyOn(env.DB, "prepare");
     const car = (await getCar(env, key(dag.root)))!;
+    expect(prepare).toHaveBeenCalledTimes(1);
     const bytes = await responseBytes(car.body);
     expect(bytes).toEqual(baseline.exported);
     expect(bytes.length).toBe(car.size);
@@ -334,25 +336,27 @@ describe("CAR primary storage", () => {
     );
   });
 
-  it("exports legacy DAGs without a D1 lookup for every block", async () => {
+  it("rejects legacy archive reads without fetching or traversing blocks", async () => {
     const dag = await directory(64, "legacy-query-regression");
     for (const [cid, bytes] of dag.blocks) await env.BLOCKS.put(cid, bytes);
     const prepare = vi.spyOn(env.DB, "prepare");
     const get = vi.spyOn(env.BLOCKS, "get");
-    const car = (await getCar(env, key(dag.root)))!;
+    await expect(getCar(env, key(dag.root))).rejects.toMatchObject({
+      status: 503,
+      message:
+        "Stored CAR is unavailable; re-upload the CAR or explicitly pin the root to prepare an archive",
+    });
     expect(prepare).toHaveBeenCalledTimes(3);
-    expect(get).toHaveBeenCalledTimes(dag.blocks.size);
-    const restored = await readCar(await responseBytes(car.body));
-    expect(restored.blocks).toEqual(dag.blocks);
+    expect(get).not.toHaveBeenCalled();
   });
 
   it("reads legacy and mixed DAGs, then repacks on pin without deleting legacy objects", async () => {
     const legacy = await file("legacy-only");
     for (const [cid, bytes] of legacy.blocks) await env.BLOCKS.put(cid, bytes);
     expect(await readBlock(env, key(legacy.root))).toEqual(text("legacy-only"));
-    expect((await getCar(env, key(legacy.root)))!.size).toBeGreaterThan(
-      legacy.size,
-    );
+    await expect(getCar(env, key(legacy.root))).rejects.toMatchObject({
+      status: 503,
+    });
     const child = await file("new-child");
     await storeDag(env, child);
     const bytes = dagPb.encode({
@@ -360,10 +364,7 @@ describe("CAR primary storage", () => {
     });
     const root = CID.createV1(dagPb.code, await sha256.digest(bytes));
     await env.BLOCKS.put(key(root), bytes);
-    const mixed = (await getCar(env, key(root)))!;
-    expect((await readCar(await responseBytes(mixed.body))).blocks.size).toBe(
-      3,
-    );
+    await expect(getCar(env, key(root))).rejects.toMatchObject({ status: 503 });
     const service = new PinService(env, principal);
     await publicReference(key(root), legacy.size + child.size, 3);
     await service.pin(key(root), "mixed");

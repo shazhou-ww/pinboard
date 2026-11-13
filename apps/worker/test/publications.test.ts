@@ -2425,7 +2425,7 @@ describe("publications and recovery", () => {
           .bind(pin.cid)
           .first(),
       ).toBeNull();
-      expect((await getCar(env, pin.cid))!.body).toBeInstanceOf(Uint8Array);
+      await expect(getCar(env, pin.cid)).rejects.toMatchObject({ status: 503 });
     }
     const { publication } = await publications.create(
       "Legacy publication",

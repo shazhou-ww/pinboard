@@ -47,11 +47,14 @@ accepted as before; stored block identifiers and export roots use CIDv1.
   payload. HEAD, conditional hits and provider discovery check R2 metadata
   without reading payload bytes. Empty blocks use metadata and an empty stream,
   avoiding an invalid zero-length R2 range.
-- An unindexed CID falls back to the existing independent R2 block key. Legacy
-  and mixed DAG exports still traverse and encode; an arbitrary sub-DAG root not
-  previously uploaded/pinned also uses this compatibility path. Explicitly
-  pinning an available DAG packs it for subsequent direct exports, without
-  deleting existing legacy data.
+- An unindexed raw CID falls back to the existing independent R2 block key.
+  Archive reads never traverse or encode: legacy/mixed and unprepared sub-DAG
+  exports return 503 with re-upload/explicit-pin recovery instructions if the
+  root block exists, or 404 if absent. Explicitly pinning an available DAG or
+  re-uploading a verified CAR prepares subsequent direct exports without
+  deleting legacy data. Existing explicit Publication writes still prepare
+  legacy targets before their atomic retention checks; Publication downloads
+  never do. No schema change or automatic archive backfill is required.
 
 HTTP reads now authorize eligible live DAG roots before any storage access or
 conditional response. Gateway caches are private/no-store; raw ETags,

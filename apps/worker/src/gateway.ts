@@ -10,7 +10,6 @@ import {
   parseAccept,
 } from "./gateway-http.js";
 import { blobBytes, getBlock, headBlock, type D1Blob } from "./storage.js";
-import { carResponse, gatewayPath, negotiateCar } from "./gateway-car.js";
 
 export const gateway = new Hono<AppEnv>();
 gateway.use("*", async (c, next) => {
@@ -24,10 +23,28 @@ gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
       { error: "Service workers are not allowed at an IPFS root" },
       400,
     );
-  const { root, parts } = gatewayPath(c.req.raw);
-  const cid = root.toV1();
+  const cid = parseCid(c.req.param("cid")).toV1();
   if (key(cid) !== PROBE_CID)
     await authorizeBlock(c.env, key(cid), await optionalIdentity(c));
+  if (new URL(c.req.url).pathname !== `/ipfs/${c.req.param("cid")}`)
+    return c.json(
+      { error: "IPFS paths are not supported; request root raw blocks" },
+      406,
+    );
+  const query = new URL(c.req.url).searchParams;
+  for (const name of query.keys())
+    if (
+      name !== "format" &&
+      !(
+        name === "access" && query.getAll(name).every((value) => value === "v1")
+      )
+    )
+      return c.json(
+        { error: `Unsupported gateway query parameter: ${name}` },
+        406,
+      );
+  if (query.getAll("format").length > 1)
+    return c.json({ error: "Repeated format" }, 400);
   const format = c.req.query("format");
   const accept = c.req.header("accept");
   let image: { bytes: D1Blob } | null = null;
@@ -36,7 +53,6 @@ gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
   const rawQuality = mediaQuality(ranges, "application/vnd.ipld.raw");
   const imageQuality = mediaQuality(ranges, "image/webp");
   if (
-    !parts.length &&
     format === undefined &&
     (accept === undefined ||
       (imageQuality.q > 0 &&
@@ -51,13 +67,6 @@ gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
       .bind(key(cid))
       .first<{ bytes: D1Blob }>();
   }
-  if (negotiateCar(c.req.raw, image !== null))
-    return carResponse(c.env, c.req.raw, root, parts);
-  if (parts.length)
-    return c.json(
-      { error: "Paths require a supported CAR representation" },
-      406,
-    );
   if (image) {
     const bytes = blobBytes(image.bytes);
     const headers = {
@@ -88,7 +97,7 @@ gateway.on(["GET", "HEAD"], ["/ipfs/:cid", "/ipfs/:cid/*"], async (c) => {
     return c.json(
       {
         error:
-          "Request ?format=raw or ?format=car, or acceptable raw/CAR Accept (CARv1/dfs/n, dag-scope=block|entity|all, entity-bytes=from:to)",
+          "Request ?format=raw or acceptable application/vnd.ipld.raw; dynamic CAR is not supported",
       },
       406,
     );
